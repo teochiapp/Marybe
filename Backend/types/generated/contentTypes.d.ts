@@ -443,7 +443,7 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
 export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
   collectionName: 'productos';
   info: {
-    description: 'Cat\u00E1logo de productos de Marybe';
+    description: 'Cat\u00E1logo de productos de Marybe con variantes anidadas';
     displayName: 'Producto';
     pluralName: 'productos';
     singularName: 'producto';
@@ -452,33 +452,29 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
-    codigo_ean: Schema.Attribute.String;
+    categoria: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    deta: Schema.Attribute.Text;
-    detalle: Schema.Attribute.String & Schema.Attribute.Required;
-    envio: Schema.Attribute.String;
-    id_externo: Schema.Attribute.String;
+    descripcion_corta: Schema.Attribute.Text;
+    id_original: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::producto.producto'
     > &
       Schema.Attribute.Private;
+    marca: Schema.Attribute.String;
     moneda: Schema.Attribute.String & Schema.Attribute.DefaultTo<'ARS'>;
-    oferta: Schema.Attribute.Decimal;
-    precio: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    nombre: Schema.Attribute.String & Schema.Attribute.Required;
     proveedor: Schema.Attribute.String;
-    publica: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    publicado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     publishedAt: Schema.Attribute.DateTime;
-    stock: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    sku: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    variantes: Schema.Attribute.String;
-    ver_stk: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
-    verificacion: Schema.Attribute.String;
+    variantes: Schema.Attribute.Component<'producto.variante', true>;
   };
 }
 
