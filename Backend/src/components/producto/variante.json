@@ -1,0 +1,41 @@
+{
+  "collectionName": "components_producto_variantes",
+  "info": {
+    "displayName": "Variante",
+    "description": "Variante de un producto (EAN, stock, precio, volumen)"
+  },
+  "options": {},
+  "attributes": {
+    "id_original": {
+      "type": "string"
+    },
+    "sku_ean": {
+      "type": "string"
+    },
+    "volumen": {
+      "type": "string"
+    },
+    "stock": {
+      "type": "integer",
+      "default": 0
+    },
+    "precio": {
+      "type": "decimal",
+      "required": true
+    },
+    "precio_oferta": {
+      "type": "decimal"
+    },
+    "publicado": {
+      "type": "boolean",
+      "default": true
+    },
+    "envio": {
+      "type": "string"
+    },
+    "moneda": {
+      "type": "string",
+      "default": "ARS"
+    }
+  }
+}

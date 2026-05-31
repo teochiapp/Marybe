@@ -440,6 +440,44 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
+  collectionName: 'productos';
+  info: {
+    description: 'Cat\u00E1logo de productos de Marybe con variantes anidadas';
+    displayName: 'Producto';
+    pluralName: 'productos';
+    singularName: 'producto';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    categoria: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    descripcion_corta: Schema.Attribute.Text;
+    id_original: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::producto.producto'
+    > &
+      Schema.Attribute.Private;
+    marca: Schema.Attribute.String;
+    moneda: Schema.Attribute.String & Schema.Attribute.DefaultTo<'ARS'>;
+    nombre: Schema.Attribute.String & Schema.Attribute.Required;
+    proveedor: Schema.Attribute.String;
+    publicado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    publishedAt: Schema.Attribute.DateTime;
+    sku: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    variantes: Schema.Attribute.Component<'producto.variante', true>;
+  };
+}
+
 export interface PluginContentReleasesRelease
   extends Struct.CollectionTypeSchema {
   collectionName: 'strapi_releases';
@@ -951,6 +989,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::producto.producto': ApiProductoProducto;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

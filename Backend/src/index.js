@@ -5,10 +5,22 @@ const path = require('path');
 const { parse } = require('csv-parse/sync');
 
 // ─── Configuración ────────────────────────────────────────────────────────────
-const CSV_FILE         = path.join(__dirname, '../data/productos.csv');
-const CONTENT_TYPE_UID = 'api::producto.producto';
-const BATCH_SIZE       = 100;
+const CSV_PRODUCTOS = path.join(__dirname, '../data/productos.csv');
+const CSV_VARIANTES = path.join(__dirname, '../data/variantes.csv');
+const UID           = 'api::producto.producto';
+const BATCH_SIZE    = 50;
 // ─────────────────────────────────────────────────────────────────────────────
+
+function leerCSV(rutaArchivo) {
+  const raw   = fs.readFileSync(rutaArchivo);
+  const texto = raw.toString('utf8').replace(/^\uFEFF/, ''); // strip BOM
+  return parse(texto, {
+    columns:          true,
+    skip_empty_lines: true,
+    trim:             true,
+    relax_quotes:     true,
+  });
+}
 
 function parseBoolean(val) {
   return ['1', 'true', 'si', 'sí', 'yes'].includes(
@@ -17,29 +29,9 @@ function parseBoolean(val) {
 }
 
 function parseDecimal(val) {
-  if (!val || val.trim() === '') return null;
-  const cleaned = val.replace(/\./g, '').replace(',', '.');
-  const num = parseFloat(cleaned);
+  if (!val || val.toString().trim() === '') return null;
+  const num = parseFloat(val.toString().replace(/\./g, '').replace(',', '.'));
   return isNaN(num) ? null : num;
-}
-
-function mapRow(row) {
-  return {
-    id_externo:   (row['ID'] || '').trim(),
-    variantes:    (row['Variantes'] || '').trim(),
-    codigo_ean:   (row['Codigo EAN'] || '').trim(),
-    detalle:      (row['Detalle'] || '').trim(),
-    deta:         (row['Deta'] || '').trim(),
-    stock:        parseInt(row['Stock']) || 0,
-    ver_stk:      parseBoolean(row['Ver stk']),
-    precio:       parseDecimal(row['Precio']) || 0,
-    oferta:       parseDecimal(row['Oferta']),
-    publica:      parseBoolean(row['Publica']),
-    envio:        (row['Envio'] || '').trim(),
-    moneda:       (row['Moneda'] || 'ARS').trim(),
-    verificacion: (row['Verificaci\u00f3n'] || row['Verificacion'] || '').trim(),
-    proveedor:    (row['Proveedor'] || '').trim(),
-  };
 }
 
 module.exports = {
@@ -47,64 +39,107 @@ module.exports = {
 
   async bootstrap({ strapi }) {
 
-    // ── Guard: evitar re-importar si ya hay datos ─────────────────────────────
-    const existing = await strapi.documents(CONTENT_TYPE_UID).findMany({ limit: 1 });
+    // ── Guard: no reimportar si ya hay datos ──────────────────────────────────
+    const existing = await strapi.documents(UID).findMany({ limit: 1 });
     if (existing.length > 0) {
       strapi.log.info('[Seed] ✔ Ya existen productos. Omitiendo importación CSV.');
       return;
     }
 
-    // ── Verificar que el CSV existe ───────────────────────────────────────────
-    if (!fs.existsSync(CSV_FILE)) {
-      strapi.log.warn(`[Seed] ⚠ CSV no encontrado en: ${CSV_FILE}`);
-      strapi.log.warn('[Seed] Copiar el archivo como: Backend/data/productos.csv');
+    // ── Verificar que existan ambos CSV ───────────────────────────────────────
+    const faltaProductos = !fs.existsSync(CSV_PRODUCTOS);
+    const faltaVariantes = !fs.existsSync(CSV_VARIANTES);
+
+    if (faltaProductos || faltaVariantes) {
+      strapi.log.warn('[Seed] ⚠ Archivos CSV no encontrados. Ejecutar primero:');
+      if (faltaProductos) strapi.log.warn(`  → Backend/data/productos.csv`);
+      if (faltaVariantes) strapi.log.warn(`  → Backend/data/variantes.csv`);
+      strapi.log.warn('  Correr: node Backend/scripts/split-csv.js');
       return;
     }
 
-    strapi.log.info('[Seed] 🚀 Iniciando importación de productos desde CSV...');
+    strapi.log.info('[Seed] 🚀 Iniciando importación con variantes anidadas...');
     const start = Date.now();
 
-    const raw  = fs.readFileSync(CSV_FILE, 'utf-8');
-    const rows = parse(raw, {
-      columns:          true,
-      skip_empty_lines: true,
-      trim:             true,
-      bom:              true,
-      relax_quotes:     true,
-    });
+    // ── Leer ambos archivos ───────────────────────────────────────────────────
+    const productos = leerCSV(CSV_PRODUCTOS);
+    const variantes = leerCSV(CSV_VARIANTES);
 
-    strapi.log.info(`[Seed] 📋 ${rows.length} filas encontradas. Procesando en lotes de ${BATCH_SIZE}...`);
+    strapi.log.info(`[Seed] 📦 ${productos.length} productos padre`);
+    strapi.log.info(`[Seed] 🔗 ${variantes.length} variantes en total`);
+
+    // ── Indexar variantes por producto_padre_id ───────────────────────────────
+    const variantesIndex = new Map();
+    for (const v of variantes) {
+      const padreId = (v.producto_padre_id || '').trim();
+      const lista   = variantesIndex.get(padreId) || [];
+      lista.push(v);
+      variantesIndex.set(padreId, lista);
+    }
 
     let success = 0;
     let errors  = 0;
 
-    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-      const batch = rows.slice(i, i + BATCH_SIZE);
+    // ── Insertar en lotes ─────────────────────────────────────────────────────
+    for (let i = 0; i < productos.length; i += BATCH_SIZE) {
+      const batch = productos.slice(i, i + BATCH_SIZE);
 
-      for (const row of batch) {
+      for (const p of batch) {
+        const idOriginal = (p.id_original || '').trim();
+        const hijos      = variantesIndex.get(idOriginal) || [];
+
+        const variantesData = hijos.map(v => ({
+          id_original:   (v.id_original || '').trim(),
+          sku_ean:       (v.sku_ean || '').trim(),
+          volumen:       (v.volumen || '').trim(),
+          stock:         parseInt(v.stock)          || 0,
+          precio:        parseDecimal(v.precio)     || 0,
+          precio_oferta: parseDecimal(v.precio_oferta),
+          publicado:     parseBoolean(v.publicado),
+          envio:         (v.envio || '').trim(),
+          moneda:        (v.moneda || 'ARS').trim(),
+        }));
+
         try {
-          await strapi.documents(CONTENT_TYPE_UID).create({
-            data:   mapRow(row),
+          await strapi.documents(UID).create({
+            data: {
+              id_original:       idOriginal,
+              sku:               (p.sku || '').trim(),
+              nombre:            (p.nombre || '').trim(),
+              marca:             (p.marca || '').trim(),
+              categoria:         (p.categoria || '').trim(),
+              descripcion_corta: (p.descripcion_corta || '').trim(),
+              proveedor:         (p.proveedor || '').trim(),
+              publicado:         parseBoolean(p.publicado),
+              moneda:            (p.moneda || 'ARS').trim(),
+              variantes:         variantesData,
+            },
             status: 'published',
           });
           success++;
         } catch (err) {
           errors++;
           strapi.log.error(
-            `[Seed] ❌ Error en fila ${i + 1} — "${(row['Detalle'] || '').substring(0, 40)}": ${err.message}`
+            `[Seed] ❌ Error en "${(p.nombre || '').substring(0, 40)}" (id: ${idOriginal}): ${err.message}`
           );
         }
       }
 
-      const pct = Math.round(((i + batch.length) / rows.length) * 100);
+      const pct = Math.round(((i + batch.length) / productos.length) * 100);
       strapi.log.info(
-        `[Seed] Progreso: ${i + batch.length}/${rows.length} (${pct}%) | ✅ ${success} | ❌ ${errors}`
+        `[Seed] Progreso: ${i + batch.length}/${productos.length} (${pct}%) | ✅ ${success} | ❌ ${errors}`
       );
     }
 
     const elapsed = ((Date.now() - start) / 1000).toFixed(1);
     strapi.log.info(
-      `[Seed] ✅ Importación completa en ${elapsed}s — Éxitos: ${success} | Errores: ${errors}`
+      `[Seed] ✅ Importación completa en ${elapsed}s — Productos: ${success} | Errores: ${errors}`
+    );
+
+    // ── Resumen de variantes ──────────────────────────────────────────────────
+    const totalVariantesInsertadas = variantes.length;
+    strapi.log.info(
+      `[Seed] 📊 ${totalVariantesInsertadas} variantes anidadas importadas en ${success} productos`
     );
   },
 };
