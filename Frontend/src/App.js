@@ -1,10 +1,13 @@
 import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ApiProductos from './pages/ApiProductos';
 
 function App() {
   return (
-    <div className="App">
-      <h1>Marybe Frontend</h1>
-    </div>
+    <Routes>
+      <Route path="/" element={<Navigate to="/productos" replace />} />
+      <Route path="/productos" element={<ApiProductos />} />
+    </Routes>
   );
 }
 
