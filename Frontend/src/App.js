@@ -1,9 +1,10 @@
 import React from 'react';
+import Header from './Pages/Componentes/Header';
 
 function App() {
   return (
     <div className="App">
-      <h1>Marybe Frontend</h1>
+      <Header />
     </div>
   );
 }
