@@ -4,18 +4,40 @@ import './ApiProductos.css';
 const STRAPI_URL = 'http://localhost:1337';
 const PAGE_SIZE = 24;
 
+// ─── Helper: obtener precio/stock/oferta de variantes ────────────────────────
+function getPrecioInfo(variantes = []) {
+  if (!variantes.length) return { precio: null, oferta: null, stock: 0, moneda: 'ARS' };
+  const publicadas = variantes.filter(v => v.publicado !== false);
+  if (!publicadas.length) return { precio: null, oferta: null, stock: 0, moneda: 'ARS' };
+
+  // Precio mínimo entre variantes publicadas
+  const precioMin = Math.min(...publicadas.map(v => v.precio || Infinity));
+  // Oferta mínima (si existe)
+  const ofertaMin = publicadas.some(v => v.precio_oferta)
+    ? Math.min(...publicadas.filter(v => v.precio_oferta).map(v => v.precio_oferta))
+    : null;
+  // Stock total
+  const stockTotal = publicadas.reduce((acc, v) => acc + (v.stock || 0), 0);
+  const moneda = publicadas[0].moneda || 'ARS';
+
+  return { precio: precioMin === Infinity ? null : precioMin, oferta: ofertaMin, stock: stockTotal, moneda };
+}
+
 // ─── Componente tarjeta de producto ─────────────────────────────────────────
 function ProductCard({ producto }) {
-  const { detalle, precio, oferta, stock, proveedor, codigo_ean, publica, moneda } = producto;
-  const tieneOferta = oferta && oferta > 0 && oferta < precio;
-  const descuento = tieneOferta ? Math.round((1 - oferta / precio) * 100) : null;
+  const { nombre, sku, marca, categoria, proveedor, publicado, variantes = [] } = producto;
+  const { precio, oferta, stock, moneda } = getPrecioInfo(variantes);
+
+  const tieneOferta = oferta && oferta > 0 && precio && oferta < precio;
+  const descuento   = tieneOferta ? Math.round((1 - oferta / precio) * 100) : null;
+  const cantVariantes = variantes.length;
 
   return (
     <div className={`ap-card ${stock === 0 ? 'ap-card--sin-stock' : ''}`}>
       {tieneOferta && (
         <span className="ap-badge ap-badge--oferta">-{descuento}%</span>
       )}
-      {!publica && (
+      {!publicado && (
         <span className="ap-badge ap-badge--oculto">Oculto</span>
       )}
       {stock === 0 && (
@@ -33,25 +55,38 @@ function ProductCard({ producto }) {
       </div>
 
       <div className="ap-card__body">
-        <p className="ap-card__ean">{codigo_ean || '—'}</p>
-        <h3 className="ap-card__nombre">{detalle}</h3>
+        <div className="ap-card__meta">
+          {categoria && <span className="ap-tag">{categoria}</span>}
+          {marca     && <span className="ap-tag ap-tag--marca">{marca}</span>}
+        </div>
+        <p className="ap-card__ean">{sku || '—'}</p>
+        <h3 className="ap-card__nombre">{nombre}</h3>
         <p className="ap-card__proveedor">{proveedor}</p>
       </div>
 
       <div className="ap-card__footer">
         <div className="ap-card__precios">
-          {tieneOferta ? (
-            <>
-              <span className="ap-precio--original">{moneda} {precio?.toLocaleString('es-AR')}</span>
-              <span className="ap-precio--oferta">{moneda} {oferta?.toLocaleString('es-AR')}</span>
-            </>
+          {precio != null ? (
+            tieneOferta ? (
+              <>
+                <span className="ap-precio--original">{moneda} {precio.toLocaleString('es-AR')}</span>
+                <span className="ap-precio--oferta">{moneda} {oferta.toLocaleString('es-AR')}</span>
+              </>
+            ) : (
+              <span className="ap-precio">{moneda} {precio.toLocaleString('es-AR')}</span>
+            )
           ) : (
-            <span className="ap-precio">{moneda} {precio?.toLocaleString('es-AR')}</span>
+            <span className="ap-precio ap-precio--sin">Sin precio</span>
           )}
         </div>
-        <div className="ap-card__stock">
-          <span className={`ap-stock-dot ${stock > 0 ? 'ap-stock-dot--ok' : 'ap-stock-dot--empty'}`} />
-          {stock > 0 ? `${stock} en stock` : 'Sin stock'}
+        <div className="ap-card__footer-bottom">
+          <div className="ap-card__stock">
+            <span className={`ap-stock-dot ${stock > 0 ? 'ap-stock-dot--ok' : 'ap-stock-dot--empty'}`} />
+            {stock > 0 ? `${stock} en stock` : 'Sin stock'}
+          </div>
+          {cantVariantes > 1 && (
+            <span className="ap-variantes-badge">{cantVariantes} variantes</span>
+          )}
         </div>
       </div>
     </div>
@@ -80,8 +115,7 @@ export default function ApiProductos() {
   const [error, setError]             = useState(null);
   const [busqueda, setBusqueda]       = useState('');
   const [debouncedBusqueda, setDebouncedBusqueda] = useState('');
-  const [filtroStock, setFiltroStock] = useState('todos');
-  const [orden, setOrden]             = useState('detalle:asc');
+  const [orden, setOrden]             = useState('nombre:asc');
 
   // Debounce búsqueda
   useEffect(() => {
@@ -100,27 +134,26 @@ export default function ApiProductos() {
       const params = new URLSearchParams();
       params.set('pagination[page]', pagina);
       params.set('pagination[pageSize]', PAGE_SIZE);
+      params.set('populate[variantes]', '*');
 
-      // Orden
+      // Orden por campo del producto
       const [campo, dir] = orden.split(':');
-      params.set(`sort[0]`, `${campo}:${dir}`);
+      params.set('sort[0]', `${campo}:${dir}`);
 
-      // Búsqueda
+      // Búsqueda sobre campos del producto padre
       if (debouncedBusqueda.trim()) {
-        params.set('filters[$or][0][detalle][$containsi]', debouncedBusqueda);
+        params.set('filters[$or][0][nombre][$containsi]', debouncedBusqueda);
         params.set('filters[$or][1][proveedor][$containsi]', debouncedBusqueda);
-        params.set('filters[$or][2][codigo_ean][$containsi]', debouncedBusqueda);
-      }
-
-      // Filtro de stock
-      if (filtroStock === 'conStock') {
-        params.set('filters[stock][$gt]', 0);
-      } else if (filtroStock === 'sinStock') {
-        params.set('filters[stock][$eq]', 0);
+        params.set('filters[$or][2][marca][$containsi]',    debouncedBusqueda);
+        params.set('filters[$or][3][sku][$containsi]',      debouncedBusqueda);
       }
 
       const res = await fetch(`${STRAPI_URL}/api/productos?${params.toString()}`);
-      if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Error ${res.status}: ${res.statusText}${body ? ` — ${body.substring(0, 120)}` : ''}`);
+      }
 
       const json = await res.json();
       setProductos(json.data || []);
@@ -131,27 +164,13 @@ export default function ApiProductos() {
     } finally {
       setLoading(false);
     }
-  }, [pagina, debouncedBusqueda, filtroStock, orden]);
+  }, [pagina, debouncedBusqueda, orden]);
 
   useEffect(() => {
     fetchProductos();
   }, [fetchProductos]);
 
   const totalPaginas = Math.ceil(total / PAGE_SIZE);
-
-  const handleBusqueda = (e) => {
-    setBusqueda(e.target.value);
-  };
-
-  const handleFiltroStock = (valor) => {
-    setFiltroStock(valor);
-    setPagina(1);
-  };
-
-  const handleOrden = (e) => {
-    setOrden(e.target.value);
-    setPagina(1);
-  };
 
   return (
     <div className="ap-root">
@@ -175,63 +194,51 @@ export default function ApiProductos() {
               id="ap-busqueda"
               type="text"
               className="ap-searchbar__input"
-              placeholder="Buscar por nombre, proveedor, código EAN..."
+              placeholder="Buscar por nombre, marca, proveedor, SKU..."
               value={busqueda}
-              onChange={handleBusqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
             />
             {busqueda && (
-              <button
-                className="ap-searchbar__clear"
-                onClick={() => setBusqueda('')}
-                title="Limpiar búsqueda"
-              >
-                ✕
-              </button>
+              <button className="ap-searchbar__clear" onClick={() => setBusqueda('')} title="Limpiar">✕</button>
             )}
           </div>
         </div>
 
         {/* ── Controles ──────────────────────────────────────────────────── */}
         <div className="ap-controles">
-          <div className="ap-filtros-stock">
-            {[
-              { valor: 'todos',    label: 'Todos' },
-              { valor: 'conStock', label: '✅ Con stock' },
-              { valor: 'sinStock', label: '❌ Sin stock' },
-            ].map(({ valor, label }) => (
-              <button
-                key={valor}
-                id={`ap-filtro-${valor}`}
-                className={`ap-filtro-btn ${filtroStock === valor ? 'ap-filtro-btn--active' : ''}`}
-                onClick={() => handleFiltroStock(valor)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
           <div className="ap-orden">
             <label htmlFor="ap-orden-select">Ordenar:</label>
             <select
               id="ap-orden-select"
               className="ap-select"
               value={orden}
-              onChange={handleOrden}
+              onChange={(e) => { setOrden(e.target.value); setPagina(1); }}
             >
-              <option value="detalle:asc">Nombre A→Z</option>
-              <option value="detalle:desc">Nombre Z→A</option>
-              <option value="precio:asc">Precio ↑</option>
-              <option value="precio:desc">Precio ↓</option>
-              <option value="stock:desc">Mayor stock</option>
+              <option value="nombre:asc">Nombre A→Z</option>
+              <option value="nombre:desc">Nombre Z→A</option>
+              <option value="marca:asc">Marca A→Z</option>
+              <option value="categoria:asc">Categoría A→Z</option>
               <option value="proveedor:asc">Proveedor A→Z</option>
             </select>
           </div>
         </div>
       </header>
 
+      {/* ── Aviso de permisos si hay error 403/401 ─────────────────────── */}
+      {error && error.includes('403') && (
+        <div className="ap-notice">
+          <strong>⚙️ Configurar permisos en Strapi Admin:</strong>
+          <ol>
+            <li>Ir a <code>http://localhost:1337/admin</code></li>
+            <li>Settings → Roles → <strong>Public</strong></li>
+            <li>Producto → habilitar <strong>find</strong> y <strong>findOne</strong></li>
+            <li>Guardar y recargar esta página</li>
+          </ol>
+        </div>
+      )}
+
       {/* ── Main content ───────────────────────────────────────────────────── */}
       <main className="ap-main">
-        {/* Estado de error */}
         {error && (
           <div className="ap-error">
             <span className="ap-error__icon">⚠️</span>
@@ -239,17 +246,15 @@ export default function ApiProductos() {
               <strong>No se pudo conectar al Backend</strong>
               <p>{error}</p>
               <p className="ap-error__hint">
-                Asegurate de que Strapi esté corriendo en{' '}
-                <code>{STRAPI_URL}</code>
+                Asegurate de que Strapi esté corriendo en <code>{STRAPI_URL}</code>
+                {error.includes('403') && ' y que los permisos del rol Public estén habilitados (ver arriba)'}
+                {error.includes('400') && ' — puede haber un campo incorrecto en los filtros'}
               </p>
             </div>
-            <button className="ap-btn ap-btn--ghost" onClick={fetchProductos}>
-              Reintentar
-            </button>
+            <button className="ap-btn ap-btn--ghost" onClick={fetchProductos}>Reintentar</button>
           </div>
         )}
 
-        {/* Grid de productos */}
         {!error && (
           <div className="ap-grid">
             {loading
@@ -259,9 +264,9 @@ export default function ApiProductos() {
                 <div className="ap-empty">
                   <span className="ap-empty__icon">📭</span>
                   <h3>Sin resultados</h3>
-                  <p>No se encontraron productos con los filtros aplicados.</p>
-                  <button className="ap-btn ap-btn--primary" onClick={() => { setBusqueda(''); setFiltroStock('todos'); }}>
-                    Limpiar filtros
+                  <p>No se encontraron productos{busqueda ? ` para "${busqueda}"` : ''}.</p>
+                  <button className="ap-btn ap-btn--primary" onClick={() => setBusqueda('')}>
+                    Limpiar búsqueda
                   </button>
                 </div>
               )
@@ -281,30 +286,21 @@ export default function ApiProductos() {
             className="ap-pag-btn"
             disabled={pagina === 1}
             onClick={() => setPagina((p) => p - 1)}
-          >
-            ← Anterior
-          </button>
+          >← Anterior</button>
 
           <div className="ap-pag-pages">
             {Array.from({ length: Math.min(totalPaginas, 7) }, (_, i) => {
               let page;
-              if (totalPaginas <= 7) {
-                page = i + 1;
-              } else if (pagina <= 4) {
-                page = i + 1;
-              } else if (pagina >= totalPaginas - 3) {
-                page = totalPaginas - 6 + i;
-              } else {
-                page = pagina - 3 + i;
-              }
+              if (totalPaginas <= 7)          page = i + 1;
+              else if (pagina <= 4)           page = i + 1;
+              else if (pagina >= totalPaginas - 3) page = totalPaginas - 6 + i;
+              else                            page = pagina - 3 + i;
               return (
                 <button
                   key={page}
                   className={`ap-pag-num ${pagina === page ? 'ap-pag-num--active' : ''}`}
                   onClick={() => setPagina(page)}
-                >
-                  {page}
-                </button>
+                >{page}</button>
               );
             })}
           </div>
@@ -314,13 +310,9 @@ export default function ApiProductos() {
             className="ap-pag-btn"
             disabled={pagina === totalPaginas}
             onClick={() => setPagina((p) => p + 1)}
-          >
-            Siguiente →
-          </button>
+          >Siguiente →</button>
 
-          <span className="ap-pag-info">
-            Página {pagina} de {totalPaginas}
-          </span>
+          <span className="ap-pag-info">Página {pagina} de {totalPaginas}</span>
         </nav>
       )}
     </div>
