@@ -1,0 +1,64 @@
+{
+  "kind": "collectionType",
+  "collectionName": "productos",
+  "info": {
+    "singularName": "producto",
+    "pluralName": "productos",
+    "displayName": "Producto",
+    "description": "Catálogo de productos de Marybe"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "codigo_ean": {
+      "type": "string"
+    },
+    "detalle": {
+      "type": "string",
+      "required": true
+    },
+    "deta": {
+      "type": "text"
+    },
+    "stock": {
+      "type": "integer",
+      "default": 0
+    },
+    "ver_stk": {
+      "type": "boolean",
+      "default": true
+    },
+    "precio": {
+      "type": "decimal",
+      "required": true
+    },
+    "oferta": {
+      "type": "decimal"
+    },
+    "publica": {
+      "type": "boolean",
+      "default": true
+    },
+    "envio": {
+      "type": "string"
+    },
+    "moneda": {
+      "type": "string",
+      "default": "ARS"
+    },
+    "verificacion": {
+      "type": "string"
+    },
+    "proveedor": {
+      "type": "string"
+    },
+    "variantes": {
+      "type": "string"
+    },
+    "id_externo": {
+      "type": "string"
+    }
+  }
+}

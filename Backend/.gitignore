@@ -129,3 +129,11 @@ dist
 build
 .strapi-updater.json
 .strapi-cloud.json
+
+############################
+# Data / Seeds
+############################
+
+data/*.csv
+data/*.xlsx
+data/*.xlsm
