@@ -7,15 +7,14 @@
   --color-marron-principal: #3E0102;
   --color-marron-secundario: #28180b;
   --color-marron-tercero: #160000;
+  --color-marron-cuarto: #280101;
   --color-bordo-secundario: #7C0405;
+  --color-bordo-tercero: #560203;
   --color-titulo-marybe: #f2dc8f;
   --color-rosa-tercero: #D3C0C0;
   --color-fondo-beneficio-tarjeta: #FAF9F7;
   --color-blanco-pero-no-tan-blanco: #FAF0F0;
   --color-blanco: #FFFFFF;
-<<<<<<< HEAD
-  --color-rosa-principal: #f2d4d4;
-=======
 
   /* ─── Espaciados Estándar (Spacing Tokens) ───────────────────────── */
   --spacing-xs: 0.25rem; /* 4px */
@@ -42,7 +41,6 @@
   --transition-fast: all 0.15s ease;
   --transition-normal: all 0.3s ease;
   --transition-slow: all 0.5s ease;
->>>>>>> 8e90ec84c0ed0f61ac4f9915c61af9d0abce97b5
 }
 
 /* ─── 1. Reset Global Mejorado (Avanzado) ─────────────────────────── */

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import ApiProductos from './pages/ApiProductos';
-import Header from './pages/Componentes/Header';
+import ApiProductos from './Pages/ApiProductos';
+import Header from './Pages/Componentes/Header';
+import Footer from './Pages/Componentes/Footer';
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Route path="/" element={<Navigate to="" replace />} />
         <Route path="/productos" element={<ApiProductos />} />
       </Routes>
+      <Footer />
     </>
   );
 }
