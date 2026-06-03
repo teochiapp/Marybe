@@ -8,6 +8,7 @@ const ToggleContainer = styled.div`
   padding: 4px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   width: fit-content;
+  max-width: 100%;
   margin: 0 auto -5vh auto;
   position: relative;
   z-index: 10;
@@ -24,9 +25,16 @@ const ToggleOption = styled.button`
   cursor: pointer;
   transition: all 0.3s ease;
   font-family: var(--font-family-secondary);
+  flex: 1;
+  white-space: nowrap;
 
   &:hover {
     background-color: ${({ $active }) => ($active ? 'var(--color-marron-principal)' : 'rgba(0,0,0,0.03)')};
+  }
+
+  @media (max-width: 480px) {
+    padding: 8px 24px;
+    font-size: 0.95rem;
   }
 `;
 
