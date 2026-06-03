@@ -1,7 +1,7 @@
 import React from 'react';
-import TopBar from './componentes-header/TopBar';
-import NavBar from './componentes-header/NavBar';
-import CategoryNav from './componentes-header/CategoryNav';
+import TopBar from './TopBar';
+import NavBar from './NavBar';
+import CategoryNav from './CategoryNav';
 
 export default function Header() {
   return (

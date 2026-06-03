@@ -12,8 +12,14 @@ const { stringify } = require('csv-stringify/sync');
 
 // ─── Rutas ─────────────────────────────────────────────────────────────────
 const CSV_ORIGINAL  = path.join(__dirname, '../../Frontend/src/data/Cambio Pagina.xlsm - Principal (1).csv');
-const OUT_PRODUCTOS = path.join(__dirname, '../data/productos.csv');
-const OUT_VARIANTES = path.join(__dirname, '../data/variantes.csv');
+const OUT_DIR        = path.join(__dirname, '../data');
+const OUT_PRODUCTOS = path.join(OUT_DIR, 'productos.csv');
+const OUT_VARIANTES = path.join(OUT_DIR, 'variantes.csv');
+
+// Asegurar que exista el directorio de salida
+if (!fs.existsSync(OUT_DIR)) {
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+}
 
 // ─── Regex para extraer volumen del nombre ──────────────────────────────────
 // Ejemplos: "CUTEX x 50" → "50ml" | "BIFERDIL x 200 ML" → "200ml"

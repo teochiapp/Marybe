@@ -406,7 +406,7 @@ export default function Footer() {
         <FooterTop>
           {/* Columna marca */}
           <BrandColumn>
-            <FooterLogo src="/logo-marybe.jpeg" alt="Marybe" />
+            <FooterLogo src="/logo-marybe.png" alt="Marybe" />
 
             <Tagline>
               Tu farmacia y perfumería de confianza desde hace <strong>más de 50 años.</strong>

@@ -46,6 +46,7 @@ Siempre usar las variables definidas en `src/index.css`:
 ```
 
 ### 3. Código prolijo
+- En las pages solo habrá componentes listados, el codigo estará en las carpetas de componentes de cada página para tener un pages limpio.
 - Un componente por archivo
 - Props claras y bien nombradas
 - Sin código comentado ni imports sin usar
@@ -69,11 +70,22 @@ const Wrapper = styled.div`
 ### 5. Estructura de carpetas
 ```
 src/
-├── Pages/
-│   └── Componentes/
-│       ├── Header.jsx
-│       └── componentes-header/
-│           └── TopBar.jsx   ← estilos adentro con styled-components
-├── index.css                ← solo variables globales y reset
+├── pages/                  ← Páginas principales (minúsculas)
+│   ├── inicio/
+│   │   └── Inicio.jsx
+│   ├── tienda/
+│   │   └── Tienda.jsx
+│   ├── tests/              ← Carpeta de pruebas
+│   │   └── ApiProductos.test.jsx
+│   └── ApiProductos.jsx
+├── components/             ← Componentes comunes y de layout (minúsculas)
+│   ├── header/
+│   │   ├── Header.jsx
+│   │   ├── NavBar.jsx
+│   │   ├── TopBar.jsx
+│   │   └── CategoryNav.jsx
+│   └── footer/
+│       └── Footer.jsx
+├── index.css                ← Solo variables globales y reset
 └── App.js
 ```
