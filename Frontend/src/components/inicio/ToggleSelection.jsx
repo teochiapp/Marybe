@@ -11,6 +11,10 @@ const ToggleContainer = styled.div`
   margin: 0 auto -5vh auto;
   position: relative;
   z-index: 10;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const ToggleOption = styled.button`
