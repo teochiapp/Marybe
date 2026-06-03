@@ -119,11 +119,12 @@ const ProductsGrid = styled.div`
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  gap: 30px;
+  gap: 40px;
   position: relative;
   z-index: 1;
   cursor: grab;
   margin-left: 60px;
+  padding-right: 60px; /* Para mantener simetría al final del scroll */
   padding-bottom: 40px;
 
   &:active {
@@ -137,12 +138,22 @@ const ProductsGrid = styled.div`
   @media (min-width: 1250px) and (max-width: 1524px) {
     margin-top: -5vh;
   }
+
+  @media (max-width: 1024px) {
+    gap: 30px;
+    margin-left: 40px;
+    padding-right: 40px;
+  }
+
+  @media (max-width: 600px) {
+    gap: 20px;
+    margin-left: 0px; /* El padre ya tiene padding lateral en mobile */
+    padding-right: 0px;
+  }
 `;
 
 const ProductCard = styled.div`
   background-color: var(--color-blanco);
-  border-radius: var(--radius-lg);
-  max-width: 20vw;
   border-radius: 24px;
   padding: 20px;
   display: flex;
@@ -154,15 +165,24 @@ const ProductCard = styled.div`
   user-select: none;
   -webkit-user-drag: none;
   
-  width: 23%;
-  min-width: 260px;
+  /* Fórmula matemática: (100% ancho - espacio de los gaps) / Cantidad de tarjetas que queremos mostrar */
   
+  /* Pantallas muy grandes (> 1440px): 4.5 tarjetas */
+  width: calc((100% - (4 * 40px)) / 4.5);
+  
+  @media (max-width: 1440px) {
+    /* Pantallas notebook (1025px - 1440px): 3.5 tarjetas */
+    width: calc((100% - (3 * 40px)) / 3.5);
+  }
+
   @media (max-width: 1024px) {
-    width: 40%;
+    /* Tablets (601px - 1024px): 2.5 tarjetas (usando gap de 30px) */
+    width: calc((100% - (2 * 30px)) / 2.5);
   }
 
   @media (max-width: 600px) {
-    width: 75%;
+    /* Mobile (<= 600px): 1.5 tarjetas (usando gap de 20px) */
+    width: calc((100% - (1 * 20px)) / 1.5);
   }
   
   &:hover {
@@ -232,8 +252,14 @@ const ProductName = styled.h3`
 const PriceRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  column-gap: 10px;
+  row-gap: 4px;
   margin-bottom: 6px;
+
+  @media (max-width: 1024px) {
+    column-gap: 6px;
+  }
 `;
 
 const OldPrice = styled.span`
@@ -304,7 +330,8 @@ const BannersRow = styled.div`
   grid-template-columns: 1fr 1fr;
   position: relative;
   z-index: 1;
-  gap: 20px;
+  padding: 20px 60px 40px 60px;
+  gap: 40px;
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -312,10 +339,9 @@ const BannersRow = styled.div`
 `;
 
 const BottomBanner = styled.div`
-  background-color: var(--color-marron-principal);
-  background: linear-gradient(180deg, var(--color-marron-cuarto) 0%, var(--color-marron-principal) 100%);
-  border-radius: var(--radius-xl);
-  padding: 40px;
+  background-color: var(--color-marron-cuarto);
+  padding: 24px;
+  border-radius: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -324,15 +350,16 @@ const BottomBanner = styled.div`
   overflow: hidden;
   min-height: 280px;
   justify-content: flex-start;
-  box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+  box-shadow: inset 0 0 50px rgba(0,0,0,0.2);
 `;
 
 const BannerTitle = styled.h3`
   font-family: var(--font-family-primary);
-  font-size: 2.2rem;
+  font-size: 2.4rem;
   color: var(--color-blanco);
+  letter-spacing: -2%;
   font-style: italic;
-  font-weight: 500;
+  font-weight: 600;
   margin-bottom: auto;
   z-index: 2;
   
@@ -343,12 +370,13 @@ const BannerTitle = styled.h3`
 
 const BannerButton = styled.button`
   background-color: var(--color-blanco);
-  color: var(--color-marron-secundario);
+  color: var(--color-marron-cuarto);
   border: none;
-  padding: 12px 28px;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  font-size: 0.95rem;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 1rem;
+  letter-spacing: 2%;
   z-index: 2;
   transition: transform 0.2s, background-color 0.2s;
   margin-top: 20px;
@@ -359,20 +387,20 @@ const BannerButton = styled.button`
   }
 `;
 
-const BannerPlaceholderImage = styled.div`
+const BannerImageWrapper = styled.div`
   width: 100%;
-  height: 180px;
+  height: 200px;
   position: absolute;
-  bottom: -20px;
+  bottom: -10px;
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  opacity: 0.3;
   z-index: 1;
   
-  svg {
-    width: 150px;
-    height: 150px;
+  img {
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));
   }
 `;
 
@@ -398,7 +426,7 @@ const ImagePlaceholder = () => (
 );
 
 export default function FeaturedSection() {
-    const dummyProducts = [1, 2, 3, 4, 5];
+    const dummyProducts = [1, 2, 3, 4, 5, 6];
     const scrollRef = useRef(null);
 
     const isDown = useRef(false);
@@ -502,17 +530,17 @@ export default function FeaturedSection() {
             <BannersRow>
                 <BottomBanner>
                     <BannerTitle>El poder del elixir</BannerTitle>
-                    <BannerPlaceholderImage>
-                        <ImagePlaceholder />
-                    </BannerPlaceholderImage>
+                    <BannerImageWrapper>
+                        <img src="/inicio/elixir.png" alt="El poder del elixir" />
+                    </BannerImageWrapper>
                     <BannerButton>Conocer más</BannerButton>
                 </BottomBanner>
 
                 <BottomBanner>
                     <BannerTitle>Toda la línea de Azzaro</BannerTitle>
-                    <BannerPlaceholderImage>
-                        <ImagePlaceholder />
-                    </BannerPlaceholderImage>
+                    <BannerImageWrapper>
+                        <img src="/inicio/azzaro.png" alt="Línea Azzaro" />
+                    </BannerImageWrapper>
                     <BannerButton>Conocer más</BannerButton>
                 </BottomBanner>
             </BannersRow>

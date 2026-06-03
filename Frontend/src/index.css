@@ -17,12 +17,18 @@
   --color-blanco: #FFFFFF;
 
   /* ─── Espaciados Estándar (Spacing Tokens) ───────────────────────── */
-  --spacing-xs: 0.25rem; /* 4px */
-  --spacing-sm: 0.5rem;  /* 8px */
-  --spacing-md: 1rem;    /* 16px */
-  --spacing-lg: 1.5rem;  /* 24px */
-  --spacing-xl: 2rem;    /* 32px */
-  --spacing-xxl: 3rem;   /* 48px */
+  --spacing-xs: 0.25rem;
+  /* 4px */
+  --spacing-sm: 0.5rem;
+  /* 8px */
+  --spacing-md: 1rem;
+  /* 16px */
+  --spacing-lg: 1.5rem;
+  /* 24px */
+  --spacing-xl: 2rem;
+  /* 32px */
+  --spacing-xxl: 3rem;
+  /* 48px */
 
   /* ─── Bordes y Radios (Borders & Radius) ────────────────────────── */
   --radius-sm: 4px;
@@ -44,7 +50,9 @@
 }
 
 /* ─── 1. Reset Global Mejorado (Avanzado) ─────────────────────────── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -70,7 +78,11 @@ body {
 
 /* ─── 2. Elementos de Medios e Imágenes ───────────────────────────── */
 /* Evita desbordamientos y quita el espacio en blanco inferior por defecto */
-img, picture, video, canvas, svg {
+img,
+picture,
+video,
+canvas,
+svg {
   display: block;
   max-width: 100%;
   height: auto;
@@ -78,7 +90,10 @@ img, picture, video, canvas, svg {
 }
 
 /* ─── 3. Formularios e Interactivos (Herencia Tipográfica) ───────── */
-input, button, textarea, select {
+input,
+button,
+textarea,
+select {
   font: inherit;
   color: inherit;
   background: transparent;
@@ -99,19 +114,41 @@ select:focus-visible {
 }
 
 /* ─── 4. Tipografía Estándar e Jerárquica ────────────────────────── */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-family-primary);
   font-weight: 600;
   line-height: 1.25;
   color: var(--color-titulo-marybe);
 }
 
-h1 { font-size: 2.5rem; }
-h2 { font-size: 2rem; }
-h3 { font-size: 1.75rem; }
-h4 { font-size: 1.5rem; }
-h5 { font-size: 1.25rem; }
-h6 { font-size: 1rem; }
+h1 {
+  font-size: 2.5rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.75rem;
+}
+
+h4 {
+  font-size: 1.5rem;
+}
+
+h5 {
+  font-size: 1.25rem;
+}
+
+h6 {
+  font-size: 1rem;
+}
 
 p {
   margin-bottom: var(--spacing-sm);
