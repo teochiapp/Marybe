@@ -14,7 +14,7 @@ const SectionWrapper = styled.section`
 `;
 
 const SectionTitle = styled.h2`
-  font-family: var(--font-family-primary);
+  font-family: var(--font-family-secondary);
   font-size: 2.5rem;
   color: var(--color-bordo-secundario);
   margin-bottom: 30px;
@@ -43,6 +43,14 @@ const CarouselContainer = styled.div`
   &::-webkit-scrollbar {
     display: none;
   }
+
+  @media (max-width: 768px) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    overflow: visible;
+    padding-bottom: 10px;
+  }
 `;
 
 const CategoryCard = styled.div`
@@ -68,11 +76,8 @@ const CategoryCard = styled.div`
   }
 
   @media (max-width: 768px) {
-    width: calc((100% - (2 * 20px)) / 2.5);
-  }
-
-  @media (max-width: 500px) {
-    width: calc((100% - (1 * 20px)) / 1.5);
+    width: 100%;
+    height: 200px;
   }
 
   img {
@@ -94,14 +99,14 @@ const CategoryLabel = styled.div`
   right: 15px;
   background-color: var(--color-bordo-secundario);
   color: white;
-  border-radius: 12px;
-  padding: 12px 16px;
+  border-radius: 255px;
+  padding: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 0.95rem;
   font-weight: 500;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
   
   svg {
     width: 16px;
@@ -136,9 +141,46 @@ const ImagePlaceholder = () => (
   </div>
 );
 
+const ViewMoreContainer = styled.div`
+  display: none;
+  
+  @media (max-width: 768px) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 15px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    color: black;
+    gap: 8px;
+    
+    svg {
+      width: 20px;
+      height: 20px;
+      transition: transform 0.3s ease;
+      transform: ${({ $isOpen }) => ($isOpen ? 'rotate(180deg)' : 'rotate(0deg)')};
+    }
+  }
+`;
+
+const ChevronIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9"></polyline>
+  </svg>
+);
+
 export default function CategoriesSection() {
   const [categorias, setCategorias] = useState([]);
+  const [showAllMobile, setShowAllMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const scrollRef = useRef(null);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_STRAPI_URL}/api/categorias?populate=*`)
@@ -206,11 +248,12 @@ export default function CategoriesSection() {
   ];
 
   const renderItems = categorias.length > 0 ? categorias : dummyCategorias;
+  const itemsToShow = (isMobile && !showAllMobile) ? renderItems.slice(0, 4) : renderItems;
 
   return (
     <SectionWrapper>
       <SectionTitle>Categorías</SectionTitle>
-      
+
       <CarouselContainer
         ref={scrollRef}
         onMouseDown={handleMouseDown}
@@ -218,11 +261,11 @@ export default function CategoriesSection() {
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
       >
-        {renderItems.map((item) => {
+        {itemsToShow.map((item) => {
           const id = item.id || item.documentId || Math.random();
           const attrs = item.attributes || item;
           const nombre = attrs.nombre || 'Categoría';
-          
+
           let imgUrl = null;
           if (attrs.portada?.data?.attributes?.url) {
             imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.data.attributes.url}`;
@@ -245,6 +288,16 @@ export default function CategoriesSection() {
           );
         })}
       </CarouselContainer>
+      
+      {isMobile && renderItems.length > 0 && (
+        <ViewMoreContainer 
+          $isOpen={showAllMobile} 
+          onClick={() => setShowAllMobile(!showAllMobile)}
+        >
+          {showAllMobile ? 'Ver menos' : 'Ver más categorías'}
+          <ChevronIcon />
+        </ViewMoreContainer>
+      )}
     </SectionWrapper>
   );
 }

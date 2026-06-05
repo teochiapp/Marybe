@@ -25,6 +25,12 @@
     "marca": {
       "type": "string"
     },
+    "seccion": {
+      "type": "string"
+    },
+    "subcategoria": {
+      "type": "string"
+    },
     "categoria": {
       "type": "relation",
       "relation": "manyToOne",
@@ -61,6 +67,10 @@
     "destacado": {
       "type": "boolean",
       "default": false
+    },
+    "descuento": {
+      "type": "integer",
+      "default": 0
     }
   }
 }
