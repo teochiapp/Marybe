@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import ToggleSelection from '../../components/inicio/perfumeria/ToggleSelection';
-import PromoCarousel from '../../components/inicio/PromoCarousel';
+import PromoCarousel from '../../components/inicio/perfumeria/PromoCarousel';
 import FeaturedSection from '../../components/inicio/perfumeria/FeaturedSection';
 import CategoriesSection from '../../components/inicio/perfumeria/CategoriesSection';
 
