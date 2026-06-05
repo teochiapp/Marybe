@@ -16,6 +16,11 @@
       "type": "string",
       "required": true
     },
+    "seccion": {
+      "type": "enumeration",
+      "enum": ["Perfumería", "Hogar"],
+      "required": false
+    },
     "portada": {
       "type": "media",
       "multiple": false,

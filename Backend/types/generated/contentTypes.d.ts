@@ -465,6 +465,7 @@ export interface ApiCategoriaCategoria extends Struct.CollectionTypeSchema {
     portada: Schema.Attribute.Media<'images'>;
     productos: Schema.Attribute.Relation<'oneToMany', 'api::producto.producto'>;
     publishedAt: Schema.Attribute.DateTime;
+    seccion: Schema.Attribute.Enumeration<['Perfumer\u00EDa', 'Hogar']>;
     subcategorias: Schema.Attribute.Component<'categoria.subcategoria', true>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -532,6 +533,7 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     descripcion_corta: Schema.Attribute.Text;
+    descuento: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     destacado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     id_original: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
@@ -547,11 +549,47 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     proveedor: Schema.Attribute.String;
     publicado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     publishedAt: Schema.Attribute.DateTime;
+    seccion: Schema.Attribute.String;
     sku: Schema.Attribute.String;
+    subcategoria: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     variantes: Schema.Attribute.Component<'producto.variante', true>;
+  };
+}
+
+export interface ApiSeccionDestacadaSeccionDestacada
+  extends Struct.SingleTypeSchema {
+  collectionName: 'secciones_destacadas';
+  info: {
+    description: 'Configuraci\u00F3n de la secci\u00F3n destacada de categor\u00EDas en el Inicio';
+    displayName: 'Secci\u00F3n Destacada';
+    pluralName: 'secciones-destacadas';
+    singularName: 'seccion-destacada';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    categoria: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::categoria.categoria'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::seccion-destacada.seccion-destacada'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    titulo: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -1069,6 +1107,7 @@ declare module '@strapi/strapi' {
       'api::categoria.categoria': ApiCategoriaCategoria;
       'api::oferta.oferta': ApiOfertaOferta;
       'api::producto.producto': ApiProductoProducto;
+      'api::seccion-destacada.seccion-destacada': ApiSeccionDestacadaSeccionDestacada;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

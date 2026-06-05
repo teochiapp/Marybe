@@ -5,6 +5,8 @@ import PromoCarousel from '../../components/inicio/perfumeria/PromoCarousel';
 import FeaturedSection from '../../components/inicio/perfumeria/FeaturedSection';
 import CategoriesSection from '../../components/inicio/perfumeria/CategoriesSection';
 import GiftCard from '../../components/inicio/GiftCard';
+import OfertasSection from '../../components/inicio/perfumeria/OfertasSection';
+import FeaturedCategorySection from '../../components/inicio/perfumeria/FeaturedCategorySection';
 
 const PageWrapper = styled.div`
   min-height: 80vh;
@@ -40,6 +42,8 @@ export default function Inicio() {
             <GiftCard />
           </GiftCardWrapper>
 
+          <FeaturedCategorySection />
+          <OfertasSection />
         </>
       )}
     </PageWrapper>
