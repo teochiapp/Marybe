@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 
 // ─── Datos ────────────────────────────────────────────────────────────────────
@@ -319,35 +319,34 @@ const MobilePill = styled.a`
 
 export default function CategoryNav() {
   const [activeCategory, setActiveCategory] = useState(null);
-  const closeTimer = useRef(null);
+  const navRef = useRef(null);
 
-  const handleMouseEnter = (cat) => {
-    clearTimeout(closeTimer.current);
-    setActiveCategory(cat);
+  const handleCategoryClick = (cat) => {
+    setActiveCategory((prev) => (prev === cat ? null : cat));
   };
 
-  const handleMouseLeave = () => {
-    closeTimer.current = setTimeout(() => setActiveCategory(null), 120);
-  };
-
-  const handleMenuEnter = () => clearTimeout(closeTimer.current);
-  const handleMenuLeave = () => {
-    closeTimer.current = setTimeout(() => setActiveCategory(null), 120);
-  };
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (navRef.current && !navRef.current.contains(e.target)) {
+        setActiveCategory(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <>
       {/* Desktop */}
-      <NavWrapper>
+      <NavWrapper ref={navRef}>
         <DesktopNav>
           <CategoryList>
             {ALL_CATEGORIES.map((cat) => (
-              <CategoryItem
-                key={cat}
-                onMouseEnter={() => handleMouseEnter(cat)}
-                onMouseLeave={handleMouseLeave}
-              >
-                <CategoryBtn $active={activeCategory === cat}>
+              <CategoryItem key={cat}>
+                <CategoryBtn
+                  $active={activeCategory === cat}
+                  onClick={() => handleCategoryClick(cat)}
+                >
                   {cat}
                   <ChevronRight active={activeCategory === cat} />
                 </CategoryBtn>
@@ -357,10 +356,7 @@ export default function CategoryNav() {
         </DesktopNav>
 
         {activeCategory && (
-          <DropdownContainer
-            onMouseEnter={handleMenuEnter}
-            onMouseLeave={handleMenuLeave}
-          >
+          <DropdownContainer>
             {/* Panel 1: grid de subcategorías */}
             <MegaMenuWrapper>
               <MegaTitle>
