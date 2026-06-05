@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { PinIcon } from './FooterIcons';
 import { NAV_COLUMNS } from './footerData';
 import FooterBrand from './FooterBrand';
 import FooterNavColumn from './FooterNavColumn';
@@ -9,7 +8,7 @@ import FooterContact from './FooterContact';
 // ─── Styled Components ────────────────────────────────────────────────────────
 
 const FooterWrapper = styled.footer`
-  background-color: var(--color-marron-tercero);
+  background-color: var(--color-marron-cuarto);
   color: var(--color-blanco);
   padding-top: var(--spacing-xxl);
   font-family: var(--font-family-secondary);
@@ -25,55 +24,36 @@ const FooterInner = styled.div`
   }
 `;
 
-const FooterTop = styled.div`
+/* Layout principal: brand izquierda | nav+contacto derecha */
+const FooterMain = styled.div`
   display: grid;
-  grid-template-columns: 260px 1fr 1fr 1fr;
-  gap: var(--spacing-xxl);
-  padding-bottom: var(--spacing-xl);
+  grid-template-columns: 260px 1fr;
+  gap: 80px;
+  padding-bottom: var(--spacing-xxl);
+  align-items: stretch;
 
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr 1fr;
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
     gap: var(--spacing-xl);
   }
-
-  @media (max-width: 600px) {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    padding-bottom: 0;
-  }
 `;
 
-/* Ubicación visible solo en mobile, debajo de los acordeones */
-const MobileLocation = styled.div`
-  display: none;
-
-  @media (max-width: 600px) {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: var(--spacing-lg) 0;
-  }
-`;
-
-const LocationLine = styled.div`
+/* Columna derecha: nav columns arriba + contacto abajo */
+const RightColumn = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  font-size: 0.85rem;
-  color: var(--color-rosa-tercero);
+  justify-content: space-between;
+  gap: var(--spacing-xxl);
 `;
 
-const BranchLink = styled.a`
-  font-size: 0.85rem;
-  color: var(--color-blanco);
-  text-decoration: underline;
-  cursor: pointer;
-  transition: var(--transition-fast);
+const NavColumns = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-xxl);
 
-  &:hover {
-    color: var(--color-titulo-marybe);
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 `;
 
@@ -117,30 +97,27 @@ export default function Footer() {
   return (
     <FooterWrapper>
       <FooterInner>
-        <FooterTop>
+        <FooterMain>
+          {/* Columna izquierda: brand + QR */}
           <FooterBrand />
 
-          {NAV_COLUMNS.map((col) => (
-            <FooterNavColumn
-              key={col.title}
-              title={col.title}
-              links={col.links}
-              isOpen={openSection === col.title}
-              onToggle={() => toggle(col.title)}
-            />
-          ))}
-        </FooterTop>
+          {/* Columna derecha: nav columns + contacto */}
+          <RightColumn>
+            <NavColumns>
+              {NAV_COLUMNS.map((col) => (
+                <FooterNavColumn
+                  key={col.title}
+                  title={col.title}
+                  links={col.links}
+                  isOpen={openSection === col.title}
+                  onToggle={() => toggle(col.title)}
+                />
+              ))}
+            </NavColumns>
 
-        {/* Ubicación mobile — debajo de los acordeones */}
-        <MobileLocation>
-          <LocationLine>
-            <PinIcon />
-            <span>Santiago del Estero | Tucumán</span>
-          </LocationLine>
-          <BranchLink href="#">Encontrá tu sucursal más cercana</BranchLink>
-        </MobileLocation>
-
-        <FooterContact />
+            <FooterContact />
+          </RightColumn>
+        </FooterMain>
       </FooterInner>
 
       <FooterBottom>

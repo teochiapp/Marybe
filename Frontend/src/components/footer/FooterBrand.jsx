@@ -1,11 +1,12 @@
 import React from 'react';
 import styled from 'styled-components';
-import { PinIcon } from './FooterIcons';
+import { PinIcon, DataFiscalQR } from './FooterIcons';
 
 const BrandColumn = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
+  justify-content: space-between;
 
   @media (max-width: 600px) {
     gap: var(--spacing-sm);
@@ -64,6 +65,22 @@ const BranchLink = styled.a`
   }
 `;
 
+const QRCard = styled.div`
+  background-color: var(--color-bordo-tercero);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: fit-content;
+`;
+
+const CopyrightText = styled.p`
+  font-size: 0.8rem;
+  color: var(--color-rosa-tercero);
+  margin: 0;
+`;
+
 export default function FooterBrand() {
   return (
     <BrandColumn>
@@ -80,6 +97,11 @@ export default function FooterBrand() {
         </LocationLine>
         <BranchLink href="#">Encontrá tu sucursal más cercana</BranchLink>
       </DesktopLocation>
+
+      <QRCard>
+        <DataFiscalQR />
+        <CopyrightText>© 2026 Marybe. Todos los derechos reservados.</CopyrightText>
+      </QRCard>
     </BrandColumn>
   );
 }

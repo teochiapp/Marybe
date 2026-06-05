@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import UbicacionPopup from './UbicacionPopup';
 
 /* ── Animaciones ── */
 const slideIn = keyframes`
@@ -35,12 +36,21 @@ const Logo = styled.img`
   object-fit: contain;
   flex-shrink: 0;
   cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.1);
+  }
 
   @media (max-width: 768px) {
     height: 24px;
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
+
+    &:hover {
+      transform: translateX(-50%) scale(1.1);
+    }
   }
 `;
 
@@ -59,7 +69,7 @@ const LocationSelector = styled.button`
   display: flex;
   align-items: center;
   gap: 6px;
-  background-color: var(--color-rosa-principal);
+  background-color: #f2d4d4;
   border: none;
   border-radius: 20px;
   padding: 12px 14px;
@@ -69,6 +79,18 @@ const LocationSelector = styled.button`
   font-family: var(--font-family-secondary);
   font-size: 13px;
   color: var(--color-marron-tercero);
+  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    background-color: #e8b8b8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(62, 1, 2, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
 `;
 
 const SearchBar = styled.label`
@@ -80,6 +102,11 @@ const SearchBar = styled.label`
   padding: 12px 16px;
   gap: 8px;
   cursor: text;
+  outline: none;
+
+  &:focus-within {
+    outline: none;
+  }
 `;
 
 const SearchInput = styled.input`
@@ -90,6 +117,10 @@ const SearchInput = styled.input`
   font-size: 13px;
   color: var(--color-marron-tercero);
   background: transparent;
+
+  &:focus-visible {
+    outline: none;
+  }
 
   &::placeholder {
     color: var(--color-marron-tercero);
@@ -376,6 +407,7 @@ export default function NavBar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMounted, setDrawerMounted] = useState(false);
   const [openSection, setOpenSection] = useState(null);
+  const [ubicacionOpen, setUbicacionOpen] = useState(false);
   const navigate = useNavigate();
 
   const openDrawer = () => { setDrawerMounted(true); setDrawerOpen(true); };
@@ -410,7 +442,7 @@ export default function NavBar() {
 
         {/* Desktop: centro */}
         <CenterGroup>
-          <LocationSelector>
+          <LocationSelector onClick={() => setUbicacionOpen(true)}>
             <PinIcon />
             Ubicación seleccionada
           </LocationSelector>
@@ -438,6 +470,9 @@ export default function NavBar() {
           </IconButton>
         </MobileRight>
       </NavBarWrapper>
+
+      {/* Popup ubicación */}
+      {ubicacionOpen && <UbicacionPopup onClose={() => setUbicacionOpen(false)} />}
 
       {/* Drawer mobile */}
       {drawerMounted && (

@@ -2,48 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { FiMail } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
-import { DataFiscalQR } from './FooterIcons';
 import { CONTACT_ITEMS } from './footerData';
-
-const QRContactRow = styled.div`
-  display: flex;
-  align-items: stretch;
-  gap: var(--spacing-xxl);
-  padding-bottom: var(--spacing-xl);
-
-  @media (max-width: 768px) {
-    gap: var(--spacing-lg);
-  }
-
-  @media (max-width: 600px) {
-    flex-direction: column;
-    gap: var(--spacing-md);
-    padding-top: var(--spacing-lg);
-  }
-`;
-
-const QRCard = styled.div`
-  background-color: var(--color-bordo-tercero);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-md);
-  width: fit-content;
-  gap: 20px;
-  display: flex;
-  flex-direction: column;
-
-  @media (max-width: 600px) {
-    flex-direction: row;
-    align-items: center;
-    width: 100%;
-    gap: var(--spacing-md);
-  }
-`;
-
-const CopyrightText = styled.p`
-  font-size: 0.8rem;
-  color: var(--color-rosa-tercero);
-  margin: 0;
-`;
 
 const ContactSection = styled.div`
   display: flex;
@@ -64,7 +23,6 @@ const ContactBar = styled.div`
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-xxl);
-  padding: var(--spacing-lg) 0;
   flex-wrap: wrap;
 
   @media (max-width: 768px) {
@@ -149,37 +107,30 @@ const WhatsAppButton = styled.a`
 
 export default function FooterContact() {
   return (
-    <QRContactRow>
-      <QRCard>
-        <DataFiscalQR />
-        <CopyrightText>© 2026 Marybe. Todos los derechos reservados.</CopyrightText>
-      </QRCard>
+    <ContactSection>
+      <SectionTitle>Contacto</SectionTitle>
 
-      <ContactSection>
-        <SectionTitle>Contacto</SectionTitle>
+      <ContactBar>
+        {CONTACT_ITEMS.map((item) => (
+          <ContactItem key={item.phone}>
+            <ContactIconWrap>{item.icon}</ContactIconWrap>
+            <ContactText>
+              <ContactPhone>{item.phone}</ContactPhone>
+              <ContactHours>{item.hours}</ContactHours>
+            </ContactText>
+          </ContactItem>
+        ))}
 
-        <ContactBar>
-          {CONTACT_ITEMS.map((item) => (
-            <ContactItem key={item.phone}>
-              <ContactIconWrap>{item.icon}</ContactIconWrap>
-              <ContactText>
-                <ContactPhone>{item.phone}</ContactPhone>
-                <ContactHours>{item.hours}</ContactHours>
-              </ContactText>
-            </ContactItem>
-          ))}
+        <EmailLink href="mailto:info@marybe.com.ar">
+          <ContactIconWrap><FiMail size={16} /></ContactIconWrap>
+          info@marybe.com.ar
+        </EmailLink>
+      </ContactBar>
 
-          <EmailLink href="mailto:info@marybe.com.ar">
-            <ContactIconWrap><FiMail size={16} /></ContactIconWrap>
-            info@marybe.com.ar
-          </EmailLink>
-        </ContactBar>
-
-        <WhatsAppButton href="https://wa.me/5493855551234" target="_blank" rel="noopener noreferrer">
-          <FaWhatsapp size={20} />
-          Unirme al canal de Whatsapp
-        </WhatsAppButton>
-      </ContactSection>
-    </QRContactRow>
+      <WhatsAppButton href="https://wa.me/5493855551234" target="_blank" rel="noopener noreferrer">
+        <FaWhatsapp size={20} />
+        Unirme al canal de Whatsapp
+      </WhatsAppButton>
+    </ContactSection>
   );
 }
