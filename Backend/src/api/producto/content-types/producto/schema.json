@@ -26,7 +26,10 @@
       "type": "string"
     },
     "categoria": {
-      "type": "string"
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::categoria.categoria",
+      "inversedBy": "productos"
     },
     "descripcion_corta": {
       "type": "text"
@@ -46,6 +49,18 @@
       "type": "component",
       "repeatable": true,
       "component": "producto.variante"
+    },
+    "portada": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "destacado": {
+      "type": "boolean",
+      "default": false
     }
   }
 }

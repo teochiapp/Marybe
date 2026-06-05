@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 const SectionWrapper = styled.section`
@@ -73,8 +73,12 @@ const Title = styled.h2`
   }
   
   @media (max-width: 768px) {
-    font-size: 2.8rem;
+    font-size: 3.3rem;
     order: 1;
+  }
+
+    @media (max-width: 400px) {
+    font-size: 2.7rem;
   }
 `;
 
@@ -103,6 +107,7 @@ const FeaturedPicture = styled.picture`
   @media (max-width: 768px) {
     width: 100%;
     order: 2;
+    padding: 0 5px;
   }
 
   img {
@@ -183,6 +188,7 @@ const ProductCard = styled.div`
   @media (max-width: 600px) {
     /* Mobile (<= 600px): 1.5 tarjetas (usando gap de 20px) */
     width: calc((100% - (1 * 20px)) / 1.5);
+    padding: 12px;
   }
   
   &:hover {
@@ -192,7 +198,7 @@ const ProductCard = styled.div`
 
 const CardImageContainer = styled.div`
   width: 100%;
-  height: 220px;
+  height: 250px;
   background-color: #fff;
   border-radius: var(--radius-md);
   margin-bottom: 15px;
@@ -200,18 +206,28 @@ const CardImageContainer = styled.div`
   justify-content: center;
   align-items: center;
   overflow: hidden;
+  position: relative;
+
+  @media (max-width: 600px) {
+    height: 160px;
+    margin-bottom: 10px;
+  }
   
-  svg {
+  > svg {
     width: 60px;
     height: 60px;
     opacity: 0.1;
   }
 `;
 
-const HeartIcon = styled.button`
+const HeartContainer = styled.div`
   position: absolute;
-  top: 25px;
-  right: 25px;
+  bottom: 15px;
+  right: 15px;
+  z-index: 2;
+`;
+
+const HeartIcon = styled.button`
   background: none;
   border: none;
   cursor: pointer;
@@ -219,13 +235,19 @@ const HeartIcon = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  
+  padding: 0;
+
   svg {
     width: 22px;
     height: 22px;
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
+
+    @media (max-width: 600px) {
+      width: 20px;
+      height: 20px;
+    }
   }
 `;
 
@@ -237,6 +259,10 @@ const ProductBrand = styled.div`
   letter-spacing: 0.5px;
   letter-spacing: 10%;
   margin-bottom: 15px;
+
+  @media (max-width: 600px) {
+    margin-bottom: 10px;
+  }
 `;
 
 const ProductName = styled.h3`
@@ -247,6 +273,10 @@ const ProductName = styled.h3`
   margin-bottom: 4px;
   line-height: 1.2;
   letter-spacing: 0%;
+
+  @media (max-width: 600px) {
+    font-size: 14px;
+  }
 `;
 
 const PriceRow = styled.div`
@@ -272,6 +302,10 @@ const CurrentPrice = styled.span`
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--color-bordo-secundario);
+
+  @media (max-width: 600px) {
+    font-size: 1.1rem;
+  }
 `;
 
 const DiscountBadge = styled.span`
@@ -288,6 +322,10 @@ const Installments = styled.div`
   color: #535353;
   margin-bottom: 6px;
   font-weight: 600;
+
+  @media (max-width: 600px) {
+    font-size: 0.75rem;
+  }
 `;
 
 const LegalText = styled.div`
@@ -295,6 +333,11 @@ const LegalText = styled.div`
   color: #b0b0b0;
   margin-bottom: 20px;
   font-weight: 400;
+
+  @media (max-width: 600px) {
+    margin-bottom: 12px;
+    font-size: 0.65rem;
+  }
 `;
 
 const AddButton = styled.button`
@@ -313,6 +356,12 @@ const AddButton = styled.button`
   transition: background-color 0.2s;
   margin-top: auto;
 
+  @media (max-width: 600px) {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    border-radius: 10px;
+  }
+
   &:hover {
     background-color: var(--color-marron-principal);
   }
@@ -322,6 +371,11 @@ const AddButton = styled.button`
     height: 20px;
     fill: none;
     stroke: currentColor;
+
+    @media (max-width: 600px) {
+      width: 18px;
+      height: 18px;
+    }
   }
 `;
 
@@ -335,6 +389,7 @@ const BannersRow = styled.div`
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    padding: 10px 20px 40px 20px;
   }
 `;
 
@@ -406,144 +461,176 @@ const BannerImageWrapper = styled.div`
 
 // Helper SVG Icons
 const HeartOutline = () => (
-    <svg viewBox="0 0 24 24">
-        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-    </svg>
+  <svg viewBox="0 0 24 24">
+    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+  </svg>
 );
 
 const CartIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M8 22C8.55228 22 9 21.5523 9 21C9 20.4477 8.55228 20 8 20C7.44772 20 7 20.4477 7 21C7 21.5523 7.44772 22 8 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M19 22C19.5523 22 20 21.5523 20 21C20 20.4477 19.5523 20 19 20C18.4477 20 18 20.4477 18 21C18 21.5523 18.4477 22 19 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M2.0498 2.05005H4.0498L6.7098 14.47C6.80738 14.9249 7.06048 15.3315 7.42552 15.6199C7.79056 15.9083 8.24471 16.0604 8.7098 16.05H18.4898C18.945 16.0493 19.3863 15.8933 19.7408 15.6079C20.0954 15.3224 20.3419 14.9246 20.4398 14.48L22.0898 7.05005H5.1198" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 22C8.55228 22 9 21.5523 9 21C9 20.4477 8.55228 20 8 20C7.44772 20 7 20.4477 7 21C7 21.5523 7.44772 22 8 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M19 22C19.5523 22 20 21.5523 20 21C20 20.4477 19.5523 20 19 20C18.4477 20 18 20.4477 18 21C18 21.5523 18.4477 22 19 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M2.0498 2.05005H4.0498L6.7098 14.47C6.80738 14.9249 7.06048 15.3315 7.42552 15.6199C7.79056 15.9083 8.24471 16.0604 8.7098 16.05H18.4898C18.945 16.0493 19.3863 15.8933 19.7408 15.6079C20.0954 15.3224 20.3419 14.9246 20.4398 14.48L22.0898 7.05005H5.1198" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
 );
 
 const ImagePlaceholder = () => (
-    <svg viewBox="0 0 24 24" fill="#ccc">
-        <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-    </svg>
+  <svg viewBox="0 0 24 24" fill="#ccc">
+    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+  </svg>
 );
 
 export default function FeaturedSection() {
-    const dummyProducts = [1, 2, 3, 4, 5, 6];
-    const scrollRef = useRef(null);
+  const [productos, setProductos] = useState([]);
+  const scrollRef = useRef(null);
 
-    const isDown = useRef(false);
-    const startX = useRef(0);
-    const scrollLeftVal = useRef(0);
-
-    const handleMouseDown = useCallback((e) => {
-        const el = scrollRef.current;
-        if (!el) return;
-        isDown.current = true;
-        el.style.scrollSnapType = 'none';
-        el.style.scrollBehavior = 'auto';
-        startX.current = e.pageX - el.offsetLeft;
-        scrollLeftVal.current = el.scrollLeft;
-    }, []);
-
-    const handleMouseLeave = useCallback(() => {
-        if (!isDown.current) return;
-        isDown.current = false;
-        const el = scrollRef.current;
-        if (el) {
-            el.style.scrollSnapType = 'x mandatory';
-            el.style.scrollBehavior = '';
+  useEffect(() => {
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[destacado][$eq]=true&populate=*`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          setProductos(data.data);
         }
-    }, []);
+      })
+      .catch(err => console.error('Error fetching productos:', err));
+  }, []);
 
-    const handleMouseUp = useCallback(() => {
-        if (!isDown.current) return;
-        isDown.current = false;
-        const el = scrollRef.current;
-        if (el) {
-            el.style.scrollSnapType = 'x mandatory';
-            el.style.scrollBehavior = '';
-        }
-    }, []);
+  const isDown = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftVal = useRef(0);
 
-    const handleMouseMove = useCallback((e) => {
-        if (!isDown.current) return;
-        e.preventDefault();
-        const el = scrollRef.current;
-        if (!el) return;
-        const x = e.pageX - el.offsetLeft;
-        const walk = (x - startX.current) * 1.5;
-        el.scrollLeft = scrollLeftVal.current - walk;
-    }, []);
+  const handleMouseDown = useCallback((e) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    isDown.current = true;
+    el.style.scrollSnapType = 'none';
+    el.style.scrollBehavior = 'auto';
+    startX.current = e.pageX - el.offsetLeft;
+    scrollLeftVal.current = el.scrollLeft;
+  }, []);
 
-    return (
-        <SectionWrapper>
-            <HaloLuz src="/inicio/halo-luz.png" alt="Efecto de luz" />
-            <TopHeader>
-                <TextBlock>
-                    <Title>
-                        <span className="italic-text">Lo nuevo</span>
-                        <span className="gold-text">en Marybe</span>
-                    </Title>
-                    <Subtitle>
-                        Intensidad, seducción y carácter <br />en un solo lugar.
-                    </Subtitle>
-                </TextBlock>
-                <FeaturedPicture>
-                    <source media="(max-width: 768px)" srcSet="/inicio/fragancias-mobile.png" />
-                    <img src="/inicio/featured.img" alt="Fragancias destacadas" />
-                </FeaturedPicture>
-            </TopHeader>
+  const handleMouseLeave = useCallback(() => {
+    if (!isDown.current) return;
+    isDown.current = false;
+    const el = scrollRef.current;
+    if (el) {
+      el.style.scrollSnapType = 'x mandatory';
+      el.style.scrollBehavior = '';
+    }
+  }, []);
 
-            <ProductsGrid
-                ref={scrollRef}
-                onMouseDown={handleMouseDown}
-                onMouseLeave={handleMouseLeave}
-                onMouseUp={handleMouseUp}
-                onMouseMove={handleMouseMove}
-            >
-                {dummyProducts.map((item) => (
-                    <ProductCard key={item}>
-                        <CardImageContainer>
-                            <ImagePlaceholder />
-                        </CardImageContainer>
-                        <HeartIcon aria-label="Agregar a favoritos">
-                            <HeartOutline />
-                        </HeartIcon>
+  const handleMouseUp = useCallback(() => {
+    if (!isDown.current) return;
+    isDown.current = false;
+    const el = scrollRef.current;
+    if (el) {
+      el.style.scrollSnapType = 'x mandatory';
+      el.style.scrollBehavior = '';
+    }
+  }, []);
 
-                        <ProductName>WANTED FOREVER ABSOLU</ProductName>
-                        <ProductBrand>AZZARO</ProductBrand>
+  const handleMouseMove = useCallback((e) => {
+    if (!isDown.current) return;
+    e.preventDefault();
+    const el = scrollRef.current;
+    if (!el) return;
+    const x = e.pageX - el.offsetLeft;
+    const walk = (x - startX.current) * 1.5;
+    el.scrollLeft = scrollLeftVal.current - walk;
+  }, []);
 
-                        <PriceRow>
-                            <OldPrice>$194.600</OldPrice>
-                            <CurrentPrice>$116.760</CurrentPrice>
-                            <DiscountBadge>10%</DiscountBadge>
-                        </PriceRow>
+  return (
+    <SectionWrapper>
+      <HaloLuz src="/inicio/halo-luz.png" alt="Efecto de luz" />
+      <TopHeader>
+        <TextBlock>
+          <Title>
+            <span className="italic-text">Lo nuevo</span>
+            <span className="gold-text">en Marybe</span>
+          </Title>
+          <Subtitle>
+            Intensidad, seducción y carácter <br />en un solo lugar.
+          </Subtitle>
+        </TextBlock>
+        <FeaturedPicture>
+          <source media="(max-width: 768px)" srcSet="/inicio/fragancias-mobile.png" />
+          <img src="/inicio/featured.img" alt="Fragancias destacadas" />
+        </FeaturedPicture>
+      </TopHeader>
 
-                        <Installments>3 cuotas sin interés de $4.333</Installments>
-                        <LegalText>Precio sin impuestos nacionales $200.000</LegalText>
+      <ProductsGrid
+        ref={scrollRef}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+      >
+        {productos.map((item) => {
+          const id = item.id || item.documentId;
+          const attrs = item.attributes || item;
 
-                        <AddButton>
-                            Agregar <CartIcon />
-                        </AddButton>
-                    </ProductCard>
-                ))}
-            </ProductsGrid>
+          const nombre = attrs.nombre;
+          const marca = attrs.marca;
 
-            <BannersRow>
-                <BottomBanner>
-                    <BannerTitle>El poder del elixir</BannerTitle>
-                    <BannerImageWrapper>
-                        <img src="/inicio/elixir.png" alt="El poder del elixir" />
-                    </BannerImageWrapper>
-                    <BannerButton>Conocer más</BannerButton>
-                </BottomBanner>
+          let imgUrl = null;
+          if (attrs.portada?.data?.attributes?.url) {
+            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.data.attributes.url}`;
+          } else if (attrs.portada?.url) {
+            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
+          }
 
-                <BottomBanner>
-                    <BannerTitle>Toda la línea de Azzaro</BannerTitle>
-                    <BannerImageWrapper>
-                        <img src="/inicio/azzaro.png" alt="Línea Azzaro" />
-                    </BannerImageWrapper>
-                    <BannerButton>Conocer más</BannerButton>
-                </BottomBanner>
-            </BannersRow>
-        </SectionWrapper>
-    );
+          return (
+            <ProductCard key={id}>
+              <CardImageContainer>
+                {imgUrl ? (
+                  <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                ) : (
+                  <ImagePlaceholder />
+                )}
+                <HeartContainer>
+                  <HeartIcon aria-label="Agregar a favoritos">
+                    <HeartOutline />
+                  </HeartIcon>
+                </HeartContainer>
+              </CardImageContainer>
+
+              <ProductName>{nombre}</ProductName>
+              <ProductBrand>{marca}</ProductBrand>
+
+              <PriceRow>
+                <OldPrice>$194.600</OldPrice>
+                <CurrentPrice>$116.760</CurrentPrice>
+                <DiscountBadge>10%</DiscountBadge>
+              </PriceRow>
+
+              <Installments>3 cuotas sin interés de $4.333</Installments>
+              <LegalText>Precio sin impuestos nacionales $200.000</LegalText>
+
+              <AddButton>
+                Agregar <CartIcon />
+              </AddButton>
+            </ProductCard>
+          );
+        })}
+      </ProductsGrid>
+
+      <BannersRow>
+        <BottomBanner>
+          <BannerTitle>El poder del elixir</BannerTitle>
+          <BannerImageWrapper>
+            <img src="/inicio/elixir.png" alt="El poder del elixir" />
+          </BannerImageWrapper>
+          <BannerButton>Conocer más</BannerButton>
+        </BottomBanner>
+
+        <BottomBanner>
+          <BannerTitle>Toda la línea de Azzaro</BannerTitle>
+          <BannerImageWrapper>
+            <img src="/inicio/azzaro.png" alt="Línea Azzaro" />
+          </BannerImageWrapper>
+          <BannerButton>Conocer más</BannerButton>
+        </BottomBanner>
+      </BannersRow>
+    </SectionWrapper>
+  );
 }

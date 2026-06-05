@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import ToggleSelection from '../../components/inicio/ToggleSelection';
+import ToggleSelection from '../../components/inicio/perfumeria/ToggleSelection';
 import PromoCarousel from '../../components/inicio/PromoCarousel';
-import FeaturedSection from '../../components/inicio/FeaturedSection';
+import FeaturedSection from '../../components/inicio/perfumeria/FeaturedSection';
+import CategoriesSection from '../../components/inicio/perfumeria/CategoriesSection';
 
 const PageWrapper = styled.div`
   min-height: 80vh;
@@ -24,6 +25,8 @@ export default function Inicio() {
         <>
           <PromoCarousel />
           <FeaturedSection />
+          <CategoriesSection />
+
         </>
       )}
     </PageWrapper>
