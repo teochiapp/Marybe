@@ -1,0 +1,33 @@
+{
+  "kind": "singleType",
+  "collectionName": "categorias_especificas",
+  "info": {
+    "singularName": "categoria-especifica",
+    "pluralName": "categorias-especificas",
+    "displayName": "Categoría Específica",
+    "description": "Configuración de la sección de categoría específica en el Inicio con título, icono y relación"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "titulo": {
+      "type": "string",
+      "required": true
+    },
+    "icono": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "categoria": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::categoria.categoria"
+    }
+  }
+}

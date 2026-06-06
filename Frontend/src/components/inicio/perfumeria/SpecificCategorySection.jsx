@@ -2,119 +2,52 @@ import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 const SectionWrapper = styled.section`
-  background-color: var(--color-marron-tercero);
-  border-radius: var(--radius-xl);
-  margin-top: 40px;
+  padding: 40px 60px;
+  background-color: var(--color-fondo-beneficio-tarjeta);
   display: flex;
   flex-direction: column;
-  gap: 0px;
-  position: relative;
-  overflow: hidden;
+  gap: 30px;
 
-  @media (max-width: 768px) {
-    padding: 30px 20px;
-    gap: 30px;
+  @media (max-width: 1024px) {
+    padding: 30px 40px;
   }
-`;
 
-const HaloLuz = styled.img`
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 1000px;
-  z-index: 0;
-  pointer-events: none;
-`;
-
-const TopHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: relative;
-  z-index: 1;
-  
   @media (max-width: 768px) {
-    flex-direction: column;
-    text-align: center;
+    padding: 20px;
     gap: 20px;
   }
 `;
 
-const TextBlock = styled.div`
-  max-width: 50%;
-  padding-left: 60px;
-  
-  @media (max-width: 768px) {
-    max-width: 100%;
-    display: contents;
-  }
-`;
-
-const Title = styled.h2`
-  font-family: var(--font-family-primary);
-  font-size: clamp(3.5rem, 5vw, 6.5rem);
-  line-height: 0.9;
-  font-weight: 600;
-  margin-bottom: 20px;
-  letter-spacing: -2%;
-
-  .italic-text {
-    color: var(--color-blanco);
-    font-style: italic;
-    display: block;
-  }
-
-  .gold-text {
-    color: var(--color-titulo-marybe);
-    font-weight: 400;
-    display: block;
-  }
-  
-  @media (max-width: 768px) {
-    font-size: 3.3rem;
-    order: 1;
-  }
-
-    @media (max-width: 400px) {
-    font-size: 2.7rem;
-  }
-`;
-
-const Subtitle = styled.p`
-  font-size: 1.5rem;
-  color: var(--color-fondo-beneficio-tarjeta);
-  max-width: 25vw;
-  line-height: 1.3;
-  letter-spacing: -1%;
-  
-  @media (max-width: 768px) {
-    margin: 0 auto;
-    order: 3;
-    max-width: 80vw;
-  }
-`;
-
-const FeaturedPicture = styled.picture`
-  width: 50%;
-  max-height: 60vh;
-  max-width: 100%;
-  padding-right: 60px;
+const TitleWrapper = styled.div`
   display: flex;
-  justify-content: center;
-  
-  @media (max-width: 768px) {
-    width: 100%;
-    order: 2;
-    padding: 0 5px;
-  }
+  align-items: center;
+  gap: 15px;
 
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+  @media (max-width: 768px) {
+    gap: 10px;
+  }
+`;
+
+const TitleIcon = styled.img`
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+
+  @media (max-width: 768px) {
+    width: 32px;
+    height: 32px;
+  }
+`;
+
+const SectionTitle = styled.h2`
+  font-family: var(--font-family-secondary);
+  font-size: 2.5rem;
+  color: var(--color-bordo-secundario);
+  font-weight: 600;
+  margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 2rem;
   }
 `;
 
@@ -128,9 +61,7 @@ const ProductsGrid = styled.div`
   position: relative;
   z-index: 1;
   cursor: grab;
-  margin-left: 60px;
-  padding-right: 60px; /* Para mantener simetría al final del scroll */
-  padding-bottom: 40px;
+  padding-bottom: 20px;
 
   &:active {
     cursor: grabbing;
@@ -140,20 +71,12 @@ const ProductsGrid = styled.div`
     display: none;
   }
 
-  @media (min-width: 1250px) and (max-width: 1524px) {
-    margin-top: -5vh;
-  }
-
   @media (max-width: 1024px) {
     gap: 30px;
-    margin-left: 40px;
-    padding-right: 40px;
   }
 
   @media (max-width: 600px) {
     gap: 20px;
-    margin-left: 0px; /* El padre ya tiene padding lateral en mobile */
-    padding-right: 0px;
   }
 `;
 
@@ -164,35 +87,32 @@ const ProductCard = styled.div`
   display: flex;
   flex-direction: column;
   position: relative;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   flex-shrink: 0;
   scroll-snap-align: start;
   user-select: none;
   -webkit-user-drag: none;
-  
-  /* Fórmula matemática: (100% ancho - espacio de los gaps) / Cantidad de tarjetas que queremos mostrar */
-  
-  /* Pantallas muy grandes (> 1440px): 4.5 tarjetas */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+
   width: calc((100% - (4 * 40px)) / 4.5);
-  
+
   @media (max-width: 1440px) {
-    /* Pantallas notebook (1025px - 1440px): 3.5 tarjetas */
     width: calc((100% - (3 * 40px)) / 3.5);
   }
 
   @media (max-width: 1024px) {
-    /* Tablets (601px - 1024px): 2.5 tarjetas (usando gap de 30px) */
     width: calc((100% - (2 * 30px)) / 2.5);
   }
 
   @media (max-width: 600px) {
-    /* Mobile (<= 600px): 1.5 tarjetas (usando gap de 20px) */
     width: calc((100% - (1 * 20px)) / 1.5);
     padding: 12px;
+    border-radius: 18px;
   }
-  
+
   &:hover {
     transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
   }
 `;
 
@@ -212,11 +132,29 @@ const CardImageContainer = styled.div`
     height: 160px;
     margin-bottom: 10px;
   }
-  
-  > svg {
-    width: 60px;
-    height: 60px;
-    opacity: 0.1;
+
+  img.product-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+`;
+
+const StampOverlay = styled.img`
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  z-index: 2;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+
+  @media (max-width: 600px) {
+    width: 38px;
+    height: 38px;
+    top: 5px;
+    left: 5px;
   }
 `;
 
@@ -257,7 +195,6 @@ const ProductBrand = styled.div`
   color: var(--color-marron-secundario);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  letter-spacing: 10%;
   margin-bottom: 15px;
 
   @media (max-width: 600px) {
@@ -272,7 +209,11 @@ const ProductName = styled.h3`
   font-weight: 400;
   margin-bottom: 4px;
   line-height: 1.2;
-  letter-spacing: 0%;
+  height: 2.4em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 
   @media (max-width: 600px) {
     font-size: 14px;
@@ -286,10 +227,6 @@ const PriceRow = styled.div`
   column-gap: 10px;
   row-gap: 4px;
   margin-bottom: 6px;
-
-  @media (max-width: 1024px) {
-    column-gap: 6px;
-  }
 `;
 
 const OldPrice = styled.span`
@@ -348,7 +285,6 @@ const AddButton = styled.button`
   padding: 16px 24px;
   font-weight: 500;
   font-size: 1rem;
-  letter-spacing: 2%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -365,7 +301,7 @@ const AddButton = styled.button`
   &:hover {
     background-color: var(--color-marron-principal);
   }
-  
+
   svg {
     width: 20px;
     height: 20px;
@@ -379,87 +315,7 @@ const AddButton = styled.button`
   }
 `;
 
-const BannersRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  position: relative;
-  z-index: 1;
-  padding: 20px 60px 40px 60px;
-  gap: 40px;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    padding: 10px 20px 40px 20px;
-  }
-`;
-
-const BottomBanner = styled.div`
-  background-color: var(--color-marron-cuarto);
-  padding: 24px;
-  border-radius: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-  min-height: 280px;
-  justify-content: flex-start;
-  box-shadow: inset 0 0 50px rgba(0,0,0,0.2);
-`;
-
-const BannerTitle = styled.h3`
-  font-family: var(--font-family-primary);
-  font-size: 2.4rem;
-  color: var(--color-blanco);
-  letter-spacing: -2%;
-  font-style: italic;
-  font-weight: 600;
-  margin-bottom: auto;
-  z-index: 2;
-  
-  @media (max-width: 1024px) {
-    font-size: 1.8rem;
-  }
-`;
-
-const BannerButton = styled.button`
-  background-color: var(--color-blanco);
-  color: var(--color-marron-cuarto);
-  border: none;
-  padding: 16px 24px;
-  border-radius: 12px;
-  font-weight: 500;
-  font-size: 1rem;
-  letter-spacing: 2%;
-  z-index: 2;
-  transition: transform 0.2s, background-color 0.2s;
-  margin-top: 20px;
-  
-  &:hover {
-    transform: translateY(-2px);
-    background-color: var(--color-blanco-pero-no-tan-blanco);
-  }
-`;
-
-const BannerImageWrapper = styled.div`
-  width: 100%;
-  height: 200px;
-  position: absolute;
-  bottom: -10px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  z-index: 1;
-  
-  img {
-    height: 100%;
-    object-fit: contain;
-    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));
-  }
-`;
-
-// Helper SVG Icons
+// SVG Icons
 const HeartOutline = () => (
   <svg viewBox="0 0 24 24">
     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -475,25 +331,64 @@ const CartIcon = () => (
 );
 
 const ImagePlaceholder = () => (
-  <svg viewBox="0 0 24 24" fill="#ccc">
+  <svg viewBox="0 0 24 24" fill="#ccc" style={{ width: '50px', height: '50px', opacity: 0.15 }}>
     <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
   </svg>
 );
 
-export default function FeaturedSection() {
+export default function SpecificCategorySection() {
+  const [config, setConfig] = useState(null);
   const [productos, setProductos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const scrollRef = useRef(null);
 
+  // 1. Obtener configuración de Categoría Específica
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[destacado][$eq]=true&populate=*`)
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/categoria-especifica?populate=*`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          const attributes = data.data.attributes || data.data;
+          setConfig(attributes);
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching categoria-especifica config:', err);
+        setLoading(false);
+      });
+  }, []);
+
+  // 2. Obtener productos de la categoría seleccionada
+  useEffect(() => {
+    if (!config) return;
+
+    const cat = config.categoria?.data || config.categoria || config.Categoria?.data || config.Categoria;
+    if (!cat) {
+      setLoading(false);
+      return;
+    }
+
+    const catDocId = cat.documentId || cat.id;
+    if (!catDocId) {
+      setLoading(false);
+      return;
+    }
+
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[categoria][documentId][$eq]=${catDocId}&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
           setProductos(data.data);
         }
+        setLoading(false);
       })
-      .catch(err => console.error('Error fetching productos:', err));
-  }, []);
+      .catch(err => {
+        console.error('Error fetching specific category products:', err);
+        setLoading(false);
+      });
+  }, [config]);
 
   const isDown = useRef(false);
   const startX = useRef(0);
@@ -539,24 +434,39 @@ export default function FeaturedSection() {
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
+  const formatPrice = (price) => {
+    if (!price) return '$0';
+    return '$' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+
+  const getStampValue = (descuento) => {
+    if (descuento <= 20) return 20;
+    if (descuento <= 30) return 30;
+    if (descuento <= 35) return 35;
+    if (descuento <= 40) return 40;
+    return 50;
+  };
+
+  if (loading || !config || productos.length === 0) {
+    return null;
+  }
+
+  const titulo = config.titulo || config.Titulo || 'Categoría Específica';
+
+  let iconUrl = null;
+  const iconoObj = config.icono || config.Icono;
+  if (iconoObj?.data?.attributes?.url) {
+    iconUrl = `${process.env.REACT_APP_STRAPI_URL}${iconoObj.data.attributes.url}`;
+  } else if (iconoObj?.url) {
+    iconUrl = `${process.env.REACT_APP_STRAPI_URL}${iconoObj.url}`;
+  }
+
   return (
     <SectionWrapper>
-      <HaloLuz src="/inicio/halo-luz.png" alt="Efecto de luz" />
-      <TopHeader>
-        <TextBlock>
-          <Title>
-            <span className="italic-text">Lo nuevo</span>
-            <span className="gold-text">en Marybe</span>
-          </Title>
-          <Subtitle>
-            Intensidad, seducción y carácter <br />en un solo lugar.
-          </Subtitle>
-        </TextBlock>
-        <FeaturedPicture>
-          <source media="(max-width: 768px)" srcSet="/inicio/fragancias-mobile.png" />
-          <img src="/inicio/featured.img" alt="Fragancias destacadas" />
-        </FeaturedPicture>
-      </TopHeader>
+      <TitleWrapper>
+        {iconUrl && <TitleIcon src={iconUrl} alt={titulo} />}
+        <SectionTitle>{titulo}</SectionTitle>
+      </TitleWrapper>
 
       <ProductsGrid
         ref={scrollRef}
@@ -565,12 +475,18 @@ export default function FeaturedSection() {
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
       >
-        {productos.map((item) => {
+        {productos.map(item => {
           const id = item.id || item.documentId;
           const attrs = item.attributes || item;
 
           const nombre = attrs.nombre;
           const marca = attrs.marca;
+          const descuento = attrs.descuento || 0;
+
+          const variantes = attrs.variantes || [];
+          const mainVariant = variantes[0] || {};
+          const price = mainVariant.precio || 0;
+          const offerPrice = mainVariant.precio_oferta || null;
 
           let imgUrl = null;
           if (attrs.portada?.data?.attributes?.url) {
@@ -579,11 +495,17 @@ export default function FeaturedSection() {
             imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
           }
 
+          const stampVal = descuento > 0 ? getStampValue(descuento) : null;
+
           return (
             <ProductCard key={id}>
               <CardImageContainer>
+                {descuento > 0 && stampVal && (
+                  <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
+                )}
+
                 {imgUrl ? (
-                  <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  <img className="product-img" src={imgUrl} alt={nombre} />
                 ) : (
                   <ImagePlaceholder />
                 )}
@@ -594,17 +516,21 @@ export default function FeaturedSection() {
                 </HeartContainer>
               </CardImageContainer>
 
-              <ProductName>{nombre}</ProductName>
               <ProductBrand>{marca}</ProductBrand>
+              <ProductName title={nombre}>{nombre}</ProductName>
 
               <PriceRow>
-                <OldPrice>$194.600</OldPrice>
-                <CurrentPrice>$116.760</CurrentPrice>
-                <DiscountBadge>10%</DiscountBadge>
+                {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
+                <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
+                {descuento > 0 && <DiscountBadge>{descuento}% OFF</DiscountBadge>}
               </PriceRow>
 
-              <Installments>3 cuotas sin interés de $4.333</Installments>
-              <LegalText>Precio sin impuestos nacionales $200.000</LegalText>
+              <Installments>
+                3 cuotas sin interés de {formatPrice(Math.round((offerPrice || price) / 3))}
+              </Installments>
+              <LegalText>
+                Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
+              </LegalText>
 
               <AddButton>
                 Agregar <CartIcon />
@@ -613,24 +539,6 @@ export default function FeaturedSection() {
           );
         })}
       </ProductsGrid>
-
-      <BannersRow>
-        <BottomBanner>
-          <BannerTitle>El poder del elixir</BannerTitle>
-          <BannerImageWrapper>
-            <img src="/inicio/elixir.png" alt="El poder del elixir" />
-          </BannerImageWrapper>
-          <BannerButton>Conocer más</BannerButton>
-        </BottomBanner>
-
-        <BottomBanner>
-          <BannerTitle>Toda la línea de Azzaro</BannerTitle>
-          <BannerImageWrapper>
-            <img src="/inicio/azzaro.png" alt="Línea Azzaro" />
-          </BannerImageWrapper>
-          <BannerButton>Conocer más</BannerButton>
-        </BottomBanner>
-      </BannersRow>
     </SectionWrapper>
   );
 }

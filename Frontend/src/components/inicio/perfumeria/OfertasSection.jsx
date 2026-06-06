@@ -1,5 +1,6 @@
-import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, { useRef, useCallback } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
@@ -7,6 +8,7 @@ const SectionWrapper = styled.section`
   display: flex;
   flex-direction: column;
   gap: 30px;
+  align-items: flex-start;
 
   @media (max-width: 1024px) {
     padding: 30px 40px;
@@ -22,6 +24,7 @@ const SectionHeader = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
+  width: 100%;
 `;
 
 const SectionTitle = styled.h2`
@@ -32,20 +35,39 @@ const SectionTitle = styled.h2`
   margin: 0;
 
   @media (max-width: 768px) {
-    font-size: 2rem;
+    font-size: 1.4rem;
+  }
+
+    @media (max-width: 400px) {
+    font-size: 1.2rem;
   }
 `;
 
 const BadgesContainer = styled.div`
   display: flex;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   gap: 25px;
   align-items: center;
-  margin-top: 5px;
+  position: relative;
+  z-index: 1;
+  cursor: grab;
+  width: 100%;
+  padding-bottom: 15px;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   @media (max-width: 768px) {
     gap: 15px;
-    justify-content: flex-start;
+    padding-bottom: 10px;
   }
 `;
 
@@ -61,9 +83,13 @@ const BadgeButton = styled.button`
   justify-content: center;
   border-radius: var(--radius-full);
   outline: none;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  user-select: none;
+  -webkit-user-drag: none;
 
-  width: 90px;
-  height: 90px;
+  width: 150px;
+  height: 150px;
 
   @media (max-width: 768px) {
     width: 65px;
@@ -75,8 +101,8 @@ const BadgeButton = styled.button`
     height: 100%;
     object-fit: contain;
     transition: filter 0.2s ease;
-    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15))
-            ${props => props.$active ? 'brightness(1.1) drop-shadow(0 0 8px rgba(124, 4, 5, 0.4))' : 'grayscale(20%)'};
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15)) grayscale(10%);
+    pointer-events: none;
   }
 
   &:hover {
@@ -85,386 +111,23 @@ const BadgeButton = styled.button`
       filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.22)) grayscale(0%);
     }
   }
-
-  ${props => props.$active && `
-    transform: scale(1.1);
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -6px;
-      width: 8px;
-      height: 8px;
-      background-color: var(--color-bordo-secundario);
-      border-radius: 50%;
-    }
-  `}
 `;
-
-const ViewAllButton = styled.button`
-  font-family: var(--font-family-secondary);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: ${props => props.$active ? 'var(--color-bordo-secundario)' : '#7a7a7a'};
-  text-decoration: ${props => props.$active ? 'underline' : 'none'};
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 10px 15px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  border: 1px solid ${props => props.$active ? 'var(--color-bordo-secundario)' : '#e0e0e0'};
-
-  &:hover {
-    background-color: rgba(124, 4, 5, 0.05);
-    color: var(--color-bordo-secundario);
-    border-color: var(--color-bordo-secundario);
-  }
-
-  @media (max-width: 768px) {
-    font-size: 0.85rem;
-    padding: 8px 12px;
-  }
-`;
-
-const CarouselContainer = styled.div`
-  display: flex;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  gap: 30px;
-  position: relative;
-  cursor: grab;
-  padding-bottom: 20px;
-
-  &:active {
-    cursor: grabbing;
-  }
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-
-  @media (max-width: 768px) {
-    gap: 20px;
-    padding-bottom: 10px;
-  }
-`;
-
-const ProductCard = styled.div`
-  background-color: var(--color-blanco);
-  border-radius: 24px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  flex-shrink: 0;
-  scroll-snap-align: start;
-  user-select: none;
-  -webkit-user-drag: none;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-
-  /* Desktop: 4.5 cards */
-  width: calc((100% - (4 * 30px)) / 4.5);
-
-  @media (max-width: 1440px) {
-    /* Laptop: 3.5 cards */
-    width: calc((100% - (3 * 30px)) / 3.5);
-  }
-
-  @media (max-width: 1024px) {
-    /* Tablet: 2.5 cards */
-    width: calc((100% - (2 * 30px)) / 2.5);
-  }
-
-  @media (max-width: 600px) {
-    /* Mobile: 1.5 cards with gap of 20px */
-    width: calc((100% - (1 * 20px)) / 1.5);
-    padding: 12px;
-    border-radius: 18px;
-  }
-
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  }
-`;
-
-const CardImageContainer = styled.div`
-  width: 100%;
-  height: 230px;
-  background-color: #fff;
-  border-radius: var(--radius-md);
-  margin-bottom: 15px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  position: relative;
-
-  @media (max-width: 600px) {
-    height: 150px;
-    margin-bottom: 10px;
-  }
-
-  img.product-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
-`;
-
-const StampOverlay = styled.img`
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  z-index: 2;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
-
-  @media (max-width: 600px) {
-    width: 38px;
-    height: 38px;
-    top: 5px;
-    left: 5px;
-  }
-`;
-
-const HeartContainer = styled.div`
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  z-index: 2;
-`;
-
-const HeartIcon = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-bordo-secundario);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-
-  svg {
-    width: 22px;
-    height: 22px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-
-    @media (max-width: 600px) {
-      width: 18px;
-      height: 18px;
-    }
-  }
-`;
-
-const ProductBrand = styled.div`
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--color-marron-secundario);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-
-  @media (max-width: 600px) {
-    margin-bottom: 4px;
-  }
-`;
-
-const ProductName = styled.h3`
-  font-size: 15px;
-  color: black;
-  font-family: var(--font-family-secondary);
-  font-weight: 500;
-  margin-bottom: 8px;
-  line-height: 1.25;
-  height: 2.5em; /* Asegurar altura consistente */
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-
-  @media (max-width: 600px) {
-    font-size: 13px;
-    margin-bottom: 6px;
-  }
-`;
-
-const PriceRow = styled.div`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  column-gap: 8px;
-  row-gap: 2px;
-  margin-bottom: 4px;
-`;
-
-const OldPrice = styled.span`
-  font-size: 0.85rem;
-  color: #a0a0a0;
-  text-decoration: line-through;
-
-  @media (max-width: 600px) {
-    font-size: 0.75rem;
-  }
-`;
-
-const CurrentPrice = styled.span`
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--color-bordo-secundario);
-
-  @media (max-width: 600px) {
-    font-size: 1rem;
-  }
-`;
-
-const LocalDiscountBadge = styled.span`
-  background-color: var(--color-bordo-secundario);
-  color: white;
-  font-size: 0.7rem;
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-weight: bold;
-
-  @media (max-width: 600px) {
-    font-size: 0.65rem;
-  }
-`;
-
-const Installments = styled.div`
-  font-size: 0.8rem;
-  color: #535353;
-  margin-bottom: 6px;
-  font-weight: 600;
-
-  @media (max-width: 600px) {
-    font-size: 0.7rem;
-  }
-`;
-
-const LegalText = styled.div`
-  font-size: 0.65rem;
-  color: #b0b0b0;
-  margin-bottom: 15px;
-  font-weight: 400;
-
-  @media (max-width: 600px) {
-    margin-bottom: 10px;
-    font-size: 0.6rem;
-  }
-`;
-
-const AddButton = styled.button`
-  background-color: var(--color-marron-cuarto);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 12px 20px;
-  font-weight: 500;
-  font-size: 0.95rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  transition: background-color 0.2s;
-  margin-top: auto;
-
-  @media (max-width: 600px) {
-    padding: 10px 14px;
-    font-size: 0.85rem;
-    border-radius: 8px;
-  }
-
-  &:hover {
-    background-color: var(--color-marron-principal);
-  }
-
-  svg {
-    width: 18px;
-    height: 18px;
-    fill: none;
-    stroke: currentColor;
-
-    @media (max-width: 600px) {
-      width: 16px;
-      height: 16px;
-    }
-  }
-`;
-
-const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-  background-color: #fcfcfc;
-  border: 1px dashed #e0e0e0;
-  border-radius: 20px;
-  color: #7a7a7a;
-  width: 100%;
-
-  p {
-    margin: 0 0 15px 0;
-    font-size: 1.1rem;
-    font-weight: 500;
-  }
-`;
-
-// SVG Icons
-const HeartOutline = () => (
-  <svg viewBox="0 0 24 24">
-    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-  </svg>
-);
-
-const CartIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M8 22C8.55228 22 9 21.5523 9 21C9 20.4477 8.55228 20 8 20C7.44772 20 7 20.4477 7 21C7 21.5523 7.44772 22 8 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M19 22C19.5523 22 20 21.5523 20 21C20 20.4477 19.5523 20 19 20C18.4477 20 18 20.4477 18 21C18 21.5523 18.4477 22 19 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M2.0498 2.05005H4.0498L6.7098 14.47C6.80738 14.9249 7.06048 15.3315 7.42552 15.6199C7.79056 15.9083 8.24471 16.0604 8.7098 16.05H18.4898C18.945 16.0493 19.3863 15.8933 19.7408 15.6079C20.0954 15.3224 20.3419 14.9246 20.4398 14.48L22.0898 7.05005H5.1198" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const ImagePlaceholder = () => (
-  <svg viewBox="0 0 24 24" fill="#ccc" style={{ width: '50px', height: '50px', opacity: 0.15 }}>
-    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-  </svg>
-);
 
 export default function OfertasSection() {
-  const [productos, setProductos] = useState([]);
-  const [filtroDescuento, setFiltroDescuento] = useState(null); // null = ver todas
+  const navigate = useNavigate();
+  const discountValores = [50, 40, 35, 30, 20];
   const scrollRef = useRef(null);
-
-  useEffect(() => {
-    // Obtenemos los productos que tienen descuento > 0
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[descuento][$gt]=0&populate=*`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
-          setProductos(data.data);
-        }
-      })
-      .catch(err => console.error('Error fetching ofertas:', err));
-  }, []);
 
   const isDown = useRef(false);
   const startX = useRef(0);
   const scrollLeftVal = useRef(0);
+  const hasDragged = useRef(false);
 
   const handleMouseDown = useCallback((e) => {
     const el = scrollRef.current;
     if (!el) return;
     isDown.current = true;
+    hasDragged.current = false;
     el.style.scrollSnapType = 'none';
     el.style.scrollBehavior = 'auto';
     startX.current = e.pageX - el.offsetLeft;
@@ -498,56 +161,31 @@ export default function OfertasSection() {
     if (!el) return;
     const x = e.pageX - el.offsetLeft;
     const walk = (x - startX.current) * 1.5;
+    if (Math.abs(walk) > 5) {
+      hasDragged.current = true;
+    }
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
-  const formatPrice = (price) => {
-    if (!price) return '$0';
-    return '$' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const handleSelectFilter = (val) => {
+    if (hasDragged.current) return;
+    navigate(`/tienda?descuento=${val}`);
   };
-
-  const handleSelectFilter = (dcto) => {
-    if (filtroDescuento === dcto) {
-      setFiltroDescuento(null); // Quitar filtro si ya estaba seleccionado
-    } else {
-      setFiltroDescuento(dcto);
-    }
-  };
-
-  const getStampValue = (descuento) => {
-    if (descuento <= 20) return 20;
-    if (descuento <= 30) return 30;
-    if (descuento <= 35) return 35;
-    if (descuento <= 40) return 40;
-    return 50;
-  };
-
-  // Filtrado de productos según el badge seleccionado (Hasta X% incluye descuentos <= X%)
-  const productosFiltrados = filtroDescuento
-    ? productos.filter(item => {
-        const attrs = item.attributes || item;
-        const desc = Number(attrs.descuento) || 0;
-        return desc > 0 && desc <= filtroDescuento;
-      })
-    : productos;
-
-  const discountValores = [50, 40, 35, 30, 20];
 
   return (
     <SectionWrapper>
       <SectionHeader>
         <SectionTitle>Disfrutá de las mejores ofertas</SectionTitle>
-        <BadgesContainer>
-          <ViewAllButton
-            $active={filtroDescuento === null}
-            onClick={() => setFiltroDescuento(null)}
-          >
-            Ver todas
-          </ViewAllButton>
+        <BadgesContainer
+          ref={scrollRef}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+        >
           {discountValores.map(val => (
             <BadgeButton
               key={val}
-              $active={filtroDescuento === val}
               onClick={() => handleSelectFilter(val)}
               aria-label={`Filtrar ofertas hasta ${val}%`}
             >
@@ -556,90 +194,7 @@ export default function OfertasSection() {
           ))}
         </BadgesContainer>
       </SectionHeader>
-
-      {productosFiltrados.length > 0 ? (
-        <CarouselContainer
-          ref={scrollRef}
-          onMouseDown={handleMouseDown}
-          onMouseLeave={handleMouseLeave}
-          onMouseUp={handleMouseUp}
-          onMouseMove={handleMouseMove}
-        >
-          {productosFiltrados.map(item => {
-            const id = item.id || item.documentId;
-            const attrs = item.attributes || item;
-
-            const nombre = attrs.nombre;
-            const marca = attrs.marca;
-            const descuento = attrs.descuento || 0;
-
-            // Obtener precio y precio oferta de la primera variante
-            const variantes = attrs.variantes || [];
-            const mainVariant = variantes[0] || {};
-            const price = mainVariant.precio || 0;
-            const offerPrice = mainVariant.precio_oferta || null;
-
-            let imgUrl = null;
-            if (attrs.portada?.data?.attributes?.url) {
-              imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.data.attributes.url}`;
-            } else if (attrs.portada?.url) {
-              imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
-            }
-
-            // Obtener el valor de la estampa correspondiente
-            const stampVal = getStampValue(descuento);
-
-            return (
-              <ProductCard key={id}>
-                <CardImageContainer>
-                  {/* Badge en estampa del descuento */}
-                  {descuento > 0 && (
-                    <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
-                  )}
-
-                  {imgUrl ? (
-                    <img className="product-img" src={imgUrl} alt={nombre} />
-                  ) : (
-                    <ImagePlaceholder />
-                  )}
-                  <HeartContainer>
-                    <HeartIcon aria-label="Agregar a favoritos">
-                      <HeartOutline />
-                    </HeartIcon>
-                  </HeartContainer>
-                </CardImageContainer>
-
-                <ProductBrand>{marca}</ProductBrand>
-                <ProductName title={nombre}>{nombre}</ProductName>
-
-                <PriceRow>
-                  {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
-                  <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
-                  {descuento > 0 && <LocalDiscountBadge>{descuento}% OFF</LocalDiscountBadge>}
-                </PriceRow>
-
-                <Installments>
-                  3 cuotas sin interés de {formatPrice(Math.round((offerPrice || price) / 3))}
-                </Installments>
-                <LegalText>
-                  Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
-                </LegalText>
-
-                <AddButton>
-                  Agregar <CartIcon />
-                </AddButton>
-              </ProductCard>
-            );
-          })}
-        </CarouselContainer>
-      ) : (
-        <EmptyState>
-          <p>No hay productos con {filtroDescuento}% de descuento en este momento.</p>
-          <ViewAllButton onClick={() => setFiltroDescuento(null)}>
-            Ver todas las ofertas disponibles
-          </ViewAllButton>
-        </EmptyState>
-      )}
     </SectionWrapper>
   );
 }
+

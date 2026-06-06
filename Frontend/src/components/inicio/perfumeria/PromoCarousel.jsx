@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
@@ -127,6 +128,7 @@ const Dot = styled.button`
 
 // ─── Componente Principal ────────────────────────────────────────────────────
 export default function PromoCarousel() {
+  const navigate = useNavigate();
   const [ofertas, setOfertas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -292,11 +294,16 @@ export default function PromoCarousel() {
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
-  const handleLinkClick = useCallback((e) => {
+  const handleLinkClick = useCallback((e, enlace) => {
     if (hasDragged.current) {
       e.preventDefault();
+      return;
     }
-  }, []);
+    if (enlace && enlace.startsWith('/')) {
+      e.preventDefault();
+      navigate(enlace);
+    }
+  }, [navigate]);
 
   if (loading || ofertas.length === 0) return null;
 
@@ -326,7 +333,7 @@ export default function PromoCarousel() {
                   key={itemKey}
                   $tamano={tamano}
                   href={enlace}
-                  onClick={handleLinkClick}
+                  onClick={(e) => handleLinkClick(e, enlace)}
                   title={titulo}
                 >
                   {inner}

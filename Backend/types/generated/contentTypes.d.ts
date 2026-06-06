@@ -440,6 +440,41 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCategoriaEspecificaCategoriaEspecifica
+  extends Struct.SingleTypeSchema {
+  collectionName: 'categorias_especificas';
+  info: {
+    description: 'Configuraci\u00F3n de la secci\u00F3n de categor\u00EDa espec\u00EDfica en el Inicio con t\u00EDtulo, icono y relaci\u00F3n';
+    displayName: 'Categor\u00EDa Espec\u00EDfica';
+    pluralName: 'categorias-especificas';
+    singularName: 'categoria-especifica';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    categoria: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::categoria.categoria'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    icono: Schema.Attribute.Media<'images'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::categoria-especifica.categoria-especifica'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    titulo: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCategoriaCategoria extends Struct.CollectionTypeSchema {
   collectionName: 'categorias';
   info: {
@@ -1104,6 +1139,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::categoria-especifica.categoria-especifica': ApiCategoriaEspecificaCategoriaEspecifica;
       'api::categoria.categoria': ApiCategoriaCategoria;
       'api::oferta.oferta': ApiOfertaOferta;
       'api::producto.producto': ApiProductoProducto;
