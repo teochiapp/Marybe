@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
@@ -17,16 +18,7 @@ const SectionWrapper = styled.section`
   }
 `;
 
-const HaloLuz = styled.img`
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 1000px;
-  z-index: 0;
-  pointer-events: none;
-`;
+
 
 const TopHeader = styled.div`
   display: flex;
@@ -34,6 +26,7 @@ const TopHeader = styled.div`
   align-items: center;
   position: relative;
   z-index: 1;
+  padding-top: 10px;
   
   @media (max-width: 768px) {
     flex-direction: column;
@@ -52,12 +45,29 @@ const TextBlock = styled.div`
   }
 `;
 
+const DeliveryInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-rosa-tercero);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+  margin-top: 40px;
+
+  @media (max-width: 768px) {
+    justify-content: center;
+    margin-top: 10px;
+    margin-bottom: 5px;
+  }
+`;
+
 const Title = styled.h2`
   font-family: var(--font-family-primary);
   font-size: clamp(2.5rem, 4vw, 4rem);
   line-height: 0.95;
   font-weight: 600;
-  margin-bottom: 15px;
+  margin-bottom: 25px;
   letter-spacing: -2%;
 
   .italic-text {
@@ -66,8 +76,8 @@ const Title = styled.h2`
     display: block;
   }
 
-  .gold-text {
-    color: var(--color-titulo-marybe);
+  .regular-text {
+    color: var(--color-blanco);
     font-weight: 400;
     display: block;
   }
@@ -77,44 +87,38 @@ const Title = styled.h2`
     order: 1;
   }
 
-    @media (max-width: 400px) {
+  @media (max-width: 400px) {
     font-size: 2.7rem;
   }
 `;
 
-const Subtitle = styled.p`
-  font-size: 1.15rem;
-  color: var(--color-fondo-beneficio-tarjeta);
-  max-width: 350px;
-  line-height: 1.35;
-  letter-spacing: -1%;
-  
-  @media (max-width: 768px) {
-    margin: 0 auto;
-    order: 3;
-    max-width: 80vw;
-  }
-`;
-
 const FeaturedPicture = styled.picture`
-  width: 50%;
-  max-height: 40vh;
+  width: 45%;
+  max-height: 32vh;
   max-width: 100%;
   padding-right: 60px;
   display: flex;
   justify-content: center;
+  align-items: flex-end;
   
   @media (max-width: 768px) {
     width: 100%;
+    max-height: 28vh;
     order: 2;
     padding: 0 5px;
   }
 
   img {
-    width: 100%;
+    width: auto;
+    max-width: 100%;
     height: 100%;
+    max-height: 32vh;
     object-fit: contain;
-    filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+    filter: drop-shadow(0 15px 25px rgba(0,0,0,0.45));
+
+    @media (max-width: 768px) {
+      max-height: 28vh;
+    }
   }
 `;
 
@@ -129,7 +133,7 @@ const ProductsGrid = styled.div`
   z-index: 1;
   cursor: grab;
   margin-left: 60px;
-  padding-right: 60px; /* Para mantener simetría al final del scroll */
+  padding-right: 60px;
   padding-bottom: 30px;
 
   &:active {
@@ -152,7 +156,7 @@ const ProductsGrid = styled.div`
 
   @media (max-width: 600px) {
     gap: 20px;
-    margin-left: 0px; /* El padre ya tiene padding lateral en mobile */
+    margin-left: 0px;
     padding-right: 0px;
   }
 `;
@@ -170,23 +174,17 @@ const ProductCard = styled.div`
   user-select: none;
   -webkit-user-drag: none;
   
-  /* Fórmula matemática: (100% ancho - espacio de los gaps) / Cantidad de tarjetas que queremos mostrar */
-  
-  /* Pantallas muy grandes (> 1440px): 5.5 tarjetas */
   width: calc((100% - (5 * 30px)) / 5.5);
   
   @media (max-width: 1440px) {
-    /* Pantallas notebook (1025px - 1440px): 4.5 tarjetas */
     width: calc((100% - (4 * 30px)) / 4.5);
   }
 
   @media (max-width: 1024px) {
-    /* Tablets (601px - 1024px): 2.5 tarjetas */
     width: calc((100% - (2 * 24px)) / 2.5);
   }
 
   @media (max-width: 600px) {
-    /* Mobile (<= 600px): 1.5 tarjetas */
     width: calc((100% - (1 * 20px)) / 1.5);
     padding: 12px;
   }
@@ -379,82 +377,21 @@ const AddButton = styled.button`
   }
 `;
 
-const BannersRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  position: relative;
-  z-index: 1;
-  padding: 20px 60px 30px 60px;
-  gap: 30px;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    padding: 10px 20px 30px 20px;
-  }
-`;
-
-const BottomBanner = styled.div`
-  background-color: var(--color-marron-cuarto);
-  padding: 20px;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-  min-height: 220px;
-  justify-content: flex-start;
-  box-shadow: inset 0 0 50px rgba(0,0,0,0.2);
-`;
-
-const BannerTitle = styled.h3`
-  font-family: var(--font-family-primary);
-  font-size: 1.8rem;
-  color: var(--color-blanco);
-  letter-spacing: -2%;
-  font-style: italic;
-  font-weight: 600;
-  margin-bottom: auto;
-  z-index: 2;
-  
-  @media (max-width: 1024px) {
-    font-size: 1.5rem;
-  }
-`;
-
-const BannerButton = styled.button`
-  background-color: var(--color-blanco);
-  color: var(--color-marron-cuarto);
+const BottomLink = styled.button`
+  background: none;
   border: none;
-  padding: 10px 20px;
-  border-radius: 10px;
+  color: var(--color-titulo-marybe);
+  font-size: 1rem;
   font-weight: 500;
-  font-size: 0.9rem;
-  z-index: 2;
-  transition: transform 0.2s, background-color 0.2s;
-  margin-top: 15px;
-  
-  &:hover {
-    transform: translateY(-2px);
-    background-color: var(--color-blanco-pero-no-tan-blanco);
-  }
-`;
-
-const BannerImageWrapper = styled.div`
-  width: 100%;
-  height: 140px;
-  position: absolute;
-  bottom: -5px;
+  cursor: pointer;
+  margin: 10px auto 40px auto;
   display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  z-index: 1;
-  
-  img {
-    height: 100%;
-    object-fit: contain;
-    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s;
+
+  &:hover {
+    color: white;
   }
 `;
 
@@ -479,19 +416,36 @@ const ImagePlaceholder = () => (
   </svg>
 );
 
-export default function FeaturedSection() {
+const TruckIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px', display: 'inline-block' }}>
+    <rect x="1" y="3" width="15" height="13" />
+    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+    <circle cx="5.5" cy="18.5" r="2.5" />
+    <circle cx="18.5" cy="18.5" r="2.5" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block' }}>
+    <path d="M4.5 9L7.5 6L4.5 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+export default function DiscountedSection() {
   const [productos, setProductos] = useState([]);
   const scrollRef = useRef(null);
+  const navigate = useNavigate();
 
+  // Obtener productos con descuento > 0
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[destacado][$eq]=true&populate=*`)
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[descuento][$gt]=0&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
           setProductos(data.data);
         }
       })
-      .catch(err => console.error('Error fetching productos:', err));
+      .catch(err => console.error('Error fetching discounted productos:', err));
   }, []);
 
   const isDown = useRef(false);
@@ -538,22 +492,25 @@ export default function FeaturedSection() {
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
+  const formatPrice = (price) => {
+    if (!price) return '$0';
+    return '$' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+
   return (
     <SectionWrapper>
-      <HaloLuz src="/inicio/halo-luz.png" alt="Efecto de luz" />
       <TopHeader>
         <TextBlock>
+          <DeliveryInfo>
+            <TruckIcon /> Envíos a todo el país
+          </DeliveryInfo>
           <Title>
-            <span className="italic-text">Lo nuevo</span>
-            <span className="gold-text">en Marybe</span>
+            <span className="italic-text">Descuentos</span>
+            <span className="regular-text">de Miércoles</span>
           </Title>
-          <Subtitle>
-            Intensidad, seducción y carácter <br />en un solo lugar.
-          </Subtitle>
         </TextBlock>
         <FeaturedPicture>
-          <source media="(max-width: 768px)" srcSet="/inicio/fragancias-mobile.png" />
-          <img src="/inicio/featured.img" alt="Fragancias destacadas" />
+          <img src="/inicio/discountedSection.png" alt="Descuentos de Miércoles" />
         </FeaturedPicture>
       </TopHeader>
 
@@ -570,6 +527,12 @@ export default function FeaturedSection() {
 
           const nombre = attrs.nombre;
           const marca = attrs.marca;
+          const descuento = attrs.descuento || 0;
+
+          const variantes = attrs.variantes || [];
+          const mainVariant = variantes[0] || {};
+          const price = mainVariant.precio || 0;
+          const offerPrice = mainVariant.precio_oferta || null;
 
           let imgUrl = null;
           if (attrs.portada?.data?.attributes?.url) {
@@ -597,13 +560,17 @@ export default function FeaturedSection() {
               <ProductBrand>{marca}</ProductBrand>
 
               <PriceRow>
-                <OldPrice>$194.600</OldPrice>
-                <CurrentPrice>$116.760</CurrentPrice>
-                <DiscountBadge>10%</DiscountBadge>
+                {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
+                <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
+                {descuento > 0 && <DiscountBadge>{descuento}% OFF</DiscountBadge>}
               </PriceRow>
 
-              <Installments>3 cuotas sin interés de $4.333</Installments>
-              <LegalText>Precio sin impuestos nacionales $200.000</LegalText>
+              <Installments>
+                3 cuotas sin interés de {formatPrice(Math.round((offerPrice || price) / 3))}
+              </Installments>
+              <LegalText>
+                Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
+              </LegalText>
 
               <AddButton>
                 Agregar <CartIcon />
@@ -613,23 +580,9 @@ export default function FeaturedSection() {
         })}
       </ProductsGrid>
 
-      <BannersRow>
-        <BottomBanner>
-          <BannerTitle>El poder del elixir</BannerTitle>
-          <BannerImageWrapper>
-            <img src="/inicio/elixir.png" alt="El poder del elixir" />
-          </BannerImageWrapper>
-          <BannerButton>Conocer más</BannerButton>
-        </BottomBanner>
-
-        <BottomBanner>
-          <BannerTitle>Toda la línea de Azzaro</BannerTitle>
-          <BannerImageWrapper>
-            <img src="/inicio/azzaro.png" alt="Línea Azzaro" />
-          </BannerImageWrapper>
-          <BannerButton>Conocer más</BannerButton>
-        </BottomBanner>
-      </BannersRow>
+      <BottomLink onClick={() => navigate('/tienda?descuento=todas')}>
+        Conocer más <ChevronRightIcon />
+      </BottomLink>
     </SectionWrapper>
   );
 }

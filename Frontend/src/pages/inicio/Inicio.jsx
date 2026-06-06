@@ -3,11 +3,16 @@ import styled from 'styled-components';
 import ToggleSelection from '../../components/inicio/perfumeria/ToggleSelection';
 import PromoCarousel from '../../components/inicio/perfumeria/PromoCarousel';
 import FeaturedSection from '../../components/inicio/perfumeria/FeaturedSection';
+import DiscountedSection from '../../components/inicio/perfumeria/DiscountedSection';
 import CategoriesSection from '../../components/inicio/perfumeria/CategoriesSection';
-import GiftCard from '../../components/inicio/GiftCard';
+import GiftCard from '../../components/inicio/shared/GiftCard';
 import OfertasSection from '../../components/inicio/perfumeria/OfertasSection';
 import FeaturedCategorySection from '../../components/inicio/perfumeria/FeaturedCategorySection';
 import SpecificCategorySection from '../../components/inicio/perfumeria/SpecificCategorySection';
+import TarjetasPromociones from '../../components/inicio/perfumeria/TarjetasPromociones';
+import ProximosEventos from '../../components/inicio/perfumeria/ProximosEventos';
+import DescubriMas from '../../components/inicio/perfumeria/DescubriMas';
+import ScrollToTopButton from '../../components/ScrollToTopButton';
 
 const PageWrapper = styled.div`
   min-height: 80vh;
@@ -17,7 +22,7 @@ const PageWrapper = styled.div`
 
 const GiftCardWrapper = styled.div`
   width: 100%;
-  padding: 40px 0;
+  background-color: var(--color-fondo-tarjetas-promo);
 
   @media (max-width: 768px) {
     padding: 24px 0;
@@ -40,15 +45,18 @@ export default function Inicio() {
           <FeaturedSection />
           <CategoriesSection />
           <FeaturedCategorySection />
+          <DiscountedSection />
           <SpecificCategorySection />
-          <OfertasSection />
-
-
           <GiftCardWrapper>
             <GiftCard />
           </GiftCardWrapper>
+          <OfertasSection />
+          <ProximosEventos />
+          <DescubriMas />
         </>
       )}
+
+      <ScrollToTopButton />
     </PageWrapper>
   );
 }

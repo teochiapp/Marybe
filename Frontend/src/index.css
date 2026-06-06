@@ -10,11 +10,15 @@
   --color-marron-cuarto: #280101;
   --color-bordo-secundario: #7C0405;
   --color-bordo-tercero: #560203;
+  --color-bordo-cuarto: #6A0304;
   --color-titulo-marybe: #f2dc8f;
   --color-rosa-tercero: #D3C0C0;
   --color-fondo-beneficio-tarjeta: #FAF9F7;
   --color-blanco-pero-no-tan-blanco: #FAF0F0;
   --color-blanco: #FFFFFF;
+  --color-fondo-tarjetas-promo: #F6F4F0;
+  --color-fondo-info-promo: #e7e2da;
+  --color-boton-promo: #280101;
 
   /* ─── Espaciados Estándar (Spacing Tokens) ───────────────────────── */
   --spacing-xs: 0.25rem;
