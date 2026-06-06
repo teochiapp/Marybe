@@ -7,6 +7,10 @@ import CategoriesSection from '../../components/inicio/perfumeria/CategoriesSect
 import GiftCard from '../../components/inicio/GiftCard';
 import OfertasSection from '../../components/inicio/perfumeria/OfertasSection';
 import FeaturedCategorySection from '../../components/inicio/perfumeria/FeaturedCategorySection';
+import TarjetasPromociones from '../../components/inicio/perfumeria/TarjetasPromociones';
+import ProximosEventos from '../../components/inicio/perfumeria/ProximosEventos';
+import DescubriMas from '../../components/inicio/perfumeria/DescubriMas';
+import ScrollToTopButton from '../../components/ScrollToTopButton';
 
 const PageWrapper = styled.div`
   min-height: 80vh;
@@ -16,7 +20,7 @@ const PageWrapper = styled.div`
 
 const GiftCardWrapper = styled.div`
   width: 100%;
-  padding: 40px 0;
+  background-color: var(--color-fondo-tarjetas-promo);
 
   @media (max-width: 768px) {
     padding: 24px 0;
@@ -38,14 +42,19 @@ export default function Inicio() {
           <PromoCarousel />
           <FeaturedSection />
           <CategoriesSection />
+          <TarjetasPromociones />
           <GiftCardWrapper>
             <GiftCard />
           </GiftCardWrapper>
 
           <FeaturedCategorySection />
           <OfertasSection />
+          <ProximosEventos />
+          <DescubriMas />
         </>
       )}
+
+      <ScrollToTopButton />
     </PageWrapper>
   );
 }

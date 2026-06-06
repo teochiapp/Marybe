@@ -4,7 +4,7 @@ import styled from 'styled-components';
 // ─── Styled Components ────────────────────────────────────────────────────────
 
 const Banner = styled.section`
-  background-color: var(--color-bordo-secundario);
+  background-color: var(--color-bordo-cuarto);
   display: flex;
   align-items: center;
   width: 100%;
@@ -199,8 +199,8 @@ const KnowMoreBtn = styled.a`
   font-family: var(--font-family-secondary);
   font-size: 0.95rem;
   font-weight: 500;
-  padding: 12px 36px;
-  border-radius: 999px;
+  padding: 15px 36px;
+  border-radius: 10px;
   text-decoration: none;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.2s;
