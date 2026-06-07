@@ -9,14 +9,14 @@ import GiftCard from '../../components/inicio/shared/GiftCard';
 import OfertasSection from '../../components/inicio/perfumeria/OfertasSection';
 import FeaturedCategorySection from '../../components/inicio/perfumeria/FeaturedCategorySection';
 import SpecificCategorySection from '../../components/inicio/perfumeria/SpecificCategorySection';
-import TarjetasPromociones from '../../components/inicio/perfumeria/TarjetasPromociones';
 import ProximosEventos from '../../components/inicio/perfumeria/ProximosEventos';
 import DescubriMas from '../../components/inicio/perfumeria/DescubriMas';
 import ScrollToTopButton from '../../components/ScrollToTopButton';
 
 const PageWrapper = styled.div`
   min-height: 80vh;
-  background-color: var(--color-fondo-beneficio-tarjeta);
+  padding-top: 30px;
+  background-color: var(--color-blanco);
   font-family: var(--font-family-secondary);
 `;
 
@@ -45,12 +45,12 @@ export default function Inicio() {
           <FeaturedSection />
           <CategoriesSection />
           <FeaturedCategorySection />
+          <OfertasSection />
           <DiscountedSection />
           <SpecificCategorySection />
           <GiftCardWrapper>
             <GiftCard />
           </GiftCardWrapper>
-          <OfertasSection />
           <ProximosEventos />
           <DescubriMas />
         </>

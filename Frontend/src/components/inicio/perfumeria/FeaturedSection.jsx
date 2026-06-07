@@ -4,7 +4,7 @@ import styled from 'styled-components';
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
   border-radius: var(--radius-xl);
-  margin-top: 40px;
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
   gap: 0px;
@@ -113,6 +113,7 @@ const FeaturedPicture = styled.picture`
   img {
     width: 100%;
     height: 100%;
+    max-height: 45vh;
     object-fit: contain;
     filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
   }
@@ -130,7 +131,7 @@ const ProductsGrid = styled.div`
   cursor: grab;
   margin-left: 60px;
   padding-right: 60px; /* Para mantener simetría al final del scroll */
-  padding-bottom: 30px;
+  padding-bottom: 10px;
 
   &:active {
     cursor: grabbing;

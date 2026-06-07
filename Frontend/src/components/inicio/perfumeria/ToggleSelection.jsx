@@ -19,11 +19,11 @@ const ToggleContainer = styled.div`
 `;
 
 const ToggleOption = styled.button`
-  background-color: ${({ $active }) => ($active ? 'var(--color-marron-principal)' : 'transparent')};
+  background-color: ${({ $active }) => ($active ? 'var(--color-bordo-tercero)' : 'transparent')};
   color: ${({ $active }) => ($active ? 'var(--color-blanco)' : 'var(--color-marron-principal)')};
   border: none;
   border-radius: 40px;
-  padding: 8px 52px;
+  padding: 12px 56px;
   font-size: 1.1rem;
   font-weight: 500;
   cursor: pointer;

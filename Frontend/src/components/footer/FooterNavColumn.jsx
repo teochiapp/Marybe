@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 import { ChevronIcon } from './FooterIcons';
 
 const NavColumn = styled.div`
@@ -63,7 +64,7 @@ const NavList = styled.ul`
   }
 `;
 
-const NavLink = styled.a`
+const NavLink = styled(Link)`
   font-size: 0.875rem;
   color: var(--color-rosa-tercero);
   transition: var(--transition-fast);
@@ -92,7 +93,7 @@ export default function FooterNavColumn({ title, links, isOpen, onToggle }) {
       <NavList $open={isOpen}>
         {links.map((link) => (
           <li key={link.label}>
-            <NavLink href={link.href}>{link.label}</NavLink>
+            <NavLink to={link.href}>{link.label}</NavLink>
           </li>
         ))}
       </NavList>

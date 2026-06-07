@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
-  background-color: var(--color-fondo-beneficio-tarjeta);
+  background-color: var(--color-blanco);
   display: flex;
   flex-direction: column;
   gap: 30px;
