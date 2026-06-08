@@ -336,15 +336,22 @@ const ImagePlaceholder = () => (
   </svg>
 );
 
-export default function SpecificCategorySection() {
+export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
   const [config, setConfig] = useState(null);
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef(null);
 
+  const endpoint = seccion === 'hogar'
+    ? `${process.env.REACT_APP_STRAPI_URL}/api/categoria-especifica-hogar?populate=*`
+    : `${process.env.REACT_APP_STRAPI_URL}/api/categoria-especifica?populate=*`;
+
   // 1. Obtener configuración de Categoría Específica
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/categoria-especifica?populate=*`)
+    setConfig(null);
+    setProductos([]);
+    setLoading(true);
+    fetch(endpoint)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
@@ -358,7 +365,7 @@ export default function SpecificCategorySection() {
         console.error('Error fetching categoria-especifica config:', err);
         setLoading(false);
       });
-  }, []);
+  }, [endpoint]);
 
   // 2. Obtener productos de la categoría seleccionada
   useEffect(() => {

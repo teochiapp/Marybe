@@ -480,12 +480,14 @@ const ImagePlaceholder = () => (
   </svg>
 );
 
-export default function FeaturedSection() {
+export default function FeaturedSection({ seccion = 'perfumeria' }) {
   const [productos, setProductos] = useState([]);
   const scrollRef = useRef(null);
 
+  const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
+
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[destacado][$eq]=true&populate=*`)
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[destacado][$eq]=true&filters[seccion][$eq]=${seccionName}&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
@@ -493,7 +495,7 @@ export default function FeaturedSection() {
         }
       })
       .catch(err => console.error('Error fetching productos:', err));
-  }, []);
+  }, [seccionName]);
 
   const isDown = useRef(false);
   const startX = useRef(0);
@@ -545,16 +547,28 @@ export default function FeaturedSection() {
       <TopHeader>
         <TextBlock>
           <Title>
-            <span className="italic-text">Lo nuevo</span>
-            <span className="gold-text">en Marybe</span>
+            <span className="italic-text">
+              {seccion === 'hogar' ? 'Tu espacio,' : 'Lo nuevo'}
+            </span>
+            <span className="gold-text">
+              {seccion === 'hogar' ? 'tu hogar' : 'en Marybe'}
+            </span>
           </Title>
           <Subtitle>
-            Intensidad, seducción y carácter <br />en un solo lugar.
+            {seccion === 'hogar'
+              ? 'Calidez, diseño y aromas para ambientar cada rincón.'
+              : 'Intensidad, seducción y carácter en un solo lugar.'}
           </Subtitle>
         </TextBlock>
         <FeaturedPicture>
-          <source media="(max-width: 768px)" srcSet="/inicio/fragancias-mobile.png" />
-          <img src="/inicio/featured.img" alt="Fragancias destacadas" />
+          {seccion === 'hogar' ? (
+            <img src="/inicio/hogar-featured.png" alt="Hogar destacado" style={{ maxHeight: '42vh' }} />
+          ) : (
+            <>
+              <source media="(max-width: 768px)" srcSet="/inicio/fragancias-mobile.png" />
+              <img src="/inicio/featured.img" alt="Fragancias destacadas" />
+            </>
+          )}
         </FeaturedPicture>
       </TopHeader>
 
@@ -614,23 +628,25 @@ export default function FeaturedSection() {
         })}
       </ProductsGrid>
 
-      <BannersRow>
-        <BottomBanner>
-          <BannerTitle>El poder del elixir</BannerTitle>
-          <BannerImageWrapper>
-            <img src="/inicio/elixir.png" alt="El poder del elixir" />
-          </BannerImageWrapper>
-          <BannerButton>Conocer más</BannerButton>
-        </BottomBanner>
+      {seccion !== 'hogar' && (
+        <BannersRow>
+          <BottomBanner>
+            <BannerTitle>El poder del elixir</BannerTitle>
+            <BannerImageWrapper>
+              <img src="/inicio/elixir.png" alt="El poder del elixir" />
+            </BannerImageWrapper>
+            <BannerButton>Conocer más</BannerButton>
+          </BottomBanner>
 
-        <BottomBanner>
-          <BannerTitle>Toda la línea de Azzaro</BannerTitle>
-          <BannerImageWrapper>
-            <img src="/inicio/azzaro.png" alt="Línea Azzaro" />
-          </BannerImageWrapper>
-          <BannerButton>Conocer más</BannerButton>
-        </BottomBanner>
-      </BannersRow>
+          <BottomBanner>
+            <BannerTitle>Toda la línea de Azzaro</BannerTitle>
+            <BannerImageWrapper>
+              <img src="/inicio/azzaro.png" alt="Línea Azzaro" />
+            </BannerImageWrapper>
+            <BannerButton>Conocer más</BannerButton>
+          </BottomBanner>
+        </BannersRow>
+      )}
     </SectionWrapper>
   );
 }

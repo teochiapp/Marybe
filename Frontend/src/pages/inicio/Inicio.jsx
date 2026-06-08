@@ -12,6 +12,8 @@ import SpecificCategorySection from '../../components/inicio/perfumeria/Specific
 import ProximosEventos from '../../components/inicio/perfumeria/ProximosEventos';
 import DescubriMas from '../../components/inicio/perfumeria/DescubriMas';
 import ScrollToTopButton from '../../components/ScrollToTopButton';
+import FeaturedSectionHogar from '../../components/inicio/hogar/FeaturedSectionHogar';
+import DiscountedSectionHogar from '../../components/inicio/hogar/DiscountedSectionHogar';
 
 const PageWrapper = styled.div`
   min-height: 80vh;
@@ -41,17 +43,33 @@ export default function Inicio() {
 
       {seccionActiva === 'perfumeria' && (
         <>
-          <PromoCarousel />
-          <FeaturedSection />
-          <CategoriesSection />
-          <FeaturedCategorySection />
-          <OfertasSection />
-          <DiscountedSection />
-          <SpecificCategorySection />
+          <PromoCarousel seccion={seccionActiva} />
+          <FeaturedSection seccion={seccionActiva} />
+          <CategoriesSection seccion={seccionActiva} />
+          <FeaturedCategorySection seccion={seccionActiva} />
+          <OfertasSection seccion={seccionActiva} />
+          <DiscountedSection seccion={seccionActiva} />
+          <SpecificCategorySection seccion={seccionActiva} />
           <GiftCardWrapper>
             <GiftCard />
           </GiftCardWrapper>
           <ProximosEventos />
+          <DescubriMas />
+        </>
+      )}
+
+      {seccionActiva === 'hogar' && (
+        <>
+          <PromoCarousel seccion={seccionActiva} />
+          <OfertasSection seccion={seccionActiva} />
+          <FeaturedSectionHogar />
+          <CategoriesSection seccion={seccionActiva} />
+          <FeaturedCategorySection seccion={seccionActiva} />
+          <DiscountedSectionHogar />
+          <SpecificCategorySection seccion={seccionActiva} />
+          <GiftCardWrapper>
+            <GiftCard />
+          </GiftCardWrapper>
           <DescubriMas />
         </>
       )}

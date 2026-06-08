@@ -440,12 +440,47 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCategoriaEspecificaHogarCategoriaEspecificaHogar
+  extends Struct.SingleTypeSchema {
+  collectionName: 'categorias_especificas_hogar';
+  info: {
+    description: 'Configuraci\u00F3n de la secci\u00F3n de categor\u00EDa espec\u00EDfica en el Inicio de Hogar';
+    displayName: 'Categor\u00EDa Espec\u00EDfica (Hogar)';
+    pluralName: 'categorias-especificas-hogar';
+    singularName: 'categoria-especifica-hogar';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    categoria: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::categoria.categoria'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    icono: Schema.Attribute.Media<'images'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::categoria-especifica-hogar.categoria-especifica-hogar'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    titulo: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCategoriaEspecificaCategoriaEspecifica
   extends Struct.SingleTypeSchema {
   collectionName: 'categorias_especificas';
   info: {
     description: 'Configuraci\u00F3n de la secci\u00F3n de categor\u00EDa espec\u00EDfica en el Inicio con t\u00EDtulo, icono y relaci\u00F3n';
-    displayName: 'Categor\u00EDa Espec\u00EDfica';
+    displayName: 'Categor\u00EDa Espec\u00EDfica (Perfumer\u00EDa)';
     pluralName: 'categorias-especificas';
     singularName: 'categoria-especifica';
   };
@@ -531,7 +566,17 @@ export interface ApiOfertaOferta extends Struct.CollectionTypeSchema {
       'api::oferta.oferta'
     > &
       Schema.Attribute.Private;
+    orden: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
     publishedAt: Schema.Attribute.DateTime;
+    seccion: Schema.Attribute.Enumeration<['Perfumer\u00EDa', 'Hogar']> &
+      Schema.Attribute.DefaultTo<'Perfumer\u00EDa'>;
     tamano: Schema.Attribute.Integer &
       Schema.Attribute.SetMinMax<
         {
@@ -594,12 +639,124 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiSeccionDescuentoHogarSeccionDescuentoHogar
+  extends Struct.SingleTypeSchema {
+  collectionName: 'secciones_descuentos_hogar';
+  info: {
+    description: 'Configuraci\u00F3n de la secci\u00F3n de descuentos en el Inicio de Hogar';
+    displayName: 'Secci\u00F3n Descuentos (Hogar)';
+    pluralName: 'secciones-descuentos-hogar';
+    singularName: 'seccion-descuento-hogar';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::seccion-descuento-hogar.seccion-descuento-hogar'
+    > &
+      Schema.Attribute.Private;
+    productos: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::producto.producto'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    titulo_cursiva: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Descuentos'>;
+    titulo_normal: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'de Hogar'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiSeccionDescuentoSeccionDescuento
+  extends Struct.SingleTypeSchema {
+  collectionName: 'secciones_descuentos';
+  info: {
+    description: 'Configuraci\u00F3n de la secci\u00F3n de descuentos en el Inicio';
+    displayName: 'Secci\u00F3n Descuentos (Perfumer\u00EDa)';
+    pluralName: 'secciones-descuentos';
+    singularName: 'seccion-descuento';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::seccion-descuento.seccion-descuento'
+    > &
+      Schema.Attribute.Private;
+    productos: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::producto.producto'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    titulo_cursiva: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Descuentos'>;
+    titulo_normal: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'de Mi\u00E9rcoles'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiSeccionDestacadaHogarSeccionDestacadaHogar
+  extends Struct.SingleTypeSchema {
+  collectionName: 'secciones_destacadas_hogar';
+  info: {
+    description: 'Configuraci\u00F3n de la secci\u00F3n destacada de categor\u00EDas en el Inicio de Hogar';
+    displayName: 'Secci\u00F3n Destacada (Hogar)';
+    pluralName: 'secciones-destacadas-hogar';
+    singularName: 'seccion-destacada-hogar';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    categoria: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::categoria.categoria'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::seccion-destacada-hogar.seccion-destacada-hogar'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    titulo: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiSeccionDestacadaSeccionDestacada
   extends Struct.SingleTypeSchema {
   collectionName: 'secciones_destacadas';
   info: {
     description: 'Configuraci\u00F3n de la secci\u00F3n destacada de categor\u00EDas en el Inicio';
-    displayName: 'Secci\u00F3n Destacada';
+    displayName: 'Secci\u00F3n Destacada (Perfumer\u00EDa)';
     pluralName: 'secciones-destacadas';
     singularName: 'seccion-destacada';
   };
@@ -1139,10 +1296,14 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::categoria-especifica-hogar.categoria-especifica-hogar': ApiCategoriaEspecificaHogarCategoriaEspecificaHogar;
       'api::categoria-especifica.categoria-especifica': ApiCategoriaEspecificaCategoriaEspecifica;
       'api::categoria.categoria': ApiCategoriaCategoria;
       'api::oferta.oferta': ApiOfertaOferta;
       'api::producto.producto': ApiProductoProducto;
+      'api::seccion-descuento-hogar.seccion-descuento-hogar': ApiSeccionDescuentoHogarSeccionDescuentoHogar;
+      'api::seccion-descuento.seccion-descuento': ApiSeccionDescuentoSeccionDescuento;
+      'api::seccion-destacada-hogar.seccion-destacada-hogar': ApiSeccionDestacadaHogarSeccionDestacadaHogar;
       'api::seccion-destacada.seccion-destacada': ApiSeccionDestacadaSeccionDestacada;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;

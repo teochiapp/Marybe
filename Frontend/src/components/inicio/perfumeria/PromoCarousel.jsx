@@ -127,7 +127,7 @@ const Dot = styled.button`
 `;
 
 // ─── Componente Principal ────────────────────────────────────────────────────
-export default function PromoCarousel() {
+export default function PromoCarousel({ seccion = 'perfumeria' }) {
   const navigate = useNavigate();
   const [ofertas, setOfertas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -136,12 +136,44 @@ export default function PromoCarousel() {
   const scrollRef = useRef(null);
 
   useEffect(() => {
+    setLoading(true);
     async function fetchOfertas() {
       try {
-        const res = await fetch(`${STRAPI_URL}/api/ofertas?populate=*`);
+        const seccionNameRaw = seccion === 'hogar' ? 'Hogar' : 'Perfumer\u00eda';
+        const encodedSeccion = encodeURIComponent(seccionNameRaw);
+        let params;
+        if (seccion === 'hogar') {
+          // Hogar: filtro estricto, solo mostrar ofertas explícitamente asignadas a Hogar
+          params = [
+            `filters[seccion][$eq]=${encodedSeccion}`,
+            `sort[0]=orden:asc`,
+            `populate=*`,
+          ].join('&');
+        } else {
+          // Perfumería: incluir también registros sin sección asignada (legacy)
+          params = [
+            `filters[$or][0][seccion][$eq]=${encodedSeccion}`,
+            `filters[$or][1][seccion][$null]=true`,
+            `sort[0]=orden:asc`,
+            `populate=*`,
+          ].join('&');
+        }
+
+        const res = await fetch(`${STRAPI_URL}/api/ofertas?${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
-        setOfertas(json.data || []);
+        
+        if (json && json.data) {
+          // Sort client-side para garantizar orden por si Strapi no respeta nulls en orden
+          const sorted = [...json.data].sort((a, b) => {
+            const aAttrs = a.attributes || a;
+            const bAttrs = b.attributes || b;
+            return (aAttrs.orden ?? 999) - (bAttrs.orden ?? 999);
+          });
+          setOfertas(sorted);
+        } else {
+          setOfertas([]);
+        }
       } catch (err) {
         console.error('[PromoCarousel] Error al cargar ofertas:', err.message);
       } finally {
@@ -149,7 +181,7 @@ export default function PromoCarousel() {
       }
     }
     fetchOfertas();
-  }, []);
+  }, [seccion]);
 
   /* Scroll horizontal con la rueda del mouse (wheel tilt) */
   useEffect(() => {
@@ -319,10 +351,15 @@ export default function PromoCarousel() {
           onMouseMove={handleMouseMove}
         >
           {ofertas.map((o) => {
-            const titulo = o.titulo || '';
-            const enlace = o.enlace || null;
-            const tamano = o.tamano || 100;
-            const imageUrl = o.imagen?.url ? `${STRAPI_URL}${o.imagen.url}` : '';
+            const attrs = o.attributes || o;
+            const titulo = attrs.titulo || '';
+            const enlace = attrs.enlace || null;
+            const tamano = attrs.tamano || 100;
+            const imageUrl = attrs.imagen?.data?.attributes?.url
+              ? `${STRAPI_URL}${attrs.imagen.data.attributes.url}`
+              : attrs.imagen?.url
+              ? `${STRAPI_URL}${attrs.imagen.url}`
+              : '';
             const itemKey = o.documentId || o.id;
 
             const inner = imageUrl ? <BannerImage src={imageUrl} alt={titulo} draggable="false" /> : null;

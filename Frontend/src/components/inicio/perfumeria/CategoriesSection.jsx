@@ -63,6 +63,8 @@ const CategoryCard = styled.div`
   overflow: hidden;
   background-color: #f5f5f5;
   height: 250px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
   
   /* Desktop: 5.5 cards */
   width: calc((100% - (5 * 20px)) / 5.5);
@@ -85,6 +87,10 @@ const CategoryCard = styled.div`
     height: 100%;
     object-fit: cover;
     transition: transform 0.3s ease;
+  }
+  
+  &:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
   }
   
   &:hover img {
@@ -170,11 +176,13 @@ const ChevronIcon = () => (
   </svg>
 );
 
-export default function CategoriesSection() {
+export default function CategoriesSection({ seccion = 'perfumeria' }) {
   const [categorias, setCategorias] = useState([]);
   const [showAllMobile, setShowAllMobile] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const scrollRef = useRef(null);
+
+  const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -183,7 +191,7 @@ export default function CategoriesSection() {
   }, []);
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/categorias?populate=*`)
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/categorias?filters[seccion][$eq]=${seccionName}&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
@@ -191,7 +199,7 @@ export default function CategoriesSection() {
         }
       })
       .catch(err => console.error('Error fetching categorias:', err));
-  }, []);
+  }, [seccionName]);
 
   const isDown = useRef(false);
   const startX = useRef(0);

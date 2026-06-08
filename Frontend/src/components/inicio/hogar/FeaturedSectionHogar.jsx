@@ -1,11 +1,10 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
   border-radius: var(--radius-xl);
-  margin-top: 40px;
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
   gap: 0px;
@@ -18,7 +17,16 @@ const SectionWrapper = styled.section`
   }
 `;
 
-
+const HaloLuz = styled.img`
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 1000px;
+  z-index: 0;
+  pointer-events: none;
+`;
 
 const TopHeader = styled.div`
   display: flex;
@@ -26,7 +34,6 @@ const TopHeader = styled.div`
   align-items: center;
   position: relative;
   z-index: 1;
-  padding-top: 10px;
   
   @media (max-width: 768px) {
     flex-direction: column;
@@ -45,29 +52,12 @@ const TextBlock = styled.div`
   }
 `;
 
-const DeliveryInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--color-blanco);
-  font-size: 1rem;
-  font-weight: 400;
-  margin-bottom: 40px;
-  margin-top: 40px;
-
-  @media (max-width: 768px) {
-    justify-content: center;
-    margin-top: 10px;
-    margin-bottom: 5px;
-  }
-`;
-
 const Title = styled.h2`
   font-family: var(--font-family-primary);
   font-size: clamp(2.5rem, 4vw, 4rem);
   line-height: 0.95;
   font-weight: 600;
-  margin-bottom: 25px;
+  margin-bottom: 15px;
   letter-spacing: -2%;
 
   .italic-text {
@@ -76,8 +66,8 @@ const Title = styled.h2`
     display: block;
   }
 
-  .regular-text {
-    color: var(--color-blanco);
+  .gold-text {
+    color: var(--color-titulo-marybe);
     font-weight: 400;
     display: block;
   }
@@ -92,38 +82,40 @@ const Title = styled.h2`
   }
 `;
 
+const Subtitle = styled.p`
+  font-size: 1.15rem;
+  color: var(--color-fondo-beneficio-tarjeta);
+  max-width: 350px;
+  line-height: 1.35;
+  letter-spacing: -1%;
+  
+  @media (max-width: 768px) {
+    margin: 0 auto;
+    order: 3;
+    max-width: 80vw;
+  }
+`;
+
 const FeaturedPicture = styled.picture`
   width: 50%;
-  max-height: 48vh;
+  max-height: 40vh;
   max-width: 100%;
   padding-right: 60px;
   display: flex;
   justify-content: center;
-  align-items: flex-end;
-  position: relative;
-  z-index: 2;
-  margin-bottom: -80px;
-  pointer-events: none;
   
   @media (max-width: 768px) {
     width: 100%;
-    max-height: 32vh;
     order: 2;
     padding: 0 5px;
-    margin-bottom: -40px;
   }
 
   img {
-    width: auto;
-    max-width: 100%;
+    width: 100%;
     height: 100%;
-    max-height: 50vh;
+    max-height: 45vh;
     object-fit: contain;
-    filter: drop-shadow(0 15px 25px rgba(0,0,0,0.45));
-
-    @media (max-width: 768px) {
-      max-height: 32vh;
-    }
+    filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
   }
 `;
 
@@ -139,7 +131,7 @@ const ProductsGrid = styled.div`
   cursor: grab;
   margin-left: 60px;
   padding-right: 60px;
-  padding-bottom: 30px;
+  padding-bottom: 10px;
 
   &:active {
     cursor: grabbing;
@@ -382,24 +374,6 @@ const AddButton = styled.button`
   }
 `;
 
-const BottomLink = styled.button`
-  background: none;
-  border: none;
-  color: var(--color-blanco);
-  font-size: 1rem;
-  font-weight: 400;
-  cursor: pointer;
-  margin: 10px auto 40px auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: color 0.2s;
-
-  &:hover {
-    color: white;
-  }
-`;
-
 // Helper SVG Icons
 const HeartOutline = () => (
   <svg viewBox="0 0 24 24">
@@ -421,83 +395,20 @@ const ImagePlaceholder = () => (
   </svg>
 );
 
-const TruckIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px', display: 'inline-block' }}>
-    <rect x="1" y="3" width="15" height="13" />
-    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-    <circle cx="5.5" cy="18.5" r="2.5" />
-    <circle cx="18.5" cy="18.5" r="2.5" />
-  </svg>
-);
-
-const ChevronRightIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block' }}>
-    <path d="M4.5 9L7.5 6L4.5 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-export default function DiscountedSection({ seccion = 'perfumeria' }) {
+export default function FeaturedSectionHogar() {
   const [productos, setProductos] = useState([]);
-  const [tituloCursiva, setTituloCursiva] = useState('Descuentos');
-  const [tituloNormal, setTituloNormal] = useState('de Miércoles');
   const scrollRef = useRef(null);
-  const navigate = useNavigate();
 
-  const singleTypeEndpoint = seccion === 'hogar'
-    ? `${process.env.REACT_APP_STRAPI_URL}/api/seccion-descuento-hogar?populate[productos][populate]=*`
-    : `${process.env.REACT_APP_STRAPI_URL}/api/seccion-descuento?populate[productos][populate]=*`;
-
-  const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
-
-  const fetchFallbackProducts = useCallback(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[descuento][$gt]=0&filters[seccion][$eq]=${seccionName}&populate=*`)
+  useEffect(() => {
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[destacado][$eq]=true&filters[seccion][$eq]=Hogar&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
           setProductos(data.data);
         }
       })
-      .catch(err => console.error('Error fetching fallback discounted productos:', err));
-  }, [seccionName]);
-
-  // Obtener configuración de la sección de descuentos
-  useEffect(() => {
-    setProductos([]);
-    setTituloCursiva('Descuentos');
-    setTituloNormal(seccion === 'hogar' ? 'de Hogar' : 'de Miércoles');
-    fetch(singleTypeEndpoint)
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('Endpoint not configured or failed');
-        }
-        return res.json();
-      })
-      .then(data => {
-        const item = data && data.data;
-        if (item) {
-          const attrs = item.attributes || item;
-          if (attrs.titulo_cursiva) setTituloCursiva(attrs.titulo_cursiva);
-          if (attrs.titulo_normal) setTituloNormal(attrs.titulo_normal);
-
-          let prods = [];
-          if (attrs.productos) {
-            prods = attrs.productos.data || attrs.productos;
-          }
-
-          if (Array.isArray(prods) && prods.length > 0) {
-            setProductos(prods);
-          } else {
-            fetchFallbackProducts();
-          }
-        } else {
-          fetchFallbackProducts();
-        }
-      })
-      .catch(err => {
-        console.warn('Using fallback for discounted products:', err);
-        fetchFallbackProducts();
-      });
-  }, [singleTypeEndpoint, fetchFallbackProducts, seccion]);
+      .catch(err => console.error('Error fetching productos destacados de hogar:', err));
+  }, []);
 
   const isDown = useRef(false);
   const startX = useRef(0);
@@ -543,25 +454,21 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
-  const formatPrice = (price) => {
-    if (!price) return '$0';
-    return '$' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  };
-
   return (
     <SectionWrapper>
+      <HaloLuz src="/inicio/halo-luz.png" alt="Efecto de luz" />
       <TopHeader>
         <TextBlock>
-          <DeliveryInfo>
-            <TruckIcon /> Envíos a todo el país
-          </DeliveryInfo>
           <Title>
-            <span className="italic-text">{tituloCursiva}</span>
-            <span className="regular-text">{tituloNormal}</span>
+            <span className="italic-text">Tu espacio,</span>
+            <span className="gold-text">tu hogar</span>
           </Title>
+          <Subtitle>
+            Calidez, diseño y aromas para ambientar cada rincón.
+          </Subtitle>
         </TextBlock>
         <FeaturedPicture>
-          <img src="/inicio/discountedSection.png" alt="Descuentos de Miércoles" />
+          <img src="/inicio/hogar-featured.png" alt="Hogar destacado" style={{ maxHeight: '42vh' }} />
         </FeaturedPicture>
       </TopHeader>
 
@@ -578,12 +485,6 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
 
           const nombre = attrs.nombre;
           const marca = attrs.marca;
-          const descuento = attrs.descuento || 0;
-
-          const variantes = attrs.variantes || [];
-          const mainVariant = variantes[0] || {};
-          const price = mainVariant.precio || 0;
-          const offerPrice = mainVariant.precio_oferta || null;
 
           let imgUrl = null;
           if (attrs.portada?.data?.attributes?.url) {
@@ -602,7 +503,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
                 )}
                 <HeartContainer>
                   <HeartIcon aria-label="Agregar a favoritos">
-                    <HeartOutline />
+                     <HeartOutline />
                   </HeartIcon>
                 </HeartContainer>
               </CardImageContainer>
@@ -611,17 +512,13 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
               <ProductBrand>{marca}</ProductBrand>
 
               <PriceRow>
-                {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
-                <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
-                {descuento > 0 && <DiscountBadge>{descuento}% OFF</DiscountBadge>}
+                <OldPrice>$194.600</OldPrice>
+                <CurrentPrice>$116.760</CurrentPrice>
+                <DiscountBadge>10%</DiscountBadge>
               </PriceRow>
 
-              <Installments>
-                3 cuotas sin interés de {formatPrice(Math.round((offerPrice || price) / 3))}
-              </Installments>
-              <LegalText>
-                Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
-              </LegalText>
+              <Installments>3 cuotas sin interés de $4.333</Installments>
+              <LegalText>Precio sin impuestos nacionales $200.000</LegalText>
 
               <AddButton>
                 Agregar <CartIcon />
@@ -630,10 +527,6 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
           );
         })}
       </ProductsGrid>
-
-      <BottomLink onClick={() => navigate(`/tienda?descuento=todas&seccion=${seccion === 'hogar' ? 'Hogar' : 'Perfumer%C3%ADa'}`)}>
-        Conocer más <ChevronRightIcon />
-      </BottomLink>
     </SectionWrapper>
   );
 }

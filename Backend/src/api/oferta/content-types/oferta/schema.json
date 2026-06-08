@@ -32,6 +32,19 @@
       "default": 100,
       "min": 10,
       "max": 100
+    },
+    "seccion": {
+      "type": "enumeration",
+      "enum": [
+        "Perfumería",
+        "Hogar"
+      ],
+      "default": "Perfumería"
+    },
+    "orden": {
+      "type": "integer",
+      "default": 0,
+      "min": 0
     }
   }
 }

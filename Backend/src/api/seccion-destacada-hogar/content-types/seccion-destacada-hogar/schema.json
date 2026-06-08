@@ -1,11 +1,11 @@
 {
   "kind": "singleType",
-  "collectionName": "secciones_destacadas",
+  "collectionName": "secciones_destacadas_hogar",
   "info": {
-    "singularName": "seccion-destacada",
-    "pluralName": "secciones-destacadas",
-    "displayName": "Sección Destacada (Perfumería)",
-    "description": "Configuración de la sección destacada de categorías en el Inicio"
+    "singularName": "seccion-destacada-hogar",
+    "pluralName": "secciones-destacadas-hogar",
+    "displayName": "Sección Destacada (Hogar)",
+    "description": "Configuración de la sección destacada de categorías en el Inicio de Hogar"
   },
   "options": {
     "draftAndPublish": false

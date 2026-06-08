@@ -1,11 +1,11 @@
 {
   "kind": "singleType",
-  "collectionName": "categorias_especificas",
+  "collectionName": "categorias_especificas_hogar",
   "info": {
-    "singularName": "categoria-especifica",
-    "pluralName": "categorias-especificas",
-    "displayName": "Categoría Específica (Perfumería)",
-    "description": "Configuración de la sección de categoría específica en el Inicio con título, icono y relación"
+    "singularName": "categoria-especifica-hogar",
+    "pluralName": "categorias-especificas-hogar",
+    "displayName": "Categoría Específica (Hogar)",
+    "description": "Configuración de la sección de categoría específica en el Inicio de Hogar"
   },
   "options": {
     "draftAndPublish": false

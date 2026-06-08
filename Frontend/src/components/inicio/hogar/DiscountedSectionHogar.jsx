@@ -18,8 +18,6 @@ const SectionWrapper = styled.section`
   }
 `;
 
-
-
 const TopHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -436,39 +434,35 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
-export default function DiscountedSection({ seccion = 'perfumeria' }) {
+export default function DiscountedSectionHogar() {
   const [productos, setProductos] = useState([]);
   const [tituloCursiva, setTituloCursiva] = useState('Descuentos');
-  const [tituloNormal, setTituloNormal] = useState('de Miércoles');
+  const [tituloNormal, setTituloNormal] = useState('de Hogar');
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
-  const singleTypeEndpoint = seccion === 'hogar'
-    ? `${process.env.REACT_APP_STRAPI_URL}/api/seccion-descuento-hogar?populate[productos][populate]=*`
-    : `${process.env.REACT_APP_STRAPI_URL}/api/seccion-descuento?populate[productos][populate]=*`;
-
-  const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
+  const singleTypeEndpoint = `${process.env.REACT_APP_STRAPI_URL}/api/seccion-descuento-hogar?populate[productos][populate]=*`;
 
   const fetchFallbackProducts = useCallback(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[descuento][$gt]=0&filters[seccion][$eq]=${seccionName}&populate=*`)
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[descuento][$gt]=0&filters[seccion][$eq]=Hogar&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
           setProductos(data.data);
         }
       })
-      .catch(err => console.error('Error fetching fallback discounted productos:', err));
-  }, [seccionName]);
+      .catch(err => console.error('Error fetching fallback discounted productos para hogar:', err));
+  }, []);
 
-  // Obtener configuración de la sección de descuentos
   useEffect(() => {
     setProductos([]);
     setTituloCursiva('Descuentos');
-    setTituloNormal(seccion === 'hogar' ? 'de Hogar' : 'de Miércoles');
+    setTituloNormal('de Hogar');
+    
     fetch(singleTypeEndpoint)
       .then(res => {
         if (!res.ok) {
-          throw new Error('Endpoint not configured or failed');
+          throw new Error('Endpoint seccion-descuento-hogar not configured or failed');
         }
         return res.json();
       })
@@ -494,10 +488,10 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
         }
       })
       .catch(err => {
-        console.warn('Using fallback for discounted products:', err);
+        console.warn('Using fallback for discounted products (Hogar):', err);
         fetchFallbackProducts();
       });
-  }, [singleTypeEndpoint, fetchFallbackProducts, seccion]);
+  }, [singleTypeEndpoint, fetchFallbackProducts]);
 
   const isDown = useRef(false);
   const startX = useRef(0);
@@ -561,7 +555,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
           </Title>
         </TextBlock>
         <FeaturedPicture>
-          <img src="/inicio/discountedSection.png" alt="Descuentos de Miércoles" />
+          <img src="/inicio/discountedSection.png" alt="Descuentos de Hogar" />
         </FeaturedPicture>
       </TopHeader>
 
@@ -631,7 +625,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
         })}
       </ProductsGrid>
 
-      <BottomLink onClick={() => navigate(`/tienda?descuento=todas&seccion=${seccion === 'hogar' ? 'Hogar' : 'Perfumer%C3%ADa'}`)}>
+      <BottomLink onClick={() => navigate(`/tienda?descuento=todas&seccion=Hogar`)}>
         Conocer más <ChevronRightIcon />
       </BottomLink>
     </SectionWrapper>

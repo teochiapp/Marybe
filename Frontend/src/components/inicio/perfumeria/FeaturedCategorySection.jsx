@@ -320,15 +320,22 @@ const ImagePlaceholder = () => (
   </svg>
 );
 
-export default function FeaturedCategorySection() {
+export default function FeaturedCategorySection({ seccion = 'perfumeria' }) {
   const [config, setConfig] = useState(null);
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef(null);
 
+  const endpoint = seccion === 'hogar'
+    ? `${process.env.REACT_APP_STRAPI_URL}/api/seccion-destacada-hogar?populate=*`
+    : `${process.env.REACT_APP_STRAPI_URL}/api/seccion-destacada?populate=*`;
+
   // 1. Obtener configuración de Sección Destacada
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-destacada?populate=*`)
+    setConfig(null);
+    setProductos([]);
+    setLoading(true);
+    fetch(endpoint)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
@@ -342,7 +349,7 @@ export default function FeaturedCategorySection() {
         console.error('Error fetching seccion-destacada config:', err);
         setLoading(false);
       });
-  }, []);
+  }, [endpoint]);
 
   // 2. Obtener productos de la categoría seleccionada
   useEffect(() => {
