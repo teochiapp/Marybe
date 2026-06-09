@@ -11,7 +11,7 @@
 ## Reglas obligatorias
 
 ### 1. styled-components — siempre en el mismo archivo que el JSX
-Nunca crear archivos `.css` separados. Los estilos van definidos con `styled-components` arriba del componente, en el mismo `.jsx`.
+Nunca crear archivos `.css` separados. Los estilos van definidos con `styled-components` arriba del componente, en el mismo `.jsx`..
 
 ```jsx
 // ✅ Correcto
