@@ -8,7 +8,7 @@ const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
 const Wrapper = styled.div`
   width: 100%;
-  max-width: 1400px;
+  max-width: 90%;
   margin: 0 auto 40px auto;
   display: flex;
   flex-direction: column;
@@ -162,7 +162,7 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
         const res = await fetch(`${STRAPI_URL}/api/ofertas?${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
-        
+
         if (json && json.data) {
           // Sort client-side para garantizar orden por si Strapi no respeta nulls en orden
           const sorted = [...json.data].sort((a, b) => {
@@ -358,8 +358,8 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
             const imageUrl = attrs.imagen?.data?.attributes?.url
               ? `${STRAPI_URL}${attrs.imagen.data.attributes.url}`
               : attrs.imagen?.url
-              ? `${STRAPI_URL}${attrs.imagen.url}`
-              : '';
+                ? `${STRAPI_URL}${attrs.imagen.url}`
+                : '';
             const itemKey = o.documentId || o.id;
 
             const inner = imageUrl ? <BannerImage src={imageUrl} alt={titulo} draggable="false" /> : null;

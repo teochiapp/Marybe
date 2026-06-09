@@ -4,7 +4,8 @@ import styled from 'styled-components';
 // ─── Styled Components ────────────────────────────────────────────────────────
 
 const Banner = styled.section`
-  background-color: var(--color-bordo-cuarto);
+  background-color: ${({ $seccion }) => ($seccion === 'hogar' ? 'var(--color-hogar)' : 'var(--color-bordo-cuarto)')};
+  transition: background-color 0.3s ease;
   display: flex;
   align-items: center;
   width: 100%;
@@ -58,10 +59,11 @@ const MobileTitle = styled.h2`
     margin: 0 0 24px 0;
     line-height: 1.05;
     text-align: center;
+    letter-spacing: -2%;
 
     em {
       font-style: italic;
-      font-weight: 700;
+      font-weight: 600;
       display: block;
     }
   }
@@ -177,7 +179,7 @@ const FeatureTitle = styled.span`
   gap: 10px;
   font-family: var(--font-family-secondary);
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-blanco);
 `;
 
@@ -247,9 +249,9 @@ const MoneyIcon = () => (
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
-export default function GiftCard() {
+export default function GiftCard({ seccion = 'perfumeria' }) {
   return (
-    <Banner>
+    <Banner $seccion={seccion}>
       {/* Título solo mobile — arriba de todo */}
       <MobileTitle>
         <em>Regalá</em> Marybe

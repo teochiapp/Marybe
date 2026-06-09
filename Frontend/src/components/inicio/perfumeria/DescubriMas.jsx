@@ -36,8 +36,8 @@ const Header = styled.div`
 const Title = styled.h2`
   font-family: var(--font-family-primary);
   font-style: italic;
-  font-weight: 700;
-  font-size: 48px;
+  font-weight: 600;
+  font-size: 50px;
   color: var(--color-marron-tercero);
   margin: 0;
   line-height: 1.1;

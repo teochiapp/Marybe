@@ -42,7 +42,7 @@ const TitleIcon = styled.img`
 const SectionTitle = styled.h2`
   font-family: var(--font-family-secondary);
   font-size: 2.5rem;
-  color: var(--color-bordo-secundario);
+  color: ${({ $seccion }) => ($seccion === 'hogar' ? 'var(--color-hogar)' : 'var(--color-bordo-secundario)')};
   font-weight: 600;
   margin: 0;
 
@@ -472,7 +472,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
     <SectionWrapper>
       <TitleWrapper>
         {iconUrl && <TitleIcon src={iconUrl} alt={titulo} />}
-        <SectionTitle>{titulo}</SectionTitle>
+        <SectionTitle $seccion={seccion}>{titulo}</SectionTitle>
       </TitleWrapper>
 
       <ProductsGrid

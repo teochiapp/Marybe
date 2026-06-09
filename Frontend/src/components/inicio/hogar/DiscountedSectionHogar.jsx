@@ -66,7 +66,7 @@ const Title = styled.h2`
   line-height: 0.95;
   font-weight: 600;
   margin-bottom: 25px;
-  letter-spacing: -2%;
+  letter-spacing: -0.02em;
 
   .italic-text {
     color: var(--color-blanco);

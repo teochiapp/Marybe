@@ -11,9 +11,6 @@ module.exports = {
       path: '/importacion-admin/upload',
       handler: 'importacion-admin.upload',
       config: {
-        auth: {
-          scope: ['plugin::users-permissions.user'],
-        },
         middlewares: [],
         description: 'Recibe un archivo .xlsx y lo importa como productos al catálogo',
         tags: ['Admin'],
@@ -24,9 +21,6 @@ module.exports = {
       path: '/importacion-admin/status',
       handler: 'importacion-admin.status',
       config: {
-        auth: {
-          scope: ['plugin::users-permissions.user'],
-        },
         description: 'Devuelve el estado de la última importación',
         tags: ['Admin'],
       },
