@@ -1,0 +1,31 @@
+{
+  "kind": "singleType",
+  "collectionName": "secciones_descuentos",
+  "info": {
+    "singularName": "seccion-descuento",
+    "pluralName": "secciones-descuentos",
+    "displayName": "Sección Descuentos (Perfumería)",
+    "description": "Configuración de la sección de descuentos en el Inicio"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "titulo_cursiva": {
+      "type": "string",
+      "required": true,
+      "default": "Descuentos"
+    },
+    "titulo_normal": {
+      "type": "string",
+      "required": true,
+      "default": "de Miércoles"
+    },
+    "productos": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::producto.producto"
+    }
+  }
+}

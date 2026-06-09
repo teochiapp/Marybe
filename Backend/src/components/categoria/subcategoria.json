@@ -1,0 +1,14 @@
+{
+  "collectionName": "components_categoria_subcategorias",
+  "info": {
+    "displayName": "subcategoria",
+    "icon": "bulletList"
+  },
+  "options": {},
+  "attributes": {
+    "nombre": {
+      "type": "string",
+      "required": true
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "kind": "collectionType",
+  "collectionName": "productos",
+  "info": {
+    "singularName": "producto",
+    "pluralName": "productos",
+    "displayName": "Producto",
+    "description": "Catálogo de productos de Marybe con variantes anidadas"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "id_original": {
+      "type": "string"
+    },
+    "sku": {
+      "type": "string"
+    },
+    "nombre": {
+      "type": "string",
+      "required": true
+    },
+    "marca": {
+      "type": "string"
+    },
+    "seccion": {
+      "type": "string"
+    },
+    "subcategoria": {
+      "type": "string"
+    },
+    "categoria": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::categoria.categoria",
+      "inversedBy": "productos"
+    },
+    "descripcion_corta": {
+      "type": "text"
+    },
+    "proveedor": {
+      "type": "string"
+    },
+    "publicado": {
+      "type": "boolean",
+      "default": true
+    },
+    "moneda": {
+      "type": "string",
+      "default": "ARS"
+    },
+    "variantes": {
+      "type": "component",
+      "repeatable": true,
+      "component": "producto.variante"
+    },
+    "portada": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "destacado": {
+      "type": "boolean",
+      "default": false
+    },
+    "descuento": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

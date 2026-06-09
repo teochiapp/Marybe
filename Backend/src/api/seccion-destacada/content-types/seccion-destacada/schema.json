@@ -1,0 +1,25 @@
+{
+  "kind": "singleType",
+  "collectionName": "secciones_destacadas",
+  "info": {
+    "singularName": "seccion-destacada",
+    "pluralName": "secciones-destacadas",
+    "displayName": "Sección Destacada (Perfumería)",
+    "description": "Configuración de la sección destacada de categorías en el Inicio"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "titulo": {
+      "type": "string",
+      "required": true
+    },
+    "categoria": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::categoria.categoria"
+    }
+  }
+}

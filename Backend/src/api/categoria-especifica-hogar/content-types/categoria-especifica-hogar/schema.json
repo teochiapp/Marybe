@@ -1,0 +1,33 @@
+{
+  "kind": "singleType",
+  "collectionName": "categorias_especificas_hogar",
+  "info": {
+    "singularName": "categoria-especifica-hogar",
+    "pluralName": "categorias-especificas-hogar",
+    "displayName": "Categoría Específica (Hogar)",
+    "description": "Configuración de la sección de categoría específica en el Inicio de Hogar"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "titulo": {
+      "type": "string",
+      "required": true
+    },
+    "icono": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "categoria": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::categoria.categoria"
+    }
+  }
+}

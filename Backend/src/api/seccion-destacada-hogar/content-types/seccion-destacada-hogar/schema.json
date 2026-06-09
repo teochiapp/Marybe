@@ -1,0 +1,25 @@
+{
+  "kind": "singleType",
+  "collectionName": "secciones_destacadas_hogar",
+  "info": {
+    "singularName": "seccion-destacada-hogar",
+    "pluralName": "secciones-destacadas-hogar",
+    "displayName": "Sección Destacada (Hogar)",
+    "description": "Configuración de la sección destacada de categorías en el Inicio de Hogar"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "titulo": {
+      "type": "string",
+      "required": true
+    },
+    "categoria": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::categoria.categoria"
+    }
+  }
+}
