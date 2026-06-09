@@ -1,0 +1,726 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ImportacionAdmin.css — Panel de importación de productos (Admin)
+   Paleta: Bordo/Marrón profundo + Dorado Marybe + Glassmorphism
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Wrapper / Fondo ───────────────────────────────────────────────────────── */
+.ia-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(124, 4, 5, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 90%, rgba(62, 1, 2, 0.4)  0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(22, 0, 0, 0.6)  0%, transparent 80%),
+    linear-gradient(135deg, #160000 0%, #1e0a00 50%, #160000 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ─── Partículas animadas de fondo ──────────────────────────────────────────── */
+.ia-bg-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ia-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(242, 220, 143, 0.15) 0%, transparent 70%);
+  animation: ia-float linear infinite;
+}
+
+.ia-particle--1  { width: 300px; height: 300px; top: -5%;  left: -5%;  animation-duration: 18s; animation-delay: 0s;  }
+.ia-particle--2  { width: 200px; height: 200px; top: 20%;  left: 80%;  animation-duration: 22s; animation-delay: -4s; }
+.ia-particle--3  { width: 150px; height: 150px; top: 60%;  left: 10%;  animation-duration: 15s; animation-delay: -8s; }
+.ia-particle--4  { width: 250px; height: 250px; top: 80%;  left: 70%;  animation-duration: 20s; animation-delay: -2s; }
+.ia-particle--5  { width: 100px; height: 100px; top: 40%;  left: 45%;  animation-duration: 12s; animation-delay: -6s; }
+.ia-particle--6  { width: 180px; height: 180px; top: 5%;   left: 55%;  animation-duration: 25s; animation-delay: -1s; }
+.ia-particle--7  { width: 120px; height: 120px; top: 70%;  left: 30%;  animation-duration: 16s; animation-delay: -9s; }
+.ia-particle--8  { width: 220px; height: 220px; top: 35%;  left: -8%;  animation-duration: 19s; animation-delay: -3s; }
+.ia-particle--9  { width: 80px;  height: 80px;  top: 15%;  left: 35%;  animation-duration: 13s; animation-delay: -7s; }
+.ia-particle--10 { width: 160px; height: 160px; top: 90%;  left: 50%;  animation-duration: 21s; animation-delay: -5s; }
+.ia-particle--11 { width: 90px;  height: 90px;  top: 55%;  left: 88%;  animation-duration: 14s; animation-delay: -10s; }
+.ia-particle--12 { width: 200px; height: 200px; top: -10%; left: 25%;  animation-duration: 23s; animation-delay: -11s; }
+
+@keyframes ia-float {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.4; }
+  33%  { transform: translate(30px, -20px) scale(1.05); opacity: 0.6; }
+  66%  { transform: translate(-20px, 30px) scale(0.95); opacity: 0.3; }
+  100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+}
+
+/* ─── Tarjeta de Login ───────────────────────────────────────────────────────── */
+.ia-login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  background: rgba(22, 0, 0, 0.6);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid rgba(242, 220, 143, 0.15);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  box-shadow:
+    0 0 0 1px rgba(242, 220, 143, 0.05),
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(242, 220, 143, 0.08);
+  animation: ia-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes ia-card-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)     scale(1); }
+}
+
+/* ─── Marca / Brand ─────────────────────────────────────────────────────────── */
+.ia-login-brand {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.ia-brand-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  color: var(--color-titulo-marybe, #f2dc8f);
+  filter: drop-shadow(0 0 20px rgba(242, 220, 143, 0.4));
+  animation: ia-pulse 3s ease-in-out infinite;
+}
+
+.ia-brand-icon--sm {
+  width: 40px;
+  height: 40px;
+  margin: 0;
+}
+
+@keyframes ia-pulse {
+  0%, 100% { filter: drop-shadow(0 0 15px rgba(242, 220, 143, 0.3)); }
+  50%       { filter: drop-shadow(0 0 30px rgba(242, 220, 143, 0.6)); }
+}
+
+.ia-brand-title {
+  font-family: var(--font-family-primary, "Brygada 1918", serif);
+  font-size: 2rem;
+  color: var(--color-titulo-marybe, #f2dc8f);
+  letter-spacing: 0.05em;
+  margin: 0 0 0.25rem;
+}
+
+.ia-brand-sub {
+  font-family: var(--font-family-secondary, "Inter", sans-serif);
+  font-size: 0.85rem;
+  color: rgba(211, 192, 192, 0.6);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ─── Formulario ─────────────────────────────────────────────────────────────── */
+.ia-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ia-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ia-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(242, 220, 143, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.ia-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ia-input-icon {
+  position: absolute;
+  left: 0.875rem;
+  width: 1rem;
+  height: 1rem;
+  color: rgba(211, 192, 192, 0.4);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.ia-input-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ia-input {
+  width: 100%;
+  padding: 0.75rem 0.875rem 0.75rem 2.5rem;
+  background: rgba(40, 1, 1, 0.5);
+  border: 1px solid rgba(242, 220, 143, 0.15);
+  border-radius: 10px;
+  color: var(--color-blanco-pero-no-tan-blanco, #FAF0F0);
+  font-size: 0.9375rem;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  outline: none;
+}
+
+.ia-input::placeholder {
+  color: rgba(211, 192, 192, 0.3);
+}
+
+.ia-input:focus {
+  border-color: rgba(242, 220, 143, 0.5);
+  background: rgba(62, 1, 2, 0.3);
+  box-shadow: 0 0 0 3px rgba(242, 220, 143, 0.08), inset 0 1px 0 rgba(242, 220, 143, 0.05);
+}
+
+.ia-show-pass {
+  position: absolute;
+  right: 0.875rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  color: rgba(211, 192, 192, 0.4);
+  cursor: pointer;
+  transition: color 0.2s;
+  background: none;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.ia-show-pass:hover { color: rgba(242, 220, 143, 0.7); }
+.ia-show-pass svg   { width: 100%; height: 100%; }
+
+/* ─── Botones ────────────────────────────────────────────────────────────────── */
+.ia-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ia-btn svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+}
+
+.ia-btn--primary {
+  background: linear-gradient(135deg, #7c0405 0%, #560203 100%);
+  color: var(--color-titulo-marybe, #f2dc8f);
+  box-shadow: 0 4px 20px rgba(124, 4, 5, 0.4), inset 0 1px 0 rgba(242, 220, 143, 0.15);
+}
+
+.ia-btn--primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8e0506 0%, #6a0304 100%);
+  box-shadow: 0 6px 28px rgba(124, 4, 5, 0.55), inset 0 1px 0 rgba(242, 220, 143, 0.2);
+  transform: translateY(-1px);
+}
+
+.ia-btn--primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 12px rgba(124, 4, 5, 0.3);
+}
+
+.ia-btn--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ia-btn--ghost {
+  background: transparent;
+  color: rgba(211, 192, 192, 0.6);
+  border: 1px solid rgba(242, 220, 143, 0.12);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.ia-btn--ghost:hover {
+  color: var(--color-titulo-marybe, #f2dc8f);
+  border-color: rgba(242, 220, 143, 0.3);
+  background: rgba(242, 220, 143, 0.05);
+}
+
+.ia-btn--full {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  font-size: 1rem;
+}
+
+/* ─── Alertas ────────────────────────────────────────────────────────────────── */
+.ia-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.ia-alert svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.ia-alert--error {
+  background: rgba(124, 4, 5, 0.2);
+  border: 1px solid rgba(124, 4, 5, 0.4);
+  color: #fca5a5;
+}
+
+/* ─── Hint de login ──────────────────────────────────────────────────────────── */
+.ia-login-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: rgba(211, 192, 192, 0.35);
+  margin-top: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* ─── Spinner ────────────────────────────────────────────────────────────────── */
+.ia-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(242, 220, 143, 0.3);
+  border-top-color: var(--color-titulo-marybe, #f2dc8f);
+  border-radius: 50%;
+  animation: ia-spin 0.7s linear infinite;
+}
+
+@keyframes ia-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Panel Principal ────────────────────────────────────────────────────────── */
+.ia-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 640px;
+  background: rgba(22, 0, 0, 0.6);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid rgba(242, 220, 143, 0.15);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow:
+    0 0 0 1px rgba(242, 220, 143, 0.05),
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(242, 220, 143, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: ia-card-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── Header del panel ───────────────────────────────────────────────────────── */
+.ia-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(242, 220, 143, 0.1);
+}
+
+.ia-panel-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.ia-panel-title {
+  font-family: var(--font-family-primary, "Brygada 1918", serif);
+  font-size: 1.25rem;
+  color: var(--color-titulo-marybe, #f2dc8f);
+  margin: 0;
+}
+
+.ia-panel-sub {
+  font-size: 0.75rem;
+  color: rgba(211, 192, 192, 0.5);
+  margin: 0.1rem 0 0;
+}
+
+/* ─── Info card ──────────────────────────────────────────────────────────────── */
+.ia-info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: rgba(40, 24, 11, 0.5);
+  border: 1px solid rgba(242, 220, 143, 0.12);
+  border-radius: 12px;
+}
+
+.ia-info-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: rgba(242, 220, 143, 0.6);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.ia-info-icon svg { width: 100%; height: 100%; }
+
+.ia-info-text {
+  font-size: 0.875rem;
+  color: rgba(211, 192, 192, 0.7);
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ia-info-text strong {
+  color: rgba(242, 220, 143, 0.85);
+  font-weight: 600;
+}
+
+.ia-info-text code {
+  background: rgba(124, 4, 5, 0.25);
+  border: 1px solid rgba(124, 4, 5, 0.3);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.82em;
+  color: rgba(242, 220, 143, 0.75);
+}
+
+/* ─── Dropzone ───────────────────────────────────────────────────────────────── */
+.ia-dropzone {
+  position: relative;
+  border: 2px dashed rgba(242, 220, 143, 0.2);
+  border-radius: 14px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.25s, background 0.25s, transform 0.2s;
+  background: rgba(40, 1, 1, 0.2);
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ia-dropzone:hover:not(.ia-dropzone--has-file) {
+  border-color: rgba(242, 220, 143, 0.4);
+  background: rgba(62, 1, 2, 0.2);
+}
+
+.ia-dropzone--dragging {
+  border-color: var(--color-titulo-marybe, #f2dc8f) !important;
+  background: rgba(124, 4, 5, 0.2) !important;
+  transform: scale(1.01);
+  box-shadow: 0 0 0 4px rgba(242, 220, 143, 0.08);
+}
+
+.ia-dropzone--has-file {
+  border-style: solid;
+  border-color: rgba(242, 220, 143, 0.3);
+  background: rgba(40, 24, 11, 0.3);
+  cursor: default;
+}
+
+.ia-file-input {
+  display: none;
+}
+
+/* Prompt sin archivo */
+.ia-dropzone-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ia-drop-icon {
+  width: 52px;
+  height: 52px;
+  color: rgba(242, 220, 143, 0.35);
+  transition: color 0.2s, transform 0.2s;
+}
+
+.ia-drop-icon svg { width: 100%; height: 100%; }
+
+.ia-dropzone:hover .ia-drop-icon,
+.ia-dropzone--dragging .ia-drop-icon {
+  color: rgba(242, 220, 143, 0.7);
+  transform: translateY(-4px);
+}
+
+.ia-drop-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-blanco-pero-no-tan-blanco, #FAF0F0);
+  margin: 0;
+}
+
+.ia-drop-sub {
+  font-size: 0.8rem;
+  color: rgba(211, 192, 192, 0.45);
+  margin: 0;
+}
+
+.ia-drop-sub strong { color: rgba(242, 220, 143, 0.6); }
+
+/* Preview con archivo */
+.ia-file-preview {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.ia-file-icon {
+  width: 44px;
+  height: 44px;
+  color: rgba(242, 220, 143, 0.6);
+  flex-shrink: 0;
+}
+
+.ia-file-icon svg { width: 100%; height: 100%; }
+
+.ia-file-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+}
+
+.ia-file-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-blanco-pero-no-tan-blanco, #FAF0F0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.ia-file-size {
+  font-size: 0.75rem;
+  color: rgba(211, 192, 192, 0.5);
+  margin-top: 0.15rem;
+}
+
+.ia-btn-remove {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(124, 4, 5, 0.2);
+  border: 1px solid rgba(124, 4, 5, 0.3);
+  color: #fca5a5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.ia-btn-remove:hover {
+  background: rgba(124, 4, 5, 0.4);
+  border-color: rgba(124, 4, 5, 0.6);
+}
+
+.ia-btn-remove svg { width: 1rem; height: 1rem; }
+
+/* ─── Barra de progreso ──────────────────────────────────────────────────────── */
+.ia-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ia-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: rgba(211, 192, 192, 0.6);
+}
+
+.ia-progress-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(40, 1, 1, 0.5);
+  overflow: hidden;
+}
+
+.ia-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7c0405 0%, #f2dc8f 100%);
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(242, 220, 143, 0.4);
+}
+
+/* ─── Resultado ──────────────────────────────────────────────────────────────── */
+.ia-resultado {
+  background: rgba(40, 24, 11, 0.4);
+  border: 1px solid rgba(242, 220, 143, 0.2);
+  border-radius: 14px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  animation: ia-card-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ia-resultado-header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.ia-resultado-icon--ok {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #86efac;
+  flex-shrink: 0;
+}
+
+.ia-resultado-title {
+  font-family: var(--font-family-primary, "Brygada 1918", serif);
+  font-size: 1.1rem;
+  color: var(--color-titulo-marybe, #f2dc8f);
+  margin: 0;
+}
+
+/* Stats grid */
+.ia-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .ia-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.ia-stat {
+  background: rgba(22, 0, 0, 0.4);
+  border: 1px solid rgba(242, 220, 143, 0.1);
+  border-radius: 10px;
+  padding: 0.875rem 0.75rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ia-stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-titulo-marybe, #f2dc8f);
+  line-height: 1;
+  font-family: var(--font-family-secondary, "Inter", sans-serif);
+}
+
+.ia-stat--success .ia-stat-value { color: #86efac; }
+.ia-stat--info    .ia-stat-value { color: #93c5fd; }
+.ia-stat--danger  .ia-stat-value { color: #fca5a5; }
+
+.ia-stat-label {
+  font-size: 0.72rem;
+  color: rgba(211, 192, 192, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ia-resultado-time {
+  font-size: 0.8rem;
+  color: rgba(211, 192, 192, 0.5);
+  margin: 0;
+  text-align: right;
+}
+
+.ia-resultado-time strong {
+  color: rgba(242, 220, 143, 0.7);
+}
+
+/* Errores detallados */
+.ia-errores {
+  border: 1px solid rgba(124, 4, 5, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ia-errores-summary {
+  padding: 0.625rem 0.875rem;
+  background: rgba(124, 4, 5, 0.15);
+  color: #fca5a5;
+  font-size: 0.8rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.ia-errores-summary:hover {
+  background: rgba(124, 4, 5, 0.25);
+}
+
+.ia-errores-list {
+  list-style: none;
+  padding: 0.75rem 0.875rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.ia-errores-list li {
+  font-size: 0.78rem;
+  color: rgba(211, 192, 192, 0.6);
+  padding: 0.2rem 0;
+  border-bottom: 1px solid rgba(124, 4, 5, 0.15);
+}
+
+.ia-errores-list li:last-child { border-bottom: none; }
+
+/* ─── Responsive ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .ia-login-card,
+  .ia-panel {
+    padding: 1.5rem 1.25rem;
+    border-radius: 16px;
+  }
+
+  .ia-panel-header {
+    flex-wrap: wrap;
+  }
+
+  .ia-brand-title { font-size: 1.6rem; }
+
+  .ia-dropzone { padding: 1.5rem 1rem; min-height: 130px; }
+}

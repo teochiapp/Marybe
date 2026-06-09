@@ -24,6 +24,9 @@ import Lanzamientos from './pages/categorias/Lanzamientos';
 import Eventos from './pages/categorias/Eventos';
 import PromocionesBancarias from './pages/categorias/PromocionesBancarias';
 
+// Panel de Administración
+import ImportacionAdmin from './pages/admin/ImportacionAdmin';
+
 function App() {
   return (
     <>
@@ -51,6 +54,9 @@ function App() {
         <Route path="/lanzamientos" element={<Lanzamientos />} />
         <Route path="/eventos" element={<Eventos />} />
         <Route path="/promociones-bancarias" element={<PromocionesBancarias />} />
+
+        {/* Ruta de Administración */}
+        <Route path="/importacion-admin" element={<ImportacionAdmin />} />
       </Routes>
       <Footer />
     </>
