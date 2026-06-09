@@ -128,7 +128,7 @@ const ReservarBtn = styled.a`
   background-color: var(--color-boton-promo);
   color: var(--color-blanco);
   font-family: var(--font-family-secondary);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   padding: 16px 24px;
   border-radius: 12px;
@@ -165,7 +165,7 @@ const VerTodosLink = styled.a`
   align-items: center;
   gap: 8px;
   font-family: var(--font-family-secondary);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--color-marron-tercero);
   text-decoration: none;

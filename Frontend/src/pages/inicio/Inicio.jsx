@@ -6,6 +6,7 @@ import FeaturedSection from '../../components/inicio/perfumeria/FeaturedSection'
 import DiscountedSection from '../../components/inicio/perfumeria/DiscountedSection';
 import CategoriesSection from '../../components/inicio/perfumeria/CategoriesSection';
 import GiftCard from '../../components/inicio/shared/GiftCard';
+import TarjetasPromociones from '../../components/inicio/perfumeria/TarjetasPromociones';
 import OfertasSection from '../../components/inicio/perfumeria/OfertasSection';
 import FeaturedCategorySection from '../../components/inicio/perfumeria/FeaturedCategorySection';
 import SpecificCategorySection from '../../components/inicio/perfumeria/SpecificCategorySection';
@@ -50,6 +51,7 @@ export default function Inicio() {
           <OfertasSection seccion={seccionActiva} />
           <DiscountedSection seccion={seccionActiva} />
           <SpecificCategorySection seccion={seccionActiva} />
+          <TarjetasPromociones />
           <GiftCardWrapper>
             <GiftCard />
           </GiftCardWrapper>
@@ -67,6 +69,7 @@ export default function Inicio() {
           <FeaturedCategorySection seccion={seccionActiva} />
           <DiscountedSectionHogar />
           <SpecificCategorySection seccion={seccionActiva} />
+          <TarjetasPromociones />
           <GiftCardWrapper>
             <GiftCard />
           </GiftCardWrapper>

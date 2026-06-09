@@ -52,7 +52,7 @@ const MobileTitle = styled.h2`
     gap: 15px;   
     justify-content: center;
     font-family: var(--font-family-primary);
-    font-size: 48px;
+    font-size: 56px;
     font-weight: 400;
     color: var(--color-blanco);
     margin: 0 0 24px 0;
@@ -107,7 +107,7 @@ const CardImage = styled.img`
       -50%
     )
     rotate(8deg);
-  width: 680px;
+  width: 750px;
   max-width: none;
   height: auto;
   object-fit: contain;

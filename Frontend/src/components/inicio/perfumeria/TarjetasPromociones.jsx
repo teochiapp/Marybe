@@ -24,13 +24,13 @@ const Container = styled.div`
 const Title = styled.h2`
   font-family: var(--font-family-primary);
   font-weight: 600;
-  font-size: 40px;
+  font-size: 48px;
   color: black;
   margin: 0 0 48px 0;
   text-align: center;
 
   @media (max-width: 768px) {
-    font-size: 32px;
+    font-size: 24px;
     margin-bottom: 32px;
   }
 `;
@@ -76,7 +76,7 @@ const CardImage = styled.img`
 
 const CardText = styled.p`
   font-family: var(--font-family-secondary);
-  font-size: 15px;
+  font-size: 14px;
   color: black;
   margin: 0;
   line-height: 1.5;
@@ -117,7 +117,7 @@ const InfoTextWrapper = styled.div`
 
 const InfoTitle = styled.h3`
   font-family: var(--font-family-secondary);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: black;
   margin: 0;
@@ -125,7 +125,7 @@ const InfoTitle = styled.h3`
 
 const InfoDesc = styled.p`
   font-family: var(--font-family-secondary);
-  font-size: 15px;
+  font-size: 14px;
   color: black;
   margin: 0;
   opacity: 0.85;
@@ -135,7 +135,7 @@ const InfoButton = styled.a`
   background-color: var(--color-boton-promo);
   color: var(--color-blanco);
   font-family: var(--font-family-secondary);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   padding: 14px 28px;
   border-radius: 10px;

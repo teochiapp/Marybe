@@ -58,7 +58,7 @@ const InstagramBtn = styled.a`
   background-color: var(--color-boton-promo);
   color: var(--color-blanco);
   font-family: var(--font-family-secondary);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   padding: 16px 28px;
   border-radius: 12px;
@@ -170,7 +170,7 @@ const CardTitle = styled.h3`
   left: 16px;
   margin: 0;
   font-family: var(--font-family-secondary);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--color-blanco);
   z-index: 2;
@@ -221,7 +221,7 @@ const BannerText = styled.div`
 
 const BannerTitle = styled.h3`
   font-family: var(--font-family-secondary);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-blanco);
   margin: 0;
@@ -241,7 +241,7 @@ const UnirmeBtn = styled.a`
   background-color: var(--color-blanco);
   color: var(--color-marron-tercero);
   font-family: var(--font-family-secondary);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   padding: 14px 28px;
   border-radius: 10px;
