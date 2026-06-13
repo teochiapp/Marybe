@@ -383,7 +383,7 @@ export default function CategoryNav() {
               <MegaActionBtn href="#"><RocketIcon /> Lanzamientos</MegaActionBtn>
               <MegaTextLink href="#"><PinIconSmall /> Nuestros Locales</MegaTextLink>
               <MegaTextLink href="#"><BuildingIcon /> Sobre Marybe</MegaTextLink>
-              <MegaTextLink href="#"><ChatIcon /> Contacto</MegaTextLink>
+              <MegaTextLink href="/contacto"><ChatIcon /> Contacto</MegaTextLink>
             </BottomActionBar>
           </DropdownContainer>
         )}

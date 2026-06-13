@@ -24,6 +24,9 @@ import Lanzamientos from './pages/categorias/Lanzamientos';
 import Eventos from './pages/categorias/Eventos';
 import PromocionesBancarias from './pages/categorias/PromocionesBancarias';
 
+// Página de Contacto
+import Contacto from './pages/contacto/Contacto';
+
 // Panel de Administración
 import ImportacionAdmin from './pages/admin/ImportacionAdmin';
 
@@ -54,6 +57,9 @@ function App() {
         <Route path="/lanzamientos" element={<Lanzamientos />} />
         <Route path="/eventos" element={<Eventos />} />
         <Route path="/promociones-bancarias" element={<PromocionesBancarias />} />
+
+        {/* Ruta de Contacto */}
+        <Route path="/contacto" element={<Contacto />} />
 
         {/* Ruta de Administración */}
         <Route path="/importacion-admin" element={<ImportacionAdmin />} />
