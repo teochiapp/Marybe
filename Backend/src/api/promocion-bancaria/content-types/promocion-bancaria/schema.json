@@ -1,0 +1,45 @@
+{
+  "kind": "collectionType",
+  "collectionName": "promociones_bancarias",
+  "info": {
+    "singularName": "promocion-bancaria",
+    "pluralName": "promociones-bancarias",
+    "displayName": "Promoción Bancaria",
+    "description": "Tarjetas y promociones bancarias mostradas en el home"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "nombre": {
+      "type": "string",
+      "required": true
+    },
+    "logo": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "cuotas_descripcion": {
+      "type": "string",
+      "required": true
+    },
+    "cuotas_cantidad": {
+      "type": "json"
+    },
+    "monto_maximo": {
+      "type": "string"
+    },
+    "orden": {
+      "type": "integer",
+      "default": 0,
+      "min": 0
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

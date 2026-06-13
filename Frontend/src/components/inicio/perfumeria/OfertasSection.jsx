@@ -30,7 +30,7 @@ const SectionHeader = styled.div`
 const SectionTitle = styled.h2`
   font-family: var(--font-family-secondary);
   font-size: 2.5rem;
-  color: var(--color-bordo-secundario);
+  color: ${({ $seccion }) => ($seccion === 'hogar' ? 'var(--color-hogar)' : 'var(--color-bordo-secundario)')};
   font-weight: 600;
   margin: 0;
 
@@ -113,7 +113,7 @@ const BadgeButton = styled.button`
   }
 `;
 
-export default function OfertasSection() {
+export default function OfertasSection({ seccion }) {
   const navigate = useNavigate();
   const discountValores = [50, 40, 35, 30, 20];
   const scrollRef = useRef(null);
@@ -175,7 +175,7 @@ export default function OfertasSection() {
   return (
     <SectionWrapper>
       <SectionHeader>
-        <SectionTitle>Disfrutá de las mejores ofertas</SectionTitle>
+        <SectionTitle $seccion={seccion}>Disfrutá de las mejores ofertas</SectionTitle>
         <BadgesContainer
           ref={scrollRef}
           onMouseDown={handleMouseDown}

@@ -53,7 +53,7 @@ export default function Inicio() {
           <SpecificCategorySection seccion={seccionActiva} />
           <TarjetasPromociones />
           <GiftCardWrapper>
-            <GiftCard />
+            <GiftCard seccion={seccionActiva} />
           </GiftCardWrapper>
           <ProximosEventos />
           <DescubriMas />
@@ -71,7 +71,7 @@ export default function Inicio() {
           <SpecificCategorySection seccion={seccionActiva} />
           <TarjetasPromociones />
           <GiftCardWrapper>
-            <GiftCard />
+            <GiftCard seccion={seccionActiva} />
           </GiftCardWrapper>
           <DescubriMas />
         </>

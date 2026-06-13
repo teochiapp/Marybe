@@ -639,6 +639,49 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiPromocionBancariaPromocionBancaria
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'promociones_bancarias';
+  info: {
+    description: 'Tarjetas y promociones bancarias mostradas en el home';
+    displayName: 'Promoci\u00F3n Bancaria';
+    pluralName: 'promociones-bancarias';
+    singularName: 'promocion-bancaria';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    activo: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    cuotas_cantidad: Schema.Attribute.JSON;
+    cuotas_descripcion: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::promocion-bancaria.promocion-bancaria'
+    > &
+      Schema.Attribute.Private;
+    logo: Schema.Attribute.Media<'images'>;
+    monto_maximo: Schema.Attribute.String;
+    nombre: Schema.Attribute.String & Schema.Attribute.Required;
+    orden: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiSeccionDescuentoHogarSeccionDescuentoHogar
   extends Struct.SingleTypeSchema {
   collectionName: 'secciones_descuentos_hogar';
@@ -1301,6 +1344,7 @@ declare module '@strapi/strapi' {
       'api::categoria.categoria': ApiCategoriaCategoria;
       'api::oferta.oferta': ApiOfertaOferta;
       'api::producto.producto': ApiProductoProducto;
+      'api::promocion-bancaria.promocion-bancaria': ApiPromocionBancariaPromocionBancaria;
       'api::seccion-descuento-hogar.seccion-descuento-hogar': ApiSeccionDescuentoHogarSeccionDescuentoHogar;
       'api::seccion-descuento.seccion-descuento': ApiSeccionDescuentoSeccionDescuento;
       'api::seccion-destacada-hogar.seccion-destacada-hogar': ApiSeccionDestacadaHogarSeccionDestacadaHogar;

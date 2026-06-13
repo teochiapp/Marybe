@@ -166,9 +166,9 @@ async function main() {
 
       // ── 5. Insertar el usuario ────────────────────────────────────────────────
       const insertUser = db.prepare(`
-        INSERT INTO up_users (document_id, username, email, password, confirmed, blocked, created_at, updated_at, published_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(userDocId, ADMIN_USERNAME, ADMIN_EMAIL, hashedPassword, 1, 0, now, now, now);
+        INSERT INTO up_users (document_id, username, email, provider, password, confirmed, blocked, created_at, updated_at, published_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(userDocId, ADMIN_USERNAME, ADMIN_EMAIL, 'local', hashedPassword, 1, 0, now, now, now);
 
       const userId = insertUser.lastInsertRowid;
 

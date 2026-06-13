@@ -12,6 +12,7 @@ const FooterWrapper = styled.footer`
   color: var(--color-blanco);
   padding-top: var(--spacing-xxl);
   font-family: var(--font-family-secondary);
+  padding-bottom: 30px;
 `;
 
 const FooterInner = styled.div`
@@ -58,7 +59,7 @@ const NavColumns = styled.div`
 `;
 
 const FooterBottom = styled.div`
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+
 `;
 
 const BottomInner = styled.div`

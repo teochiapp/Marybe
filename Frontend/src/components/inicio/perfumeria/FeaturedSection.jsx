@@ -58,7 +58,7 @@ const Title = styled.h2`
   line-height: 0.95;
   font-weight: 600;
   margin-bottom: 15px;
-  letter-spacing: -2%;
+  letter-spacing: -0.02em;
 
   .italic-text {
     color: var(--color-blanco);
@@ -413,7 +413,7 @@ const BannerTitle = styled.h3`
   font-family: var(--font-family-primary);
   font-size: 1.8rem;
   color: var(--color-blanco);
-  letter-spacing: -2%;
+  letter-spacing: -0.02em;
   font-style: italic;
   font-weight: 600;
   margin-bottom: auto;

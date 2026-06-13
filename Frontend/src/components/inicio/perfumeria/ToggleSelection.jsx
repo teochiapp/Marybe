@@ -19,7 +19,7 @@ const ToggleContainer = styled.div`
 `;
 
 const ToggleOption = styled.button`
-  background-color: ${({ $active }) => ($active ? 'var(--color-bordo-tercero)' : 'transparent')};
+  background-color: ${({ $active, $activeColor }) => ($active ? ($activeColor || 'var(--color-bordo-tercero)') : 'transparent')};
   color: ${({ $active }) => ($active ? 'var(--color-blanco)' : 'var(--color-marron-principal)')};
   border: none;
   border-radius: 40px;
@@ -33,7 +33,8 @@ const ToggleOption = styled.button`
   white-space: nowrap;
 
   &:hover {
-    background-color: ${({ $active }) => ($active ? 'var(--color-marron-principal)' : 'rgba(0,0,0,0.03)')};
+    background-color: ${({ $active, $activeColor }) => ($active ? ($activeColor || 'var(--color-bordo-tercero)') : 'rgba(0,0,0,0.03)')};
+    filter: ${({ $active }) => ($active ? 'brightness(0.85)' : 'none')};
   }
 
   @media (max-width: 480px) {
@@ -47,12 +48,14 @@ export default function ToggleSelection({ seccionActiva, onSeccionChange }) {
     <ToggleContainer>
       <ToggleOption
         $active={seccionActiva === 'perfumeria'}
+        $activeColor="var(--color-bordo-tercero)"
         onClick={() => onSeccionChange('perfumeria')}
       >
         Perfumería
       </ToggleOption>
       <ToggleOption
         $active={seccionActiva === 'hogar'}
+        $activeColor="var(--color-hogar)"
         onClick={() => onSeccionChange('hogar')}
       >
         Hogar

@@ -115,7 +115,7 @@
 .ia-brand-sub {
   font-family: var(--font-family-secondary, "Inter", sans-serif);
   font-size: 0.85rem;
-  color: rgba(211, 192, 192, 0.6);
+  color: rgba(250, 240, 240, 0.8);
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -298,7 +298,7 @@
 .ia-login-hint {
   text-align: center;
   font-size: 0.75rem;
-  color: rgba(211, 192, 192, 0.35);
+  color: rgba(250, 240, 240, 0.5);
   margin-top: 1.5rem;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -366,7 +366,7 @@
 
 .ia-panel-sub {
   font-size: 0.75rem;
-  color: rgba(211, 192, 192, 0.5);
+  color: rgba(250, 240, 240, 0.7);
   margin: 0.1rem 0 0;
 }
 
@@ -393,7 +393,7 @@
 
 .ia-info-text {
   font-size: 0.875rem;
-  color: rgba(211, 192, 192, 0.7);
+  color: var(--color-blanco-pero-no-tan-blanco, #FAF0F0);
   line-height: 1.5;
   display: flex;
   flex-direction: column;
@@ -485,7 +485,7 @@
 
 .ia-drop-sub {
   font-size: 0.8rem;
-  color: rgba(211, 192, 192, 0.45);
+  color: rgba(250, 240, 240, 0.7);
   margin: 0;
 }
 
