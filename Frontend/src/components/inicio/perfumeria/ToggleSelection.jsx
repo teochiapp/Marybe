@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 
 const ToggleContainer = styled.div`
@@ -14,7 +14,15 @@ const ToggleContainer = styled.div`
   z-index: 10;
 
   @media (max-width: 768px) {
-    display: none;
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%) translateY(${({ $visible }) => ($visible ? '0' : '-140px')});
+    width: calc(100% - 40px);
+    margin: 0;
+    z-index: 1000;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
   }
 `;
 
@@ -44,8 +52,35 @@ const ToggleOption = styled.button`
 `;
 
 export default function ToggleSelection({ seccionActiva, onSeccionChange }) {
+  const [visible, setVisible] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const isMobile = () => window.innerWidth <= 768;
+
+    const handleScroll = () => {
+      if (!isMobile()) return;
+
+      const currentY = window.scrollY;
+      const diff = currentY - lastScrollY.current;
+
+      if (diff < -5) {
+        // Scrolleando hacia arriba → mostrar
+        setVisible(true);
+      } else if (diff > 5) {
+        // Scrolleando hacia abajo → ocultar
+        setVisible(false);
+      }
+
+      lastScrollY.current = currentY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <ToggleContainer>
+    <ToggleContainer $visible={visible}>
       <ToggleOption
         $active={seccionActiva === 'perfumeria'}
         $activeColor="var(--color-bordo-tercero)"
@@ -63,3 +98,4 @@ export default function ToggleSelection({ seccionActiva, onSeccionChange }) {
     </ToggleContainer>
   );
 }
+

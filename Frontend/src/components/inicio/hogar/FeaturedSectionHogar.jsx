@@ -2,9 +2,11 @@ import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 const SectionWrapper = styled.section`
-  background-color: var(--color-marron-tercero);
+  background-color: var(--color-hogar);
   border-radius: var(--radius-xl);
   margin-top: 20px;
+  padding-bottom: 20px;
+  padding-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 0px;
@@ -20,12 +22,25 @@ const SectionWrapper = styled.section`
 const HaloLuz = styled.img`
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 1000px;
+  right: 0%;
+  left: auto;
+  transform: none;
+  height: 100%;
+  width: auto;
   z-index: 0;
   pointer-events: none;
+  opacity: 0.8;
+
+  @media (max-width: 768px) {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0;
+    opacity: 0.5;
+  }
 `;
 
 const TopHeader = styled.div`
@@ -34,31 +49,41 @@ const TopHeader = styled.div`
   align-items: center;
   position: relative;
   z-index: 1;
+  padding-top: 10px;
   
   @media (max-width: 768px) {
     flex-direction: column;
     text-align: center;
-    gap: 20px;
+    align-items: center;
+    gap: 0px;
   }
 `;
 
 const TextBlock = styled.div`
   max-width: 50%;
   padding-left: 60px;
+  padding-top: 30px;
+  padding-bottom: 30px;
   
   @media (max-width: 768px) {
     max-width: 100%;
-    display: contents;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    position: relative;
+    z-index: 2;
+    order: 1;
   }
 `;
 
 const Title = styled.h2`
   font-family: var(--font-family-primary);
-  font-size: clamp(2.5rem, 4vw, 4rem);
-  line-height: 0.95;
+  font-size: clamp(3.5rem, 6vw, 5.5rem);
+  line-height: 1.0;
   font-weight: 600;
   margin-bottom: 15px;
-  letter-spacing: -0.02em;
+  letter-spacing: -2%;
 
   .italic-text {
     color: var(--color-blanco);
@@ -67,14 +92,14 @@ const Title = styled.h2`
   }
 
   .gold-text {
-    color: var(--color-titulo-marybe);
+    color: var(--color-blanco);
     font-weight: 400;
     display: block;
+    font-weight: 400;
   }
   
   @media (max-width: 768px) {
     font-size: 3.3rem;
-    order: 1;
   }
 
   @media (max-width: 400px) {
@@ -83,39 +108,52 @@ const Title = styled.h2`
 `;
 
 const Subtitle = styled.p`
-  font-size: 1.15rem;
-  color: var(--color-fondo-beneficio-tarjeta);
+  font-size: 1.45rem;
+  color: #FAF9F7;
   max-width: 350px;
   line-height: 1.35;
-  letter-spacing: -1%;
+  letter-spacing: 0.00em;
+  font-weight: 400;
   
   @media (max-width: 768px) {
-    margin: 0 auto;
-    order: 3;
-    max-width: 80vw;
+    display: none;
   }
 `;
 
 const FeaturedPicture = styled.picture`
   width: 50%;
-  max-height: 40vh;
+  max-height: 230vh;
   max-width: 100%;
-  padding-right: 60px;
   display: flex;
   justify-content: center;
+  align-items: flex-end;
+  position: relative;
+  top: 70px;
+  z-index: 0;
+  margin-bottom: -250px;
+  pointer-events: none;
   
   @media (max-width: 768px) {
     width: 100%;
+    max-height: 90vh;
     order: 2;
-    padding: 0 5px;
+    top: 10px;
+    padding: 0;
+    margin-bottom: -160px;
+    justify-content: center;
   }
 
   img {
-    width: 100%;
+    width: auto;
+    max-width: 125%;
     height: 100%;
-    max-height: 45vh;
+    max-height: 110vh;
     object-fit: contain;
     filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+
+    @media (max-width: 768px) {
+      max-height: 90vh;
+    }
   }
 `;
 
@@ -152,9 +190,12 @@ const ProductsGrid = styled.div`
   }
 
   @media (max-width: 600px) {
-    gap: 20px;
-    margin-left: 0px;
-    padding-right: 0px;
+    gap: 16px;
+    margin-left: -5px;
+    margin-right: -20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 20px;
   }
 `;
 
@@ -395,6 +436,11 @@ const ImagePlaceholder = () => (
   </svg>
 );
 
+const formatPrice = (price) => {
+  if (!price) return '$0';
+  return '$' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+};
+
 export default function FeaturedSectionHogar() {
   const [productos, setProductos] = useState([]);
   const scrollRef = useRef(null);
@@ -456,19 +502,19 @@ export default function FeaturedSectionHogar() {
 
   return (
     <SectionWrapper>
-      <HaloLuz src="/inicio/halo-luz.png" alt="Efecto de luz" />
+      <HaloLuz src="/inicio/haloHogar.png" alt="Efecto de luz" />
       <TopHeader>
         <TextBlock>
           <Title>
-            <span className="italic-text">Tu espacio,</span>
-            <span className="gold-text">tu hogar</span>
+            <span className="italic-text">Lo nuevo </span>
+            <span className="gold-text">en Marybe</span>
           </Title>
           <Subtitle>
-            Calidez, diseño y aromas para ambientar cada rincón.
+            Intensidad, seducción y carácter en un solo lugar.
           </Subtitle>
         </TextBlock>
         <FeaturedPicture>
-          <img src="/inicio/hogar-featured.png" alt="Hogar destacado" style={{ maxHeight: '42vh' }} />
+          <img src="/inicio/featuredSectionHogar.png" alt="Hogar destacado" />
         </FeaturedPicture>
       </TopHeader>
 
@@ -485,6 +531,12 @@ export default function FeaturedSectionHogar() {
 
           const nombre = attrs.nombre;
           const marca = attrs.marca;
+          const descuento = attrs.descuento || 0;
+
+          const variantes = attrs.variantes || [];
+          const mainVariant = variantes[0] || {};
+          const price = mainVariant.precio || 0;
+          const offerPrice = mainVariant.precio_oferta || null;
 
           let imgUrl = null;
           if (attrs.portada?.data?.attributes?.url) {
@@ -503,7 +555,7 @@ export default function FeaturedSectionHogar() {
                 )}
                 <HeartContainer>
                   <HeartIcon aria-label="Agregar a favoritos">
-                     <HeartOutline />
+                    <HeartOutline />
                   </HeartIcon>
                 </HeartContainer>
               </CardImageContainer>
@@ -512,13 +564,17 @@ export default function FeaturedSectionHogar() {
               <ProductBrand>{marca}</ProductBrand>
 
               <PriceRow>
-                <OldPrice>$194.600</OldPrice>
-                <CurrentPrice>$116.760</CurrentPrice>
-                <DiscountBadge>10%</DiscountBadge>
+                {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
+                <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
+                {descuento > 0 && <DiscountBadge>{descuento}% OFF</DiscountBadge>}
               </PriceRow>
 
-              <Installments>3 cuotas sin interés de $4.333</Installments>
-              <LegalText>Precio sin impuestos nacionales $200.000</LegalText>
+              <Installments>
+                3 cuotas sin interés de {formatPrice(Math.round((offerPrice || price) / 3))}
+              </Installments>
+              <LegalText>
+                Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
+              </LegalText>
 
               <AddButton>
                 Agregar <CartIcon />

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
+import { useSearchParams } from 'react-router-dom';
 import ToggleSelection from '../../components/inicio/perfumeria/ToggleSelection';
 import PromoCarousel from '../../components/inicio/perfumeria/PromoCarousel';
 import FeaturedSection from '../../components/inicio/perfumeria/FeaturedSection';
@@ -33,13 +34,18 @@ const GiftCardWrapper = styled.div`
 `;
 
 export default function Inicio() {
-  const [seccionActiva, setSeccionActiva] = useState('perfumeria');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const seccionActiva = searchParams.get('seccion') || 'perfumeria';
+
+  const handleSeccionChange = (seccion) => {
+    setSearchParams({ seccion });
+  };
 
   return (
     <PageWrapper>
       <ToggleSelection
         seccionActiva={seccionActiva}
-        onSeccionChange={setSeccionActiva}
+        onSeccionChange={handleSeccionChange}
       />
 
       {seccionActiva === 'perfumeria' && (
@@ -73,6 +79,7 @@ export default function Inicio() {
           <GiftCardWrapper>
             <GiftCard seccion={seccionActiva} />
           </GiftCardWrapper>
+          <ProximosEventos />
           <DescubriMas />
         </>
       )}

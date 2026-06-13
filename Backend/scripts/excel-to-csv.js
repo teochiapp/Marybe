@@ -21,7 +21,7 @@ if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 
 // Columnas Hoja 1 (Productos): fila 3 es el header real
 // A=id_original, B=sku, C=nombre, D=marca, E=seccion, F=categoria,
-// G=subcategoria, H=descripcion_corta, I=proveedor, J=publicado, K=moneda
+// G=subcategoria, H=descripcion_corta, I=proveedor, J=publicado, K=destacado, L=moneda
 
 // Columnas Hoja 2 (Variantes): fila 3 es el header real
 // A=id_original, B=producto_padre_id, C=sku_ean, D=volumen,
@@ -82,7 +82,8 @@ async function main() {
       descripcion_corta: cellVal(row, 8),
       proveedor:         cellVal(row, 9),
       publicado:         cellVal(row, 10),
-      moneda:            cellVal(row, 11) || 'ARS',
+      destacado:         cellVal(row, 11) || 'FALSE',
+      moneda:            cellVal(row, 12) || 'ARS',
     });
   });
 
