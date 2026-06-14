@@ -39,7 +39,7 @@ const Title = styled.h2`
   font-family: var(--font-family-primary);
   font-style: italic;
   font-weight: 600;
-  letter-spacing: 0px;
+  letter-spacing: -2%;
   font-size: 48px;
   color: var(--color-marron-tercero);
   margin: 0;

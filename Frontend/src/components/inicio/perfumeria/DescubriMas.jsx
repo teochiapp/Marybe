@@ -41,6 +41,7 @@ const Title = styled.h2`
   color: var(--color-marron-tercero);
   margin: 0;
   line-height: 1.1;
+  letter-spacing: -2%;
 
   @media (max-width: 992px) {
     font-size: 40px;

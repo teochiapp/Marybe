@@ -27,6 +27,12 @@ import PromocionesBancarias from './pages/categorias/PromocionesBancarias';
 // Página de Contacto
 import Contacto from './pages/contacto/Contacto';
 
+// Página de Sucursales
+import Sucursales from './pages/sucursales/Sucursales';
+
+// Página de Nuestra Historia
+import NuestraHistoria from './pages/nuestra-historia/NuestraHistoria';
+
 // Panel de Administración
 import ImportacionAdmin from './pages/admin/ImportacionAdmin';
 
@@ -39,7 +45,7 @@ function App() {
         <Route path="/inicio" element={<Inicio />} />
         <Route path="/tienda" element={<Catalogo />} />
         <Route path="/productos" element={<ApiProductos />} />
-        
+
         {/* Rutas de Ayuda */}
         <Route path="/preguntas-frecuentes" element={<PreguntasFrecuentes />} />
         <Route path="/envios" element={<Envios />} />
@@ -61,6 +67,12 @@ function App() {
         {/* Ruta de Contacto */}
         <Route path="/contacto" element={<Contacto />} />
 
+        {/* Ruta de Sucursales */}
+        <Route path="/sucursales" element={<Sucursales />} />
+
+        {/* Ruta de Nuestra Historia */}
+        <Route path="/nuestra-historia" element={<NuestraHistoria />} />
+
         {/* Ruta de Administración */}
         <Route path="/importacion-admin" element={<ImportacionAdmin />} />
       </Routes>
@@ -70,4 +82,3 @@ function App() {
 }
 
 export default App;
-

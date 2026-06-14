@@ -29,7 +29,7 @@ const Title = styled.h2`
   font-weight: 600;
   font-size: 48px;
   line-height: 56px;
-  letter-spacing: -0.02em;
+  letter-spacing: -2%;
   color: black;
   margin: 0 0 48px 0;
   text-align: center;

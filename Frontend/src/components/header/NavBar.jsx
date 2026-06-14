@@ -158,6 +158,16 @@ const MobileRight = styled.div`
   }
 `;
 
+const MobileLocationBar = styled.div`
+  display: none;
+
+  @media (max-width: 768px) {
+    display: flex;
+    background-color: var(--color-blanco);
+    border-bottom: 1px solid var(--color-fondo-beneficio-tarjeta);
+  }
+`;
+
 const IconButton = styled.button`
   background: none;
   border: none;
@@ -429,6 +439,17 @@ export default function NavBar() {
 
   return (
     <>
+      {/* Mobile: ubicación centrada */}
+      <MobileLocationBar>
+        <LocationSelector
+          onClick={() => setUbicacionOpen(true)}
+          style={{ width: '100%', borderRadius: 0, justifyContent: 'center', padding: '10px 16px' }}
+        >
+          <PinIcon />
+          Ubicación seleccionada
+        </LocationSelector>
+      </MobileLocationBar>
+
       <NavBarWrapper>
         {/* Mobile: hamburguesa */}
         <MobileLeft>

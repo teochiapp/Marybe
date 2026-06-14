@@ -18,6 +18,10 @@ const Banner = styled.section`
     gap: var(--spacing-lg);
     padding: var(--spacing-xl);
   }
+
+  @media (max-width: 360px) {
+    padding: var(--spacing-lg);
+  }
 `;
 
 const SocialLink = styled.a`
@@ -90,6 +94,7 @@ const SucursalesButton = styled.a`
     margin-left: 0;
     width: 100%;
     text-align: center;
+    white-space: normal;
   }
 `;
 
