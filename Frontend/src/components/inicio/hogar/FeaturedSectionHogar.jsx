@@ -13,7 +13,7 @@ const SectionWrapper = styled.section`
   position: relative;
 
   @media (max-width: 768px) {
-    padding: 30px 20px;
+    padding: 0;
     gap: 30px;
   }
 `;
@@ -29,6 +29,31 @@ const HaloLuz = styled.img`
   z-index: 0;
   pointer-events: none;
   opacity: 0.8;
+
+    @media (min-width: 1900px) {
+    right: -11%;
+  }
+
+
+  @media (max-width: 1900px) {
+    right: -13%;
+  }
+
+  @media (max-width: 1600px) {
+    right: -15%;
+  }
+
+  @media (max-width: 1200px) {
+    right: -20%;
+  }
+
+  @media (max-width: 900px) {
+    right: -30%;
+  }
+
+  @media (min-width: 768px) and (max-width: 899px) {
+    right: -20%;
+  }
 
   @media (max-width: 768px) {
     height: 100%;

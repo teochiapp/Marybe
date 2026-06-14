@@ -15,7 +15,8 @@ const SectionWrapper = styled.section`
   }
 
   @media (max-width: 768px) {
-    padding: 20px;
+    padding-left: 30px;
+    padding-right: 0;
     gap: 20px;
   }
 `;

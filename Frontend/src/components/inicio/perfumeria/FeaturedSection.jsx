@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
@@ -481,6 +482,7 @@ const ImagePlaceholder = () => (
 );
 
 export default function FeaturedSection({ seccion = 'perfumeria' }) {
+  const navigate = useNavigate();
   const [productos, setProductos] = useState([]);
   const scrollRef = useRef(null);
 
@@ -635,7 +637,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             <BannerImageWrapper>
               <img src="/inicio/elixir.png" alt="El poder del elixir" />
             </BannerImageWrapper>
-            <BannerButton>Conocer más</BannerButton>
+            <BannerButton onClick={() => navigate('/tienda?banner=elixir&seccion=Perfumer%C3%ADa')}>Conocer más</BannerButton>
           </BottomBanner>
 
           <BottomBanner>
@@ -643,7 +645,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             <BannerImageWrapper>
               <img src="/inicio/azzaro.png" alt="Línea Azzaro" />
             </BannerImageWrapper>
-            <BannerButton>Conocer más</BannerButton>
+            <BannerButton onClick={() => navigate('/tienda?banner=azzaro&seccion=Perfumer%C3%ADa')}>Conocer más</BannerButton>
           </BottomBanner>
         </BannersRow>
       )}
