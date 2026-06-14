@@ -48,7 +48,9 @@ export default function Header() {
   useEffect(() => {
     const updateHeight = () => {
       if (headerRef.current) {
-        setHeaderHeight(headerRef.current.offsetHeight);
+        const h = headerRef.current.offsetHeight;
+        setHeaderHeight(h);
+        document.documentElement.style.setProperty('--header-height', h + 'px');
       }
     };
 
@@ -80,7 +82,9 @@ export default function Header() {
   // Recalcular la altura cuando cambia el estado de sticky
   useEffect(() => {
     if (headerRef.current) {
-      setHeaderHeight(headerRef.current.offsetHeight);
+      const h = headerRef.current.offsetHeight;
+      setHeaderHeight(h);
+      document.documentElement.style.setProperty('--header-height', h + 'px');
     }
   }, [topBarHidden]);
 

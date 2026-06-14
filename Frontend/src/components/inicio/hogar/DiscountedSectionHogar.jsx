@@ -3,8 +3,9 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
-  background-color: var(--color-marron-tercero);
+  background-color: var(--color-hogar);
   border-radius: var(--radius-xl);
+  padding-left: 60px;
   margin-top: 40px;
   display: flex;
   flex-direction: column;
@@ -13,7 +14,7 @@ const SectionWrapper = styled.section`
   overflow: hidden;
 
   @media (max-width: 768px) {
-    padding: 30px 20px;
+    padding: 30px 0;
     gap: 30px;
   }
 `;
@@ -29,7 +30,8 @@ const TopHeader = styled.div`
   @media (max-width: 768px) {
     flex-direction: column;
     text-align: center;
-    gap: 20px;
+    gap: 5px;
+    padding: 0 20px;
   }
 `;
 
@@ -92,23 +94,25 @@ const Title = styled.h2`
 
 const FeaturedPicture = styled.picture`
   width: 50%;
-  max-height: 48vh;
+  max-height: 52vh;
   max-width: 100%;
   padding-right: 60px;
   display: flex;
   justify-content: center;
   align-items: flex-end;
   position: relative;
+  top: 30px;
   z-index: 2;
   margin-bottom: -80px;
   pointer-events: none;
   
   @media (max-width: 768px) {
     width: 100%;
-    max-height: 32vh;
+    max-height: 50vh;
     order: 2;
-    padding: 0 5px;
-    margin-bottom: -40px;
+    top: 0;
+    padding: 0;
+    margin-bottom: -60px;
   }
 
   img {
@@ -120,7 +124,7 @@ const FeaturedPicture = styled.picture`
     filter: drop-shadow(0 15px 25px rgba(0,0,0,0.45));
 
     @media (max-width: 768px) {
-      max-height: 32vh;
+      max-height: 50vh;
     }
   }
 `;
@@ -131,13 +135,11 @@ const ProductsGrid = styled.div`
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  gap: 30px;
+  gap: 15px;
   position: relative;
   z-index: 1;
   cursor: grab;
   margin-left: 60px;
-  padding-right: 60px;
-  padding-bottom: 30px;
 
   &:active {
     cursor: grabbing;
@@ -152,15 +154,11 @@ const ProductsGrid = styled.div`
   }
 
   @media (max-width: 1024px) {
-    gap: 30px;
     margin-left: 40px;
-    padding-right: 40px;
   }
 
   @media (max-width: 600px) {
-    gap: 20px;
-    margin-left: 0px;
-    padding-right: 0px;
+    margin-left: 20px;
   }
 `;
 
@@ -177,18 +175,26 @@ const ProductCard = styled.div`
   user-select: none;
   -webkit-user-drag: none;
   
-  width: calc((100% - (5 * 30px)) / 5.5);
+  width: calc((100% - (6 * 15px)) / 6.5);
   
-  @media (max-width: 1440px) {
-    width: calc((100% - (4 * 30px)) / 4.5);
+  @media (max-width: 1700px) {
+    width: calc((100% - (5 * 15px)) / 5.5);
   }
 
-  @media (max-width: 1024px) {
-    width: calc((100% - (2 * 24px)) / 2.5);
+  @media (max-width: 1440px) {
+    width: calc((100% - (4 * 15px)) / 4.5);
+  }
+
+  @media (max-width: 1200px) {
+    width: calc((100% - (3 * 15px)) / 3.5);
+  }
+
+  @media (max-width: 900px) {
+    width: calc((100% - (2 * 15px)) / 2.5);
   }
 
   @media (max-width: 600px) {
-    width: calc((100% - (1 * 20px)) / 1.5);
+    width: calc((100% - (1 * 15px)) / 1.5);
     padding: 12px;
   }
   
@@ -218,6 +224,24 @@ const CardImageContainer = styled.div`
     width: 60px;
     height: 60px;
     opacity: 0.1;
+  }
+`;
+
+const StampOverlay = styled.img`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  z-index: 2;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+
+  @media (max-width: 600px) {
+    width: 38px;
+    height: 38px;
+    top: 5px;
+    right: 5px;
   }
 `;
 
@@ -384,17 +408,22 @@ const BottomLink = styled.button`
   background: none;
   border: none;
   color: var(--color-blanco);
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 400;
   cursor: pointer;
-  margin: 10px auto 40px auto;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   transition: color 0.2s;
+  padding: 40px 0;
 
   &:hover {
     color: white;
+  }
+
+  @media (max-width: 767px) {
+    padding: 8px 0;
   }
 `;
 
@@ -458,7 +487,7 @@ export default function DiscountedSectionHogar() {
     setProductos([]);
     setTituloCursiva('Descuentos');
     setTituloNormal('de Hogar');
-    
+
     fetch(singleTypeEndpoint)
       .then(res => {
         if (!res.ok) {
@@ -542,6 +571,14 @@ export default function DiscountedSectionHogar() {
     return '$' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   };
 
+  const getStampValue = (descuento) => {
+    if (descuento <= 20) return 20;
+    if (descuento <= 30) return 30;
+    if (descuento <= 35) return 35;
+    if (descuento <= 40) return 40;
+    return 50;
+  };
+
   return (
     <SectionWrapper>
       <TopHeader>
@@ -555,7 +592,7 @@ export default function DiscountedSectionHogar() {
           </Title>
         </TextBlock>
         <FeaturedPicture>
-          <img src="/inicio/discountedSection.png" alt="Descuentos de Hogar" />
+          <img src="/inicio/discountedSectionHogar.png" alt="Descuentos de Hogar" />
         </FeaturedPicture>
       </TopHeader>
 
@@ -586,9 +623,14 @@ export default function DiscountedSectionHogar() {
             imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
           }
 
+          const stampVal = descuento > 0 ? getStampValue(descuento) : null;
+
           return (
             <ProductCard key={id}>
               <CardImageContainer>
+                {descuento > 0 && stampVal && (
+                  <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
+                )}
                 {imgUrl ? (
                   <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 ) : (
@@ -607,7 +649,7 @@ export default function DiscountedSectionHogar() {
               <PriceRow>
                 {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
                 <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
-                {descuento > 0 && <DiscountBadge>{descuento}% OFF</DiscountBadge>}
+                {descuento > 0 && <DiscountBadge>{descuento}%</DiscountBadge>}
               </PriceRow>
 
               <Installments>

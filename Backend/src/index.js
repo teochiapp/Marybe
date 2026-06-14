@@ -319,6 +319,7 @@ module.exports = {
               descripcion_corta: (p.descripcion_corta || '').trim(),
               proveedor:         (p.proveedor || '').trim(),
               publicado:         parseBoolean(p.publicado),
+              destacado:         parseBoolean(p.destacado),
               moneda:            (p.moneda || 'ARS').trim(),
               descuento:         maxDescuento,
               variantes:         variantesData,

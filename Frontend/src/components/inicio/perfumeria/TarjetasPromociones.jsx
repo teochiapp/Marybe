@@ -210,6 +210,7 @@ const InfoButton = styled.a`
   @media (max-width: 768px) {
     align-self: stretch;
     text-align: center;
+    padding: 14px 0;
   }
 `;
 

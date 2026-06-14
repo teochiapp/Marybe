@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 
 const ToggleContainer = styled.div`
@@ -14,7 +14,19 @@ const ToggleContainer = styled.div`
   z-index: 10;
 
   @media (max-width: 768px) {
-    display: none;
+    position: ${({ $sticky }) => ($sticky ? 'fixed' : 'relative')};
+    top: ${({ $sticky }) => ($sticky ? 'calc(var(--header-height, 70px) + 8px)' : 'auto')};
+    left: ${({ $sticky }) => ($sticky ? '50%' : 'auto')};
+    transform: ${({ $sticky, $visible }) =>
+      $sticky
+        ? `translateX(-50%) translateY(${$visible ? '0' : '-200px'})`
+        : 'none'};
+    width: ${({ $sticky }) => ($sticky ? 'calc(100% - 40px)' : '100%')};
+    margin: ${({ $sticky }) => ($sticky ? '0' : '0 auto 20px auto')};
+    z-index: ${({ $sticky }) => ($sticky ? 1000 : 10)};
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: ${({ $sticky }) =>
+      $sticky ? '0 6px 24px rgba(0, 0, 0, 0.14)' : '0 4px 16px rgba(0, 0, 0, 0.08)'};
   }
 `;
 
@@ -44,8 +56,40 @@ const ToggleOption = styled.button`
 `;
 
 export default function ToggleSelection({ seccionActiva, onSeccionChange }) {
+  const [visible, setVisible] = useState(false);
+  const [sticky, setSticky] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const isMobile = () => window.innerWidth <= 768;
+
+    const handleScroll = () => {
+      if (!isMobile()) return;
+
+      const currentY = window.scrollY;
+      const diff = currentY - lastScrollY.current;
+      const threshold = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--header-height')
+      ) || 70;
+
+      if (currentY > threshold) {
+        setSticky(true);
+        if (diff < -5) setVisible(true);
+        else if (diff > 5) setVisible(false);
+      } else {
+        setSticky(false);
+        setVisible(false);
+      }
+
+      lastScrollY.current = currentY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <ToggleContainer>
+    <ToggleContainer $visible={visible} $sticky={sticky}>
       <ToggleOption
         $active={seccionActiva === 'perfumeria'}
         $activeColor="var(--color-bordo-tercero)"
@@ -63,3 +107,4 @@ export default function ToggleSelection({ seccionActiva, onSeccionChange }) {
     </ToggleContainer>
   );
 }
+

@@ -224,9 +224,6 @@ const MegaTextLink = styled.a`
   }
 `;
 
-const MegaSeparator = styled.div`
-  flex: 1;
-`;
 
 // ─── Íconos barra inferior ────────────────────────────────────────────────────
 
@@ -273,14 +270,6 @@ const ChatIcon = () => (
 
 const MobileNav = styled.nav`
   display: none;
-
-  @media (max-width: 768px) {
-    display: flex;
-    justify-content: center;
-    padding: 12px 16px;
-    background-color: var(--color-blanco);
-    border-bottom: 1px solid var(--color-fondo-beneficio-tarjeta);
-  }
 `;
 
 const SegmentedControl = styled.div`

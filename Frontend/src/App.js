@@ -38,7 +38,7 @@ import ImportacionAdmin from './pages/admin/ImportacionAdmin';
 
 function App() {
   return (
-    <>
+    <div style={{ overflowX: 'hidden', position: 'relative', width: '100%' }}>
       <Header />
       <Routes>
         <Route path="/" element={<Navigate to="/inicio" replace />} />
@@ -77,7 +77,7 @@ function App() {
         <Route path="/importacion-admin" element={<ImportacionAdmin />} />
       </Routes>
       <Footer />
-    </>
+    </div>
   );
 }
 
