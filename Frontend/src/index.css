@@ -67,6 +67,8 @@
 html {
   scroll-behavior: smooth;
   height: 100%;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 /* Altura mínima del cuerpo y bases de renderizado de texto */
@@ -79,6 +81,14 @@ body {
   color: var(--color-blanco-pero-no-tan-blanco);
   font-family: var(--font-family-secondary);
   line-height: 1.6;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 /* ─── 2. Elementos de Medios e Imágenes ───────────────────────────── */

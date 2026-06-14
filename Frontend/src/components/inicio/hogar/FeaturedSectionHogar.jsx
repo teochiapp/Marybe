@@ -11,7 +11,6 @@ const SectionWrapper = styled.section`
   flex-direction: column;
   gap: 0px;
   position: relative;
-  overflow: hidden;
 
   @media (max-width: 768px) {
     padding: 30px 20px;
@@ -145,7 +144,7 @@ const FeaturedPicture = styled.picture`
 
   img {
     width: auto;
-    max-width: 125%;
+    max-width: 100%;
     height: 100%;
     max-height: 110vh;
     object-fit: contain;
@@ -191,9 +190,9 @@ const ProductsGrid = styled.div`
 
   @media (max-width: 600px) {
     gap: 16px;
-    margin-left: -5px;
-    margin-right: -20px;
-    padding-left: 20px;
+    margin-left: 20px;
+    margin-right: 0;
+    padding-left: 0;
     padding-right: 20px;
     padding-bottom: 20px;
   }
