@@ -34,12 +34,15 @@ import Sucursales from './pages/sucursales/Sucursales';
 // Página de Nuestra Historia
 import NuestraHistoria from './pages/nuestra-historia/NuestraHistoria';
 
+// Página de Arrepentimiento
+import Arrepentimiento from './pages/arrepentimiento/Arrepentimiento';
+
 // Panel de Administración
 import ImportacionAdmin from './pages/admin/ImportacionAdmin';
 
 function App() {
   return (
-    <div style={{ overflowX: 'hidden', position: 'relative', width: '100%' }}>
+    <>
       <Header />
       <Routes>
         <Route path="/" element={<Navigate to="/inicio" replace />} />
@@ -75,11 +78,14 @@ function App() {
         {/* Ruta de Nuestra Historia */}
         <Route path="/nuestra-historia" element={<NuestraHistoria />} />
 
+        {/* Ruta de Arrepentimiento */}
+        <Route path="/arrepentimiento" element={<Arrepentimiento />} />
+
         {/* Ruta de Administración */}
         <Route path="/importacion-admin" element={<ImportacionAdmin />} />
       </Routes>
       <Footer />
-    </div>
+    </>
   );
 }
 
