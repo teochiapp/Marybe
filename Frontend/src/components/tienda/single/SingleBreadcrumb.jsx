@@ -1,68 +1,129 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-const BreadcrumbContainer = styled.nav`
-  font-size: 0.85rem;
-  color: #8E8E8E;
-  margin-bottom: 30px;
+// ─── Styled Components ────────────────────────────────────────────────────────
+
+const BreadcrumbNav = styled.nav`
+  max-width: 1400px;
+  margin: 0 auto 28px auto;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 2px;
+  font-size: 1rem;
   font-family: var(--font-family-secondary);
-`;
 
-const BreadcrumbLink = styled(Link)`
-  color: #8E8E8E;
-  text-decoration: none;
-  transition: color 0.2s;
-
-  &:hover {
-    color: var(--color-titulo-marybe);
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+    gap: 1px;
+    flex-wrap: wrap;
   }
 `;
 
-const BreadcrumbCurrent = styled.span`
-  color: #28180B;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+const BackBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--color-marron-cuarto);
+  margin-right: 10px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #FAF4EE;
+    border-color: var(--color-bordo-secundario);
+    color: var(--color-bordo-secundario);
+    transform: translateX(-2px);
+  }
+
+  @media (max-width: 768px) {
+    width: 26px;
+    height: 26px;
+    margin-right: 6px;
+    
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+`;
+
+const BreadItem = styled.button`
+  background: none;
+  border: none;
+  color: #9A8F87;
+  font-weight: 400;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+
+  &:hover {
+    color: var(--color-bordo-secundario);
+  }
 `;
 
 const Separator = styled.span`
-  color: #8E8E8E;
+  color: #C8C0BB;
+  margin: 0 4px;
+  font-size: 0.78rem;
+  user-select: none;
+
+  @media (max-width: 768px) {
+    font-size: 0.7rem;
+    margin: 0 2px;
+  }
+`;
+
+const CurrentItem = styled.span`
+  color: var(--color-marron-cuarto);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 `;
 
 export default function SingleBreadcrumb({ seccion, categoria, nombre }) {
+  const navigate = useNavigate();
+
+  const crumbs = [
+    { label: 'Inicio', onClick: () => navigate('/inicio') },
+    ...(seccion ? [{ label: seccion, onClick: () => navigate(`/tienda?seccion=${encodeURIComponent(seccion)}`) }] : []),
+    ...(categoria ? [{ label: categoria, onClick: () => navigate(`/tienda?categoria=${encodeURIComponent(categoria)}`) }] : []),
+    ...(nombre ? [{ label: nombre }] : []),
+  ];
+
   return (
-    <BreadcrumbContainer>
-      <BreadcrumbLink to="/">Inicio</BreadcrumbLink>
-      
-      {seccion && (
-        <>
-          <Separator>/</Separator>
-          <BreadcrumbLink to={`/tienda?seccion=${encodeURIComponent(seccion)}`}>
-            {seccion}
-          </BreadcrumbLink>
-        </>
-      )}
+    <BreadcrumbNav aria-label="Breadcrumb de navegación">
+      <BackBtn onClick={() => navigate(-1)} aria-label="Volver atrás" title="Volver atrás">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </BackBtn>
 
-      {categoria && (
-        <>
-          <Separator>/</Separator>
-          <BreadcrumbLink to={`/tienda?categoria=${encodeURIComponent(categoria)}`}>
-            {categoria}
-          </BreadcrumbLink>
-        </>
-      )}
-
-      {nombre && (
-        <>
-          <Separator>/</Separator>
-          <BreadcrumbCurrent>{nombre}</BreadcrumbCurrent>
-        </>
-      )}
-    </BreadcrumbContainer>
+      {crumbs.map((crumb, idx) => {
+        const isLast = idx === crumbs.length - 1;
+        return (
+          <React.Fragment key={idx}>
+            {isLast ? (
+              <CurrentItem>{crumb.label}</CurrentItem>
+            ) : (
+              <>
+                <BreadItem onClick={crumb.onClick}>{crumb.label}</BreadItem>
+                <Separator>/</Separator>
+              </>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </BreadcrumbNav>
   );
 }

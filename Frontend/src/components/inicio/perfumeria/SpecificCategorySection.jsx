@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
@@ -127,6 +128,7 @@ const CardImageContainer = styled.div`
   align-items: center;
   overflow: hidden;
   position: relative;
+  cursor: pointer;
 
   @media (max-width: 600px) {
     height: 160px;
@@ -214,6 +216,7 @@ const ProductName = styled.h3`
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  cursor: pointer;
 
   @media (max-width: 600px) {
     font-size: 14px;
@@ -341,6 +344,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef(null);
+  const navigate = useNavigate();
 
   const endpoint = seccion === 'hogar'
     ? `${process.env.REACT_APP_STRAPI_URL}/api/categoria-especifica-hogar?populate=*`
@@ -400,11 +404,13 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
   const isDown = useRef(false);
   const startX = useRef(0);
   const scrollLeftVal = useRef(0);
+  const isDragging = useRef(false);
 
   const handleMouseDown = useCallback((e) => {
     const el = scrollRef.current;
     if (!el) return;
     isDown.current = true;
+    isDragging.current = false;
     el.style.scrollSnapType = 'none';
     el.style.scrollBehavior = 'auto';
     startX.current = e.pageX - el.offsetLeft;
@@ -438,8 +444,17 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
     if (!el) return;
     const x = e.pageX - el.offsetLeft;
     const walk = (x - startX.current) * 1.5;
+    if (Math.abs(walk) > 5) {
+      isDragging.current = true;
+    }
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
+
+  const handleProductClick = (id) => {
+    if (!isDragging.current) {
+      navigate(`/producto/${id}`);
+    }
+  };
 
   const formatPrice = (price) => {
     if (!price) return '$0';
@@ -506,25 +521,25 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
 
           return (
             <ProductCard key={id}>
-              <CardImageContainer>
+              <CardImageContainer onClick={() => handleProductClick(id)}>
                 {descuento > 0 && stampVal && (
                   <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
                 )}
 
                 {imgUrl ? (
-                  <img className="product-img" src={imgUrl} alt={nombre} />
+                  <img className="product-img" src={imgUrl} alt={nombre} draggable="false" />
                 ) : (
                   <ImagePlaceholder />
                 )}
                 <HeartContainer>
-                  <HeartIcon aria-label="Agregar a favoritos">
+                  <HeartIcon aria-label="Agregar a favoritos" onClick={(e) => { e.stopPropagation(); }}>
                     <HeartOutline />
                   </HeartIcon>
                 </HeartContainer>
               </CardImageContainer>
 
               <ProductBrand>{marca}</ProductBrand>
-              <ProductName title={nombre}>{nombre}</ProductName>
+              <ProductName title={nombre} onClick={() => handleProductClick(id)}>{nombre}</ProductName>
 
               <PriceRow>
                 {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
