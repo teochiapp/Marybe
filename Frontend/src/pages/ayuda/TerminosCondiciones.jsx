@@ -1,15 +1,21 @@
-import React from 'react';
-import PageLayout from '../../components/shared/PageLayout';
+import React, { useEffect } from 'react';
+import styled from 'styled-components';
 import TerminosCondicionesContent from '../../components/ayuda/terminosCondiciones/TerminosCondicionesContent';
 
+const Page = styled.div`
+  background-color: var(--color-blanco);
+  min-height: 80vh;
+  font-family: var(--font-family-secondary);
+`;
+
 export default function TerminosCondiciones() {
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
+
   return (
-    <PageLayout
-      title="Términos y Condiciones"
-      subtitle="Condiciones generales de uso del sitio web y transacciones comerciales"
-      breadcrumbs={[{ label: 'Ayuda', href: '#' }, { label: 'Términos y Condiciones' }]}
-    >
+    <Page>
       <TerminosCondicionesContent />
-    </PageLayout>
+    </Page>
   );
 }
