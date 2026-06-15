@@ -57,7 +57,7 @@ const MainImageContainer = styled.div`
   border-radius: 20px;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   padding: 40px;
   min-height: 500px;
   
@@ -89,8 +89,8 @@ export default function SingleImageGallery({ images, nombre }) {
       {validImages.length > 1 && (
         <ThumbnailsContainer>
           {validImages.map((img, idx) => (
-            <Thumbnail 
-              key={idx} 
+            <Thumbnail
+              key={idx}
               $active={activeIndex === idx}
               onClick={() => setActiveIndex(idx)}
             >
