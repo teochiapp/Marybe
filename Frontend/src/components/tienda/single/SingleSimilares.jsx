@@ -23,42 +23,58 @@ const Row = styled.div`
   justify-content: safe center;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  padding-bottom: 14px;
+  scroll-behavior: smooth;
+  padding-bottom: 18px;
 
-  /* Full-bleed: ocupa todo el ancho de la pantalla */
-  width: 100vw;
-  margin-left: calc(-50vw + 50%);
-  padding-left: 60px;
-  padding-right: 60px;
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #7C0405 transparent;
+
+  /* Ocupa el 75% del ancho de la pantalla, centrado */
+  width: 75vw;
+  margin-left: calc(-37.5vw + 50%);
   box-sizing: border-box;
 
+  /* Barra de scroll estilizada (WebKit) */
   &::-webkit-scrollbar {
-    height: 7px;
+    height: 10px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f1e9e4;
+    border-radius: 10px;
+    margin: 0 4px;
   }
   &::-webkit-scrollbar-thumb {
-    background: #e0d8d2;
+    background: linear-gradient(90deg, #7C0405, #560203);
     border-radius: 10px;
+    border: 2px solid #f1e9e4;
+    background-clip: padding-box;
+    transition: all 0.25s ease;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(90deg, #560203, #3e0102);
+    border-width: 1px;
   }
 
   @media (max-width: 1024px) {
-    padding-left: 20px;
-    padding-right: 20px;
+    width: 92vw;
+    margin-left: calc(-46vw + 50%);
   }
 `;
 
 const Card = styled.article`
-  /* 6 productos a la vez: (ancho - padding lateral 120px - 5 gaps de 24px) / 6 */
-  flex: 0 0 calc((100vw - 240px) / 6);
+  /* 6 productos a la vez dentro del 75% (75vw - 5 gaps de 24px) / 6 */
+  flex: 0 0 calc((75vw - 120px) / 6);
   scroll-snap-align: start;
 
   @media (max-width: 1024px) {
     /* 3 a la vez */
-    flex: 0 0 calc((100vw - 88px) / 3);
+    flex: 0 0 calc((92vw - 48px) / 3);
   }
 
   @media (max-width: 600px) {
     /* 2 a la vez */
-    flex: 0 0 calc((100vw - 64px) / 2);
+    flex: 0 0 calc((92vw - 24px) / 2);
   }
   background-color: var(--color-blanco);
   border: 1px solid #eee;
