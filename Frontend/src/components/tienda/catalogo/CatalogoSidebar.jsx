@@ -96,18 +96,18 @@ const ScrollableFilters = styled.div`
   margin-right: -8px;
 
   &::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
   &::-webkit-scrollbar-track {
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: #E8E4DF;
+    background: var(--color-marron-principal);
     border-radius: 10px;
   }
   
   &::-webkit-scrollbar-thumb:hover {
-    background: #D5CFC9;
+    background: var(--color-marron-principal);
   }
 `;
 
@@ -205,6 +205,16 @@ const AccordionContent = styled.div`
   &::-webkit-scrollbar {
     width: 4px;
   }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-titulo-marybe);
+    border-radius: 10px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--color-marron-principal);
+  }
 `;
 
 
@@ -282,7 +292,7 @@ const CheckboxLabel = styled.label`
 
 const SidebarSubmitBtn = styled.button`
   width: 100%;
-  background-color: var(--color-marron-principal);
+  background-color: var(--color-marron-cuarto);
   color: white;
   border-radius: 12px;
   padding: 14px;
@@ -295,7 +305,7 @@ const SidebarSubmitBtn = styled.button`
   flex-shrink: 0;
 
   &:hover {
-    background-color: var(--color-bordo-secundario);
+    background-color: var(--color-marron-principal);
   }
 `;
 
@@ -326,7 +336,7 @@ export default function CatalogoSidebar({
   total,
 }) {
   const hasActiveFilters =
-    activeDescuento || activeBrands.length > 0 || activeCategories.length > 0 || activeSizes.length > 0 || activePriceParam;
+    activeDescuento.length > 0 || activeBrands.length > 0 || activeCategories.length > 0 || activeSizes.length > 0 || activePriceParam;
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget && onCloseMobile) {
@@ -358,12 +368,12 @@ export default function CatalogoSidebar({
                 <button onClick={() => onRemoveTag('seccion', activeSeccion)} aria-label="Quitar filtro de sección">×</button>
               </FilterTag>
             )}
-            {activeDescuento && (
-              <FilterTag>
-                {activeDescuento === 'todas' ? 'Ofertas' : `Hasta ${activeDescuento}% OFF`}
-                <button onClick={() => onRemoveTag('descuento', activeDescuento)} aria-label="Quitar filtro de descuento">×</button>
+            {activeDescuento.map((desc) => (
+              <FilterTag key={desc}>
+                {desc === 'todas' ? 'Ofertas' : `${desc}% OFF`}
+                <button onClick={() => onRemoveTag('descuento', desc)} aria-label="Quitar filtro de descuento">×</button>
               </FilterTag>
-            )}
+            ))}
             {activeBrands.map((b) => (
               <FilterTag key={b}>
                 {b}
@@ -525,24 +535,21 @@ export default function CatalogoSidebar({
           {/* Ofertas */}
           <AccordionItem>
             <AccordionHeader onClick={() => onToggleAccordion('ofertas')}>
-              Ofertas
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                Ofertas 
+                {activeDescuento.length > 0 && <span style={{ backgroundColor: '#F2D4D4', color: '#7C0405', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '8px' }}>{activeDescuento.length}</span>}
+              </div>
               <AccordionChevron $open={accordions.ofertas}><ChevronIcon /></AccordionChevron>
             </AccordionHeader>
             <AccordionContent $open={accordions.ofertas}>
-              {['todas', '10', '20', '30', '40', '50'].map((descValue) => (
+              {['todas', '50', '40', '35', '30', '20', '10'].map((descValue) => (
                 <CheckboxLabel key={descValue}>
                   <input
                     type="checkbox"
-                    checked={activeDescuento === descValue}
-                    onChange={() => {
-                      if (activeDescuento === descValue) {
-                        onRemoveTag('descuento', null);
-                      } else {
-                        onDescuentoChange(descValue);
-                      }
-                    }}
+                    checked={activeDescuento.includes(descValue)}
+                    onChange={() => onCheckboxToggle(activeDescuento, descValue, 'descuento')}
                   />
-                  {descValue === 'todas' ? 'Todas las ofertas' : `Hasta ${descValue}% OFF`}
+                  {descValue === 'todas' ? 'Todas las ofertas' : `${descValue}%`}
                 </CheckboxLabel>
               ))}
             </AccordionContent>
@@ -560,7 +567,7 @@ export default function CatalogoSidebar({
                   min={availablePriceRange[0]}
                   max={availablePriceRange[1]}
                   value={activePrice}
-                  onChange={() => {}}
+                  onChange={() => { }}
                   onFinalChange={onPriceChange}
                 />
               </AccordionContent>

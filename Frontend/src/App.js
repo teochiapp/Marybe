@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import ApiProductos from './pages/ApiProductos';
 import Inicio from './pages/inicio/Inicio';
 import Catalogo from './pages/tienda/Catalogo';
+import ProductoSingle from './pages/tienda/ProductoSingle';
 import Header from './components/header/Header';
 import Footer from './components/footer/Footer';
 
@@ -44,6 +45,7 @@ function App() {
         <Route path="/" element={<Navigate to="/inicio" replace />} />
         <Route path="/inicio" element={<Inicio />} />
         <Route path="/tienda" element={<Catalogo />} />
+        <Route path="/producto/:id" element={<ProductoSingle />} />
         <Route path="/productos" element={<ApiProductos />} />
 
         {/* Rutas de Ayuda */}

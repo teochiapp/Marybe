@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -10,10 +11,10 @@ const HeartOutline = () => (
 );
 
 const CartIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M8 22C8.55228 22 9 21.5523 9 21C9 20.4477 8.55228 20 8 20C7.44772 20 7 20.4477 7 21C7 21.5523 7.44772 22 8 22Z" stroke="currentColor" />
-    <path d="M19 22C19.5523 22 20 21.5523 20 21C20 20.4477 19.5523 20 19 20C18.4477 20 18 20.4477 18 21C18 21.5523 18.4477 22 19 22Z" stroke="currentColor" />
-    <path d="M2.0498 2.05005H4.0498L6.7098 14.47C6.80738 14.9249 7.06048 15.3315 7.42552 15.6199C7.79056 15.9083 8.24471 16.0604 8.7098 16.05H18.4898C18.945 16.0493 19.3863 15.8933 19.7408 15.6079C20.0954 15.3224 20.3419 14.9246 20.4398 14.48L22.0898 7.05005H5.1198" stroke="currentColor" />
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 22C8.55228 22 9 21.5523 9 21C9 20.4477 8.55228 20 8 20C7.44772 20 7 20.4477 7 21C7 21.5523 7.44772 22 8 22Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M19 22C19.5523 22 20 21.5523 20 21C20 20.4477 19.5523 20 19 20C18.4477 20 18 20.4477 18 21C18 21.5523 18.4477 22 19 22Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M2.05078 2.0498H4.05078L6.71078 14.4698C6.80836 14.9247 7.06145 15.3313 7.42649 15.6197C7.79153 15.908 8.24569 16.0602 8.71078 16.0498H18.4908C18.946 16.0491 19.3873 15.8931 19.7418 15.6076C20.0964 15.3222 20.3429 14.9243 20.4408 14.4798L22.0908 7.0498H5.12078" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -28,12 +29,12 @@ const getProductTag = (producto) => {
   const name = (producto.nombre || '').toLowerCase();
   const discount = producto.descuento || 0;
   if (name.includes('combo') || name.includes('sachet') || name.includes('kit')) {
-    return { label: 'Combo', bg: '#EAF5EA', color: '#1B5E20' };
+    return { label: 'Combo', bg: '#E5A9A9', color: 'var(--color-bordo-tercero)' };
   }
   if (discount >= 30) {
     return { label: '2x1', bg: '#FAF0F0', color: 'var(--color-bordo-secundario)' };
   }
-  return { label: 'Oferta', bg: '#FFFDE7', color: '#F57F17' };
+  return null;
 };
 
 // ─── Styled Components ────────────────────────────────────────────────────────
@@ -62,15 +63,16 @@ const ProductCard = styled.div`
 
 const CardImageContainer = styled.div`
   width: 100%;
-  height: 230px;
+  height: 200px;
   background-color: #fff;
   border-radius: var(--radius-md);
-  margin-bottom: 15px;
+  margin-bottom: 12px;
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
   position: relative;
+  cursor: pointer;
 
   img.product-img {
     width: 100%;
@@ -89,6 +91,7 @@ const CardImageContainer = styled.div`
   }
 `;
 
+
 const LeftTopTag = styled.span`
   position: absolute;
   top: 10px;
@@ -106,8 +109,8 @@ const LeftTopTag = styled.span`
 
 const DiscountBadgeAbsolute = styled.span`
   position: absolute;
-  top: 10px;
-  right: 55px;
+  top: 15px;
+  right: 15px;
   z-index: 2;
   background-color: var(--color-bordo-secundario);
   color: white;
@@ -117,81 +120,85 @@ const DiscountBadgeAbsolute = styled.span`
   font-weight: bold;
 `;
 
-const HeartContainer = styled.div`
+const DiscountBadgeImage = styled.img`
   position: absolute;
   top: 15px;
+  right: 15px;
+  z-index: 2;
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+
+  @media (max-width: 600px) {
+    width: 38px;
+    height: 38px;
+  }
+`;
+
+const HeartContainer = styled.div`
+  position: absolute;
+  bottom: 15px;
   right: 15px;
   z-index: 2;
 `;
 
 const HeartIcon = styled.button`
-  background-color: white;
-  border: 1px solid #ece9e4;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  background: none;
+  border: none;
   cursor: pointer;
   color: ${({ $fav }) => ($fav ? 'var(--color-bordo-secundario)' : '#bdbdbd')};
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+  padding: 0;
+  transition: transform 0.2s ease;
 
   svg {
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
     fill: ${({ $fav }) => ($fav ? 'var(--color-bordo-secundario)' : 'none')};
-    stroke: currentColor;
+    stroke: var(--color-bordo-secundario);;
     stroke-width: 2;
-    transition: transform 0.2s ease;
+
+    @media (max-width: 600px) {
+      width: 20px;
+      height: 20px;
+    }
   }
 
   &:hover {
-    transform: scale(1.08);
-    color: var(--color-bordo-secundario);
-    border-color: var(--color-bordo-secundario);
-
-    svg {
-      transform: scale(1.1);
-    }
-  }
-
-  @media (max-width: 600px) {
-    width: 30px;
-    height: 30px;
-    svg {
-      width: 15px;
-      height: 15px;
-    }
+    color: currentColor;
+    transform: scale(1.1);
   }
 `;
 
 const ProductBrand = styled.div`
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.65rem;
+  font-weight: 600;
   color: var(--color-marron-secundario);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 8px;
-`;
-
-const ProductName = styled.h4`
-  font-size: 0.95rem;
-  color: black;
-  font-family: var(--font-family-secondary);
-  font-weight: 500;
-  margin: 0 0 10px 0;
-  line-height: 1.3;
-  height: 2.6em;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  letter-spacing: 0.5px;
+  letter-spacing: 10%;
+  margin-bottom: 15px;
 
   @media (max-width: 600px) {
-    font-size: 0.85rem;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
+  }
+`;
+
+const ProductName = styled.h3`
+  font-size: 16px;
+  color: black;
+  font-family: var(--font-family-secondary);
+  font-weight: 400;
+  margin-bottom: 4px;
+  line-height: 1.2;
+  letter-spacing: 0%;
+  cursor: pointer;
+
+  @media (max-width: 600px) {
+    font-size: 14px;
   }
 `;
 
@@ -199,9 +206,13 @@ const PriceRow = styled.div`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  column-gap: 8px;
-  row-gap: 2px;
-  margin-bottom: 4px;
+  column-gap: 10px;
+  row-gap: 4px;
+  margin-bottom: 6px;
+
+  @media (max-width: 1024px) {
+    column-gap: 6px;
+  }
 `;
 
 const OldPrice = styled.span`
@@ -211,8 +222,8 @@ const OldPrice = styled.span`
 `;
 
 const CurrentPrice = styled.span`
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 600;
   color: var(--color-bordo-secundario);
 
   @media (max-width: 600px) {
@@ -221,76 +232,81 @@ const CurrentPrice = styled.span`
 `;
 
 const DiscountBadge = styled.span`
-  background-color: var(--color-bordo-secundario);
+  background-color: var(--color-b);
   color: white;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   padding: 2px 6px;
   border-radius: 4px;
   font-weight: bold;
 `;
 
 const Installments = styled.div`
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #535353;
   margin-bottom: 6px;
   font-weight: 600;
 
   @media (max-width: 600px) {
-    font-size: 0.7rem;
-    margin-bottom: 4px;
+    font-size: 0.75rem;
   }
 `;
 
 const LegalText = styled.div`
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   color: #b0b0b0;
   margin-bottom: 20px;
   font-weight: 400;
 
   @media (max-width: 600px) {
-    font-size: 0.6rem;
     margin-bottom: 12px;
+    font-size: 0.65rem;
   }
 `;
 
 const AddButton = styled.button`
-  width: 100%;
   background-color: var(--color-marron-cuarto);
   color: white;
   border: none;
   border-radius: 12px;
-  padding: 12px 20px;
+  padding: 16px 24px;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  letter-spacing: 2%;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 10px;
   transition: background-color 0.2s;
   margin-top: auto;
+  width: 100%;
+
+  @media (max-width: 600px) {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    border-radius: 10px;
+  }
 
   &:hover {
     background-color: var(--color-marron-principal);
   }
-
+  
   svg {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     fill: none;
     stroke: currentColor;
-    stroke-width: 1.8;
-  }
 
-  @media (max-width: 600px) {
-    padding: 10px 14px;
-    font-size: 0.85rem;
-    border-radius: 10px;
+    @media (max-width: 600px) {
+      width: 18px;
+      height: 18px;
+    }
   }
 `;
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function CatalogoProductCard({ product, isFav, onToggleFav, strapiUrl }) {
+  const navigate = useNavigate();
   const id = product.id || product.documentId;
   const attrs = product.attributes || product;
 
@@ -317,22 +333,37 @@ export default function CatalogoProductCard({ product, isFav, onToggleFav, strap
   }
 
   const visualTag = getProductTag(attrs);
+  const availableBadges = [20, 30, 35, 40, 50];
+  const hasImageBadge = availableBadges.includes(calcDescuento);
+
+  const handleNavigate = () => {
+    navigate(`/producto/${id}`);
+  };
 
   return (
     <ProductCard>
-      <CardImageContainer>
-        <LeftTopTag $bg={visualTag.bg} $color={visualTag.color}>
-          {visualTag.label}
-        </LeftTopTag>
+      <CardImageContainer onClick={handleNavigate}>
+        {visualTag && (
+          <LeftTopTag $bg={visualTag.bg} $color={visualTag.color}>
+            {visualTag.label}
+          </LeftTopTag>
+        )}
 
-        {calcDescuento > 0 && (
+        {calcDescuento > 0 && hasImageBadge && (
+          <DiscountBadgeImage src={`/ofertas/${calcDescuento}.png`} alt={`-${calcDescuento}% OFF`} />
+        )}
+
+        {calcDescuento > 0 && !hasImageBadge && (
           <DiscountBadgeAbsolute>-{calcDescuento}%</DiscountBadgeAbsolute>
         )}
 
         <HeartContainer>
           <HeartIcon
             $fav={isFav}
-            onClick={() => onToggleFav(id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFav(id);
+            }}
             aria-label={isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}
           >
             <HeartOutline />
@@ -348,8 +379,8 @@ export default function CatalogoProductCard({ product, isFav, onToggleFav, strap
         )}
       </CardImageContainer>
 
+      <ProductName title={nombre} onClick={handleNavigate}>{nombre}</ProductName>
       <ProductBrand>{marca || 'Marybe'}</ProductBrand>
-      <ProductName title={nombre}>{nombre}</ProductName>
 
       <PriceRow>
         {tieneOferta && <OldPrice>{formatPrice(price)}</OldPrice>}

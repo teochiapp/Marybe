@@ -5,7 +5,7 @@ import styled from 'styled-components';
 
 const ControlsBar = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
@@ -18,22 +18,6 @@ const ControlsBar = styled.div`
       justify-content: space-between;
       gap: 10px;
     }
-    .desktop-title {
-      display: none;
-    }
-  }
-
-  h1 {
-    font-size: 1.8rem;
-    color: var(--color-marron-principal);
-    margin: 0;
-    font-weight: 700;
-  }
-
-  p {
-    font-size: 0.9rem;
-    color: #7a7a7a;
-    margin: 0;
   }
 `;
 
@@ -75,6 +59,11 @@ const SortDropdown = styled.div`
     margin-right: 4px;
     user-select: none;
   }
+
+  @media (max-width: 768px) {
+    border: none;
+}
+    
 `;
 
 const SortMenu = styled.div`
@@ -133,13 +122,6 @@ export default function CatalogoControlsBar({ activeSeccion, loading, total, act
   };
   return (
     <ControlsBar>
-      <div className="desktop-title">
-        <h1>{activeSeccion || 'Tienda'}</h1>
-        <p>
-          {loading ? 'Cargando catálogo...' : `${total.toLocaleString('es-AR')} resultados`}
-        </p>
-      </div>
-
       <div className="mobile-controls">
         <MobileFiltersBtn onClick={onToggleMobileFilters}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -150,14 +132,14 @@ export default function CatalogoControlsBar({ activeSeccion, loading, total, act
 
         <SortDropdown ref={sortRef} onClick={() => setIsSortOpen((prev) => !prev)}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M7.33333 5.33335L4.66667 2.66669L2 5.33335M4.66667 2.66669V13.3334M7.33333 8.00002H10M7.33333 10.6667H12M7.33333 13.3334H14" stroke="#606062" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M7.33333 5.33335L4.66667 2.66669L2 5.33335M4.66667 2.66669V13.3334M7.33333 8.00002H10M7.33333 10.6667H12M7.33333 13.3334H14" stroke="#606062" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <span>
             {activeSort === 'nombre:asc' ? 'Nombre A→Z' :
-             activeSort === 'nombre:desc' ? 'Nombre Z→A' :
-             activeSort === 'precio:asc' ? 'Precio Menor a Mayor' :
-             activeSort === 'precio:desc' ? 'Precio Mayor a Menor' :
-             activeSort === 'createdAt:desc' ? 'Lanzamientos' : 'Más relevante'}
+              activeSort === 'nombre:desc' ? 'Nombre Z→A' :
+                activeSort === 'precio:asc' ? 'Precio Menor a Mayor' :
+                  activeSort === 'precio:desc' ? 'Precio Mayor a Menor' :
+                    activeSort === 'createdAt:desc' ? 'Lanzamientos' : 'Más relevante'}
           </span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#606062" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isSortOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
             <polyline points="9 18 15 12 9 6"></polyline>

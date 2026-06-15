@@ -12,6 +12,13 @@ const BreadcrumbNav = styled.nav`
   gap: 2px;
   font-size: 1rem;
   font-family: var(--font-family-secondary);
+
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+    gap: 1px;
+    flex-wrap: wrap;
+  }
 `;
 
 const BackBtn = styled.button`
@@ -31,6 +38,17 @@ const BackBtn = styled.button`
     border-color: var(--color-bordo-secundario);
     color: var(--color-bordo-secundario);
     transform: translateX(-2px);
+  }
+
+  @media (max-width: 768px) {
+    width: 26px;
+    height: 26px;
+    margin-right: 6px;
+    
+    svg {
+      width: 18px;
+      height: 18px;
+    }
   }
 `;
 
@@ -53,6 +71,11 @@ const Separator = styled.span`
   margin: 0 4px;
   font-size: 0.78rem;
   user-select: none;
+
+  @media (max-width: 768px) {
+    font-size: 0.7rem;
+    margin: 0 2px;
+  }
 `;
 
 const CurrentItem = styled.span`
@@ -79,8 +102,8 @@ export default function CatalogoBreadcrumb({
   let thirdLabel = null;
   if (activeBanner && currentBannerTitle && currentBannerTitle !== activeSeccion) {
     thirdLabel = currentBannerTitle;
-  } else if (activeDescuento) {
-    thirdLabel = activeDescuento === 'todas' ? 'Todas las ofertas' : `Hasta ${activeDescuento}% OFF`;
+  } else if (activeDescuento && activeDescuento.length > 0) {
+    thirdLabel = activeDescuento.includes('todas') ? 'Todas las ofertas' : `${activeDescuento.join(', ')}% OFF`;
   }
 
   const crumbs = [
