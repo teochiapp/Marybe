@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const InfoContainer = styled.div`
   display: flex;
@@ -33,7 +34,7 @@ const Pill = styled.span`
 const IconsContainer = styled.div`
   display: flex;
   gap: 15px;
-  color: var(--color-titulo-marybe);
+  color: #000000;
   
   svg {
     width: 24px;
@@ -259,6 +260,22 @@ const QuantityBox = styled.div`
   }
 `;
 
+const QtyNumber = styled.div`
+  position: relative;
+  width: 30px;
+  height: 26px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  span {
+    position: absolute;
+    font-weight: 500;
+    color: #000000;
+  }
+`;
+
 const AddToCartBtn = styled.button`
   flex: 1;
   background-color: #280101;
@@ -276,7 +293,7 @@ const AddToCartBtn = styled.button`
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: var(--color-titulo-marybe);
+    background-color: #7C0405;
   }
 
   svg {
@@ -311,7 +328,7 @@ const InfoItem = styled.div`
   }
 
   a {
-    color: #000000;
+    color: #7C0405;
     text-decoration: underline;
     cursor: pointer;
     font-weight: 500;
@@ -326,6 +343,7 @@ const formatPrice = (price) => {
 
 export default function SingleProductInfo({ producto }) {
   const [qty, setQty] = useState(1);
+  const [qtyDir, setQtyDir] = useState(1);
   const [selectedSize, setSelectedSize] = useState(0);
   const [selectedColor, setSelectedColor] = useState(0);
 
@@ -356,10 +374,10 @@ export default function SingleProductInfo({ producto }) {
           {descuento > 0 && <Pill>Super oferta</Pill>}
         </PillsContainer>
         <IconsContainer>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-            <polyline points="16 6 12 2 8 6" />
-            <line x1="12" y1="2" x2="12" y2="15" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M9 12C9 12.663 8.73661 13.2989 8.26777 13.7678C7.79893 14.2366 7.16304 14.5 6.5 14.5C5.83696 14.5 5.20107 14.2366 4.73223 13.7678C4.26339 13.2989 4 12.663 4 12C4 11.337 4.26339 10.7011 4.73223 10.2322C5.20107 9.76339 5.83696 9.5 6.5 9.5C7.16304 9.5 7.79893 9.76339 8.26777 10.2322C8.73661 10.7011 9 11.337 9 12Z" />
+            <path d="M14 6.5L9 10M14 17.5L9 14" strokeLinecap="round" />
+            <path d="M19 18.5C19 19.163 18.7366 19.7989 18.2678 20.2678C17.7989 20.7366 17.163 21 16.5 21C15.837 21 15.2011 20.7366 14.7322 20.2678C14.2634 19.7989 14 19.163 14 18.5C14 17.837 14.2634 17.2011 14.7322 16.7322C15.2011 16.2634 15.837 16 16.5 16C17.163 16 17.7989 16.2634 18.2678 16.7322C18.7366 17.2011 19 17.837 19 18.5ZM19 5.5C19 6.16304 18.7366 6.79893 18.2678 7.26777C17.7989 7.73661 17.163 8 16.5 8C15.837 8 15.2011 7.73661 14.7322 7.26777C14.2634 6.79893 14 6.16304 14 5.5C14 4.83696 14.2634 4.20107 14.7322 3.73223C15.2011 3.26339 15.837 3 16.5 3C17.163 3 17.7989 3.26339 18.2678 3.73223C18.7366 4.20107 19 4.83696 19 5.5Z" />
           </svg>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -427,9 +445,21 @@ export default function SingleProductInfo({ producto }) {
       <OptionLabel>Cantidad</OptionLabel>
       <ActionRow>
         <QuantityBox>
-          <button onClick={() => setQty(Math.max(1, qty - 1))}>−</button>
-          <span>{qty}</span>
-          <button onClick={() => setQty(qty + 1)}>+</button>
+          <button onClick={() => { setQtyDir(-1); setQty(Math.max(1, qty - 1)); }}>−</button>
+          <QtyNumber>
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={qty}
+                initial={{ y: qtyDir * 18, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: qtyDir * -18, opacity: 0 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+              >
+                {qty}
+              </motion.span>
+            </AnimatePresence>
+          </QtyNumber>
+          <button onClick={() => { setQtyDir(1); setQty(qty + 1); }}>+</button>
         </QuantityBox>
         <AddToCartBtn>
           Agregar 

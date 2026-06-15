@@ -21,7 +21,7 @@ const AccordionHeader = styled.button`
   font-family: var(--font-family-secondary);
   font-size: 1rem;
   font-weight: 600;
-  color: #28180B;
+  color: #560203;
   cursor: pointer;
 
   svg {
