@@ -21,7 +21,7 @@ const PillsContainer = styled.div`
 `;
 
 const Pill = styled.span`
-  background-color: #EAC9C9;
+  background-color: #E5A9A9;
   color: var(--color-titulo-marybe);
   padding: 6px 12px;
   border-radius: 4px;
@@ -48,8 +48,9 @@ const IconsContainer = styled.div`
 `;
 
 const Brand = styled.h4`
-  font-size: 0.9rem;
+  font-size: 20px;
   text-transform: uppercase;
+  font-weight: semi-bold;
   letter-spacing: 2px;
   color: #555;
   margin-bottom: 8px;
@@ -58,11 +59,12 @@ const Brand = styled.h4`
 
 const Title = styled.h1`
   font-family: var(--font-family-secondary);
-  font-size: 2.5rem;
+  font-size: 35px;
   font-weight: 400;
   line-height: 1.1;
   margin-bottom: 15px;
   text-transform: uppercase;
+  color: #000000;
 
   @media (max-width: 768px) {
     font-size: 2rem;
@@ -115,11 +117,11 @@ const CurrentPriceRow = styled.div`
 const CurrentPrice = styled.span`
   font-size: 2.5rem;
   font-weight: 700;
-  color: var(--color-titulo-marybe);
+  color: #7C0405;
 `;
 
 const DiscountBadge = styled.span`
-  background-color: var(--color-titulo-marybe);
+  background-color: #7c0405;
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
@@ -130,7 +132,7 @@ const DiscountBadge = styled.span`
 const PaymentLink = styled.button`
   background: none;
   border: none;
-  color: #8E8E8E;
+  color: #7C0405;
   font-size: 0.85rem;
   text-decoration: underline;
   cursor: pointer;
@@ -168,9 +170,9 @@ const SizesContainer = styled.div`
 `;
 
 const SizeBtn = styled.button`
-  border: 1px solid ${({ $active }) => ($active ? 'var(--color-titulo-marybe)' : '#ccc')};
+  border: 1px solid ${({ $active }) => ($active ? '#7C0405' : '#ccc')};
   background-color: ${({ $active }) => ($active ? '#fffaf8' : '#fff')};
-  color: ${({ $active }) => ($active ? 'var(--color-titulo-marybe)' : '#555')};
+  color: ${({ $active }) => ($active ? '#7C0405' : '#555')};
   border-radius: 20px;
   padding: 8px 16px;
   font-size: 0.85rem;
@@ -179,21 +181,22 @@ const SizeBtn = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    border-color: var(--color-titulo-marybe);
+    transform: scale(1.01);
+    color: #7C0405;
   }
 `;
 
 const ColorsContainer = styled.div`
   display: flex;
-  gap: 10px;
+  gap: 15px;
   margin-bottom: 15px;
 `;
 
 const ColorBtn = styled.button`
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  border: 2px solid ${({ $active }) => ($active ? '#28180B' : '#EAEAEA')};
+  border: none;
   background-color: ${({ $color }) => $color};
   cursor: pointer;
   padding: 0;
@@ -206,8 +209,9 @@ const ColorBtn = styled.button`
     left: -4px;
     right: -4px;
     bottom: -4px;
-    border-radius: 50%;
-    border: 1px solid ${({ $active }) => ($active ? '#28180B' : 'transparent')};
+    border-radius: 25%;
+    border: 1.5px solid ${({ $active }) => ($active ? '#28180B' : '#d8d2ca')};
+    transition: border-color 0.2s ease;
   }
 `;
 
@@ -230,7 +234,7 @@ const ActionRow = styled.div`
 const QuantityBox = styled.div`
   display: flex;
   align-items: center;
-  border: 1px solid #ccc;
+  border: 1px solid #000000;
   border-radius: 8px;
   height: 48px;
   padding: 0 10px;
@@ -307,7 +311,7 @@ const InfoItem = styled.div`
   }
 
   a {
-    color: var(--color-titulo-marybe);
+    color: #000000;
     text-decoration: underline;
     cursor: pointer;
     font-weight: 500;

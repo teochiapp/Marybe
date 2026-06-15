@@ -1,9 +1,9 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ApiProductos from './pages/ApiProductos';
+import ProductoSingle from './pages/tienda/ProductoSingle';
 import Inicio from './pages/inicio/Inicio';
 import Catalogo from './pages/tienda/Catalogo';
-import ProductoSingle from './pages/tienda/ProductoSingle';
 import Header from './components/header/Header';
 import Footer from './components/footer/Footer';
 
