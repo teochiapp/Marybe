@@ -49,21 +49,21 @@ const IconsContainer = styled.div`
 `;
 
 const Brand = styled.h4`
-  font-size: 20px;
+  font-size: 1rem;
   text-transform: uppercase;
-  font-weight: semi-bold;
-  letter-spacing: 2px;
-  color: #555;
-  margin-bottom: 8px;
   font-weight: 600;
+  letter-spacing: 10%;
+  color: #535353;
+  margin-bottom: 8px;
 `;
 
 const Title = styled.h1`
   font-family: var(--font-family-secondary);
-  font-size: 35px;
+  font-size: 2.5rem;
   font-weight: 400;
-  line-height: 1.1;
+  line-height: 1.3;
   margin-bottom: 15px;
+  letter-spacing: 0%;
   text-transform: uppercase;
   color: #000000;
 
@@ -77,16 +77,16 @@ const SubBadges = styled.div`
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #28180B;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-marron-cuarto);
   margin-bottom: 20px;
 
   span:not(:last-child)::after {
     content: '|';
     margin-left: 10px;
-    color: #ccc;
-    font-weight: 400;
+    color: black;
+    font-weight: 500;
   }
 `;
 
@@ -351,10 +351,10 @@ export default function SingleProductInfo({ producto }) {
 
   const { nombre, marca, descripcion, descuento } = producto;
   const variantes = producto.variantes || [];
-  
+
   // Determinamos los tamaños disponibles
   const sizes = variantes.map(v => v.volumen || 'Único');
-  
+
   // Usamos el precio de la variante seleccionada
   const activeVariant = variantes[selectedSize] || {};
   const price = activeVariant.precio || 0;
@@ -401,9 +401,9 @@ export default function SingleProductInfo({ producto }) {
           <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
           {descuento > 0 && <DiscountBadge>- {descuento}%</DiscountBadge>}
         </CurrentPriceRow>
-        
+
         <PaymentLink>Ver medios de pago</PaymentLink>
-        
+
         <InstallmentsText>
           3 cuotas sin interés de <span>{formatPrice(installmentValue)}</span>
         </InstallmentsText>
@@ -415,8 +415,8 @@ export default function SingleProductInfo({ producto }) {
           <OptionLabel>Tamaño</OptionLabel>
           <SizesContainer>
             {sizes.map((size, idx) => (
-              <SizeBtn 
-                key={idx} 
+              <SizeBtn
+                key={idx}
                 $active={selectedSize === idx}
                 onClick={() => setSelectedSize(idx)}
               >
@@ -431,9 +431,9 @@ export default function SingleProductInfo({ producto }) {
       <OptionLabel>Color</OptionLabel>
       <ColorsContainer>
         {mockColors.map((color, idx) => (
-          <ColorBtn 
-            key={idx} 
-            $color={color} 
+          <ColorBtn
+            key={idx}
+            $color={color}
             $active={selectedColor === idx}
             onClick={() => setSelectedColor(idx)}
           />
@@ -462,7 +462,7 @@ export default function SingleProductInfo({ producto }) {
           <button onClick={() => { setQtyDir(1); setQty(qty + 1); }}>+</button>
         </QuantityBox>
         <AddToCartBtn>
-          Agregar 
+          Agregar
           <svg viewBox="0 0 24 24">
             <path d="M9 20a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm7 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm-8.8-4h9.6l2.4-12H5.6L4.2 1H1v2h2.2l3.4 17h11v-2H7.6l-.4-2zM6.4 6h12.6l-1.6 8H7.2L6.4 6z" />
           </svg>
