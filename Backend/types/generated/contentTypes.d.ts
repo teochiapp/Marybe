@@ -593,6 +593,39 @@ export interface ApiOfertaOferta extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader
+  extends Struct.SingleTypeSchema {
+  collectionName: 'ordenamiento_menu_headers';
+  info: {
+    description: 'Administra las categor\u00EDas que aparecen en el men\u00FA de navegaci\u00F3n principal';
+    displayName: 'Ordenamiento Men\u00FA Header';
+    pluralName: 'ordenamiento-menu-headers';
+    singularName: 'ordenamiento-menu-header';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    categorias: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::categoria.categoria'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::ordenamiento-menu-header.ordenamiento-menu-header'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
   collectionName: 'productos';
   info: {
@@ -1343,6 +1376,7 @@ declare module '@strapi/strapi' {
       'api::categoria-especifica.categoria-especifica': ApiCategoriaEspecificaCategoriaEspecifica;
       'api::categoria.categoria': ApiCategoriaCategoria;
       'api::oferta.oferta': ApiOfertaOferta;
+      'api::ordenamiento-menu-header.ordenamiento-menu-header': ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader;
       'api::producto.producto': ApiProductoProducto;
       'api::promocion-bancaria.promocion-bancaria': ApiPromocionBancariaPromocionBancaria;
       'api::seccion-descuento-hogar.seccion-descuento-hogar': ApiSeccionDescuentoHogarSeccionDescuentoHogar;

@@ -7,7 +7,7 @@ const TopBanner = styled.div`
   width: 100%;
   max-width: 1400px;
   margin: 0 auto 40px auto;
-  background: linear-gradient(135deg, #280101 0%, #160000 50%, #3e0102 100%);
+  background: ${({ $bgColor }) => $bgColor || 'linear-gradient(135deg, #280101 0%, #160000 50%, #3e0102 100%)'};
   border-radius: 24px;
   padding: 0px 60px;
   display: flex;
@@ -165,7 +165,7 @@ export default function CatalogoBanner({ currentBanner, onPillClick }) {
   if (!currentBanner) return null;
 
   return (
-    <TopBanner>
+    <TopBanner $bgColor={currentBanner.bgColor}>
       {/* Título a la izquierda */}
       <BannerTextContainer>
         <BannerTitle>{currentBanner.title}</BannerTitle>

@@ -209,6 +209,7 @@ const CardImageContainer = styled.div`
   align-items: center;
   overflow: hidden;
   position: relative;
+  cursor: pointer;
 
   @media (max-width: 600px) {
     height: 140px;
@@ -275,6 +276,7 @@ const ProductName = styled.h3`
   margin-bottom: 4px;
   line-height: 1.2;
   letter-spacing: 0%;
+  cursor: pointer;
 
   @media (max-width: 600px) {
     font-size: 14px;
@@ -482,9 +484,10 @@ const ImagePlaceholder = () => (
 );
 
 export default function FeaturedSection({ seccion = 'perfumeria' }) {
-  const navigate = useNavigate();
   const [productos, setProductos] = useState([]);
   const scrollRef = useRef(null);
+  const navigate = useNavigate();
+  const isDragging = useRef(false);
 
   const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
 
@@ -507,6 +510,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
     const el = scrollRef.current;
     if (!el) return;
     isDown.current = true;
+    isDragging.current = false;
     el.style.scrollSnapType = 'none';
     el.style.scrollBehavior = 'auto';
     startX.current = e.pageX - el.offsetLeft;
@@ -540,8 +544,17 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
     if (!el) return;
     const x = e.pageX - el.offsetLeft;
     const walk = (x - startX.current) * 1.5;
+    if (Math.abs(walk) > 5) {
+      isDragging.current = true;
+    }
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
+
+  const handleProductClick = (id) => {
+    if (!isDragging.current) {
+      navigate(`/producto/${id}`);
+    }
+  };
 
   return (
     <SectionWrapper>
@@ -597,20 +610,20 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
 
           return (
             <ProductCard key={id}>
-              <CardImageContainer>
+              <CardImageContainer onClick={() => handleProductClick(id)}>
                 {imgUrl ? (
-                  <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" />
                 ) : (
                   <ImagePlaceholder />
                 )}
                 <HeartContainer>
-                  <HeartIcon aria-label="Agregar a favoritos">
+                  <HeartIcon aria-label="Agregar a favoritos" onClick={(e) => { e.stopPropagation(); }}>
                     <HeartOutline />
                   </HeartIcon>
                 </HeartContainer>
               </CardImageContainer>
 
-              <ProductName>{nombre}</ProductName>
+              <ProductName onClick={() => handleProductClick(id)}>{nombre}</ProductName>
               <ProductBrand>{marca}</ProductBrand>
 
               <PriceRow>

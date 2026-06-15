@@ -3,7 +3,7 @@ import styled from 'styled-components';
 
 // ─── Datos ────────────────────────────────────────────────────────────────────
 
-const ALL_CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   'Ofertas', 'Lanzamientos', 'Dermocosmética', 'Fragancias',
   'Maquillaje', 'Cuidado personal', 'Niños y bebés',
   'Limpieza de hogar', 'Electro belleza',
@@ -13,6 +13,8 @@ const MOBILE_FEATURED = [
   { label: 'Perfumería', active: true },
   { label: 'Hogar', active: false },
 ];
+
+const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
 // Columnas placeholder — todas las categorías usan las mismas por ahora
 const MEGA_COLUMNS = [
@@ -308,6 +310,7 @@ const MobilePill = styled.a`
 
 export default function CategoryNav() {
   const [activeCategory, setActiveCategory] = useState(null);
+  const [dynamicCategories, setDynamicCategories] = useState(DEFAULT_CATEGORIES);
   const navRef = useRef(null);
 
   const handleCategoryClick = (cat) => {
@@ -324,13 +327,34 @@ export default function CategoryNav() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    fetch(`${STRAPI_URL}/api/ordenamiento-menu-header?populate=categorias`)
+      .then((res) => res.json())
+      .then((json) => {
+        const cats = json?.data?.attributes?.categorias?.data || json?.data?.categorias || [];
+        if (cats && cats.length > 0) {
+          const catNames = cats.map(c => {
+            const attrs = c.attributes || c;
+            return attrs.nombre;
+          }).filter(Boolean);
+          
+          if (catNames.length > 0) {
+            setDynamicCategories(catNames);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Error fetching dynamic categories for header:', err);
+      });
+  }, []);
+
   return (
     <>
       {/* Desktop */}
       <NavWrapper ref={navRef}>
         <DesktopNav>
           <CategoryList>
-            {ALL_CATEGORIES.map((cat) => (
+            {dynamicCategories.map((cat) => (
               <CategoryItem key={cat}>
                 <CategoryBtn
                   $active={activeCategory === cat}

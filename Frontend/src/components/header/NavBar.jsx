@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import UbicacionPopup from './UbicacionPopup';
+import SearchDropdown from './SearchDropdown';
 
 /* ── Animaciones ── */
 const slideIn = keyframes`
@@ -103,6 +104,7 @@ const SearchBar = styled.label`
   gap: 8px;
   cursor: text;
   outline: none;
+  position: relative; /* Para posicionar el dropdown */
 
   &:focus-within {
     outline: none;
@@ -418,7 +420,55 @@ export default function NavBar() {
   const [drawerMounted, setDrawerMounted] = useState(false);
   const [openSection, setOpenSection] = useState(null);
   const [ubicacionOpen, setUbicacionOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [mobileSearchFocused, setMobileSearchFocused] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const searchContainerRef = useRef(null);
+  const mobileSearchContainerRef = useRef(null);
+
+  // Sync input with current search param on mount or URL change
+  useEffect(() => {
+    const q = searchParams.get('busqueda') || '';
+    setSearchQuery(q);
+  }, [searchParams, location]);
+
+  // Click outside listener para desktop
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Click outside listener para mobile
+  useEffect(() => {
+    const handleClickOutsideMobile = (event) => {
+      if (mobileSearchContainerRef.current && !mobileSearchContainerRef.current.contains(event.target)) {
+        setMobileSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideMobile);
+    return () => document.removeEventListener('mousedown', handleClickOutsideMobile);
+  }, []);
+
+  const handleSearch = (e) => {
+    if (e.key === 'Enter' || e.type === 'click') {
+      const q = searchQuery.trim();
+      if (q) {
+        navigate(`/tienda?busqueda=${encodeURIComponent(q)}`);
+      }
+      setSearchFocused(false);
+      setMobileSearchFocused(false);
+      setMobileSearchOpen(false);
+    }
+  };
 
   const openDrawer = () => { setDrawerMounted(true); setDrawerOpen(true); };
   const closeDrawer = () => {
@@ -467,9 +517,29 @@ export default function NavBar() {
             <PinIcon />
             Ubicación seleccionada
           </LocationSelector>
-          <SearchBar>
+          <SearchBar ref={searchContainerRef}>
             <SearchIconSvg />
-            <SearchInput placeholder="Buscar" />
+            <SearchInput
+              placeholder="Buscar productos..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearch}
+              onFocus={() => setSearchFocused(true)}
+              aria-label="Buscar en la tienda"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                aria-label="Limpiar búsqueda"
+                style={{ color: 'var(--color-marron-tercero)', fontSize: '1rem', lineHeight: 1 }}
+              >×</button>
+            )}
+            {searchFocused && searchQuery.trim().length >= 2 && (
+              <SearchDropdown 
+                query={searchQuery} 
+                onClose={() => setSearchFocused(false)} 
+              />
+            )}
           </SearchBar>
         </CenterGroup>
 
@@ -484,13 +554,51 @@ export default function NavBar() {
 
         {/* Mobile: búsqueda + carrito */}
         <MobileRight>
-          <IconButton aria-label="Buscar"><SearchIconSvg /></IconButton>
+          <IconButton aria-label="Buscar" onClick={() => setMobileSearchOpen(prev => !prev)}>
+            <SearchIconSvg />
+          </IconButton>
           <IconButton aria-label="Carrito">
             <CartIconSvg />
             <CartBadge>0</CartBadge>
           </IconButton>
         </MobileRight>
       </NavBarWrapper>
+
+      {/* Barra de búsqueda mobile expandible */}
+      {mobileSearchOpen && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', backgroundColor: 'var(--color-blanco)', borderBottom: '1px solid var(--color-fondo-beneficio-tarjeta)' }}>
+          <SearchBar ref={mobileSearchContainerRef} style={{ flex: 1, margin: 0 }}>
+            <SearchIconSvg />
+            <SearchInput
+              placeholder="Buscar productos..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearch}
+              onFocus={() => setMobileSearchFocused(true)}
+              autoFocus
+              aria-label="Buscar en la tienda"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} style={{ color: 'var(--color-marron-tercero)', fontSize: '1rem', lineHeight: 1 }}>×</button>
+            )}
+            {mobileSearchFocused && searchQuery.trim().length >= 2 && (
+              <SearchDropdown 
+                query={searchQuery} 
+                onClose={() => {
+                  setMobileSearchFocused(false);
+                  setMobileSearchOpen(false);
+                }} 
+              />
+            )}
+          </SearchBar>
+          <button
+            onClick={handleSearch}
+            style={{ backgroundColor: 'var(--color-marron-cuarto)', color: 'white', padding: '10px 16px', borderRadius: 20, fontFamily: 'var(--font-family-secondary)', fontSize: '0.85rem', flexShrink: 0 }}
+          >
+            Buscar
+          </button>
+        </div>
+      )}
 
       {/* Popup ubicación */}
       {ubicacionOpen && <UbicacionPopup onClose={() => setUbicacionOpen(false)} />}

@@ -1,0 +1,21 @@
+{
+  "kind": "singleType",
+  "collectionName": "ordenamiento_menu_headers",
+  "info": {
+    "singularName": "ordenamiento-menu-header",
+    "pluralName": "ordenamiento-menu-headers",
+    "displayName": "Ordenamiento Menú Header",
+    "description": "Administra las categorías que aparecen en el menú de navegación principal"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "categorias": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::categoria.categoria"
+    }
+  }
+}

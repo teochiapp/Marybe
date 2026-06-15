@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import CatalogoProductCard from './CatalogoProductCard';
+import CategoriesSection from '../../inicio/perfumeria/CategoriesSection';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -74,49 +75,97 @@ const ActionPill = styled.button`
   transition: all 0.2s ease;
 `;
 
-const PaginationRow = styled.nav`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 40px;
-  flex-wrap: wrap;
+const SearchEmptyWrapper = styled.div`
+  grid-column: 1 / -1;
 `;
 
-const PageBtn = styled.button`
-  background-color: ${({ $active }) => ($active ? 'var(--color-bordo-secundario)' : 'white')};
-  color: ${({ $active }) => ($active ? 'white' : '#28180b')};
-  border: 1px solid #ece9e4;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 0.9rem;
+const SearchEmptyState = styled.div`
   display: flex;
+  flex-direction: column;
   align-items: center;
+  text-align: center;
+  gap: 20px;
+  padding: 60px 20px 40px;
+`;
+
+const SearchEmptyIcon = styled.div`
+  flex-shrink: 0;
+
+  svg {
+    display: block;
+  }
+
+  @media (max-width: 768px) {
+    svg {
+      width: 48px;
+      height: 48px;
+    }
+  }
+`;
+
+const SearchEmptyText = styled.div`
+  h2 {
+    font-family: var(--font-family-primary);
+    font-size: 2rem;
+    color: var(--color-marron-tercero);
+    font-weight: 500;
+    line-height: 1.25;
+    margin-bottom: 8px;
+
+    strong {
+      font-style: italic;
+    }
+
+    @media (max-width: 768px) {
+      font-size: 1.4rem;
+    }
+  }
+
+  p {
+    font-family: var(--font-family-secondary);
+    font-size: 1.1rem;
+    color: #280101;
+    margin-bottom: 0;
+    line-height: 1.5;
+    max-width: 420px;
+    margin: 0 auto;
+
+    @media (max-width: 768px) {
+      font-size: 0.875rem;
+      max-width: 200px;
+    }
+  }
+`;
+
+const LoadMoreContainer = styled.div`
+  display: flex;
   justify-content: center;
-  transition: all 0.2s ease;
+  align-items: center;
+  margin-top: 50px;
+  margin-bottom: 20px;
+  width: 100%;
+`;
+
+const LoadMoreBtn = styled.button`
+  background-color: transparent;
+  color: var(--color-marron-principal);
+  border: 2px solid var(--color-marron-principal);
+  padding: 14px 40px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
 
   &:hover:not(:disabled) {
-    border-color: var(--color-bordo-secundario);
-    background-color: ${({ $active }) => ($active ? 'var(--color-bordo-secundario)' : '#faf4ee')};
+    background-color: var(--color-marron-principal);
+    color: white;
   }
 
   &:disabled {
-    opacity: 0.4;
+    opacity: 0.5;
     cursor: not-allowed;
   }
-`;
-
-const PageArrowBtn = styled(PageBtn)`
-  width: auto;
-  padding: 0 16px;
-`;
-
-const PageInfo = styled.span`
-  font-size: 0.9rem;
-  color: #7a7a7a;
-  margin-left: 12px;
 `;
 
 // ─── Componente ───────────────────────────────────────────────────────────────
@@ -124,6 +173,7 @@ const PageInfo = styled.span`
 export default function CatalogoProductGrid({
   productos,
   loading,
+  loadingMore,
   error,
   pageSize,
   strapiUrl,
@@ -133,7 +183,8 @@ export default function CatalogoProductGrid({
   onRetry,
   activePage,
   totalPages,
-  onChangePage,
+  onLoadMore,
+  activeBusqueda,
 }) {
   return (
     <>
@@ -165,16 +216,33 @@ export default function CatalogoProductGrid({
               </SkeletonCard>
             ))
           ) : productos.length === 0 ? (
-            <EmptyState>
-              <h3>No se encontraron productos</h3>
-              <p>Intentá removiendo algunos de los filtros seleccionados.</p>
-              <ActionPill
-                style={{ backgroundColor: 'var(--color-marron-principal)', border: 'none' }}
-                onClick={onClearAll}
-              >
-                Limpiar Filtros
-              </ActionPill>
-            </EmptyState>
+            activeBusqueda ? (
+              <SearchEmptyWrapper>
+                <SearchEmptyState>
+                  <SearchEmptyIcon>
+                    <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M49 49L38.9667 38.9667M25.6667 16.3333V25.6667M25.6667 35H25.69M44.3333 25.6667C44.3333 35.976 35.976 44.3333 25.6667 44.3333C15.3574 44.3333 7 35.976 7 25.6667C7 15.3574 15.3574 7 25.6667 7C35.976 7 44.3333 15.3574 44.3333 25.6667Z" stroke="#7C0405" strokeWidth="4.66667" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </SearchEmptyIcon>
+                  <SearchEmptyText>
+                    <h2>No encontramos resultados para &ldquo;<strong>{activeBusqueda}</strong>&rdquo;</h2>
+                    <p>Te recomendamos revisar si está bien escrito o intentar con otras palabras.</p>
+                  </SearchEmptyText>
+                </SearchEmptyState>
+                <CategoriesSection compact />
+              </SearchEmptyWrapper>
+            ) : (
+              <EmptyState>
+                <h3>No se encontraron productos</h3>
+                <p>Intentá removiendo algunos de los filtros seleccionados.</p>
+                <ActionPill
+                  style={{ backgroundColor: 'var(--color-marron-principal)', border: 'none' }}
+                  onClick={onClearAll}
+                >
+                  Limpiar Filtros
+                </ActionPill>
+              </EmptyState>
+            )
           ) : (
             productos.map((product) => (
               <CatalogoProductCard
@@ -189,40 +257,16 @@ export default function CatalogoProductGrid({
         </ProductsGrid>
       )}
 
-      {/* Paginación */}
-      {!loading && !error && totalPages > 1 && (
-        <PaginationRow aria-label="Navegación de páginas">
-          <PageArrowBtn
-            id="btn-pag-prev"
-            disabled={activePage === 1}
-            onClick={() => onChangePage(activePage - 1)}
+      {/* Botón Cargar Más */}
+      {!loading && !error && activePage < totalPages && (
+        <LoadMoreContainer>
+          <LoadMoreBtn
+            disabled={loadingMore}
+            onClick={onLoadMore}
           >
-            ← Anterior
-          </PageArrowBtn>
-
-          {Array.from({ length: totalPages }).map((_, idx) => {
-            const p = idx + 1;
-            return (
-              <PageBtn
-                key={p}
-                $active={activePage === p}
-                onClick={() => onChangePage(p)}
-              >
-                {p}
-              </PageBtn>
-            );
-          })}
-
-          <PageArrowBtn
-            id="btn-pag-next"
-            disabled={activePage === totalPages}
-            onClick={() => onChangePage(activePage + 1)}
-          >
-            Siguiente →
-          </PageArrowBtn>
-
-          <PageInfo>Página {activePage} de {totalPages}</PageInfo>
-        </PaginationRow>
+            {loadingMore ? 'Cargando...' : 'Cargar más productos'}
+          </LoadMoreBtn>
+        </LoadMoreContainer>
       )}
     </>
   );

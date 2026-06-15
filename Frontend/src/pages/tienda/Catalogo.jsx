@@ -26,14 +26,14 @@ const BANNER_CONFIG = {
   azzaro: {
     title: 'Toda la línea de Azzaro',
     subtitle: 'Elegancia y modernidad en cada fragancia. Descubrí la colección completa.',
-    pills: ['Chrome', 'Wanted', 'Most Wanted'],
+    pills: ['Chrome', 'Wanted'],
     image: '/inicio/azzaro.png',
     imageAlt: 'Línea Azzaro',
   },
   hogar: {
     title: 'Tu espacio, tu hogar',
     subtitle: 'Calidez, diseño y aromas para ambientar cada rincón de tu hogar.',
-    pills: ['Aromatizantes', 'Velas', 'Difusores'],
+    pills: ['Aromatizantes', 'Velas'],
     image: '/inicio/hogar-featured.png',
     imageAlt: 'Productos Hogar',
   },
@@ -50,7 +50,7 @@ const BANNER_CONFIG = {
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background-color: #faf9f7;
+  background-color: var(--color-blanco);
   color: #28180b;
   padding: 40px 60px;
   font-family: var(--font-family-secondary);
@@ -79,6 +79,33 @@ const MainGridArea = styled.div`
   gap: 24px;
 `;
 
+const SearchResultHeader = styled.div`
+  max-width: 1400px;
+  margin: 0 auto 8px;
+
+  h1 {
+    font-family: var(--font-family-primary);
+    font-size: 2rem;
+    color: var(--color-marron-tercero);
+    font-weight: 600;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+
+    @media (max-width: 600px) {
+      font-size: 1.4rem;
+    }
+  }
+
+  .result-count {
+    font-family: var(--font-family-secondary);
+    font-size: 0.9rem;
+    color: #9A8F87;
+    font-weight: 400;
+  }
+`;
+
 // ─── Componente Principal ────────────────────────────────────────────────────
 
 export default function Catalogo() {
@@ -88,6 +115,7 @@ export default function Catalogo() {
   const [productos, setProductos] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
 
   const [availableBrands, setAvailableBrands] = useState([]);
@@ -106,11 +134,16 @@ export default function Catalogo() {
   });
 
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [dynamicBannerImg, setDynamicBannerImg] = useState(null);
 
   // ── Lectura de URL params ─────────────────────────────────────────────────
-  const activePage = Number(searchParams.get('page')) || 1;
+  const [activePage, setActivePage] = useState(1);
   const activeSort = searchParams.get('orden') || 'nombre:asc';
-  const activeDescuento = searchParams.get('descuento') || '';
+  const activeBusqueda = searchParams.get('busqueda') || '';
+  const activeDescuentos = useMemo(
+    () => (searchParams.get('descuento') ? searchParams.get('descuento').split(',') : []),
+    [searchParams]
+  );
   const activeSeccion = searchParams.get('seccion') || 'Perfumería';
   const activeBanner = searchParams.get('banner') || '';
 
@@ -142,7 +175,49 @@ export default function Catalogo() {
       : activeSeccion === 'Hogar'
         ? 'hogar'
         : 'default';
-  const currentBanner = BANNER_CONFIG[bannerKey];
+  
+  let currentBanner = { ...BANNER_CONFIG[bannerKey] };
+  
+  if (activeSeccion === 'Hogar') {
+    currentBanner.bgColor = 'var(--color-hogar)';
+  }
+
+  if (!activeBanner && activeCategories.length === 1) {
+    const catName = activeCategories[0];
+    currentBanner = {
+      ...currentBanner,
+      title: catName,
+      subtitle: `Descubrí nuestra selección exclusiva de ${catName.toLowerCase()} con las mejores ofertas y lanzamientos.`,
+      pills: ['Más relevantes', 'Novedades'],
+      image: dynamicBannerImg || currentBanner.image,
+    };
+  }
+
+  // Fetch imagen de categoría dinámica
+  useEffect(() => {
+    if (activeCategories.length === 1) {
+      const catName = activeCategories[0];
+      fetch(`${STRAPI_URL}/api/categorias?filters[nombre][$eq]=${encodeURIComponent(catName)}&populate=portada`)
+        .then(res => res.json())
+        .then(data => {
+          if (data?.data?.[0]) {
+             const attrs = data.data[0].attributes || data.data[0];
+             let imgUrl = null;
+             if (attrs.portada?.data?.attributes?.url) {
+               imgUrl = `${STRAPI_URL}${attrs.portada.data.attributes.url}`;
+             } else if (attrs.portada?.url) {
+               imgUrl = `${STRAPI_URL}${attrs.portada.url}`;
+             }
+             setDynamicBannerImg(imgUrl);
+          } else {
+             setDynamicBannerImg(null);
+          }
+        })
+        .catch(console.error);
+    } else {
+      setDynamicBannerImg(null);
+    }
+  }, [activeCategories]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const toggleAccordion = (field) =>
@@ -153,7 +228,6 @@ export default function Catalogo() {
 
   const updateUrlFilters = (newFilters) => {
     const nextParams = new URLSearchParams(searchParams);
-    nextParams.set('page', '1');
     Object.keys(newFilters).forEach((key) => {
       const val = newFilters[key];
       if (val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0)) {
@@ -165,6 +239,7 @@ export default function Catalogo() {
       }
     });
     setSearchParams(nextParams);
+    setActivePage(1);
   };
 
   const handleCheckboxToggle = (list, item, urlKey) => {
@@ -183,7 +258,10 @@ export default function Catalogo() {
     }
   };
 
-  const clearAllFilters = () => setSearchParams({ seccion: activeSeccion });
+  const clearAllFilters = () => {
+    setSearchParams({ seccion: activeSeccion });
+    setActivePage(1);
+  };
 
   // ── SEO ───────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -197,10 +275,10 @@ export default function Catalogo() {
     }
   }, []);
 
-  // Scroll top al cambiar página o sección
+  // Scroll top al cambiar sección o aplicar filtros
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [activePage, activeSeccion]);
+  }, [searchParams]);
 
   // ── Carga de metadatos de filtros ─────────────────────────────────────────
   useEffect(() => {
@@ -221,8 +299,8 @@ export default function Catalogo() {
           if (attrs.marca) brands.add(attrs.marca);
           if (attrs.categoria?.nombre) categories.add(attrs.categoria.nombre);
           if (attrs.variantes) {
-            attrs.variantes.forEach((v) => { 
-              if (v.volumen) sizes.add(v.volumen); 
+            attrs.variantes.forEach((v) => {
+              if (v.volumen) sizes.add(v.volumen);
               if (v.precio) {
                 if (v.precio < globalMin) globalMin = v.precio;
                 if (v.precio > globalMax) globalMax = v.precio;
@@ -246,7 +324,11 @@ export default function Catalogo() {
 
   // ── Fetch productos ───────────────────────────────────────────────────────
   const fetchProductos = useCallback(async () => {
-    setLoading(true);
+    if (activePage === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     setError(null);
 
     try {
@@ -264,14 +346,17 @@ export default function Catalogo() {
         params.set('sort[0]', `${field}:${dir}`);
       }
 
-      if (activeSeccion) params.set('filters[seccion][$eq]', activeSeccion);
+      if (activeBusqueda) {
+        params.set('filters[nombre][$containsi]', activeBusqueda);
+      } else if (activeSeccion) {
+        params.set('filters[seccion][$eq]', activeSeccion);
+      }
 
-      if (activeDescuento) {
-        if (activeDescuento === 'todas') {
+      if (activeDescuentos.length > 0) {
+        if (activeDescuentos.includes('todas')) {
           params.set('filters[descuento][$gt]', 0);
         } else {
-          params.set('filters[descuento][$lte]', Number(activeDescuento));
-          params.set('filters[descuento][$gt]', 0);
+          activeDescuentos.forEach((desc, idx) => params.set(`filters[descuento][$in][${idx}]`, Number(desc)));
         }
       }
 
@@ -288,17 +373,28 @@ export default function Catalogo() {
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 
       const json = await res.json();
-      setProductos(json.data || []);
+
+      if (activePage === 1) {
+        setProductos(json.data || []);
+      } else {
+        setProductos(prev => {
+          const newItems = json.data || [];
+          const prevIds = new Set(prev.map(p => p.id || p.documentId));
+          const filteredNew = newItems.filter(p => !prevIds.has(p.id || p.documentId));
+          return [...prev, ...filteredNew];
+        });
+      }
       setTotal(json.meta?.pagination?.total || 0);
     } catch (err) {
       console.error('[Catalogo] Error fetching products:', err);
       setError('No se pudieron obtener los productos de la tienda. Asegurate de que el backend esté encendido.');
-      setProductos([]);
-      setTotal(0);
+      if (activePage === 1) setProductos([]);
+      if (activePage === 1) setTotal(0);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [activePage, activeSort, activeDescuento, activeSeccion, activeBrands, activeCategories, activeSizes]);
+  }, [activePage, activeSort, activeBusqueda, activeDescuentos, activeSeccion, activeBrands, activeCategories, activeSizes]);
 
   useEffect(() => {
     fetchProductos();
@@ -309,20 +405,34 @@ export default function Catalogo() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <PageContainer>
-      {/* Breadcrumb */}
-      <CatalogoBreadcrumb
-        activeSeccion={activeSeccion}
-        activeBanner={activeBanner}
-        activeDescuento={activeDescuento}
-        currentBannerTitle={currentBanner?.breadcrumbTitle || currentBanner?.title}
-        onGoToSeccion={() => updateUrlFilters({ banner: null })}
-      />
+      {/* Título resultado de búsqueda */}
+      {activeBusqueda && !loading && total > 0 && (
+        <SearchResultHeader>
+          <h1>
+            {activeBusqueda}
+            <span className="result-count">{total} resultado{total !== 1 ? 's' : ''} encontrado{total !== 1 ? 's' : ''}</span>
+          </h1>
+        </SearchResultHeader>
+      )}
 
-      {/* Banner dinámico */}
-      <CatalogoBanner
-        currentBanner={currentBanner}
-        onPillClick={() => updateUrlFilters({ seccion: activeSeccion })}
-      />
+      {/* Breadcrumb — ocultar en búsqueda */}
+      {!activeBusqueda && (
+        <CatalogoBreadcrumb
+          activeSeccion={activeSeccion}
+          activeBanner={activeBanner}
+          activeDescuento={activeDescuentos}
+          currentBannerTitle={currentBanner?.breadcrumbTitle || currentBanner?.title}
+          onGoToSeccion={() => updateUrlFilters({ banner: null })}
+        />
+      )}
+
+      {/* Banner dinámico — ocultar en búsqueda */}
+      {!activeBusqueda && (
+        <CatalogoBanner
+          currentBanner={currentBanner}
+          onPillClick={() => updateUrlFilters({ seccion: activeSeccion })}
+        />
+      )}
 
       {/* Layout principal */}
       <MainContent>
@@ -340,7 +450,7 @@ export default function Catalogo() {
           activePrice={activePrice}
           activePriceParam={activePriceParam}
           activeSeccion={activeSeccion}
-          activeDescuento={activeDescuento}
+          activeDescuento={activeDescuentos}
           accordions={accordions}
           onToggleAccordion={toggleAccordion}
           onCheckboxToggle={handleCheckboxToggle}
@@ -366,6 +476,7 @@ export default function Catalogo() {
           <CatalogoProductGrid
             productos={productos}
             loading={loading}
+            loadingMore={loadingMore}
             error={error}
             pageSize={PAGE_SIZE}
             strapiUrl={STRAPI_URL}
@@ -375,7 +486,8 @@ export default function Catalogo() {
             onRetry={fetchProductos}
             activePage={activePage}
             totalPages={totalPages}
-            onChangePage={(p) => updateUrlFilters({ page: p })}
+            onLoadMore={() => setActivePage(prev => prev + 1)}
+            activeBusqueda={activeBusqueda}
           />
         </MainGridArea>
       </MainContent>

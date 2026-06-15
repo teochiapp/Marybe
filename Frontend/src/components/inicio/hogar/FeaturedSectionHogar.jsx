@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-hogar);
@@ -103,7 +104,7 @@ const TextBlock = styled.div`
 
 const Title = styled.h2`
   font-family: var(--font-family-primary);
-  font-size: clamp(3.5rem, 6vw, 5.5rem);
+  font-size: clamp(3rem, 5vw, 4.5rem);
   line-height: 1.0;
   font-weight: 600;
   margin-bottom: 15px;
@@ -132,7 +133,7 @@ const Title = styled.h2`
 `;
 
 const Subtitle = styled.p`
-  font-size: 1.45rem;
+  font-size: 1.25rem;
   color: #FAF9F7;
   max-width: 350px;
   line-height: 1.35;
@@ -146,15 +147,15 @@ const Subtitle = styled.p`
 
 const FeaturedPicture = styled.picture`
   width: 50%;
-  max-height: 230vh;
+  max-height: 120vh;
   max-width: 100%;
   display: flex;
   justify-content: center;
   align-items: flex-end;
   position: relative;
-  top: 70px;
+  top: 30px;
   z-index: 0;
-  margin-bottom: -250px;
+  margin-bottom: -320px;
   pointer-events: none;
   
   @media (max-width: 768px) {
@@ -171,7 +172,7 @@ const FeaturedPicture = styled.picture`
     width: auto;
     max-width: 100%;
     height: 100%;
-    max-height: 110vh;
+    max-height: 85vh;
     object-fit: contain;
     filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
 
@@ -193,7 +194,8 @@ const ProductsGrid = styled.div`
   cursor: grab;
   margin-left: 60px;
   padding-right: 60px;
-  padding-bottom: 10px;
+  padding-bottom: 20px;
+  margin-top: -60px;
 
   &:active {
     cursor: grabbing;
@@ -267,6 +269,7 @@ const CardImageContainer = styled.div`
   align-items: center;
   overflow: hidden;
   position: relative;
+  cursor: pointer;
 
   @media (max-width: 600px) {
     height: 140px;
@@ -333,6 +336,7 @@ const ProductName = styled.h3`
   margin-bottom: 4px;
   line-height: 1.2;
   letter-spacing: 0%;
+  cursor: pointer;
 
   @media (max-width: 600px) {
     font-size: 14px;
@@ -468,6 +472,8 @@ const formatPrice = (price) => {
 export default function FeaturedSectionHogar() {
   const [productos, setProductos] = useState([]);
   const scrollRef = useRef(null);
+  const navigate = useNavigate();
+  const isDragging = useRef(false);
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[destacado][$eq]=true&filters[seccion][$eq]=Hogar&populate=*`)
@@ -488,6 +494,7 @@ export default function FeaturedSectionHogar() {
     const el = scrollRef.current;
     if (!el) return;
     isDown.current = true;
+    isDragging.current = false;
     el.style.scrollSnapType = 'none';
     el.style.scrollBehavior = 'auto';
     startX.current = e.pageX - el.offsetLeft;
@@ -521,8 +528,17 @@ export default function FeaturedSectionHogar() {
     if (!el) return;
     const x = e.pageX - el.offsetLeft;
     const walk = (x - startX.current) * 1.5;
+    if (Math.abs(walk) > 5) {
+      isDragging.current = true;
+    }
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
+
+  const handleProductClick = (id) => {
+    if (!isDragging.current) {
+      navigate(`/producto/${id}`);
+    }
+  };
 
   return (
     <SectionWrapper>
@@ -571,20 +587,26 @@ export default function FeaturedSectionHogar() {
 
           return (
             <ProductCard key={id}>
-              <CardImageContainer>
+              <CardImageContainer onClick={() => handleProductClick(id)}>
                 {imgUrl ? (
-                  <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" />
                 ) : (
                   <ImagePlaceholder />
                 )}
                 <HeartContainer>
-                  <HeartIcon aria-label="Agregar a favoritos">
+                  <HeartIcon 
+                    aria-label="Agregar a favoritos"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // toggleFav logic here if needed
+                    }}
+                  >
                     <HeartOutline />
                   </HeartIcon>
                 </HeartContainer>
               </CardImageContainer>
 
-              <ProductName>{nombre}</ProductName>
+              <ProductName onClick={() => handleProductClick(id)}>{nombre}</ProductName>
               <ProductBrand>{marca}</ProductBrand>
 
               <PriceRow>

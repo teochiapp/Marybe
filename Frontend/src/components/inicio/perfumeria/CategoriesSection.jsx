@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
@@ -65,16 +66,18 @@ const CategoryCard = styled.div`
   height: 250px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
   transition: box-shadow 0.3s ease;
-  
-  /* Desktop: 5.5 cards */
-  width: calc((100% - (5 * 20px)) / 5.5);
-  
-  @media (max-width: 1440px) {
-    width: calc((100% - (4 * 20px)) / 4.5);
-  }
+  cursor: pointer;
+
+  /* Desktop: 5.5 tarjetas por defecto, 4.5 en modo compact (con sidebar) */
+  width: ${({ $compact }) =>
+    $compact
+      ? 'calc((100% - (4 * 20px)) / 4.5)'
+      : 'calc((100% - (5 * 20px)) / 5.5)'};
 
   @media (max-width: 1024px) {
+    /* Tablet: 3.5 tarjetas */
     width: calc((100% - (3 * 20px)) / 3.5);
+    height: 220px;
   }
 
   @media (max-width: 768px) {
@@ -97,6 +100,7 @@ const CategoryCard = styled.div`
     transform: scale(1.05);
   }
 `;
+
 
 const CategoryLabel = styled.div`
   position: absolute;
@@ -176,11 +180,13 @@ const ChevronIcon = () => (
   </svg>
 );
 
-export default function CategoriesSection({ seccion = 'perfumeria' }) {
+export default function CategoriesSection({ seccion = 'perfumeria', compact = false }) {
   const [categorias, setCategorias] = useState([]);
   const [showAllMobile, setShowAllMobile] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const scrollRef = useRef(null);
+  const navigate = useNavigate();
+  const isDragging = useRef(false);
 
   const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
 
@@ -209,6 +215,7 @@ export default function CategoriesSection({ seccion = 'perfumeria' }) {
     const el = scrollRef.current;
     if (!el) return;
     isDown.current = true;
+    isDragging.current = false;
     el.style.scrollSnapType = 'none';
     el.style.scrollBehavior = 'auto';
     startX.current = e.pageX - el.offsetLeft;
@@ -242,8 +249,17 @@ export default function CategoriesSection({ seccion = 'perfumeria' }) {
     if (!el) return;
     const x = e.pageX - el.offsetLeft;
     const walk = (x - startX.current) * 1.5;
+    if (Math.abs(walk) > 5) {
+      isDragging.current = true;
+    }
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
+
+  const handleCategoryClick = (nombre) => {
+    if (!isDragging.current) {
+      navigate(`/tienda?categoria=${encodeURIComponent(nombre)}`);
+    }
+  };
 
   // Fallback dummy just to see the structure if strapi is empty during dev
   const dummyCategorias = [
@@ -282,7 +298,11 @@ export default function CategoriesSection({ seccion = 'perfumeria' }) {
           }
 
           return (
-            <CategoryCard key={id}>
+            <CategoryCard 
+              key={id} 
+              $compact={compact}
+              onClick={() => handleCategoryClick(nombre)}
+            >
               {imgUrl ? (
                 <img src={imgUrl} alt={nombre} draggable="false" />
               ) : (
