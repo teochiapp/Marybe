@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import styled from 'styled-components';
-import FaqContent from '../../components/preguntas-frecuentes/FaqContent';
+import MetodoEnvioContent from '../../components/metodo-envio/MetodoEnvioContent';
 
 const Page = styled.div`
   background-color: var(--color-blanco);
@@ -8,14 +8,14 @@ const Page = styled.div`
   font-family: var(--font-family-secondary);
 `;
 
-export default function PreguntasFrecuentes() {
+export default function MetodoEnvio() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
   return (
     <Page>
-      <FaqContent />
+      <MetodoEnvioContent />
     </Page>
   );
 }

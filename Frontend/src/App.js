@@ -36,6 +36,9 @@ import NuestraHistoria from './pages/nuestra-historia/NuestraHistoria';
 // Página de Arrepentimiento
 import Arrepentimiento from './pages/arrepentimiento/Arrepentimiento';
 
+// Página de Método de envío
+import MetodoEnvio from './pages/metodo-envio/MetodoEnvio';
+
 // Panel de Administración
 import ImportacionAdmin from './pages/admin/ImportacionAdmin';
 
@@ -78,6 +81,9 @@ function App() {
 
         {/* Ruta de Arrepentimiento */}
         <Route path="/arrepentimiento" element={<Arrepentimiento />} />
+
+        {/* Ruta de Método de envío */}
+        <Route path="/metodo-envio" element={<MetodoEnvio />} />
 
         {/* Ruta de Administración */}
         <Route path="/importacion-admin" element={<ImportacionAdmin />} />
