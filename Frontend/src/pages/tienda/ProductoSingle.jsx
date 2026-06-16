@@ -6,6 +6,7 @@ import SingleBreadcrumb from '../../components/tienda/single/SingleBreadcrumb';
 import SingleImageGallery from '../../components/tienda/single/SingleImageGallery';
 import SingleProductInfo from '../../components/tienda/single/SingleProductInfo';
 import SingleAccordion from '../../components/tienda/single/SingleAccordion';
+import SingleSimilares from '../../components/tienda/single/SingleSimilares';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -165,6 +166,8 @@ export default function ProductoSingle() {
             />
           </div>
         </MainLayout>
+
+        <SingleSimilares />
       </ContentWrapper>
     </PageContainer>
   );
