@@ -24,8 +24,9 @@ if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 // G=subcategoria, H=descripcion_corta, I=proveedor, J=publicado, K=destacado, L=moneda
 
 // Columnas Hoja 2 (Variantes): fila 3 es el header real
-// A=id_original, B=producto_padre_id, C=sku_ean, D=volumen,
-// E=stock, F=precio, G=pct_descuento, H=precio_oferta (calculado), I=publicado, J=envio, K=moneda
+// A=id_original, B=producto_padre_id, C=nombre_padre, D=sku_ean, E=volumen,
+// F=stock, G=precio, H=pct_descuento, I=precio_oferta (calculado),
+// J=publicado, K=envio, L=moneda, M=color_nombre
 
 const HEADER_ROW = 3;
 
@@ -99,9 +100,9 @@ async function main() {
     const id_original = cellVal(row, 1);
     if (!id_original) return;
 
-    const precio        = parseFloat(cellVal(row, 6)) || 0;
-    const pct_descuento = parseFloat(cellVal(row, 7)) || 0;
-    const precio_oferta_raw = cellVal(row, 8);
+    const precio        = parseFloat(cellVal(row, 7)) || 0;
+    const pct_descuento = parseFloat(cellVal(row, 8)) || 0;
+    const precio_oferta_raw = cellVal(row, 9);
     
     // Preferir el valor calculado de la fórmula; si no, calcularlo nosotros
     let precio_oferta = '';
@@ -114,15 +115,16 @@ async function main() {
     variantesRows.push({
       id_original,
       producto_padre_id: cellVal(row, 2),
-      sku_ean:           cellVal(row, 3),
-      volumen:           cellVal(row, 4),
-      stock:             cellVal(row, 5) || '0',
+      sku_ean:           cellVal(row, 4),
+      volumen:           cellVal(row, 5),
+      stock:             cellVal(row, 6) || '0',
       precio:            String(precio),
       pct_descuento:     String(pct_descuento || ''),
       precio_oferta,
-      publicado:         cellVal(row, 9) || 'TRUE',
-      envio:             cellVal(row, 10) || '1',
-      moneda:            cellVal(row, 11) || 'ARS',
+      publicado:         cellVal(row, 10) || 'TRUE',
+      envio:             cellVal(row, 11) || '1',
+      moneda:            cellVal(row, 12) || 'ARS',
+      color_nombre:      cellVal(row, 13) || '',
     });
   });
 
@@ -143,7 +145,7 @@ async function main() {
   if (variantesRows.length > 0) {
     console.log('\n🔗 Preview Variantes:');
     variantesRows.slice(0, 3).forEach(v =>
-      console.log(`   [${v.id_original}→${v.producto_padre_id}] ${v.volumen || '-'} | Precio: $${v.precio} | Oferta: $${v.precio_oferta || '-'} | ${v.pct_descuento ? v.pct_descuento + '%' : 'sin dcto'}`)
+      console.log(`   [${v.id_original}→${v.producto_padre_id}] ${v.volumen || '-'} | Color: ${v.color_nombre || 'sin color'} | Precio: $${v.precio} | Oferta: $${v.precio_oferta || '-'} | ${v.pct_descuento ? v.pct_descuento + '%' : 'sin dcto'}`)
     );
   }
 }

@@ -1,6 +1,7 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { generateProductUrl } from '../../../utils/productUrl';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
@@ -450,9 +451,9 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
-  const handleProductClick = (id) => {
+  const handleProductClick = (id, nombre) => {
     if (!isDragging.current) {
-      navigate(`/producto/${id}`);
+      navigate(generateProductUrl(id, nombre));
     }
   };
 
@@ -521,7 +522,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
 
           return (
             <ProductCard key={id}>
-              <CardImageContainer onClick={() => handleProductClick(id)}>
+              <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
                 {descuento > 0 && stampVal && (
                   <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
                 )}
@@ -539,7 +540,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
               </CardImageContainer>
 
               <ProductBrand>{marca}</ProductBrand>
-              <ProductName title={nombre} onClick={() => handleProductClick(id)}>{nombre}</ProductName>
+              <ProductName title={nombre} onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
 
               <PriceRow>
                 {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}

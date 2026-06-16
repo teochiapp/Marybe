@@ -101,10 +101,25 @@ export default function SingleAccordion({ descripcion, especificaciones, politic
         <AccordionContent $isOpen={openSection === 'politicas'}>
           <ContentInner>
             {politicas || (
-              <>
-                <p><strong>Envíos:</strong> Realizamos envíos a todo el país. El costo se calcula al momento del checkout.</p>
-                <p><strong>Devoluciones:</strong> Tenés 30 días para devolver el producto si no estás conforme, siempre que se encuentre cerrado y en su envase original.</p>
-              </>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                <div>
+                  <strong style={{ display: 'block', marginBottom: '4px' }}>Métodos de Envío y Retiro:</strong>
+                  <ul style={{ paddingLeft: '20px', margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <li><strong>Retiro en sucursal (Sin cargo):</strong> Santiago del Estero, La Banda y Tucumán.</li>
+                    <li><strong>Envío a domicilio local:</strong> Entregas en el día para pedidos confirmados hasta las 18:00hs.</li>
+                    <li><strong>Envíos a todo el país:</strong> Mediante Correo Argentino.</li>
+                  </ul>
+                </div>
+                <div>
+                  <strong style={{ display: 'block', marginBottom: '4px' }}>Cambios y Devoluciones:</strong>
+                  <p style={{ margin: '0 0 6px 0' }}>Comunicate a <strong>pelle.marybe@gmail.com</strong>.</p>
+                  <ul style={{ paddingLeft: '20px', margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <li>El producto debe estar <strong>sin uso, en perfecto estado y con su embalaje original cerrado</strong> (celofán, etiquetas).</li>
+                    <li>Es obligatorio presentar el comprobante de compra.</li>
+                    <li><em>No tienen cambio:</em> productos dañados por mal uso o que no mantengan el estado original.</li>
+                  </ul>
+                </div>
+              </div>
             )}
           </ContentInner>
         </AccordionContent>

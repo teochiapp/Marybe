@@ -48,7 +48,9 @@ const LoadingContainer = styled.div`
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
 export default function ProductoSingle() {
-  const { id } = useParams(); // Puede ser id numérico o documentId
+  const { id } = useParams(); // Puede ser id numérico o documentId + slug (ej: 11138-shampoo)
+  const actualId = id ? id.split('-')[0] : null;
+
   const [producto, setProducto] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,7 +61,9 @@ export default function ProductoSingle() {
     // Asumimos que el ID pasado es el documentId o id numérico
     // Primero intentamos buscarlo directo si la ruta /api/productos/:id funciona
     // Pero en Strapi v4 a veces es mejor buscar por array con filtros si no estamos seguros
-    fetch(`${STRAPI_URL}/api/productos?filters[id][$eq]=${id}&populate=*`)
+    if (!actualId) return;
+    
+    fetch(`${STRAPI_URL}/api/productos?filters[id][$eq]=${actualId}&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data && data.data.length > 0) {
@@ -70,7 +74,7 @@ export default function ProductoSingle() {
           });
         } else {
           // Fallback por documentId si id no match
-          return fetch(`${STRAPI_URL}/api/productos?filters[documentId][$eq]=${id}&populate=*`)
+          return fetch(`${STRAPI_URL}/api/productos?filters[documentId][$eq]=${actualId}&populate=*`)
             .then(res2 => res2.json())
             .then(data2 => {
               if (data2 && data2.data && data2.data.length > 0) {
@@ -92,7 +96,7 @@ export default function ProductoSingle() {
       .finally(() => {
         setLoading(false);
       });
-  }, [id]);
+  }, [actualId]);
 
   if (loading) {
     return (

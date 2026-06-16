@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 import { PinIcon, DataFiscalQR } from './FooterIcons';
 
 const BrandColumn = styled.div`
@@ -53,7 +54,7 @@ const LocationLine = styled.div`
   color: var(--color-rosa-tercero);
 `;
 
-const BranchLink = styled.a`
+const BranchLink = styled(Link)`
   font-size: 0.85rem;
   color: var(--color-blanco);
   text-decoration: underline;
@@ -95,7 +96,7 @@ export default function FooterBrand() {
           <PinIcon />
           <span>Santiago del Estero | Tucumán</span>
         </LocationLine>
-        <BranchLink href="#">Encontrá tu sucursal más cercana</BranchLink>
+        <BranchLink to="/sucursales">Encontrá tu sucursal más cercana</BranchLink>
       </DesktopLocation>
 
       <QRCard>

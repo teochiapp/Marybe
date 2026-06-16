@@ -638,6 +638,7 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    caracteristicas: Schema.Attribute.Text;
     categoria: Schema.Attribute.Relation<
       'manyToOne',
       'api::categoria.categoria'
@@ -648,6 +649,7 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     descripcion_corta: Schema.Attribute.Text;
     descuento: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     destacado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    galeria: Schema.Attribute.Media<'images', true>;
     id_original: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<

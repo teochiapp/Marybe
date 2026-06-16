@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 
 // ─── Datos ────────────────────────────────────────────────────────────────────
 
@@ -188,7 +189,7 @@ const MegaLink = styled.a`
   }
 `;
 
-const MegaActionBtn = styled.a`
+const MegaActionBtn = styled(Link)`
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -208,7 +209,7 @@ const MegaActionBtn = styled.a`
   }
 `;
 
-const MegaTextLink = styled.a`
+const MegaTextLink = styled(Link)`
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -391,12 +392,12 @@ export default function CategoryNav() {
 
             {/* Panel 2: barra de acciones */}
             <BottomActionBar>
-              <MegaActionBtn href="#"><CalendarIcon /> Próximos eventos</MegaActionBtn>
-              <MegaActionBtn href="#"><GiftIcon /> Gift cards</MegaActionBtn>
-              <MegaActionBtn href="#"><RocketIcon /> Lanzamientos</MegaActionBtn>
-              <MegaTextLink href="#"><PinIconSmall /> Nuestros Locales</MegaTextLink>
-              <MegaTextLink href="#"><BuildingIcon /> Sobre Marybe</MegaTextLink>
-              <MegaTextLink href="/contacto"><ChatIcon /> Contacto</MegaTextLink>
+              <MegaActionBtn to="/eventos"><CalendarIcon /> Próximos eventos</MegaActionBtn>
+              <MegaActionBtn to="/canjear-gift-card"><GiftIcon /> Gift cards</MegaActionBtn>
+              <MegaActionBtn to="/lanzamientos"><RocketIcon /> Lanzamientos</MegaActionBtn>
+              <MegaTextLink to="/sucursales"><PinIconSmall /> Nuestros Locales</MegaTextLink>
+              <MegaTextLink to="/nuestra-historia"><BuildingIcon /> Sobre Marybe</MegaTextLink>
+              <MegaTextLink to="/contacto"><ChatIcon /> Contacto</MegaTextLink>
             </BottomActionBar>
           </DropdownContainer>
         )}

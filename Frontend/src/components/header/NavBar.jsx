@@ -545,7 +545,7 @@ export default function NavBar() {
 
         {/* Desktop: iconos */}
         <DesktopIcons>
-          <IconButton aria-label="Mi cuenta"><UserIcon /></IconButton>
+          <IconButton aria-label="Mi cuenta" onClick={() => navigate('/mi-cuenta')}><UserIcon /></IconButton>
           <IconButton aria-label="Carrito">
             <CartIconSvg />
             <CartBadge>0</CartBadge>
@@ -620,7 +620,7 @@ export default function NavBar() {
             </DrawerHeader>
 
             <DrawerBody>
-              <DrawerItem>
+              <DrawerItem onClick={() => { navigate('/mi-cuenta'); closeDrawer(); }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <UserMenuIcon /> Mi Perfil
                 </span>
@@ -628,14 +628,14 @@ export default function NavBar() {
 
               {menu.map(({ label, sub }) => (
                 <div key={label}>
-                  <DrawerItem onClick={() => sub.length && toggleSection(label)}>
+                  <DrawerItem onClick={() => sub.length ? toggleSection(label) : closeDrawer()}>
                     <span style={{ fontWeight: 500 }}>{label}</span>
                     {sub.length > 0 && <ChevronIcon open={openSection === label} />}
                   </DrawerItem>
                   {sub.length > 0 && (
                     <SubList $open={openSection === label}>
                       {sub.map((s) => (
-                        <DrawerSubItem key={s}>
+                        <DrawerSubItem key={s} onClick={() => closeDrawer()}>
                           {s} <ArrowRight />
                         </DrawerSubItem>
                       ))}
@@ -644,18 +644,18 @@ export default function NavBar() {
                 </div>
               ))}
 
-              <DrawerItem style={{ borderTop: '1px solid var(--color-fondo-beneficio-tarjeta)', marginTop: 8, paddingTop: 16 }}>
+              <DrawerItem style={{ borderTop: '1px solid var(--color-fondo-beneficio-tarjeta)', marginTop: 8, paddingTop: 16 }} onClick={() => { navigate('/ofertas'); closeDrawer(); }}>
                 <span style={{ fontWeight: 600, fontSize: 14 }}>Ofertas</span>
               </DrawerItem>
 
               <OfertasSection>
-                <OfertaBtn><CalendarIcon /> Próximos eventos</OfertaBtn>
-                <OfertaBtn><GiftIcon /> Gift cards</OfertaBtn>
-                <OfertaBtn><RocketIcon /> Lanzamientos</OfertaBtn>
+                <OfertaBtn onClick={() => { navigate('/eventos'); closeDrawer(); }}><CalendarIcon /> Próximos eventos</OfertaBtn>
+                <OfertaBtn onClick={() => { navigate('/canjear-gift-card'); closeDrawer(); }}><GiftIcon /> Gift cards</OfertaBtn>
+                <OfertaBtn onClick={() => { navigate('/lanzamientos'); closeDrawer(); }}><RocketIcon /> Lanzamientos</OfertaBtn>
               </OfertasSection>
 
-              <DrawerItem>Nuestros locales</DrawerItem>
-              <DrawerItem>Sobre Marybe</DrawerItem>
+              <DrawerItem onClick={() => { navigate('/sucursales'); closeDrawer(); }}>Nuestros locales</DrawerItem>
+              <DrawerItem onClick={() => { navigate('/nuestra-historia'); closeDrawer(); }}>Sobre Marybe</DrawerItem>
             </DrawerBody>
           </Drawer>
         </>

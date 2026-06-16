@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 import { NAV_COLUMNS } from './footerData';
 import FooterBrand from './FooterBrand';
 import FooterNavColumn from './FooterNavColumn';
@@ -76,7 +77,7 @@ const BottomInner = styled.div`
   }
 `;
 
-const BottomLink = styled.a`
+const BottomLink = styled(Link)`
   font-size: 0.85rem;
   color: var(--color-rosa-tercero);
   cursor: pointer;
@@ -123,8 +124,8 @@ export default function Footer() {
 
       <FooterBottom>
         <BottomInner>
-          <BottomLink href="#">Privacidad</BottomLink>
-          <BottomLink href="#">Cookies</BottomLink>
+          <BottomLink to="/terminos-condiciones">Privacidad</BottomLink>
+          <BottomLink to="/terminos-condiciones">Cookies</BottomLink>
         </BottomInner>
       </FooterBottom>
     </FooterWrapper>

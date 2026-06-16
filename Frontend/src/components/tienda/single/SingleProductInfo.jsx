@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import PaymentModal from './PaymentModal';
 
 const InfoContainer = styled.div`
   display: flex;
@@ -21,13 +23,12 @@ const PillsContainer = styled.div`
 `;
 
 const Pill = styled.span`
-  background-color: #E5A9A9;
-  color: var(--color-titulo-marybe);
+  background-color: #F2D4D4;
+  color: var(--color-bordo-tercero);
   padding: 6px 12px;
   border-radius: 4px;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  text-transform: uppercase;
 `;
 
 const IconsContainer = styled.div`
@@ -93,96 +94,105 @@ const DescriptionExcerpt = styled.p`
   font-size: 0.95rem;
   line-height: 1.5;
   color: #555;
-  margin-bottom: 25px;
+  margin-bottom: 15px;
 `;
 
 const PriceBlock = styled.div`
-  margin-bottom: 30px;
+  margin-bottom: 15px;
 `;
 
 const OldPrice = styled.div`
-  font-size: 1.2rem;
-  color: #A0A0A0;
+  font-size: 1.7rem;
+  color: #BDBDBD;
   text-decoration: line-through;
-  margin-bottom: 5px;
+  font-weight: 400;
 `;
 
 const CurrentPriceRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 4px;
 `;
 
 const CurrentPrice = styled.span`
   font-size: 2.5rem;
   font-weight: 700;
-  color: #7C0405;
+  color: #750707;
 `;
 
 const DiscountBadge = styled.span`
-  background-color: #7c0405;
+  background-color: #750707;
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.9rem;
-  font-weight: bold;
+  font-weight: 600;
 `;
 
 const PaymentLink = styled.button`
-  background: none;
+  background-color: #FAF9F7;
   border: none;
-  color: #7C0405;
+  color: var(--color-bordo-tercero);
   font-size: 0.85rem;
-  text-decoration: underline;
+  font-weight: 500;
+  border-radius: 4px;
   cursor: pointer;
-  padding: 0;
+  padding: 4px 8px;
+  margin-bottom: 10px;
+`;
+
+const CfteaText = styled.div`
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #B2B2B2;
   margin-bottom: 15px;
 `;
 
 const InstallmentsText = styled.div`
   font-size: 0.95rem;
-  color: #555;
-  margin-bottom: 5px;
+  color: #535353;
+  margin-bottom: 2px;
+  font-weight: 500;
 
   span {
-    font-weight: 600;
-    color: #28180B;
+    font-weight: 700;
+    color: #000;
   }
 `;
 
 const LegalText = styled.div`
-  font-size: 0.75rem;
-  color: #A0A0A0;
+  font-size: 0.85rem;
+  color: #535353;
 `;
 
 const OptionLabel = styled.div`
   font-size: 0.9rem;
-  font-weight: 600;
-  margin-bottom: 10px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #28180B;
 `;
 
 const SizesContainer = styled.div`
   display: flex;
   gap: 10px;
-  margin-bottom: 25px;
+  margin-bottom: 15px;
   flex-wrap: wrap;
 `;
 
 const SizeBtn = styled.button`
-  border: 1px solid ${({ $active }) => ($active ? '#7C0405' : '#ccc')};
-  background-color: ${({ $active }) => ($active ? '#fffaf8' : '#fff')};
-  color: ${({ $active }) => ($active ? '#7C0405' : '#555')};
-  border-radius: 20px;
-  padding: 8px 16px;
+  border: 1px solid ${({ $active }) => ($active ? '#750707' : '#ccc')};
+  background-color: ${({ $active }) => ($active ? '#750707' : '#fff')};
+  color: ${({ $active }) => ($active ? '#fff' : '#28180B')};
+  border-radius: 12px;
+  padding: 4px 12px;
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    transform: scale(1.01);
-    color: #7C0405;
+    border-color: #750707;
   }
 `;
 
@@ -193,8 +203,8 @@ const ColorsContainer = styled.div`
 `;
 
 const ColorBtn = styled.button`
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: none;
   background-color: ${({ $color }) => $color};
@@ -205,12 +215,12 @@ const ColorBtn = styled.button`
   &::after {
     content: '';
     position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    border-radius: 25%;
-    border: 1.5px solid ${({ $active }) => ($active ? '#28180B' : '#d8d2ca')};
+    top: -6px;
+    left: -6px;
+    right: -6px;
+    bottom: -6px;
+    border-radius: 8px;
+    border: 1px solid ${({ $active }) => ($active ? '#750707' : '#d8d2ca')};
     transition: border-color 0.2s ease;
   }
 `;
@@ -218,7 +228,7 @@ const ColorBtn = styled.button`
 const StockInfo = styled.div`
   font-size: 0.85rem;
   color: #555;
-  margin-bottom: 25px;
+  margin-bottom: 15px;
 `;
 
 const ActionRow = styled.div`
@@ -234,17 +244,18 @@ const ActionRow = styled.div`
 const QuantityBox = styled.div`
   display: flex;
   align-items: center;
-  border: 1px solid #000000;
+  border: 1px solid #ccc;
   border-radius: 8px;
   height: 48px;
-  padding: 0 10px;
-  width: 120px;
+  padding: 0 5px;
+  width: 110px;
   justify-content: space-between;
 
   button {
     background: none;
     border: none;
-    font-size: 1.2rem;
+    font-size: 1.4rem;
+    font-weight: 300;
     cursor: pointer;
     color: #555;
     display: flex;
@@ -255,7 +266,9 @@ const QuantityBox = styled.div`
   }
 
   span {
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #000;
   }
 `;
 
@@ -276,7 +289,7 @@ const AddToCartBtn = styled.button`
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: var(--color-titulo-marybe);
+    background-color: #4a0202;
   }
 
   svg {
@@ -292,8 +305,8 @@ const ShippingInfo = styled.div`
   display: flex;
   flex-direction: column;
   gap: 15px;
-  border-top: 1px solid #EAEAEA;
-  padding-top: 25px;
+  margin-top: 15px;
+  border-top: none;
 `;
 
 const InfoItem = styled.div`
@@ -304,18 +317,25 @@ const InfoItem = styled.div`
   color: #555;
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     flex-shrink: 0;
-    color: #888;
+    color: #555;
+    stroke-width: 1.5;
+  }
+
+  div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    line-height: 1.4;
   }
 
   a {
-    color: #000000;
+    color: #A43535;
     text-decoration: underline;
     cursor: pointer;
     font-weight: 500;
-    margin-left: 5px;
   }
 `;
 
@@ -324,30 +344,140 @@ const formatPrice = (price) => {
   return '$' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 0 });
 };
 
+// Mapa de nombre de color → hex. Sincronizado con la hoja "🎨 Colores" del Excel.
+const COLOR_MAP = {
+  // Negros
+  'Negro': '#1a1a1a',
+  'Negro Azulado': '#0d0d1a',
+  // Castaños
+  'Castaño Oscuro': '#3E2009',
+  'Castaño Natural': '#6B4226',
+  'Castaño Claro': '#8B6347',
+  'Castaño Ceniza': '#6B5B52',
+  'Castaño Dorado': '#8B5E3C',
+  'Chocolate': '#3D1C02',
+  'Caoba': '#722F37',
+  'Avellana': '#855E42',
+  // Rubios
+  'Rubio Oscuro': '#C8A96E',
+  'Rubio Natural': '#E8C98A',
+  'Rubio Claro': '#F5DEB3',
+  'Rubio Dorado': '#DAA520',
+  'Rubio Ceniza': '#D4C5A9',
+  'Rubio Platinado': '#F0E6C8',
+  'Miel': '#FFC30B',
+  // Rojos y cobres
+  'Rojo': '#CC0000',
+  'Rojo Intenso': '#8B0000',
+  'Bordo': '#5C0A0A',
+  'Bordo Oscuro': '#3E0102',
+  'Cobre': '#B87333',
+  'Rojizo': '#9B2335',
+  // Rosas
+  'Rosa Claro': '#FFCDD2',
+  'Rosa': '#FFB6C1',
+  'Rosa Oscuro': '#C2185B',
+  'Fucsia': '#FF0090',
+  'Coral': '#FF6B6B',
+  'Durazno': '#FFCBA4',
+  // Nude / Beige
+  'Nude': '#D4A574',
+  'Beige': '#F5F5DC',
+  'Arena': '#C2B280',
+  'Marfil': '#FFFFF0',
+  'Porcelana': '#F7E7CE',
+  // Blancos
+  'Blanco': '#FFFFFF',
+  'Blanco Perla': '#F8F8F0',
+  // Dorados / Plateados
+  'Dorado': '#FFD700',
+  'Plateado': '#C0C0C0',
+  'Bronce': '#CD7F32',
+  // Lilas / Violetas
+  'Lavanda': '#E6E6FA',
+  'Lila': '#C8A2C8',
+  'Violeta': '#8B00FF',
+  'Morado': '#6A0DAD',
+  // Azules / Verdes
+  'Azul': '#0055AA',
+  'Turquesa': '#40E0D0',
+  'Verde': '#228B22',
+  'Verde Oliva': '#808000',
+  // Grises
+  'Gris Claro': '#D3D3D3',
+  'Gris': '#808080',
+  'Gris Oscuro': '#404040',
+  // Transparentes
+  'Transparente': '#E8E8E8',
+  'Incoloro': '#F5F5F5',
+};
+
 export default function SingleProductInfo({ producto }) {
   const [qty, setQty] = useState(1);
   const [selectedSize, setSelectedSize] = useState(0);
-  const [selectedColor, setSelectedColor] = useState(0);
+  const [selectedColor, setSelectedColor] = useState(null); // null = ninguno seleccionado
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   if (!producto) return null;
 
-  const { nombre, marca, descripcion, descuento } = producto;
+  const { nombre, marca, descripcion_corta, descuento, caracteristicas } = producto;
   const variantes = producto.variantes || [];
 
-  // Determinamos los tamaños disponibles
-  const sizes = variantes.map(v => v.volumen || 'Único');
+  // ── Colores: extraer variantes únicas que tienen color_nombre ──
+  const variantesConColor = variantes.filter(v => v.color_nombre);
+  // Mapa: color_nombre → primera variante con ese color (para no repetir pills)
+  const colorMap = new Map();
+  variantesConColor.forEach(v => {
+    if (!colorMap.has(v.color_nombre)) colorMap.set(v.color_nombre, v);
+  });
+  const coloresUnicos = [...colorMap.entries()]; // [[nombre, variante], ...]
+  const tieneColores = coloresUnicos.length > 0;
 
-  // Usamos el precio de la variante seleccionada
-  const activeVariant = variantes[selectedSize] || {};
-  const price = activeVariant.precio || 0;
-  const offerPrice = activeVariant.precio_oferta || null;
+  // ── Si hay colores y se seleccionó uno, usarlo como variante activa ──
+  // Si no, usar selectedSize como antes
+  let activeVariant;
+  if (tieneColores && selectedColor !== null) {
+    activeVariant = colorMap.get(selectedColor) || variantes[0] || {};
+  } else {
+    // Determinar tamaños solo cuando no hay sistema de colores
+    activeVariant = variantes[selectedSize] || {};
+  }
+
+  // ── Tamaños: solo mostrar si NO hay colores como principal selector ──
+  const sizes = variantes.map(v => v.volumen || 'Único');
+  const tieneVariantesTam = !tieneColores && sizes.length > 0 && sizes[0] !== 'Único';
+  const price = activeVariant.precio || producto.precio || 0;
+
+  let offerPrice = activeVariant.precio_oferta || producto.precio_oferta || null;
+
+  // Si no hay precio de oferta pero hay un descuento global, lo calculamos
+  if (!offerPrice && descuento > 0 && price > 0) {
+    offerPrice = price - (price * (descuento / 100));
+  }
+
+  const handleShare = async () => {
+    const shareData = {
+      title: `${nombre} - ${marca} | Marybe`,
+      text: descripcion_corta || `Mirá este producto en Marybe: ${nombre}`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
+        alert('Enlace copiado al portapapeles');
+      }
+    } catch (err) {
+      console.error('Error al compartir', err);
+    }
+  };
 
   // Calculo del precio con impuestos (solo informativo como en el diseño)
   const priceWithoutTaxes = Math.round((offerPrice || price) * 0.79);
   const installmentValue = Math.round((offerPrice || price) / 3);
 
-  // Colores mock para el diseño (se pueden mapear desde Strapi si existen)
-  const mockColors = ['#EAEAEA', '#3E0102', '#0055FF', '#FFB800'];
 
   return (
     <InfoContainer>
@@ -356,14 +486,25 @@ export default function SingleProductInfo({ producto }) {
           {descuento > 0 && <Pill>Super oferta</Pill>}
         </PillsContainer>
         <IconsContainer>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-            <polyline points="16 6 12 2 8 6" />
-            <line x1="12" y1="2" x2="12" y2="15" />
+          <svg 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+            onClick={handleShare}
+            style={{ cursor: 'pointer' }}
+            title="Compartir"
+          >
+            <path d="M9 12C9 12.663 8.73661 13.2989 8.26777 13.7678C7.79893 14.2366 7.16304 14.5 6.5 14.5C5.83696 14.5 5.20107 14.2366 4.73223 13.7678C4.26339 13.2989 4 12.663 4 12C4 11.337 4.26339 10.7011 4.73223 10.2322C5.20107 9.76339 5.83696 9.5 6.5 9.5C7.16304 9.5 7.79893 9.76339 8.26777 10.2322C8.73661 10.7011 9 11.337 9 12Z" stroke="#7C0405" stroke-width="1.5" />
+            <path d="M14 6.5L9 10M14 17.5L9 14" stroke="#7C0405" stroke-width="1.5" stroke-linecap="round" />
+            <path d="M19 18.5C19 19.163 18.7366 19.7989 18.2678 20.2678C17.7989 20.7366 17.163 21 16.5 21C15.837 21 15.2011 20.7366 14.7322 20.2678C14.2634 19.7989 14 19.163 14 18.5C14 17.837 14.2634 17.2011 14.7322 16.7322C15.2011 16.2634 15.837 16 16.5 16C17.163 16 17.7989 16.2634 18.2678 16.7322C18.7366 17.2011 19 17.837 19 18.5ZM19 5.5C19 6.16304 18.7366 6.79893 18.2678 7.26777C17.7989 7.73661 17.163 8 16.5 8C15.837 8 15.2011 7.73661 14.7322 7.26777C14.2634 6.79893 14 6.16304 14 5.5C14 4.83696 14.2634 4.20107 14.7322 3.73223C15.2011 3.26339 15.837 3 16.5 3C17.163 3 17.7989 3.26339 18.2678 3.73223C18.7366 4.20107 19 4.83696 19 5.5Z" stroke="#7C0405" stroke-width="1.5" />
           </svg>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4.35939 4.66801C6.23639 2.95701 10.2674 3.30601 12.0004 7.23001C13.7334 3.30701 17.7644 2.95701 19.6414 4.66801C21.1704 6.04101 21.9044 9.33301 20.5084 12.363C18.1014 17.573 12.0004 20.309 12.0004 20.309C12.0004 20.309 5.90039 17.573 3.49239 12.363C2.09639 9.33301 2.83039 6.04101 4.35939 4.66801Z" stroke="#7C0405" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
+
         </IconsContainer>
       </TopRow>
 
@@ -371,11 +512,13 @@ export default function SingleProductInfo({ producto }) {
       <Title>{nombre}</Title>
 
       <SubBadges>
-        {marca && <span>{marca}</span>}
-        <span>Edición limitada</span>
+        {caracteristicas
+          ? caracteristicas.split('|').map((c, i) => <span key={i}>{c.trim()}</span>)
+          : <span>Edición limitada</span>
+        }
       </SubBadges>
 
-      {descripcion && <DescriptionExcerpt>{descripcion}</DescriptionExcerpt>}
+      {descripcion_corta && <DescriptionExcerpt>{descripcion_corta}</DescriptionExcerpt>}
 
       <PriceBlock>
         {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
@@ -384,7 +527,8 @@ export default function SingleProductInfo({ producto }) {
           {descuento > 0 && <DiscountBadge>- {descuento}%</DiscountBadge>}
         </CurrentPriceRow>
 
-        <PaymentLink>Ver medios de pago</PaymentLink>
+        <PaymentLink onClick={() => setIsPaymentModalOpen(true)}>Ver medios de pago</PaymentLink>
+        <CfteaText>CFTEA 0%</CfteaText>
 
         <InstallmentsText>
           3 cuotas sin interés de <span>{formatPrice(installmentValue)}</span>
@@ -392,7 +536,7 @@ export default function SingleProductInfo({ producto }) {
         <LegalText>Precio sin impuestos nacionales {formatPrice(priceWithoutTaxes)}</LegalText>
       </PriceBlock>
 
-      {sizes.length > 0 && sizes[0] !== 'Único' && (
+      {tieneVariantesTam && (
         <>
           <OptionLabel>Tamaño</OptionLabel>
           <SizesContainer>
@@ -409,18 +553,31 @@ export default function SingleProductInfo({ producto }) {
         </>
       )}
 
-      {/* Renderizado condicional para colores, estático por ahora */}
-      <OptionLabel>Color</OptionLabel>
-      <ColorsContainer>
-        {mockColors.map((color, idx) => (
-          <ColorBtn
-            key={idx}
-            $color={color}
-            $active={selectedColor === idx}
-            onClick={() => setSelectedColor(idx)}
-          />
-        ))}
-      </ColorsContainer>
+      {/* Selección de color — solo si las variantes tienen color_nombre en Strapi */}
+      {tieneColores && (
+        <>
+          <OptionLabel>
+            Color
+            {selectedColor && (
+              <span style={{ fontWeight: 400, color: '#555', marginLeft: 8 }}>— {selectedColor}</span>
+            )}
+          </OptionLabel>
+          <ColorsContainer>
+            {coloresUnicos.map(([nombre, variante]) => {
+              const hex = COLOR_MAP[nombre] || '#CCCCCC';
+              return (
+                <ColorBtn
+                  key={nombre}
+                  $color={hex}
+                  $active={selectedColor === nombre}
+                  onClick={() => setSelectedColor(nombre)}
+                  title={nombre}
+                />
+              );
+            })}
+          </ColorsContainer>
+        </>
+      )}
 
       <StockInfo>Stock Disponible (+25 disponibles)</StockInfo>
 
@@ -433,25 +590,27 @@ export default function SingleProductInfo({ producto }) {
         </QuantityBox>
         <AddToCartBtn>
           Agregar
-          <svg viewBox="0 0 24 24">
-            <path d="M9 20a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm7 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm-8.8-4h9.6l2.4-12H5.6L4.2 1H1v2h2.2l3.4 17h11v-2H7.6l-.4-2zM6.4 6h12.6l-1.6 8H7.2L6.4 6z" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
           </svg>
         </AddToCartBtn>
       </ActionRow>
 
       <ShippingInfo>
         <InfoItem>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
           <div>
             Retira gratis en nuestras sucursales
-            <a>Ver sucursales</a>
+            <Link to="/sucursales/">Ver sucursales</Link>
           </div>
         </InfoItem>
         <InfoItem>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="1" y="3" width="15" height="13" />
             <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
             <circle cx="5.5" cy="18.5" r="2.5" />
@@ -463,7 +622,7 @@ export default function SingleProductInfo({ producto }) {
           </div>
         </InfoItem>
         <InfoItem>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 12 20 22 4 22 4 12" />
             <rect x="2" y="7" width="20" height="5" />
             <line x1="12" y1="22" x2="12" y2="7" />
@@ -475,6 +634,11 @@ export default function SingleProductInfo({ producto }) {
           </div>
         </InfoItem>
       </ShippingInfo>
+
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+      />
     </InfoContainer>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { generateProductUrl } from '../../../utils/productUrl';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-hogar);
@@ -534,9 +535,9 @@ export default function FeaturedSectionHogar() {
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
-  const handleProductClick = (id) => {
+  const handleProductClick = (id, nombre) => {
     if (!isDragging.current) {
-      navigate(`/producto/${id}`);
+      navigate(generateProductUrl(id, nombre));
     }
   };
 
@@ -587,7 +588,7 @@ export default function FeaturedSectionHogar() {
 
           return (
             <ProductCard key={id}>
-              <CardImageContainer onClick={() => handleProductClick(id)}>
+              <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
                 {imgUrl ? (
                   <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" />
                 ) : (
@@ -606,7 +607,7 @@ export default function FeaturedSectionHogar() {
                 </HeartContainer>
               </CardImageContainer>
 
-              <ProductName onClick={() => handleProductClick(id)}>{nombre}</ProductName>
+              <ProductName onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
               <ProductBrand>{marca}</ProductBrand>
 
               <PriceRow>

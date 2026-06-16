@@ -71,6 +71,7 @@ async function leerExcel(rutaArchivo) {
       proveedor:         cellVal(row, 9),
       publicado:         cellVal(row, 10),
       moneda:            cellVal(row, 11) || 'ARS',
+      caracteristicas:   cellVal(row, 13),
     });
   });
 
@@ -254,6 +255,7 @@ async function procesarImportacion(strapi, rutaExcel) {
         moneda:            (p.moneda || 'ARS').trim(),
         descuento:         maxDescuento,
         variantes:         variantesData,
+        caracteristicas:   (p.caracteristicas || '').trim() || null,
         ...(categoriaDocId ? { categoria: { documentId: categoriaDocId } } : {}),
       };
 

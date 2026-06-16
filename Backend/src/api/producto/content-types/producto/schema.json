@@ -12,15 +12,15 @@
   },
   "pluginOptions": {},
   "attributes": {
+    "nombre": {
+      "type": "string",
+      "required": true
+    },
     "id_original": {
       "type": "string"
     },
     "sku": {
       "type": "string"
-    },
-    "nombre": {
-      "type": "string",
-      "required": true
     },
     "marca": {
       "type": "string"
@@ -53,8 +53,8 @@
     },
     "variantes": {
       "type": "component",
-      "repeatable": true,
-      "component": "producto.variante"
+      "component": "producto.variante",
+      "repeatable": true
     },
     "portada": {
       "type": "media",
@@ -71,6 +71,17 @@
     "descuento": {
       "type": "integer",
       "default": 0
+    },
+    "galeria": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "caracteristicas": {
+      "type": "text"
     }
   }
 }

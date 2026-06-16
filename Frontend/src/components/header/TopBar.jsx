@@ -1,5 +1,6 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
+import { Link } from 'react-router-dom';
 
 const marquee = keyframes`
   0%   { transform: translateX(0); }
@@ -41,7 +42,7 @@ const MobileTrack = styled.div`
   }
 `;
 
-const Item = styled.div`
+const Item = styled(Link)`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -51,6 +52,7 @@ const Item = styled.div`
   font-weight: 400;
   white-space: nowrap;
   flex-shrink: 0;
+  text-decoration: none;
 
   @media (max-width: 768px) {
     font-size: 12px;
@@ -87,10 +89,10 @@ const PinIcon = () => (
 );
 
 const items = [
-  { icon: <StarIcon />, text: "Retirá gratis en tu sucursal" },
-  { icon: <StarIcon />, text: "Hasta 9 cuotas sin interés" },
-  { icon: <StarIcon />, text: "Envíos Gratis" },
-  { icon: <PinIcon />,  text: "Sucursales Marybe" },
+  { icon: <StarIcon />, text: "Retirá gratis en tu sucursal", path: "/sucursales" },
+  { icon: <StarIcon />, text: "Hasta 9 cuotas sin interés", path: "/promociones-bancarias" },
+  { icon: <StarIcon />, text: "Envíos Gratis", path: "/envios" },
+  { icon: <PinIcon />,  text: "Sucursales Marybe", path: "/sucursales" },
 ];
 
 export default function TopBar() {
@@ -98,7 +100,7 @@ export default function TopBar() {
     <TopBarWrapper>
       <DesktopItems>
         {items.map((item, i) => (
-          <Item key={i}>
+          <Item key={i} to={item.path}>
             {item.icon}
             <span>{item.text}</span>
           </Item>
@@ -107,7 +109,7 @@ export default function TopBar() {
 
       <MobileTrack>
         {[...items, ...items].map((item, i) => (
-          <Item key={i}>
+          <Item key={i} to={item.path}>
             {item.icon}
             <span>{item.text}</span>
           </Item>

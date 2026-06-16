@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { generateProductUrl } from '../../../utils/productUrl';
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -337,7 +338,7 @@ export default function CatalogoProductCard({ product, isFav, onToggleFav, strap
   const hasImageBadge = availableBadges.includes(calcDescuento);
 
   const handleNavigate = () => {
-    navigate(`/producto/${id}`);
+    navigate(generateProductUrl(id, nombre));
   };
 
   return (
