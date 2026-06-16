@@ -36,6 +36,9 @@
     "moneda": {
       "type": "string",
       "default": "ARS"
+    },
+    "color_nombre": {
+      "type": "string"
     }
   }
 }

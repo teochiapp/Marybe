@@ -646,9 +646,11 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    descripcion_completa: Schema.Attribute.Text;
     descripcion_corta: Schema.Attribute.Text;
     descuento: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     destacado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    especificaciones: Schema.Attribute.Text;
     galeria: Schema.Attribute.Media<'images', true>;
     id_original: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;

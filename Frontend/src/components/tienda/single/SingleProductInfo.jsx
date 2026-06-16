@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import PaymentModal from './PaymentModal';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const InfoContainer = styled.div`
   display: flex;
@@ -197,7 +199,7 @@ const SizeBtn = styled.button`
 
 const ColorsContainer = styled.div`
   display: flex;
-  gap: 15px;
+  gap: 20px;
   margin-bottom: 15px;
 `;
 
@@ -286,6 +288,7 @@ const QtyNumber = styled.div`
     color: #000000;
   }
 `;
+
 
 const AddToCartBtn = styled.button`
   flex: 1;
@@ -436,6 +439,8 @@ export default function SingleProductInfo({ producto }) {
 
   if (!producto) return null;
 
+  console.log('📦 Datos del producto desde el Excel/Strapi:', producto);
+
   const { nombre, marca, descripcion_corta, descuento, caracteristicas } = producto;
   const variantes = producto.variantes || [];
 
@@ -449,22 +454,29 @@ export default function SingleProductInfo({ producto }) {
   const coloresUnicos = [...colorMap.entries()]; // [[nombre, variante], ...]
   const tieneColores = coloresUnicos.length > 0;
 
-  // ── Si hay colores y se seleccionó uno, usarlo como variante activa ──
-  // Si no, usar selectedSize como antes
-  let activeVariant;
-  if (tieneColores && selectedColor !== null) {
-    activeVariant = colorMap.get(selectedColor) || variantes[0] || {};
-  } else {
-    // Determinar tamaños solo cuando no hay sistema de colores
-    activeVariant = variantes[selectedSize] || {};
+  const sizes = [...new Set(variantes.map(v => v.volumen || 'Único'))];
+  const tieneVariantesTam = sizes.length > 0 && (sizes.length > 1 || sizes[0] !== 'Único');
+
+  // ── Si hay colores y se seleccionó uno, o si hay tamaños, buscar la variante exacta ──
+  const currentSize = sizes[selectedSize] || sizes[0];
+  let activeVariant = variantes.find(v => {
+    const matchSize = tieneVariantesTam ? (v.volumen || 'Único') === currentSize : true;
+    const matchColor = tieneColores ? v.color_nombre === selectedColor : true;
+    return matchSize && matchColor;
+  });
+
+  // Fallback si no hay coincidencia exacta
+  if (!activeVariant) {
+    if (tieneColores && selectedColor) {
+      activeVariant = colorMap.get(selectedColor) || variantes[0] || {};
+    } else {
+      activeVariant = variantes.find(v => (v.volumen || 'Único') === currentSize) || variantes[0] || {};
+    }
   }
 
-  // ── Tamaños: solo mostrar si NO hay colores como principal selector ──
-  const sizes = variantes.map(v => v.volumen || 'Único');
-  const tieneVariantesTam = !tieneColores && sizes.length > 0 && sizes[0] !== 'Único';
   const price = activeVariant.precio || producto.precio || 0;
-
   let offerPrice = activeVariant.precio_oferta || producto.precio_oferta || null;
+  const stock = activeVariant.stock || 0;
 
   // Si no hay precio de oferta pero hay un descuento global, lo calculamos
   if (!offerPrice && descuento > 0 && price > 0) {
@@ -502,14 +514,23 @@ export default function SingleProductInfo({ producto }) {
           {descuento > 0 && <Pill>Super oferta</Pill>}
         </PillsContainer>
         <IconsContainer>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-            <polyline points="16 6 12 2 8 6" />
-            <line x1="12" y1="2" x2="12" y2="15" />
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            onClick={handleShare}
+            style={{ cursor: 'pointer' }}
+            title="Compartir"
+          >
+            <path d="M9 12C9 12.663 8.73661 13.2989 8.26777 13.7678C7.79893 14.2366 7.16304 14.5 6.5 14.5C5.83696 14.5 5.20107 14.2366 4.73223 13.7678C4.26339 13.2989 4 12.663 4 12C4 11.337 4.26339 10.7011 4.73223 10.2322C5.20107 9.76339 5.83696 9.5 6.5 9.5C7.16304 9.5 7.79893 9.76339 8.26777 10.2322C8.73661 10.7011 9 11.337 9 12Z" stroke="#7C0405" strokeWidth="1.5" />
+            <path d="M14 6.5L9 10M14 17.5L9 14" stroke="#7C0405" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M19 18.5C19 19.163 18.7366 19.7989 18.2678 20.2678C17.7989 20.7366 17.163 21 16.5 21C15.837 21 15.2011 20.7366 14.7322 20.2678C14.2634 19.7989 14 19.163 14 18.5C14 17.837 14.2634 17.2011 14.7322 16.7322C15.2011 16.2634 15.837 16 16.5 16C17.163 16 17.7989 16.2634 18.2678 16.7322C18.7366 17.2011 19 17.837 19 18.5ZM19 5.5C19 6.16304 18.7366 6.79893 18.2678 7.26777C17.7989 7.73661 17.163 8 16.5 8C15.837 8 15.2011 7.73661 14.7322 7.26777C14.2634 6.79893 14 6.16304 14 5.5C14 4.83696 14.2634 4.20107 14.7322 3.73223C15.2011 3.26339 15.837 3 16.5 3C17.163 3 17.7989 3.26339 18.2678 3.73223C18.7366 4.20107 19 4.83696 19 5.5Z" stroke="#7C0405" strokeWidth="1.5" />
           </svg>
 
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4.35939 4.66801C6.23639 2.95701 10.2674 3.30601 12.0004 7.23001C13.7334 3.30701 17.7644 2.95701 19.6414 4.66801C21.1704 6.04101 21.9044 9.33301 20.5084 12.363C18.1014 17.573 12.0004 20.309 12.0004 20.309C12.0004 20.309 5.90039 17.573 3.49239 12.363C2.09639 9.33301 2.83039 6.04101 4.35939 4.66801Z" stroke="#7C0405" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M4.35939 4.66801C6.23639 2.95701 10.2674 3.30601 12.0004 7.23001C13.7334 3.30701 17.7644 2.95701 19.6414 4.66801C21.1704 6.04101 21.9044 9.33301 20.5084 12.363C18.1014 17.573 12.0004 20.309 12.0004 20.309C12.0004 20.309 5.90039 17.573 3.49239 12.363C2.09639 9.33301 2.83039 6.04101 4.35939 4.66801Z" stroke="#7C0405" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
 
         </IconsContainer>
@@ -586,12 +607,21 @@ export default function SingleProductInfo({ producto }) {
         </>
       )}
 
-      <StockInfo>Stock Disponible (+25 disponibles)</StockInfo>
+      <StockInfo>
+        {stock > 0 
+          ? `Stock Disponible (+${stock} disponibles)` 
+          : <span style={{ color: '#d32f2f' }}>Sin stock disponible</span>}
+      </StockInfo>
 
       <OptionLabel>Cantidad</OptionLabel>
       <ActionRow>
         <QuantityBox>
-          <button onClick={() => { setQtyDir(-1); setQty(Math.max(1, qty - 1)); }}>−</button>
+          <button 
+            disabled={qty <= 1}
+            onClick={() => { setQtyDir(-1); setQty(Math.max(1, qty - 1)); }}
+          >
+            −
+          </button>
           <QtyNumber>
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
@@ -605,10 +635,15 @@ export default function SingleProductInfo({ producto }) {
               </motion.span>
             </AnimatePresence>
           </QtyNumber>
-          <button onClick={() => { setQtyDir(1); setQty(qty + 1); }}>+</button>
+          <button 
+            disabled={qty >= stock}
+            onClick={() => { setQtyDir(1); setQty(Math.min(stock, qty + 1)); }}
+          >
+            +
+          </button>
         </QuantityBox>
-        <AddToCartBtn>
-          Agregar
+        <AddToCartBtn disabled={stock === 0} style={{ opacity: stock === 0 ? 0.6 : 1, cursor: stock === 0 ? 'not-allowed' : 'pointer' }}>
+          {stock === 0 ? 'Agotado' : 'Agregar'}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="9" cy="21" r="1"></circle>
             <circle cx="20" cy="21" r="1"></circle>

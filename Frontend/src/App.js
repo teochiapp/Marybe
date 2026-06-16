@@ -12,7 +12,6 @@ import PreguntasFrecuentes from './pages/ayuda/PreguntasFrecuentes';
 import Envios from './pages/ayuda/Envios';
 import CambiosDevoluciones from './pages/ayuda/CambiosDevoluciones';
 import TerminosCondiciones from './pages/ayuda/TerminosCondiciones';
-import BotonArrepentimiento from './pages/ayuda/BotonArrepentimiento';
 
 // Páginas de Pedidos
 import MiCuenta from './pages/pedidos/MiCuenta';
@@ -59,7 +58,6 @@ function App() {
         <Route path="/envios" element={<Envios />} />
         <Route path="/cambios-devoluciones" element={<CambiosDevoluciones />} />
         <Route path="/terminos-condiciones" element={<TerminosCondiciones />} />
-        <Route path="/boton-arrepentimiento" element={<BotonArrepentimiento />} />
 
         {/* Rutas de Pedidos */}
         <Route path="/mi-cuenta" element={<MiCuenta />} />

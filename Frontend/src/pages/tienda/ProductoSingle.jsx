@@ -7,6 +7,7 @@ import SingleImageGallery from '../../components/tienda/single/SingleImageGaller
 import SingleProductInfo from '../../components/tienda/single/SingleProductInfo';
 import SingleAccordion from '../../components/tienda/single/SingleAccordion';
 import SingleSimilares from '../../components/tienda/single/SingleSimilares';
+import GiftCard from '../../components/inicio/shared/GiftCard';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -58,12 +59,12 @@ export default function ProductoSingle() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    
+
     // Asumimos que el ID pasado es el documentId o id numérico
     // Primero intentamos buscarlo directo si la ruta /api/productos/:id funciona
     // Pero en Strapi v4 a veces es mejor buscar por array con filtros si no estamos seguros
     if (!actualId) return;
-    
+
     fetch(`${STRAPI_URL}/api/productos?filters[id][$eq]=${actualId}&populate=*`)
       .then(res => res.json())
       .then(data => {
@@ -122,7 +123,7 @@ export default function ProductoSingle() {
   } else if (producto.portada?.url) {
     images.push(`${STRAPI_URL}${producto.portada.url}`);
   }
-  
+
   if (producto.galeria?.data) {
     producto.galeria.data.forEach(img => {
       images.push(`${STRAPI_URL}${img.attributes.url}`);
@@ -139,36 +140,41 @@ export default function ProductoSingle() {
   }
 
   return (
-    <PageContainer>
-      <ContentWrapper>
-        <SingleBreadcrumb 
-          seccion={producto.seccion} 
-          categoria={producto.categoria?.data?.attributes?.nombre || producto.categoria?.nombre} 
-          nombre={producto.nombre} 
-        />
-
-        <MainLayout>
-          {/* Lado izquierdo: Galería */}
-          <SingleImageGallery 
-            images={images} 
-            nombre={producto.nombre} 
+    <>
+      <PageContainer>
+        <ContentWrapper>
+          <SingleBreadcrumb
+            seccion={producto.seccion}
+            categoria={producto.categoria?.data?.attributes?.nombre || producto.categoria?.nombre}
+            nombre={producto.nombre}
           />
 
-          {/* Lado derecho: Info, precio, opciones, carrito */}
-          <div>
-            <SingleProductInfo producto={producto} />
-            
-            {/* Acordeones inferiores */}
-            <SingleAccordion 
-              descripcion={producto.descripcion}
-              especificaciones={null} // Si tuviéramos un campo en strapi se pasaría acá
-              politicas={null} // Idem
+          <MainLayout>
+            {/* Lado izquierdo: Galería */}
+            <SingleImageGallery
+              images={images}
+              nombre={producto.nombre}
             />
-          </div>
-        </MainLayout>
 
-        <SingleSimilares />
-      </ContentWrapper>
-    </PageContainer>
+            {/* Lado derecho: Info, precio, opciones, carrito */}
+            <div>
+              <SingleProductInfo producto={producto} />
+
+              {/* Acordeones inferiores */}
+              <SingleAccordion 
+                descripcion={producto.descripcion_completa}
+                especificaciones={producto.especificaciones}
+                politicas={null} // Idem
+              />
+            </div>
+          </MainLayout>
+
+          <SingleSimilares producto={producto} />
+        </ContentWrapper>
+      </PageContainer>
+      <div style={{ paddingBottom: '80px', backgroundColor: 'var(--color-blanco)' }}>
+        <GiftCard />
+      </div>
+    </>
   );
 }

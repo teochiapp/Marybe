@@ -18,6 +18,7 @@ export interface ProductoVariante extends Struct.ComponentSchema {
     displayName: 'Variante';
   };
   attributes: {
+    color_nombre: Schema.Attribute.String;
     envio: Schema.Attribute.String;
     id_original: Schema.Attribute.String;
     moneda: Schema.Attribute.String & Schema.Attribute.DefaultTo<'ARS'>;

@@ -29,10 +29,11 @@ const ThumbnailsContainer = styled.div`
 `;
 
 const Thumbnail = styled.button`
+  box-sizing: border-box;
   width: 80px;
   height: 80px;
   border-radius: 12px;
-  border: 1px solid ${({ $active }) => ($active ? 'var(--color-titulo-marybe)' : '#EAEAEA')};
+  border: 1px solid ${({ $active }) => ($active ? '#28180B' : '#EAEAEA')};
   background-color: #fff;
   overflow: hidden;
   cursor: pointer;
@@ -47,7 +48,7 @@ const Thumbnail = styled.button`
   }
 
   &:hover {
-    border-color: var(--color-titulo-marybe);
+    border-color: #28180B;
   }
 `;
 
@@ -57,13 +58,15 @@ const MainImageContainer = styled.div`
   border-radius: 20px;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   padding: 40px;
-  min-height: 500px;
+  aspect-ratio: 1 / 1;
+  max-height: 600px;
+  border: 1px solid #EAEAEA;
   
   img {
     width: 100%;
-    max-height: 500px;
+    height: 100%;
     object-fit: contain;
   }
 
@@ -86,19 +89,17 @@ export default function SingleImageGallery({ images, nombre }) {
 
   return (
     <GalleryContainer>
-      {validImages.length > 1 && (
-        <ThumbnailsContainer>
-          {validImages.map((img, idx) => (
-            <Thumbnail
-              key={idx}
-              $active={activeIndex === idx}
-              onClick={() => setActiveIndex(idx)}
-            >
-              <img src={img} alt={`${nombre} thumbnail ${idx + 1}`} />
-            </Thumbnail>
-          ))}
-        </ThumbnailsContainer>
-      )}
+      <ThumbnailsContainer>
+        {validImages.map((img, idx) => (
+          <Thumbnail
+            key={idx}
+            $active={activeIndex === idx}
+            onClick={() => setActiveIndex(idx)}
+          >
+            <img src={img} alt={`${nombre} thumbnail ${idx + 1}`} />
+          </Thumbnail>
+        ))}
+      </ThumbnailsContainer>
 
       <MainImageContainer>
         <img src={mainImage} alt={nombre} />

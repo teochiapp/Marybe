@@ -39,6 +39,10 @@ function cellVal(row, colIndex) {
       ? String(cell.value.result).trim()
       : '';
   }
+  // Si es RichText (texto con formato como negrita/colores parciales)
+  if (cell.value && cell.value.richText) {
+    return cell.value.richText.map(rt => rt.text).join('').trim();
+  }
   return String(cell.value).trim();
 }
 
@@ -74,17 +78,20 @@ async function main() {
 
     productosRows.push({
       id_original,
-      sku:               cellVal(row, 2),
-      nombre:            cellVal(row, 3),
-      marca:             cellVal(row, 4),
-      seccion:           cellVal(row, 5),
-      categoria:         cellVal(row, 6),
-      subcategoria:      cellVal(row, 7),
-      descripcion_corta: cellVal(row, 8),
-      proveedor:         cellVal(row, 9),
-      publicado:         cellVal(row, 10),
-      destacado:         cellVal(row, 11) || 'FALSE',
-      moneda:            cellVal(row, 12) || 'ARS',
+      sku:                  cellVal(row, 2),
+      nombre:               cellVal(row, 3),
+      marca:                cellVal(row, 4),
+      seccion:              cellVal(row, 5),
+      categoria:            cellVal(row, 6),
+      subcategoria:         cellVal(row, 7),
+      descripcion_corta:    cellVal(row, 8),
+      descripcion_completa: cellVal(row, 9),
+      especificaciones:     cellVal(row, 10),
+      proveedor:            cellVal(row, 11),
+      publicado:            cellVal(row, 12),
+      destacado:            cellVal(row, 13) || 'FALSE',
+      moneda:               cellVal(row, 14) || 'ARS',
+      caracteristicas:      cellVal(row, 15),
     });
   });
 

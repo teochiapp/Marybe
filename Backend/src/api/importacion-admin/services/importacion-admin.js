@@ -23,6 +23,9 @@ function cellVal(row, colIndex) {
       ? String(cell.value.result).trim()
       : '';
   }
+  if (cell.value && cell.value.richText) {
+    return cell.value.richText.map(rt => rt.text).join('').trim();
+  }
   return String(cell.value).trim();
 }
 
@@ -61,17 +64,20 @@ async function leerExcel(rutaArchivo) {
 
     productos.push({
       id_original,
-      sku:               cellVal(row, 2),
-      nombre:            cellVal(row, 3),
-      marca:             cellVal(row, 4),
-      seccion:           cellVal(row, 5),
-      categoria:         cellVal(row, 6),
-      subcategoria:      cellVal(row, 7),
-      descripcion_corta: cellVal(row, 8),
-      proveedor:         cellVal(row, 9),
-      publicado:         cellVal(row, 10),
-      moneda:            cellVal(row, 11) || 'ARS',
-      caracteristicas:   cellVal(row, 13),
+      sku:                  cellVal(row, 2),
+      nombre:               cellVal(row, 3),
+      marca:                cellVal(row, 4),
+      seccion:              cellVal(row, 5),
+      categoria:            cellVal(row, 6),
+      subcategoria:         cellVal(row, 7),
+      descripcion_corta:    cellVal(row, 8),
+      descripcion_completa: cellVal(row, 9),
+      especificaciones:     cellVal(row, 10),
+      proveedor:            cellVal(row, 11),
+      publicado:            cellVal(row, 12),
+      destacado:            cellVal(row, 13) || 'FALSE',
+      moneda:               cellVal(row, 14) || 'ARS',
+      caracteristicas:      cellVal(row, 15),
     });
   });
 
@@ -86,9 +92,9 @@ async function leerExcel(rutaArchivo) {
     const id_original = cellVal(row, 1);
     if (!id_original) return;
 
-    const precio        = parseFloat(cellVal(row, 6)) || 0;
-    const pct_descuento = parseFloat(cellVal(row, 7)) || 0;
-    const precio_oferta_raw = cellVal(row, 8);
+    const precio        = parseFloat(cellVal(row, 7)) || 0;
+    const pct_descuento = parseFloat(cellVal(row, 8)) || 0;
+    const precio_oferta_raw = cellVal(row, 9);
 
     let precio_oferta = null;
     if (precio_oferta_raw && parseFloat(precio_oferta_raw) > 0) {
@@ -100,15 +106,16 @@ async function leerExcel(rutaArchivo) {
     variantes.push({
       id_original,
       producto_padre_id: cellVal(row, 2),
-      sku_ean:           cellVal(row, 3),
-      volumen:           cellVal(row, 4),
-      stock:             cellVal(row, 5) || '0',
+      sku_ean:           cellVal(row, 4),
+      volumen:           cellVal(row, 5),
+      stock:             cellVal(row, 6) || '0',
       precio:            String(precio),
       pct_descuento:     String(pct_descuento || ''),
       precio_oferta:     precio_oferta ? String(precio_oferta) : '',
-      publicado:         cellVal(row, 9) || 'TRUE',
-      envio:             cellVal(row, 10) || '1',
-      moneda:            cellVal(row, 11) || 'ARS',
+      publicado:         cellVal(row, 10) || 'TRUE',
+      envio:             cellVal(row, 11) || '1',
+      moneda:            cellVal(row, 12) || 'ARS',
+      color_nombre:      cellVal(row, 13),
     });
   });
 
@@ -232,9 +239,10 @@ async function procesarImportacion(strapi, rutaExcel) {
           if (pct && precio) return Math.round(precio * (1 - pct / 100) * 100) / 100;
           return parseDecimal(v.precio_oferta);
         })(),
-        publicado: parseBoolean(v.publicado),
-        envio:     (v.envio  || '').trim(),
-        moneda:    (v.moneda || 'ARS').trim(),
+        publicado:    parseBoolean(v.publicado),
+        envio:        (v.envio  || '').trim(),
+        moneda:       (v.moneda || 'ARS').trim(),
+        color_nombre: (v.color_nombre || '').trim() || null,
       }));
 
       const maxDescuento = hijos.reduce((max, v) => {
@@ -243,19 +251,22 @@ async function procesarImportacion(strapi, rutaExcel) {
       }, 0);
 
       const productoData = {
-        id_original:       idOriginal,
-        sku:               (p.sku || '').trim(),
-        nombre:            (p.nombre || '').trim(),
-        marca:             (p.marca || '').trim(),
-        seccion:           (p.seccion || '').trim(),
-        subcategoria:      (p.subcategoria || '').trim(),
-        descripcion_corta: (p.descripcion_corta || '').trim(),
-        proveedor:         (p.proveedor || '').trim(),
-        publicado:         parseBoolean(p.publicado),
-        moneda:            (p.moneda || 'ARS').trim(),
-        descuento:         maxDescuento,
-        variantes:         variantesData,
-        caracteristicas:   (p.caracteristicas || '').trim() || null,
+        id_original:          idOriginal,
+        sku:                  (p.sku || '').trim(),
+        nombre:               (p.nombre || '').trim(),
+        marca:                (p.marca || '').trim(),
+        seccion:              (p.seccion || '').trim(),
+        subcategoria:         (p.subcategoria || '').trim(),
+        descripcion_corta:    (p.descripcion_corta || '').trim(),
+        descripcion_completa: (p.descripcion_completa || '').trim(),
+        especificaciones:     (p.especificaciones || '').trim(),
+        proveedor:            (p.proveedor || '').trim(),
+        publicado:            parseBoolean(p.publicado),
+        destacado:            parseBoolean(p.destacado),
+        moneda:               (p.moneda || 'ARS').trim(),
+        descuento:            maxDescuento,
+        variantes:            variantesData,
+        caracteristicas:      (p.caracteristicas || '').trim() || null,
         ...(categoriaDocId ? { categoria: { documentId: categoriaDocId } } : {}),
       };
 

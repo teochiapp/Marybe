@@ -43,6 +43,7 @@ const ContentInner = styled.div`
   font-size: 0.95rem;
   line-height: 1.6;
   color: #555;
+  white-space: pre-wrap;
 `;
 
 const ChevronDown = () => (

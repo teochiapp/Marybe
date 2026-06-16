@@ -30,7 +30,7 @@ export const NAV_COLUMNS = [
       { label: 'Envíos', href: '/envios' },
       { label: 'Cambios y Devoluciones', href: '/cambios-devoluciones' },
       { label: 'Términos y Condiciones', href: '/terminos-condiciones' },
-      { label: 'Botón de arrepentimiento', href: '/boton-arrepentimiento' },
+      { label: 'Botón de arrepentimiento', href: '/arrepentimiento' },
     ],
   },
 ];

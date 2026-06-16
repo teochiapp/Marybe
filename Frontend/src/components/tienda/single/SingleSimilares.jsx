@@ -1,271 +1,510 @@
-import React from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
+import { generateProductUrl } from '../../../utils/productUrl';
 
-const Section = styled.section`
+const SectionWrapper = styled.section`
   margin-top: 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+
+  @media (max-width: 768px) {
+    margin-top: 40px;
+    gap: 20px;
+  }
 `;
 
-const Title = styled.h2`
-  font-family: var(--font-family-primary);
+const SectionTitle = styled.h2`
   font-size: 3rem;
   font-weight: 700;
-  color: #560203;
-  margin: 0 0 36px;
+  font-family: var(--font-family-secondary);
+  color: #3E0102;
+  letter-spacing: -2%;
+  margin: 0;
 
   @media (max-width: 600px) {
     font-size: 2.4rem;
   }
 `;
 
-const Row = styled.div`
+const ProductsGrid = styled.div`
   display: flex;
-  gap: 24px;
-  justify-content: safe center;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  padding-bottom: 18px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 40px;
+  position: relative;
+  z-index: 1;
+  cursor: grab;
+  padding-bottom: 20px;
 
-  /* Firefox */
-  scrollbar-width: thin;
-  scrollbar-color: #7C0405 transparent;
+  &:active {
+    cursor: grabbing;
+  }
 
-  /* Ocupa el 75% del ancho de la pantalla, centrado */
-  width: 75vw;
-  margin-left: calc(-37.5vw + 50%);
-  box-sizing: border-box;
-
-  /* Barra de scroll estilizada (WebKit) */
   &::-webkit-scrollbar {
-    height: 10px;
-  }
-  &::-webkit-scrollbar-track {
-    background: #f1e9e4;
-    border-radius: 10px;
-    margin: 0 4px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: linear-gradient(90deg, #7C0405, #560203);
-    border-radius: 10px;
-    border: 2px solid #f1e9e4;
-    background-clip: padding-box;
-    transition: all 0.25s ease;
-  }
-  &::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(90deg, #560203, #3e0102);
-    border-width: 1px;
+    display: none;
   }
 
   @media (max-width: 1024px) {
-    width: 92vw;
-    margin-left: calc(-46vw + 50%);
-  }
-`;
-
-const Card = styled.article`
-  /* 6 productos a la vez dentro del 75% (75vw - 5 gaps de 24px) / 6 */
-  flex: 0 0 calc((75vw - 120px) / 6);
-  scroll-snap-align: start;
-
-  @media (max-width: 1024px) {
-    /* 3 a la vez */
-    flex: 0 0 calc((92vw - 48px) / 3);
+    gap: 30px;
   }
 
   @media (max-width: 600px) {
-    /* 2 a la vez */
-    flex: 0 0 calc((92vw - 24px) / 2);
-  }
-  background-color: var(--color-blanco);
-  border: 1px solid #eee;
-  border-radius: 17px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 14px 28px -14px rgba(40, 1, 1, 0.25);
+    gap: 20px;
   }
 `;
 
-const ImageWrap = styled.div`
+const ProductCard = styled.div`
+  background-color: var(--color-blanco);
+  border-radius: 24px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
   position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  user-select: none;
+  -webkit-user-drag: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+
+  width: calc((100% - (4 * 40px)) / 4.5);
+
+  @media (max-width: 1440px) {
+    width: calc((100% - (3 * 40px)) / 3.5);
+  }
+
+  @media (max-width: 1024px) {
+    width: calc((100% - (2 * 30px)) / 2.5);
+  }
+
+  @media (max-width: 600px) {
+    width: calc((100% - (1 * 20px)) / 1.5);
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  }
+`;
+
+const CardImageContainer = styled.div`
+  width: 100%;
+  height: 250px;
   background-color: #f6f4f0;
-  height: 276px;
+  border-radius: var(--radius-md);
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+
+  @media (max-width: 600px) {
+    height: 160px;
+    margin-bottom: 10px;
+  }
+
+  img.product-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+  }
+`;
+
+const StampOverlay = styled.img`
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  z-index: 2;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+
+  @media (max-width: 600px) {
+    width: 38px;
+    height: 38px;
+    top: 5px;
+    left: 5px;
+  }
+`;
+
+const HeartContainer = styled.div`
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  z-index: 2;
+`;
+
+const HeartIcon = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-bordo-secundario);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 19px;
+  padding: 0;
 
-  img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
+  svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+
+    @media (max-width: 600px) {
+      width: 20px;
+      height: 20px;
+    }
   }
 `;
 
-const Promo = styled.span`
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  background-color: #f4dede;
-  color: #7C0405;
-  font-size: 0.94rem;
-  font-weight: 700;
-  padding: 4px 14px;
-  border-radius: var(--radius-full);
-`;
-
-const ComboTag = styled.span`
-  position: absolute;
-  top: 53px;
-  left: 14px;
-  background-color: #f0c9c9;
-  color: #7C0405;
-  font-size: 0.9rem;
-  font-weight: 700;
-  padding: 4px 14px;
-  border-radius: var(--radius-full);
-`;
-
-const Body = styled.div`
-  padding: 17px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  flex: 1;
-`;
-
-const Name = styled.p`
-  font-size: 1.14rem;
+const ProductBrand = styled.div`
+  font-size: 0.65rem;
   font-weight: 600;
-  color: #280101;
-  margin: 0;
+  color: var(--color-marron-secundario);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 15px;
+
+  @media (max-width: 600px) {
+    margin-bottom: 10px;
+  }
 `;
 
-const Brand = styled.span`
-  font-size: 0.86rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: #9a8f88;
-  text-transform: uppercase;
+const ProductName = styled.h3`
+  font-size: 16px;
+  color: black;
+  font-family: var(--font-family-secondary);
+  font-weight: 400;
+  margin-bottom: 4px;
+  line-height: 1.2;
+  height: 2.4em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  cursor: pointer;
+
+  @media (max-width: 600px) {
+    font-size: 14px;
+  }
 `;
 
 const PriceRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 7px;
+  flex-wrap: wrap;
+  column-gap: 10px;
+  row-gap: 4px;
+  margin-bottom: 6px;
 `;
 
 const OldPrice = styled.span`
-  font-size: 0.98rem;
-  color: #b0a89f;
+  font-size: 0.85rem;
+  color: #a0a0a0;
   text-decoration: line-through;
 `;
 
-const Price = styled.span`
-  font-size: 1.26rem;
-  font-weight: 700;
-  color: #7C0405;
-`;
-
-const Discount = styled.span`
-  background-color: #c0392b;
-  color: #fff;
-  font-size: 0.86rem;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 7px;
-`;
-
-const Installments = styled.span`
-  font-size: 0.98rem;
-  color: #5b524c;
-`;
-
-const Legal = styled.span`
-  font-size: 0.86rem;
-  color: #b0a89f;
-`;
-
-const AddBtn = styled.button`
-  margin-top: 17px;
-  width: 100%;
-  background-color: #280101;
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 15px;
-  font-family: var(--font-family-secondary);
-  font-size: 1.08rem;
+const CurrentPrice = styled.span`
+  font-size: 1.2rem;
   font-weight: 600;
-  cursor: pointer;
+  color: var(--color-bordo-secundario);
+
+  @media (max-width: 600px) {
+    font-size: 1.1rem;
+  }
+`;
+
+const DiscountBadge = styled.span`
+  background-color: var(--color-bordo-secundario);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+`;
+
+const Installments = styled.div`
+  font-size: 0.85rem;
+  color: #535353;
+  margin-bottom: 6px;
+  font-weight: 600;
+
+  @media (max-width: 600px) {
+    font-size: 0.75rem;
+  }
+`;
+
+const LegalText = styled.div`
+  font-size: 0.7rem;
+  color: #b0b0b0;
+  margin-bottom: 20px;
+  font-weight: 400;
+
+  @media (max-width: 600px) {
+    margin-bottom: 12px;
+    font-size: 0.65rem;
+  }
+`;
+
+const AddButton = styled.button`
+  background-color: var(--color-marron-cuarto);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 24px;
+  font-weight: 500;
+  font-size: 1rem;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   gap: 10px;
-  transition: background-color 0.25s ease;
+  transition: background-color 0.2s;
+  margin-top: auto;
+
+  @media (max-width: 600px) {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    border-radius: 10px;
+  }
 
   &:hover {
-    background-color: #7C0405;
+    background-color: var(--color-marron-principal);
   }
 
   svg {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+
+    @media (max-width: 600px) {
+      width: 18px;
+      height: 18px;
+    }
   }
 `;
 
-const IMG = '/inicio/elixir.png';
+// SVG Icons
+const HeartOutline = () => (
+  <svg viewBox="0 0 24 24">
+    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+  </svg>
+);
 
-const similares = Array.from({ length: 8 }).map((_, i) => ({
-  id: i,
-  nombre: 'Flower Ikebana Indigo EDP 40ml',
-  marca: 'KENZO',
-  precioViejo: '$194.600',
-  precio: '$116.760',
-  descuento: '10%',
-  cuota: '$4.333',
-  sinImpuestos: '$200.000',
-}));
+const CartIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 22C8.55228 22 9 21.5523 9 21C9 20.4477 8.55228 20 8 20C7.44772 20 7 20.4477 7 21C7 21.5523 7.44772 22 8 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M19 22C19.5523 22 20 21.5523 20 21C20 20.4477 19.5523 20 19 20C18.4477 20 18 20.4477 18 21C18 21.5523 18.4477 22 19 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M2.0498 2.05005H4.0498L6.7098 14.47C6.80738 14.9249 7.06048 15.3315 7.42552 15.6199C7.79056 15.9083 8.24471 16.0604 8.7098 16.05H18.4898C18.945 16.0493 19.3863 15.8933 19.7408 15.6079C20.0954 15.3224 20.3419 14.9246 20.4398 14.48L22.0898 7.05005H5.1198" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
-export default function SingleSimilares() {
+const ImagePlaceholder = () => (
+  <svg viewBox="0 0 24 24" fill="#ccc" style={{ width: '50px', height: '50px', opacity: 0.15 }}>
+    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+  </svg>
+);
+
+export default function SingleSimilares({ producto }) {
+  const [productos, setProductos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const scrollRef = useRef(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!producto) return;
+
+    // Buscar productos de la misma marca o misma categoría
+    let query = `${process.env.REACT_APP_STRAPI_URL}/api/productos?populate=*`;
+
+    // Si tenemos categoría, la priorizamos
+    const catDocId = producto.categoria?.data?.documentId || producto.categoria?.documentId;
+    if (catDocId) {
+      query += `&filters[categoria][documentId][$eq]=${catDocId}`;
+    } else if (producto.marca) {
+      query += `&filters[marca][$eq]=${producto.marca}`;
+    }
+
+    fetch(query)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          // Filtrar el producto actual y limitar a 8
+          const filtered = data.data
+            .filter(item => {
+              const itemId = item.documentId || item.id;
+              const currentId = producto.documentId || producto.id;
+              return itemId !== currentId;
+            })
+            .slice(0, 8);
+          setProductos(filtered);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error fetching similares:', err);
+        setLoading(false);
+      });
+  }, [producto]);
+
+  const isDown = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftVal = useRef(0);
+  const isDragging = useRef(false);
+
+  const handleMouseDown = useCallback((e) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    isDown.current = true;
+    isDragging.current = false;
+    el.style.scrollSnapType = 'none';
+    el.style.scrollBehavior = 'auto';
+    startX.current = e.pageX - el.offsetLeft;
+    scrollLeftVal.current = el.scrollLeft;
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (!isDown.current) return;
+    isDown.current = false;
+    const el = scrollRef.current;
+    if (el) {
+      el.style.scrollSnapType = 'x mandatory';
+      el.style.scrollBehavior = '';
+    }
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    if (!isDown.current) return;
+    isDown.current = false;
+    const el = scrollRef.current;
+    if (el) {
+      el.style.scrollSnapType = 'x mandatory';
+      el.style.scrollBehavior = '';
+    }
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDown.current) return;
+    e.preventDefault();
+    const el = scrollRef.current;
+    if (!el) return;
+    const x = e.pageX - el.offsetLeft;
+    const walk = (x - startX.current) * 1.5;
+    if (Math.abs(walk) > 5) {
+      isDragging.current = true;
+    }
+    el.scrollLeft = scrollLeftVal.current - walk;
+  }, []);
+
+  const handleProductClick = (id, nombre) => {
+    if (!isDragging.current) {
+      navigate(generateProductUrl(id, nombre));
+    }
+  };
+
+  const formatPrice = (price) => {
+    if (!price) return '$0';
+    return '$' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+
+  const getStampValue = (descuento) => {
+    if (descuento <= 20) return 20;
+    if (descuento <= 30) return 30;
+    if (descuento <= 35) return 35;
+    if (descuento <= 40) return 40;
+    return 50;
+  };
+
+  if (loading || productos.length === 0) {
+    return null; // Omitir la sección si está cargando o no hay similares
+  }
+
   return (
-    <Section>
-      <Title>Similares</Title>
-      <Row>
-        {similares.map((p) => (
-          <Card key={p.id}>
-            <ImageWrap>
-              <Promo>2×1</Promo>
-              <ComboTag>Combo</ComboTag>
-              <img src={IMG} alt={p.nombre} loading="lazy" />
-            </ImageWrap>
-            <Body>
-              <Name>{p.nombre}</Name>
-              <Brand>{p.marca}</Brand>
+    <SectionWrapper>
+      <SectionTitle>Similares</SectionTitle>
+
+      <ProductsGrid
+        ref={scrollRef}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+      >
+        {productos.map(item => {
+          const id = item.id || item.documentId;
+          const attrs = item.attributes || item;
+
+          const nombre = attrs.nombre;
+          const marca = attrs.marca;
+          const descuento = attrs.descuento || 0;
+
+          const variantes = attrs.variantes || [];
+          const mainVariant = variantes[0] || {};
+          const price = mainVariant.precio || 0;
+          const offerPrice = mainVariant.precio_oferta || null;
+
+          let imgUrl = null;
+          if (attrs.portada?.data?.attributes?.url) {
+            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.data.attributes.url}`;
+          } else if (attrs.portada?.url) {
+            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
+          }
+
+          const stampVal = descuento > 0 ? getStampValue(descuento) : null;
+
+          return (
+            <ProductCard key={id}>
+              <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
+                {descuento > 0 && stampVal && (
+                  <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
+                )}
+
+                {imgUrl ? (
+                  <img className="product-img" src={imgUrl} alt={nombre} draggable="false" />
+                ) : (
+                  <ImagePlaceholder />
+                )}
+                <HeartContainer>
+                  <HeartIcon aria-label="Agregar a favoritos" onClick={(e) => { e.stopPropagation(); }}>
+                    <HeartOutline />
+                  </HeartIcon>
+                </HeartContainer>
+              </CardImageContainer>
+
+              <ProductBrand>{marca}</ProductBrand>
+              <ProductName title={nombre} onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
+
               <PriceRow>
-                <OldPrice>{p.precioViejo}</OldPrice>
-                <Price>{p.precio}</Price>
-                <Discount>{p.descuento}</Discount>
+                {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
+                <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
+                {descuento > 0 && <DiscountBadge>{descuento}% OFF</DiscountBadge>}
               </PriceRow>
+
               <Installments>
-                3 cuotas sin interés de <strong>{p.cuota}</strong>
+                3 cuotas sin interés de {formatPrice(Math.round((offerPrice || price) / 3))}
               </Installments>
-              <Legal>Precio sin impuestos nacionales {p.sinImpuestos}</Legal>
-              <AddBtn>
-                Agregar
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M9 20a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm7 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm-8.8-4h9.6l2.4-12H5.6L4.2 1H1v2h2.2l3.4 17h11v-2H7.6l-.4-2zM6.4 6h12.6l-1.6 8H7.2L6.4 6z" />
-                </svg>
-              </AddBtn>
-            </Body>
-          </Card>
-        ))}
-      </Row>
-    </Section>
+              <LegalText>
+                Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
+              </LegalText>
+
+              <AddButton>
+                Agregar <CartIcon />
+              </AddButton>
+            </ProductCard>
+          );
+        })}
+      </ProductsGrid>
+    </SectionWrapper>
   );
 }

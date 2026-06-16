@@ -40,6 +40,12 @@
     "descripcion_corta": {
       "type": "text"
     },
+    "descripcion_completa": {
+      "type": "text"
+    },
+    "especificaciones": {
+      "type": "text"
+    },
     "proveedor": {
       "type": "string"
     },
