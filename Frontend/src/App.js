@@ -1,5 +1,9 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import AuthModal from './components/auth/AuthModal';
+import AuthRedirect from './components/auth/AuthRedirect';
+
 import ApiProductos from './pages/ApiProductos';
 import ProductoSingle from './pages/tienda/ProductoSingle';
 import Inicio from './pages/inicio/Inicio';
@@ -42,16 +46,30 @@ import MetodoEnvio from './pages/metodo-envio/MetodoEnvio';
 // Panel de Administración
 import ImportacionAdmin from './pages/admin/ImportacionAdmin';
 
+// Carrito
+import Carrito from './pages/carrito/Carrito';
+
+// Checkout
+import Login from './pages/checkout/Login';
+import Envio from './pages/checkout/Envio';
+import Pago from './pages/checkout/Pago';
+
 function App() {
   return (
-    <>
+    <AuthProvider>
       <Header />
+      <AuthModal />
       <Routes>
         <Route path="/" element={<Navigate to="/inicio" replace />} />
         <Route path="/inicio" element={<Inicio />} />
         <Route path="/tienda" element={<Catalogo />} />
         <Route path="/producto/:id" element={<ProductoSingle />} />
         <Route path="/productos" element={<ApiProductos />} />
+        <Route path="/carrito" element={<Carrito />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/envio" element={<Envio />} />
+        <Route path="/pago" element={<Pago />} />
+        <Route path="/auth/google/callback" element={<AuthRedirect />} />
 
         {/* Rutas de Ayuda */}
         <Route path="/preguntas-frecuentes" element={<PreguntasFrecuentes />} />
@@ -89,7 +107,7 @@ function App() {
         <Route path="/importacion-admin" element={<ImportacionAdmin />} />
       </Routes>
       <Footer />
-    </>
+    </AuthProvider>
   );
 }
 

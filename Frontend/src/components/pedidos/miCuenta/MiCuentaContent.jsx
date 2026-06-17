@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import styled from 'styled-components';
 import { FiUser, FiShoppingBag, FiMapPin, FiHeart, FiLogOut } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../../context/AuthContext';
 
 const DashboardLayout = styled.div`
   display: grid;
@@ -191,6 +193,8 @@ const AddressCard = styled.div`
 `;
 
 export default function MiCuentaContent() {
+  const { logout } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('perfil');
   const [profile, setProfile] = useState({
     nombre: 'Teo Chiappero',
@@ -223,7 +227,7 @@ export default function MiCuentaContent() {
         <NavItem $active={activeTab === 'favoritos'} onClick={() => setActiveTab('favoritos')}>
           <FiHeart /> Mis Favoritos
         </NavItem>
-        <NavItem style={{ color: '#c62828' }} onClick={() => alert('Cierre de sesión simulado')}>
+        <NavItem style={{ color: '#c62828' }} onClick={() => { logout(); navigate('/'); }}>
           <FiLogOut /> Cerrar Sesión
         </NavItem>
       </NavList>

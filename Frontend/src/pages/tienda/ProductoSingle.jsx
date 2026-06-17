@@ -26,11 +26,17 @@ const ContentWrapper = styled.div`
 
 const MainLayout = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 5fr 5fr;
   gap: 60px;
+  align-items: start;
+
+  & > * {
+    min-width: 0;
+  }
 
   @media (max-width: 1024px) {
     gap: 40px;
+    grid-template-columns: 1fr 1fr;
   }
 
   @media (max-width: 768px) {
@@ -45,6 +51,44 @@ const LoadingContainer = styled.div`
   height: 50vh;
   font-size: 1.2rem;
   color: #555;
+`;
+
+const DesktopOnly = styled.div`
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const MobileTopRow = styled.div`
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+
+  @media (max-width: 768px) {
+    display: flex;
+  }
+`;
+
+const Pill = styled.span`
+  background-color: #F2D4D4;
+  color: var(--color-bordo-tercero);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+`;
+
+const IconsContainer = styled.div`
+  display: flex;
+  gap: 15px;
+  color: #000000;
+  
+  svg {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+  }
 `;
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
@@ -139,15 +183,61 @@ export default function ProductoSingle() {
     images.push('/placeholder.png');
   }
 
+  const handleShare = async () => {
+    if (!producto) return;
+    const shareData = {
+      title: `${producto.nombre} - ${producto.marca || ''} | Marybe`,
+      text: producto.descripcion_corta || `Mirá este producto en Marybe: ${producto.nombre}`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
+        alert('Enlace copiado al portapapeles');
+      }
+    } catch (err) {
+      console.error('Error al compartir', err);
+    }
+  };
+
   return (
     <>
       <PageContainer>
         <ContentWrapper>
-          <SingleBreadcrumb
-            seccion={producto.seccion}
-            categoria={producto.categoria?.data?.attributes?.nombre || producto.categoria?.nombre}
-            nombre={producto.nombre}
-          />
+          <DesktopOnly>
+            <SingleBreadcrumb
+              seccion={producto.seccion}
+              categoria={producto.categoria?.data?.attributes?.nombre || producto.categoria?.nombre}
+              nombre={producto.nombre}
+            />
+          </DesktopOnly>
+
+          <MobileTopRow>
+            <div>
+              {producto.descuento > 0 && <Pill>Super oferta</Pill>}
+            </div>
+            <IconsContainer>
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                onClick={handleShare}
+                title="Compartir"
+              >
+                <path d="M9 12C9 12.663 8.73661 13.2989 8.26777 13.7678C7.79893 14.2366 7.16304 14.5 6.5 14.5C5.83696 14.5 5.20107 14.2366 4.73223 13.7678C4.26339 13.2989 4 12.663 4 12C4 11.337 4.26339 10.7011 4.73223 10.2322C5.20107 9.76339 5.83696 9.5 6.5 9.5C7.16304 9.5 7.79893 9.76339 8.26777 10.2322C8.73661 10.7011 9 11.337 9 12Z" stroke="#7C0405" strokeWidth="1.5" />
+                <path d="M14 6.5L9 10M14 17.5L9 14" stroke="#7C0405" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M19 18.5C19 19.163 18.7366 19.7989 18.2678 20.2678C17.7989 20.7366 17.163 21 16.5 21C15.837 21 15.2011 20.7366 14.7322 20.2678C14.2634 19.7989 14 19.163 14 18.5C14 17.837 14.2634 17.2011 14.7322 16.7322C15.2011 16.2634 15.837 16 16.5 16C17.163 16 17.7989 16.2634 18.2678 16.7322C18.7366 17.2011 19 17.837 19 18.5ZM19 5.5C19 6.16304 18.7366 6.79893 18.2678 7.26777C17.7989 7.73661 17.163 8 16.5 8C15.837 8 15.2011 7.73661 14.7322 7.26777C14.2634 6.79893 14 6.16304 14 5.5C14 4.83696 14.2634 4.20107 14.7322 3.73223C15.2011 3.26339 15.837 3 16.5 3C17.163 3 17.7989 3.26339 18.2678 3.73223C18.7366 4.20107 19 4.83696 19 5.5Z" stroke="#7C0405" strokeWidth="1.5" />
+              </svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4.35939 4.66801C6.23639 2.95701 10.2674 3.30601 12.0004 7.23001C13.7334 3.30701 17.7644 2.95701 19.6414 4.66801C21.1704 6.04101 21.9044 9.33301 20.5084 12.363C18.1014 17.573 12.0004 20.309 12.0004 20.309C12.0004 20.309 5.90039 17.573 3.49239 12.363C2.09639 9.33301 2.83039 6.04101 4.35939 4.66801Z" stroke="#7C0405" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </IconsContainer>
+          </MobileTopRow>
 
           <MainLayout>
             {/* Lado izquierdo: Galería */}
@@ -161,7 +251,7 @@ export default function ProductoSingle() {
               <SingleProductInfo producto={producto} />
 
               {/* Acordeones inferiores */}
-              <SingleAccordion 
+              <SingleAccordion
                 descripcion={producto.descripcion_completa}
                 especificaciones={producto.especificaciones}
                 politicas={null} // Idem

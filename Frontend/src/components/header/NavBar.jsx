@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import UbicacionPopup from './UbicacionPopup';
 import SearchDropdown from './SearchDropdown';
+import { CartContext } from '../../context/CartContext';
 
 /* ── Animaciones ── */
 const slideIn = keyframes`
@@ -429,6 +430,7 @@ export default function NavBar() {
   const [searchParams] = useSearchParams();
   const searchContainerRef = useRef(null);
   const mobileSearchContainerRef = useRef(null);
+  const { itemCount } = useContext(CartContext);
 
   // Sync input with current search param on mount or URL change
   useEffect(() => {
@@ -546,9 +548,9 @@ export default function NavBar() {
         {/* Desktop: iconos */}
         <DesktopIcons>
           <IconButton aria-label="Mi cuenta" onClick={() => navigate('/mi-cuenta')}><UserIcon /></IconButton>
-          <IconButton aria-label="Carrito">
+          <IconButton aria-label="Carrito" onClick={() => navigate('/carrito')}>
             <CartIconSvg />
-            <CartBadge>0</CartBadge>
+            {itemCount > 0 && <CartBadge>{itemCount}</CartBadge>}
           </IconButton>
         </DesktopIcons>
 
@@ -557,9 +559,9 @@ export default function NavBar() {
           <IconButton aria-label="Buscar" onClick={() => setMobileSearchOpen(prev => !prev)}>
             <SearchIconSvg />
           </IconButton>
-          <IconButton aria-label="Carrito">
+          <IconButton aria-label="Carrito" onClick={() => navigate('/carrito')}>
             <CartIconSvg />
-            <CartBadge>0</CartBadge>
+            {itemCount > 0 && <CartBadge>{itemCount}</CartBadge>}
           </IconButton>
         </MobileRight>
       </NavBarWrapper>
@@ -613,9 +615,9 @@ export default function NavBar() {
                 <CloseIcon />
               </IconButton>
               <DrawerLogo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} />
-              <IconButton aria-label="Carrito">
+              <IconButton aria-label="Carrito" onClick={() => { closeDrawer(); navigate('/carrito'); }}>
                 <CartIconSvg />
-                <CartBadge>0</CartBadge>
+                {itemCount > 0 && <CartBadge>{itemCount}</CartBadge>}
               </IconButton>
             </DrawerHeader>
 

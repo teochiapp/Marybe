@@ -21,7 +21,7 @@ const ModalContent = styled.div`
   background-color: #fff;
   border-radius: 12px;
   width: 100%;
-  max-width: 500px;
+  max-width: 700px;
   max-height: 80vh;
   overflow-y: auto;
   padding: 30px;
@@ -97,6 +97,71 @@ const PromoText = styled.div`
 
   strong {
     font-weight: 700;
+  }
+`;
+
+const InfoBox = styled.div`
+  background-color: var(--color-fondo-info-promo, #FDF7F2);
+  border-radius: 12px;
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  margin-top: 24px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+  }
+`;
+
+const InfoTextWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const InfoTitle = styled.h3`
+  font-family: var(--font-family-secondary);
+  font-size: 20px;
+  font-weight: 700;
+  color: black;
+  margin: 0;
+`;
+
+const InfoDesc = styled.p`
+  font-family: var(--font-family-secondary);
+  font-size: 14px;
+  color: black;
+  margin: 0;
+  opacity: 0.85;
+`;
+
+const InfoButton = styled.a`
+  background-color: var(--color-boton-promo, #280101);
+  color: var(--color-blanco, #fff);
+  font-family: var(--font-family-secondary);
+  font-size: 16px;
+  font-weight: 500;
+  padding: 14px 28px;
+  border-radius: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+
+  &:hover {
+    transform: translateY(-1px);
+    opacity: 0.92;
+  }
+
+  @media (max-width: 768px) {
+    align-self: stretch;
+    text-align: center;
+    padding: 14px 0;
   }
 `;
 
@@ -204,9 +269,20 @@ export default function PaymentModal({ isOpen, onClose }) {
                 </PromoItem>
               );
             })}
-          </PromoList>
-        )}
-      </ModalContent>
-    </ModalOverlay>
+            </PromoList>
+          )}
+
+          <InfoBox>
+            <InfoTextWrapper>
+              <InfoTitle>¿Necesitás más información?</InfoTitle>
+              <InfoDesc>
+                Consultá todas las promociones vigentes y encontrá la que más te conviene.
+              </InfoDesc>
+            </InfoTextWrapper>
+            <InfoButton href="#">Ver todas las promociones</InfoButton>
+          </InfoBox>
+
+        </ModalContent>
+      </ModalOverlay>
   );
 }

@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
+import AddToCartModal from '../../carrito/AddToCartModal';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-hogar);
@@ -476,6 +477,15 @@ export default function FeaturedSectionHogar() {
   const navigate = useNavigate();
   const isDragging = useRef(false);
 
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleAddClick = (product, e) => {
+    e.stopPropagation();
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+
   useEffect(() => {
     fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[destacado][$eq]=true&filters[seccion][$eq]=Hogar&populate=*`)
       .then(res => res.json())
@@ -623,13 +633,21 @@ export default function FeaturedSectionHogar() {
                 Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
               </LegalText>
 
-              <AddButton>
+              <AddButton onClick={(e) => handleAddClick(item, e)}>
                 Agregar <CartIcon />
               </AddButton>
             </ProductCard>
           );
         })}
       </ProductsGrid>
+      {selectedProduct && (
+        <AddToCartModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          product={selectedProduct}
+          initialMode="select"
+        />
+      )}
     </SectionWrapper>
   );
 }
