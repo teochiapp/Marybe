@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import GiftCardGallery from '../../components/gift-card/GiftCardGallery';
 import GiftCardInfo from '../../components/gift-card/GiftCardInfo';
 import GiftCardAccordion from '../../components/gift-card/GiftCardAccordion';
+import GiftCardDestacados from '../../components/gift-card/GiftCardDestacados';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -89,6 +90,8 @@ export default function GiftCardPage() {
             <GiftCardAccordion />
           </RightColumn>
         </MainLayout>
+
+        <GiftCardDestacados />
       </ContentWrapper>
     </PageContainer>
   );

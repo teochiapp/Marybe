@@ -46,10 +46,8 @@ import MetodoEnvio from './pages/metodo-envio/MetodoEnvio';
 // Panel de Administración
 import ImportacionAdmin from './pages/admin/ImportacionAdmin';
 
-<<<<<<< HEAD
 // Página de Gift Card
 import GiftCardPage from './pages/gift-card/GiftCardPage';
-=======
 // Carrito
 import Carrito from './pages/carrito/Carrito';
 
@@ -57,7 +55,6 @@ import Carrito from './pages/carrito/Carrito';
 import Login from './pages/checkout/Login';
 import Envio from './pages/checkout/Envio';
 import Pago from './pages/checkout/Pago';
->>>>>>> d6c80f3c792e4774cf7b65c9ffa105ef9e1ca2f7
 
 function App() {
   return (
