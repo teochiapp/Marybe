@@ -21,6 +21,11 @@
   --color-fondo-info-promo: #e7e2da;
   --color-boton-promo: #280101;
 
+  /* Gift card — paleta crema y dorada de la tarjeta */
+  --color-giftcard-crema: #F7F3EC;
+  --color-giftcard-borde: #E6DECF;
+  --color-giftcard-oro: #C2A15C;
+
   /* ─── Espaciados Estándar (Spacing Tokens) ───────────────────────── */
   --spacing-xs: 0.25rem;
   /* 4px */

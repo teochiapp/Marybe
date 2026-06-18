@@ -42,6 +42,9 @@ import MetodoEnvio from './pages/metodo-envio/MetodoEnvio';
 // Panel de Administración
 import ImportacionAdmin from './pages/admin/ImportacionAdmin';
 
+// Página de Gift Card
+import GiftCardPage from './pages/gift-card/GiftCardPage';
+
 function App() {
   return (
     <>
@@ -85,8 +88,11 @@ function App() {
         {/* Ruta de Método de envío */}
         <Route path="/metodo-envio" element={<MetodoEnvio />} />
 
-        {/* Ruta de Administración */}
+        {/* Panel de Administración */}
         <Route path="/importacion-admin" element={<ImportacionAdmin />} />
+
+        {/* Ruta de Gift Card */}
+        <Route path="/gift-card" element={<GiftCardPage />} />
       </Routes>
       <Footer />
     </>
