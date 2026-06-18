@@ -6,7 +6,9 @@ const GalleryContainer = styled.div`
   gap: 20px;
   
   @media (max-width: 768px) {
-    flex-direction: column-reverse;
+    position: relative;
+    gap: 0;
+    display: block;
   }
 `;
 
@@ -17,14 +19,12 @@ const ThumbnailsContainer = styled.div`
   width: 80px;
 
   @media (max-width: 768px) {
-    flex-direction: row;
-    width: 100%;
-    overflow-x: auto;
-    padding-bottom: 10px;
-    
-    &::-webkit-scrollbar {
-      display: none;
-    }
+    position: absolute;
+    left: 0px;
+    top: 10px;
+    width: 60px;
+    gap: 8px;
+    z-index: 10;
   }
 `;
 
@@ -50,6 +50,14 @@ const Thumbnail = styled.button`
   &:hover {
     border-color: #28180B;
   }
+
+  @media (max-width: 768px) {
+    width: 60px;
+    height: 60px;
+    padding: 4px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.9);
+  }
 `;
 
 const MainImageContainer = styled.div`
@@ -62,7 +70,6 @@ const MainImageContainer = styled.div`
   padding: 40px;
   aspect-ratio: 1 / 1;
   max-height: 600px;
-  border: 1px solid #EAEAEA;
   
   img {
     width: 100%;
@@ -71,8 +78,10 @@ const MainImageContainer = styled.div`
   }
 
   @media (max-width: 768px) {
+    width: 100%;
     min-height: 350px;
     padding: 20px;
+    box-sizing: border-box;
     
     img {
       max-height: 350px;

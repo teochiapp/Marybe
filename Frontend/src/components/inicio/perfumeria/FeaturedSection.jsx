@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
+import AddToCartModal from '../../carrito/AddToCartModal';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
@@ -490,6 +491,15 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
   const navigate = useNavigate();
   const isDragging = useRef(false);
 
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleAddClick = (product, e) => {
+    e.stopPropagation();
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+
   const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
 
   useEffect(() => {
@@ -636,7 +646,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
               <Installments>3 cuotas sin interés de $4.333</Installments>
               <LegalText>Precio sin impuestos nacionales $200.000</LegalText>
 
-              <AddButton>
+              <AddButton onClick={(e) => handleAddClick(item, e)}>
                 Agregar <CartIcon />
               </AddButton>
             </ProductCard>
@@ -662,6 +672,15 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             <BannerButton onClick={() => navigate('/tienda?banner=azzaro&seccion=Perfumer%C3%ADa')}>Conocer más</BannerButton>
           </BottomBanner>
         </BannersRow>
+      )}
+
+      {selectedProduct && (
+        <AddToCartModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          product={selectedProduct}
+          initialMode="select"
+        />
       )}
     </SectionWrapper>
   );

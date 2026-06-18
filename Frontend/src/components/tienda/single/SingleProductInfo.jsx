@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import PaymentModal from './PaymentModal';
+import ShippingModal from './ShippingModal';
+import AddToCartModal from '../../carrito/AddToCartModal';
+import { CartContext } from '../../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const InfoContainer = styled.div`
@@ -16,6 +19,10 @@ const TopRow = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const PillsContainer = styled.div`
@@ -69,7 +76,7 @@ const Title = styled.h1`
   color: #000000;
 
   @media (max-width: 768px) {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
 `;
 
@@ -236,9 +243,20 @@ const ActionRow = styled.div`
   display: flex;
   gap: 15px;
   margin-bottom: 30px;
+`;
 
-  @media (max-width: 600px) {
-    flex-direction: column;
+const DesktopActionRow = styled.div`
+  display: block;
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const MobileActionRow = styled.div`
+  display: none;
+  @media (max-width: 768px) {
+    display: block;
+    margin-bottom: 10px;
   }
 `;
 
@@ -297,6 +315,7 @@ const AddToCartBtn = styled.button`
   border: none;
   border-radius: 8px;
   height: 48px;
+  padding: 8px 16px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
@@ -304,10 +323,17 @@ const AddToCartBtn = styled.button`
   justify-content: center;
   align-items: center;
   gap: 10px;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 
   &:hover {
-    background-color: var(--color-titulo-marybe);
+    background-color: #3f0303; /* Tono ligeramente más claro que #280101 */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(40, 1, 1, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
   }
 
   svg {
@@ -431,11 +457,14 @@ const COLOR_MAP = {
 };
 
 export default function SingleProductInfo({ producto }) {
+  const { addToCart } = useContext(CartContext);
   const [qty, setQty] = useState(1);
   const [qtyDir, setQtyDir] = useState(1);
   const [selectedSize, setSelectedSize] = useState(0);
   const [selectedColor, setSelectedColor] = useState(null); // null = ninguno seleccionado
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isShippingModalOpen, setShippingModalOpen] = useState(false);
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
 
   if (!producto) return null;
 
@@ -506,6 +535,57 @@ export default function SingleProductInfo({ producto }) {
   const priceWithoutTaxes = Math.round((offerPrice || price) * 0.79);
   const installmentValue = Math.round((offerPrice || price) / 3);
 
+  const renderAddToCart = () => (
+    <>
+      <OptionLabel>Cantidad</OptionLabel>
+      <ActionRow>
+        <QuantityBox>
+          <button
+            disabled={qty <= 1}
+            onClick={() => { setQtyDir(-1); setQty(Math.max(1, qty - 1)); }}
+          >
+            −
+          </button>
+          <QtyNumber>
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={qty}
+                initial={{ y: qtyDir * 18, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: qtyDir * -18, opacity: 0 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+              >
+                {qty}
+              </motion.span>
+            </AnimatePresence>
+          </QtyNumber>
+          <button
+            disabled={qty >= stock}
+            onClick={() => { setQtyDir(1); setQty(Math.min(stock, qty + 1)); }}
+          >
+            +
+          </button>
+        </QuantityBox>
+        <AddToCartBtn 
+          disabled={stock === 0} 
+          style={{ opacity: stock === 0 ? 0.6 : 1, cursor: stock === 0 ? 'not-allowed' : 'pointer' }}
+          onClick={() => {
+            if (stock > 0) {
+              addToCart(producto, qty, activeVariant);
+              setIsCartModalOpen(true);
+            }
+          }}
+        >
+          {stock === 0 ? 'Agotado' : 'Agregar'}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+        </AddToCartBtn>
+      </ActionRow>
+    </>
+  );
 
   return (
     <InfoContainer>
@@ -547,6 +627,10 @@ export default function SingleProductInfo({ producto }) {
       </SubBadges>
 
       {descripcion_corta && <DescriptionExcerpt>{descripcion_corta}</DescriptionExcerpt>}
+
+      <MobileActionRow>
+        {renderAddToCart()}
+      </MobileActionRow>
 
       <PriceBlock>
         {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
@@ -608,49 +692,14 @@ export default function SingleProductInfo({ producto }) {
       )}
 
       <StockInfo>
-        {stock > 0 
-          ? `Stock Disponible (+${stock} disponibles)` 
+        {stock > 0
+          ? `Stock Disponible (+${stock} disponibles)`
           : <span style={{ color: '#d32f2f' }}>Sin stock disponible</span>}
       </StockInfo>
 
-      <OptionLabel>Cantidad</OptionLabel>
-      <ActionRow>
-        <QuantityBox>
-          <button 
-            disabled={qty <= 1}
-            onClick={() => { setQtyDir(-1); setQty(Math.max(1, qty - 1)); }}
-          >
-            −
-          </button>
-          <QtyNumber>
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.span
-                key={qty}
-                initial={{ y: qtyDir * 18, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: qtyDir * -18, opacity: 0 }}
-                transition={{ duration: 0.22, ease: 'easeOut' }}
-              >
-                {qty}
-              </motion.span>
-            </AnimatePresence>
-          </QtyNumber>
-          <button 
-            disabled={qty >= stock}
-            onClick={() => { setQtyDir(1); setQty(Math.min(stock, qty + 1)); }}
-          >
-            +
-          </button>
-        </QuantityBox>
-        <AddToCartBtn disabled={stock === 0} style={{ opacity: stock === 0 ? 0.6 : 1, cursor: stock === 0 ? 'not-allowed' : 'pointer' }}>
-          {stock === 0 ? 'Agotado' : 'Agregar'}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="9" cy="21" r="1"></circle>
-            <circle cx="20" cy="21" r="1"></circle>
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-          </svg>
-        </AddToCartBtn>
-      </ActionRow>
+      <DesktopActionRow>
+        {renderAddToCart()}
+      </DesktopActionRow>
 
       <ShippingInfo>
         <InfoItem>
@@ -672,7 +721,7 @@ export default function SingleProductInfo({ producto }) {
           </svg>
           <div>
             Calculá costo de envío
-            <a>Calcular costo</a>
+            <a onClick={() => setShippingModalOpen(true)} style={{ cursor: 'pointer' }}>Calcular costo</a>
           </div>
         </InfoItem>
         <InfoItem>
@@ -692,6 +741,20 @@ export default function SingleProductInfo({ producto }) {
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
+      />
+
+      <ShippingModal
+        isOpen={isShippingModalOpen}
+        onClose={() => setShippingModalOpen(false)}
+      />
+
+      <AddToCartModal
+        isOpen={isCartModalOpen}
+        onClose={() => setIsCartModalOpen(false)}
+        product={producto}
+        initialMode="success"
+        addedQty={qty}
+        addedVariant={activeVariant}
       />
     </InfoContainer>
   );

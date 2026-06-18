@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import styled from 'styled-components';
 import { FiUser, FiShoppingBag, FiMapPin, FiHeart, FiLogOut } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../../context/AuthContext';
 
 const DashboardLayout = styled.div`
   display: grid;
@@ -191,21 +193,60 @@ const AddressCard = styled.div`
 `;
 
 export default function MiCuentaContent() {
+  const { user, token, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('perfil');
   const [profile, setProfile] = useState({
-    nombre: 'Teo Chiappero',
-    email: 'teo.chiappero@example.com',
-    telefono: '+54 385 4123456',
-    nacimiento: '1995-10-24',
+    nombre: '',
+    email: '',
+    telefono: '',
+    nacimiento: '',
   });
+  const [direcciones, setDirecciones] = useState([]);
+  const [pedidos, setPedidos] = useState([]);
+
+  useEffect(() => {
+    if (token) {
+      const fetchData = async () => {
+        try {
+          const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+          const res = await fetch(`${apiUrl}/api/mi-perfil`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const json = await res.json();
+          
+          if (json && json.data) {
+            const data = json.data;
+            setProfile({
+              nombre: user?.username || '',
+              email: user?.email || '',
+              telefono: data.telefono || '',
+              nacimiento: data.nacimiento || '',
+            });
+            setDirecciones(data.direcciones || []);
+          } else if (user) {
+            setProfile(prev => ({
+              ...prev,
+              nombre: user.username || '',
+              email: user.email || ''
+            }));
+          }
+        } catch (error) {
+          console.error("Error fetching profile data", error);
+        }
+      };
+      fetchData();
+    }
+  }, [token, user]);
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    alert('¡Cambios guardados con éxito!');
+  const handleSave = async () => {
+    // Aquí idealmente haríamos un PUT/POST a la API para actualizar el perfil
+    alert('¡Cambios guardados localmente! (Integración de guardado pendiente)');
   };
 
   return (
@@ -223,7 +264,7 @@ export default function MiCuentaContent() {
         <NavItem $active={activeTab === 'favoritos'} onClick={() => setActiveTab('favoritos')}>
           <FiHeart /> Mis Favoritos
         </NavItem>
-        <NavItem style={{ color: '#c62828' }} onClick={() => alert('Cierre de sesión simulado')}>
+        <NavItem style={{ color: '#c62828' }} onClick={() => { logout(); navigate('/'); }}>
           <FiLogOut /> Cerrar Sesión
         </NavItem>
       </NavList>
@@ -310,25 +351,22 @@ export default function MiCuentaContent() {
           <div>
             <SectionTitle>Direcciones de Entrega</SectionTitle>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <AddressCard>
-                <div style={{ fontWeight: 700 }}>Domicilio Particular (Principal)</div>
-                <div style={{ fontSize: '0.9rem', color: '#555' }}>
-                  Av. Belgrano 1245, Piso 4 B<br />
-                  Santiago del Estero (CP 4200)
-                </div>
-                <div style={{ fontSize: '0.85rem', color: '#888', marginTop: 10 }}>Editar | Eliminar</div>
-              </AddressCard>
-
-              <AddressCard>
-                <div style={{ fontWeight: 700 }}>Oficina Trabajo</div>
-                <div style={{ fontSize: '0.9rem', color: '#555' }}>
-                  Libertad 340, Local 12<br />
-                  Tucumán (CP 4000)
-                </div>
-                <div style={{ fontSize: '0.85rem', color: '#888', marginTop: 10 }}>Editar | Eliminar</div>
-              </AddressCard>
+              {direcciones.length > 0 ? (
+                direcciones.map((dir, idx) => (
+                  <AddressCard key={idx}>
+                    <div style={{ fontWeight: 700 }}>{idx === 0 ? 'Domicilio Principal' : `Dirección ${idx + 1}`}</div>
+                    <div style={{ fontSize: '0.9rem', color: '#555' }}>
+                      {dir.calle} {dir.numero}{dir.piso_depto ? `, ${dir.piso_depto}` : ''}<br />
+                      {dir.ciudad}, {dir.provincia} {dir.cp ? `(CP ${dir.cp})` : ''}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#888', marginTop: 10 }}>Editar | Eliminar</div>
+                  </AddressCard>
+                ))
+              ) : (
+                <p style={{ color: '#666', fontSize: '0.95rem' }}>Aún no tienes direcciones guardadas.</p>
+              )}
             </div>
-            <SaveBtn style={{ marginTop: '24px' }}>Agregar Nueva Dirección</SaveBtn>
+            <SaveBtn style={{ marginTop: '24px' }} onClick={() => navigate('/login?edit=true')}>Agregar Nueva Dirección</SaveBtn>
           </div>
         )}
 

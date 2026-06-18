@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
+import AddToCartModal from '../../carrito/AddToCartModal';
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -308,6 +309,7 @@ const AddButton = styled.button`
 
 export default function CatalogoProductCard({ product, isFav, onToggleFav, strapiUrl }) {
   const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const id = product.id || product.documentId;
   const attrs = product.attributes || product;
 
@@ -398,9 +400,16 @@ export default function CatalogoProductCard({ product, isFav, onToggleFav, strap
         Precio sin impuestos nacionales {formatPrice(Math.round(currentPriceVal * 0.79))}
       </LegalText>
 
-      <AddButton id={`add-btn-${id}`}>
+      <AddButton id={`add-btn-${id}`} onClick={(e) => { e.stopPropagation(); setIsModalOpen(true); }}>
         Agregar <CartIcon />
       </AddButton>
+
+      <AddToCartModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        product={product}
+        initialMode="select"
+      />
     </ProductCard>
   );
 }

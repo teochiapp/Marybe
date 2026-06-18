@@ -543,6 +543,40 @@ export interface ApiCategoriaCategoria extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiClienteCliente extends Struct.CollectionTypeSchema {
+  collectionName: 'clientes';
+  info: {
+    description: 'Perfil del cliente con sus datos y direcciones.';
+    displayName: 'Cliente';
+    pluralName: 'clientes';
+    singularName: 'cliente';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    direcciones: Schema.Attribute.JSON;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::cliente.cliente'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    telefono: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    usuario: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+  };
+}
+
 export interface ApiOfertaOferta extends Struct.CollectionTypeSchema {
   collectionName: 'ofertas';
   info: {
@@ -1379,6 +1413,7 @@ declare module '@strapi/strapi' {
       'api::categoria-especifica-hogar.categoria-especifica-hogar': ApiCategoriaEspecificaHogarCategoriaEspecificaHogar;
       'api::categoria-especifica.categoria-especifica': ApiCategoriaEspecificaCategoriaEspecifica;
       'api::categoria.categoria': ApiCategoriaCategoria;
+      'api::cliente.cliente': ApiClienteCliente;
       'api::oferta.oferta': ApiOfertaOferta;
       'api::ordenamiento-menu-header.ordenamiento-menu-header': ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader;
       'api::producto.producto': ApiProductoProducto;

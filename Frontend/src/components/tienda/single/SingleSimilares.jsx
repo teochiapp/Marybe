@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
+import AddToCartModal from '../../carrito/AddToCartModal';
 
 const SectionWrapper = styled.section`
   margin-top: 72px;
@@ -322,6 +323,15 @@ export default function SingleSimilares({ producto }) {
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleAddClick = (product, e) => {
+    e.stopPropagation();
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+
   useEffect(() => {
     if (!producto) return;
 
@@ -498,13 +508,21 @@ export default function SingleSimilares({ producto }) {
                 Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
               </LegalText>
 
-              <AddButton>
+              <AddButton onClick={(e) => handleAddClick(item, e)}>
                 Agregar <CartIcon />
               </AddButton>
             </ProductCard>
           );
         })}
       </ProductsGrid>
+      {selectedProduct && (
+        <AddToCartModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          product={selectedProduct}
+          initialMode="select"
+        />
+      )}
     </SectionWrapper>
   );
 }

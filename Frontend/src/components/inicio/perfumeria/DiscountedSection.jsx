@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
+import AddToCartModal from '../../carrito/AddToCartModal';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
@@ -446,6 +447,15 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleAddClick = (product, e) => {
+    e.stopPropagation();
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+
   const singleTypeEndpoint = seccion === 'hogar'
     ? `${process.env.REACT_APP_STRAPI_URL}/api/seccion-descuento-hogar?populate[productos][populate]=*`
     : `${process.env.REACT_APP_STRAPI_URL}/api/seccion-descuento?populate[productos][populate]=*`;
@@ -637,7 +647,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
                 Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
               </LegalText>
 
-              <AddButton>
+              <AddButton onClick={(e) => handleAddClick(item, e)}>
                 Agregar <CartIcon />
               </AddButton>
             </ProductCard>
@@ -648,6 +658,14 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
       <BottomLink onClick={() => navigate(`/tienda?descuento=todas&seccion=${seccion === 'hogar' ? 'Hogar' : 'Perfumer%C3%ADa'}`)}>
         Conocer más <ChevronRightIcon />
       </BottomLink>
+      {selectedProduct && (
+        <AddToCartModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          product={selectedProduct}
+          initialMode="select"
+        />
+      )}
     </SectionWrapper>
   );
 }

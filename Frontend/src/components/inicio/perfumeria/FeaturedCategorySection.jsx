@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
+import AddToCartModal from '../../carrito/AddToCartModal';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
@@ -331,6 +332,15 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria' }) {
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleAddClick = (product, e) => {
+    e.stopPropagation();
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+
   const endpoint = seccion === 'hogar'
     ? `${process.env.REACT_APP_STRAPI_URL}/api/seccion-destacada-hogar?populate=*`
     : `${process.env.REACT_APP_STRAPI_URL}/api/seccion-destacada?populate=*`;
@@ -529,13 +539,21 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria' }) {
                 Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
               </LegalText>
 
-              <AddButton>
+              <AddButton onClick={(e) => handleAddClick(item, e)}>
                 Agregar <CartIcon />
               </AddButton>
             </ProductCard>
           );
         })}
       </ProductsGrid>
+      {selectedProduct && (
+        <AddToCartModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          product={selectedProduct}
+          initialMode="select"
+        />
+      )}
     </SectionWrapper>
   );
 }
