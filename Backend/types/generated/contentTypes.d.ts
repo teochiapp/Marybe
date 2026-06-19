@@ -577,6 +577,42 @@ export interface ApiClienteCliente extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiGiftCardGiftCard extends Struct.CollectionTypeSchema {
+  collectionName: 'gift_cards';
+  info: {
+    description: 'Gift Cards y C\u00F3digos de Descuento';
+    displayName: 'Gift Card';
+    pluralName: 'gift-cards';
+    singularName: 'gift-card';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    activa: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
+    codigo: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    fecha_expiracion: Schema.Attribute.DateTime;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::gift-card.gift-card'
+    > &
+      Schema.Attribute.Private;
+    monto: Schema.Attribute.Integer & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiOfertaOferta extends Struct.CollectionTypeSchema {
   collectionName: 'ofertas';
   info: {
@@ -1455,6 +1491,7 @@ declare module '@strapi/strapi' {
       'api::categoria-especifica.categoria-especifica': ApiCategoriaEspecificaCategoriaEspecifica;
       'api::categoria.categoria': ApiCategoriaCategoria;
       'api::cliente.cliente': ApiClienteCliente;
+      'api::gift-card.gift-card': ApiGiftCardGiftCard;
       'api::oferta.oferta': ApiOfertaOferta;
       'api::ordenamiento-menu-header.ordenamiento-menu-header': ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader;
       'api::producto.producto': ApiProductoProducto;

@@ -20,7 +20,6 @@ import TerminosCondiciones from './pages/ayuda/TerminosCondiciones';
 // Páginas de Pedidos
 import MiCuenta from './pages/pedidos/MiCuenta';
 import SeguimientoEnvio from './pages/pedidos/SeguimientoEnvio';
-import CanjearGiftCard from './pages/pedidos/CanjearGiftCard';
 
 // Páginas de Categorías
 import Ofertas from './pages/categorias/Ofertas';
@@ -46,6 +45,8 @@ import MetodoEnvio from './pages/metodo-envio/MetodoEnvio';
 // Panel de Administración
 import ImportacionAdmin from './pages/admin/ImportacionAdmin';
 
+// Página de Gift Card
+import GiftCardPage from './pages/gift-card/GiftCardPage';
 // Carrito
 import Carrito from './pages/carrito/Carrito';
 
@@ -84,7 +85,6 @@ function App() {
         {/* Rutas de Pedidos */}
         <Route path="/mi-cuenta" element={<MiCuenta />} />
         <Route path="/seguimiento-envio" element={<SeguimientoEnvio />} />
-        <Route path="/canjear-gift-card" element={<CanjearGiftCard />} />
 
         {/* Rutas de Categorías */}
         <Route path="/ofertas" element={<Ofertas />} />
@@ -107,8 +107,11 @@ function App() {
         {/* Ruta de Método de envío */}
         <Route path="/metodo-envio" element={<MetodoEnvio />} />
 
-        {/* Ruta de Administración */}
+        {/* Panel de Administración */}
         <Route path="/importacion-admin" element={<ImportacionAdmin />} />
+
+        {/* Ruta de Gift Card */}
+        <Route path="/gift-card" element={<GiftCardPage />} />
       </Routes>
       <Footer />
     </AuthProvider>

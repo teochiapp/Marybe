@@ -660,7 +660,7 @@ const Spinner = styled.div`
 `;
 
 export default function Pago() {
-  const { cartItems, cartTotal } = useContext(CartContext);
+  const { cartItems, cartTotal, appliedGiftCard, setAppliedGiftCard } = useContext(CartContext);
   const { token, user } = useContext(AuthContext);
 
   const navigate = useNavigate();
@@ -671,8 +671,22 @@ export default function Pago() {
 
   const buttonText = paymentMethod === 'qr' || paymentMethod === 'credito' || paymentMethod === 'debito' ? 'Pagar' : 'Hacer pedido';
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     setIsProcessing(true);
+
+    if (appliedGiftCard) {
+      try {
+        await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/gift-cards/consume`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codigo: appliedGiftCard.codigo })
+        });
+        setAppliedGiftCard(null);
+      } catch (err) {
+        console.error("Error al consumir giftcard", err);
+      }
+    }
+
     setTimeout(() => {
       navigate('/order-success', { state: { paymentMethod, cartItems, cartTotal, savedAddress, email: user?.email } });
     }, 2500); // 2.5 segundos de simulación

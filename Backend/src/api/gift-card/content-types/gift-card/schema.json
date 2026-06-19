@@ -1,0 +1,33 @@
+{
+  "kind": "collectionType",
+  "collectionName": "gift_cards",
+  "info": {
+    "singularName": "gift-card",
+    "pluralName": "gift-cards",
+    "displayName": "Gift Card",
+    "description": "Gift Cards y Códigos de Descuento"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "codigo": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "monto": {
+      "type": "integer",
+      "required": true
+    },
+    "activa": {
+      "type": "boolean",
+      "default": true,
+      "required": true
+    },
+    "fecha_expiracion": {
+      "type": "datetime"
+    }
+  }
+}

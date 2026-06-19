@@ -317,7 +317,7 @@ const ImagePlaceholder = () => (
   </svg>
 );
 
-export default function SingleSimilares({ producto }) {
+export default function SingleSimilares({ producto, title = 'Similares', query, items }) {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef(null);
@@ -333,40 +333,46 @@ export default function SingleSimilares({ producto }) {
   };
 
   useEffect(() => {
-    if (!producto) return;
-
-    // Buscar productos de la misma marca o misma categoría
-    let query = `${process.env.REACT_APP_STRAPI_URL}/api/productos?populate=*`;
-
-    // Si tenemos categoría, la priorizamos
-    const catDocId = producto.categoria?.data?.documentId || producto.categoria?.documentId;
-    if (catDocId) {
-      query += `&filters[categoria][documentId][$eq]=${catDocId}`;
-    } else if (producto.marca) {
-      query += `&filters[marca][$eq]=${producto.marca}`;
+    if (items) {
+      setProductos(items.slice(0, 12));
+      setLoading(false);
+      return;
     }
 
-    fetch(query)
+    let finalQuery = query;
+
+    if (!finalQuery) {
+      if (!producto) return;
+      finalQuery = `${process.env.REACT_APP_STRAPI_URL}/api/productos?populate=*`;
+      const catDocId = producto.categoria?.data?.documentId || producto.categoria?.documentId;
+      if (catDocId) {
+        finalQuery += `&filters[categoria][documentId][$eq]=${catDocId}`;
+      } else if (producto.marca) {
+        finalQuery += `&filters[marca][$eq]=${producto.marca}`;
+      }
+    }
+
+    fetch(finalQuery)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
-          // Filtrar el producto actual y limitar a 8
-          const filtered = data.data
-            .filter(item => {
+          let list = data.data;
+          if (producto && !query) {
+            list = list.filter(item => {
               const itemId = item.documentId || item.id;
               const currentId = producto.documentId || producto.id;
               return itemId !== currentId;
-            })
-            .slice(0, 8);
-          setProductos(filtered);
+            });
+          }
+          setProductos(list.slice(0, 8));
         }
         setLoading(false);
       })
       .catch(err => {
-        console.error('Error fetching similares:', err);
+        console.error('Error fetching productos:', err);
         setLoading(false);
       });
-  }, [producto]);
+  }, [producto, query, items]);
 
   const isDown = useRef(false);
   const startX = useRef(0);
@@ -442,7 +448,7 @@ export default function SingleSimilares({ producto }) {
 
   return (
     <SectionWrapper>
-      <SectionTitle>Similares</SectionTitle>
+      <SectionTitle>{title}</SectionTitle>
 
       <ProductsGrid
         ref={scrollRef}
