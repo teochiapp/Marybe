@@ -9,7 +9,7 @@ const fadeIn = keyframes`
 
 const LayoutContainer = styled.div`
   min-height: 80vh;
-  background-color: var(--color-fondo-beneficio-tarjeta);
+  background-color: ${({ $bg }) => $bg || 'var(--color-fondo-beneficio-tarjeta)'};
   padding: var(--spacing-xxl) 0;
   font-family: var(--font-family-secondary);
   color: var(--color-marron-secundario);
@@ -71,13 +71,13 @@ const PageSubtitle = styled.p`
   margin: 0;
 `;
 
-export default function PageLayout({ title, subtitle, breadcrumbs = [], children }) {
+export default function PageLayout({ title, subtitle, breadcrumbs = [], children, bgColor }) {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
   return (
-    <LayoutContainer>
+    <LayoutContainer $bg={bgColor}>
       <ContentWrapper>
         <Breadcrumbs>
           <Link to="/inicio">Inicio</Link>
@@ -89,10 +89,12 @@ export default function PageLayout({ title, subtitle, breadcrumbs = [], children
           ))}
         </Breadcrumbs>
 
-        <PageHeader>
-          <PageTitle>{title}</PageTitle>
-          {subtitle && <PageSubtitle>{subtitle}</PageSubtitle>}
-        </PageHeader>
+        {title && (
+          <PageHeader>
+            <PageTitle>{title}</PageTitle>
+            {subtitle && <PageSubtitle>{subtitle}</PageSubtitle>}
+          </PageHeader>
+        )}
 
         {children}
       </ContentWrapper>

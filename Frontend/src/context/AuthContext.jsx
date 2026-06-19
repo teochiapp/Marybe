@@ -7,6 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authRedirect, setAuthRedirect] = useState(null);
 
   useEffect(() => {
     // Verificar si hay un token en local storage al iniciar
@@ -34,8 +35,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
   };
 
-  const openAuthModal = () => setIsAuthModalOpen(true);
+  const openAuthModal = (redirectTo = null) => {
+    setAuthRedirect(redirectTo);
+    setIsAuthModalOpen(true);
+  };
   const closeAuthModal = () => setIsAuthModalOpen(false);
+  const clearAuthRedirect = () => setAuthRedirect(null);
 
   return (
     <AuthContext.Provider
@@ -48,7 +53,9 @@ export const AuthProvider = ({ children }) => {
         logout,
         isAuthModalOpen,
         openAuthModal,
-        closeAuthModal
+        closeAuthModal,
+        authRedirect,
+        clearAuthRedirect
       }}
     >
       {children}

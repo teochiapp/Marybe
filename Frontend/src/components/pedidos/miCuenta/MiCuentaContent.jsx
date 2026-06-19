@@ -27,10 +27,8 @@ const NavList = styled.div`
   display: flex;
   flex-direction: column;
   background-color: var(--color-blanco);
-  border: 1px solid rgba(62, 1, 2, 0.08);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
 
   @media (max-width: 500px) {
     flex-direction: row;
@@ -87,10 +85,8 @@ const NavItem = styled.button`
 
 const MainPanel = styled.div`
   background-color: var(--color-blanco);
-  border: 1px solid rgba(62, 1, 2, 0.08);
   border-radius: var(--radius-xl);
   padding: var(--spacing-xl);
-  box-shadow: var(--shadow-sm);
   min-height: 400px;
 
   @media (max-width: 600px) {
@@ -98,15 +94,6 @@ const MainPanel = styled.div`
   }
 `;
 
-const SectionTitle = styled.h2`
-  font-family: var(--font-family-primary);
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--color-marron-principal);
-  margin-bottom: var(--spacing-lg);
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-  padding-bottom: 8px;
-`;
 
 const ProfileGrid = styled.div`
   display: grid;
@@ -178,14 +165,14 @@ const ListHeader = styled.h2`
   align-items: center;
   gap: 12px;
   font-family: var(--font-family-primary);
-  font-size: 1.9rem;
+  font-size: 2.5rem;
   font-weight: 600;
   color: #1a1a1a;
   margin: 0;
 
   svg {
-    width: 26px;
-    height: 26px;
+    width: 2.5rem;
+    height: 2.5rem;
     color: #1a1a1a;
   }
 
@@ -624,17 +611,12 @@ const ConfirmBtn = styled.button`
 `;
 
 export default function MiCuentaContent() {
-  const { user, token, logout } = useContext(AuthContext);
+  const { token, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('perfil');
   const [showAddressForm, setShowAddressForm] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [profile, setProfile] = useState({
-    nombre: '',
-    email: '',
-    telefono: '',
-    nacimiento: '',
-  });
+  const [passwords, setPasswords] = useState({ password: '', confirm: '' });
   const [direcciones, setDirecciones] = useState([]);
 
   useEffect(() => {
@@ -646,22 +628,9 @@ export default function MiCuentaContent() {
             headers: { Authorization: `Bearer ${token}` }
           });
           const json = await res.json();
-          
+
           if (json && json.data) {
-            const data = json.data;
-            setProfile({
-              nombre: user?.username || '',
-              email: user?.email || '',
-              telefono: data.telefono || '',
-              nacimiento: data.nacimiento || '',
-            });
-            setDirecciones(data.direcciones || []);
-          } else if (user) {
-            setProfile(prev => ({
-              ...prev,
-              nombre: user.username || '',
-              email: user.email || ''
-            }));
+            setDirecciones(json.data.direcciones || []);
           }
         } catch (error) {
           console.error("Error fetching profile data", error);
@@ -669,11 +638,11 @@ export default function MiCuentaContent() {
       };
       fetchData();
     }
-  }, [token, user]);
+  }, [token]);
 
-  const handleProfileChange = (e) => {
+  const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setProfile((prev) => ({ ...prev, [name]: value }));
+    setPasswords((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async () => {
@@ -704,42 +673,29 @@ export default function MiCuentaContent() {
       <MainPanel>
         {activeTab === 'perfil' && (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle>Datos de Perfil</SectionTitle>
+            <ListHeader>
+              <FiUser /> Cuenta
+            </ListHeader>
+            <ListDivider />
             <ProfileGrid>
               <FieldGroup>
-                <Label>Nombre y Apellido</Label>
+                <Label>Cambiar contraseña</Label>
                 <ValueInput
-                  type="text"
-                  name="nombre"
-                  value={profile.nombre}
-                  onChange={handleProfileChange}
+                  type="password"
+                  name="password"
+                  placeholder="Nueva contraseña"
+                  value={passwords.password}
+                  onChange={handlePasswordChange}
                 />
               </FieldGroup>
               <FieldGroup>
-                <Label>Correo electrónico</Label>
+                <Label>Confirmar contraseña</Label>
                 <ValueInput
-                  type="email"
-                  name="email"
-                  value={profile.email}
-                  onChange={handleProfileChange}
-                />
-              </FieldGroup>
-              <FieldGroup>
-                <Label>Teléfono</Label>
-                <ValueInput
-                  type="tel"
-                  name="telefono"
-                  value={profile.telefono}
-                  onChange={handleProfileChange}
-                />
-              </FieldGroup>
-              <FieldGroup>
-                <Label>Fecha de nacimiento</Label>
-                <ValueInput
-                  type="date"
-                  name="nacimiento"
-                  value={profile.nacimiento}
-                  onChange={handleProfileChange}
+                  type="password"
+                  name="confirm"
+                  placeholder="Repetí la contraseña"
+                  value={passwords.confirm}
+                  onChange={handlePasswordChange}
                 />
               </FieldGroup>
             </ProfileGrid>

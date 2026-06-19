@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 
 const ModalOverlay = styled.div`
@@ -184,7 +185,8 @@ const ErrorMessage = styled.div`
 `;
 
 export default function AuthModal() {
-  const { isAuthModalOpen, closeAuthModal, login } = useContext(AuthContext);
+  const { isAuthModalOpen, closeAuthModal, login, authRedirect, clearAuthRedirect } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -197,6 +199,14 @@ export default function AuthModal() {
     // Redirigir a la API de Strapi para iniciar el flujo OAuth
     // Strapi por defecto expone /api/connect/google
     window.location.href = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/connect/google`;
+  };
+
+  const finishAuth = () => {
+    closeAuthModal();
+    if (authRedirect) {
+      navigate(authRedirect);
+    }
+    clearAuthRedirect();
   };
 
   const handleSubmit = async (e) => {
@@ -215,7 +225,7 @@ export default function AuthModal() {
         if (data.error) throw new Error(data.error.message);
 
         login(data.jwt, data.user);
-        closeAuthModal();
+        finishAuth();
       } else {
         const res = await fetch(`${apiUrl}/api/auth/local/register`, {
           method: 'POST',
@@ -226,7 +236,7 @@ export default function AuthModal() {
         if (data.error) throw new Error(data.error.message);
 
         login(data.jwt, data.user);
-        closeAuthModal();
+        finishAuth();
       }
     } catch (err) {
       setErrorMsg(err.message || 'Ocurrió un error. Verifica tus datos.');

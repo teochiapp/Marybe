@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import UbicacionPopup from './UbicacionPopup';
 import SearchDropdown from './SearchDropdown';
 import { CartContext } from '../../context/CartContext';
+import { AuthContext } from '../../context/AuthContext';
 
 /* ── Animaciones ── */
 const slideIn = keyframes`
@@ -431,6 +432,15 @@ export default function NavBar() {
   const searchContainerRef = useRef(null);
   const mobileSearchContainerRef = useRef(null);
   const { itemCount } = useContext(CartContext);
+  const { isAuthenticated, openAuthModal } = useContext(AuthContext);
+
+  const goToAccount = () => {
+    if (isAuthenticated) {
+      navigate('/mi-cuenta');
+    } else {
+      openAuthModal('/mi-cuenta');
+    }
+  };
 
   // Sync input with current search param on mount or URL change
   useEffect(() => {
@@ -547,7 +557,7 @@ export default function NavBar() {
 
         {/* Desktop: iconos */}
         <DesktopIcons>
-          <IconButton aria-label="Mi cuenta" onClick={() => navigate('/mi-cuenta')}><UserIcon /></IconButton>
+          <IconButton aria-label="Mi cuenta" onClick={goToAccount}><UserIcon /></IconButton>
           <IconButton aria-label="Carrito" onClick={() => navigate('/carrito')}>
             <CartIconSvg />
             {itemCount > 0 && <CartBadge>{itemCount}</CartBadge>}
@@ -622,7 +632,7 @@ export default function NavBar() {
             </DrawerHeader>
 
             <DrawerBody>
-              <DrawerItem onClick={() => { navigate('/mi-cuenta'); closeDrawer(); }}>
+              <DrawerItem onClick={() => { goToAccount(); closeDrawer(); }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <UserMenuIcon /> Mi Perfil
                 </span>
