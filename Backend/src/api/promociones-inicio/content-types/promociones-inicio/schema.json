@@ -12,6 +12,11 @@
   },
   "pluginOptions": {},
   "attributes": {
+    "titulo": {
+      "type": "string",
+      "required": true,
+      "description": "Ej: Carrusel de ofertas Inicio"
+    },
     "seccion": {
       "type": "enumeration",
       "enum": [

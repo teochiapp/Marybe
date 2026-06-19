@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
 import AddToCartModal from '../../carrito/AddToCartModal';
+import FavoriteButton from '../../shared/FavoriteButton';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
@@ -169,29 +170,7 @@ const HeartContainer = styled.div`
   z-index: 2;
 `;
 
-const HeartIcon = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-bordo-secundario);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
 
-  svg {
-    width: 22px;
-    height: 22px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-
-    @media (max-width: 600px) {
-      width: 20px;
-      height: 20px;
-    }
-  }
-`;
 
 const ProductBrand = styled.div`
   font-size: 0.65rem;
@@ -321,11 +300,7 @@ const AddButton = styled.button`
 `;
 
 // SVG Icons
-const HeartOutline = () => (
-  <svg viewBox="0 0 24 24">
-    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-  </svg>
-);
+
 
 const CartIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -519,7 +494,11 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
           const variantes = attrs.variantes || [];
           const mainVariant = variantes[0] || {};
           const price = mainVariant.precio || 0;
-          const offerPrice = mainVariant.precio_oferta || null;
+          let offerPrice = mainVariant.precio_oferta || null;
+
+          if (!offerPrice && descuento > 0 && price > 0) {
+            offerPrice = price - (price * (descuento / 100));
+          }
 
           let imgUrl = null;
           if (attrs.portada?.data?.attributes?.url) {
@@ -543,9 +522,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
                   <ImagePlaceholder />
                 )}
                 <HeartContainer>
-                  <HeartIcon aria-label="Agregar a favoritos" onClick={(e) => { e.stopPropagation(); }}>
-                    <HeartOutline />
-                  </HeartIcon>
+                  <FavoriteButton product={item} />
                 </HeartContainer>
               </CardImageContainer>
 

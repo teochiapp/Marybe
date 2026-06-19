@@ -36,6 +36,13 @@
       "allowedTypes": [
         "images"
       ]
+    },
+    "ancho_porcentaje": {
+      "type": "integer",
+      "min": 1,
+      "max": 100,
+      "default": 100,
+      "description": "Ancho que ocupa este banner en porcentaje (ej: 50 para la mitad, 33 para un tercio)"
     }
   }
 }

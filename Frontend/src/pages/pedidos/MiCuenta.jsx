@@ -29,7 +29,7 @@ export default function MiCuenta() {
   return (
     <PageLayout
       bgColor="#FFFFFF"
-      breadcrumbs={[{ label: 'Mis Pedidos', href: '#' }, { label: 'Mi cuenta' }]}
+      breadcrumbs={[{ label: 'Mi cuenta' }]}
     >
       <MiCuentaContent />
     </PageLayout>

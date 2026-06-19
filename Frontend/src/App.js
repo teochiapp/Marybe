@@ -19,13 +19,9 @@ import TerminosCondiciones from './pages/ayuda/TerminosCondiciones';
 
 // Páginas de Pedidos
 import MiCuenta from './pages/pedidos/MiCuenta';
-import SeguimientoEnvio from './pages/pedidos/SeguimientoEnvio';
+// import SeguimientoEnvio from './pages/pedidos/SeguimientoEnvio';
 
-// Páginas de Categorías
-import Ofertas from './pages/categorias/Ofertas';
-import Lanzamientos from './pages/categorias/Lanzamientos';
-import Eventos from './pages/categorias/Eventos';
-import PromocionesBancarias from './pages/categorias/PromocionesBancarias';
+// Páginas de Categorías (desactivadas temporalmente)
 
 // Página de Contacto
 import Contacto from './pages/contacto/Contacto';
@@ -39,11 +35,15 @@ import NuestraHistoria from './pages/nuestra-historia/NuestraHistoria';
 // Página de Arrepentimiento
 import Arrepentimiento from './pages/arrepentimiento/Arrepentimiento';
 
+// Página 404
+import NotFound from './pages/not-found/NotFound';
+
 // Página de Método de envío
 import MetodoEnvio from './pages/metodo-envio/MetodoEnvio';
 
 // Panel de Administración
 import ImportacionAdmin from './pages/admin/ImportacionAdmin';
+import PedidosAdmin from './pages/admin/PedidosAdmin';
 
 // Página de Gift Card
 import GiftCardPage from './pages/gift-card/GiftCardPage';
@@ -78,19 +78,15 @@ function App() {
 
         {/* Rutas de Ayuda */}
         <Route path="/preguntas-frecuentes" element={<PreguntasFrecuentes />} />
-        <Route path="/envios" element={<Envios />} />
+        {/* <Route path="/envios" element={<Envios />} /> */}
         <Route path="/cambios-devoluciones" element={<CambiosDevoluciones />} />
         <Route path="/terminos-condiciones" element={<TerminosCondiciones />} />
 
         {/* Rutas de Pedidos */}
         <Route path="/mi-cuenta" element={<MiCuenta />} />
-        <Route path="/seguimiento-envio" element={<SeguimientoEnvio />} />
+        {/* <Route path="/seguimiento-envio" element={<SeguimientoEnvio />} /> */}
 
-        {/* Rutas de Categorías */}
-        <Route path="/ofertas" element={<Ofertas />} />
-        <Route path="/lanzamientos" element={<Lanzamientos />} />
-        <Route path="/eventos" element={<Eventos />} />
-        <Route path="/promociones-bancarias" element={<PromocionesBancarias />} />
+        {/* Rutas de Categorías (desactivadas) */}
 
         {/* Ruta de Contacto */}
         <Route path="/contacto" element={<Contacto />} />
@@ -109,9 +105,13 @@ function App() {
 
         {/* Panel de Administración */}
         <Route path="/importacion-admin" element={<ImportacionAdmin />} />
+        <Route path="/pedidos-admin" element={<PedidosAdmin />} />
 
         {/* Ruta de Gift Card */}
         <Route path="/gift-card" element={<GiftCardPage />} />
+
+        {/* Ruta 404 (Catch all) */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <Footer />
     </AuthProvider>

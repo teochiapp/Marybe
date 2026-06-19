@@ -177,8 +177,6 @@ export default function CatalogoProductGrid({
   error,
   pageSize,
   strapiUrl,
-  favorites,
-  onToggleFav,
   onClearAll,
   onRetry,
   activePage,
@@ -248,8 +246,6 @@ export default function CatalogoProductGrid({
               <CatalogoProductCard
                 key={product.id || product.documentId}
                 product={product}
-                isFav={!!favorites[product.id || product.documentId]}
-                onToggleFav={onToggleFav}
                 strapiUrl={strapiUrl}
               />
             ))

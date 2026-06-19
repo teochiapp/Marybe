@@ -358,7 +358,7 @@ const UserIcon = () => (
 );
 
 const CartIconSvg = () => (
-  <svg width="22" height="22" viewBox="0 0 30 28" fill="none">
+  <svg width="27" height="27" viewBox="0 0 30 28" fill="none">
     <path d="M8 25.6667C8.55228 25.6667 9 25.219 9 24.6667C9 24.1144 8.55228 23.6667 8 23.6667C7.44772 23.6667 7 24.1144 7 24.6667C7 25.219 7.44772 25.6667 8 25.6667Z" stroke="#160000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M19.0005 25.6667C19.5528 25.6667 20.0005 25.219 20.0005 24.6667C20.0005 24.1144 19.5528 23.6667 19.0005 23.6667C18.4482 23.6667 18.0005 24.1144 18.0005 24.6667C18.0005 25.219 18.4482 25.6667 19.0005 25.6667Z" stroke="#160000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M2.05005 5.7167H4.05005L6.71005 18.1367C6.80763 18.5916 7.06072 18.9982 7.42576 19.2866C7.7908 19.5749 8.24496 19.727 8.71005 19.7167H18.4901C18.9452 19.716 19.3865 19.56 19.7411 19.2745C20.0956 18.9891 20.3422 18.5912 20.4401 18.1467L22.0901 10.7167H5.12005" stroke="#160000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -547,9 +547,9 @@ export default function NavBar() {
               >×</button>
             )}
             {searchFocused && searchQuery.trim().length >= 2 && (
-              <SearchDropdown 
-                query={searchQuery} 
-                onClose={() => setSearchFocused(false)} 
+              <SearchDropdown
+                query={searchQuery}
+                onClose={() => setSearchFocused(false)}
               />
             )}
           </SearchBar>
@@ -594,12 +594,12 @@ export default function NavBar() {
               <button onClick={() => setSearchQuery('')} style={{ color: 'var(--color-marron-tercero)', fontSize: '1rem', lineHeight: 1 }}>×</button>
             )}
             {mobileSearchFocused && searchQuery.trim().length >= 2 && (
-              <SearchDropdown 
-                query={searchQuery} 
+              <SearchDropdown
+                query={searchQuery}
                 onClose={() => {
                   setMobileSearchFocused(false);
                   setMobileSearchOpen(false);
-                }} 
+                }}
               />
             )}
           </SearchBar>

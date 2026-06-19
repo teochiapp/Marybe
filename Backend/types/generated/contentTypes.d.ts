@@ -577,6 +577,37 @@ export interface ApiClienteCliente extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiEventoEvento extends Struct.CollectionTypeSchema {
+  collectionName: 'eventos';
+  info: {
+    displayName: 'Eventos';
+    pluralName: 'eventos';
+    singularName: 'evento';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    descripcion: Schema.Attribute.Text & Schema.Attribute.Required;
+    fecha: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::evento.evento'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    titulo: Schema.Attribute.String & Schema.Attribute.Required;
+    ubicacion: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiGiftCardGiftCard extends Struct.CollectionTypeSchema {
   collectionName: 'gift_cards';
   info: {
@@ -613,56 +644,6 @@ export interface ApiGiftCardGiftCard extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiOfertaOferta extends Struct.CollectionTypeSchema {
-  collectionName: 'ofertas';
-  info: {
-    description: 'Secci\u00F3n de ofertas promocionales para el home';
-    displayName: 'Oferta';
-    pluralName: 'ofertas';
-    singularName: 'oferta';
-  };
-  options: {
-    draftAndPublish: true;
-  };
-  attributes: {
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    enlace: Schema.Attribute.String;
-    imagen: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::oferta.oferta'
-    > &
-      Schema.Attribute.Private;
-    orden: Schema.Attribute.Integer &
-      Schema.Attribute.SetMinMax<
-        {
-          min: 0;
-        },
-        number
-      > &
-      Schema.Attribute.DefaultTo<0>;
-    publishedAt: Schema.Attribute.DateTime;
-    seccion: Schema.Attribute.Enumeration<['Perfumer\u00EDa', 'Hogar']> &
-      Schema.Attribute.DefaultTo<'Perfumer\u00EDa'>;
-    tamano: Schema.Attribute.Integer &
-      Schema.Attribute.SetMinMax<
-        {
-          max: 100;
-          min: 10;
-        },
-        number
-      > &
-      Schema.Attribute.DefaultTo<100>;
-    titulo: Schema.Attribute.String & Schema.Attribute.Required;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
 export interface ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader
   extends Struct.SingleTypeSchema {
   collectionName: 'ordenamiento_menu_headers';
@@ -693,6 +674,51 @@ export interface ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPedidoPedido extends Struct.CollectionTypeSchema {
+  collectionName: 'pedidos';
+  info: {
+    description: 'Pedidos de clientes';
+    displayName: 'Pedido';
+    pluralName: 'pedidos';
+    singularName: 'pedido';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    cliente_email: Schema.Attribute.Email;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    direccion_envio: Schema.Attribute.JSON;
+    estado: Schema.Attribute.Enumeration<
+      ['Procesando', 'Enviado', 'Completado', 'Cancelado']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Procesando'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::pedido.pedido'
+    > &
+      Schema.Attribute.Private;
+    metodo_pago: Schema.Attribute.String;
+    numero_pedido: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    productos: Schema.Attribute.JSON & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    total: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    usuario: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::users-permissions.user'
+    >;
   };
 }
 
@@ -824,6 +850,7 @@ export interface ApiPromocionesInicioPromocionesInicio
     seccion: Schema.Attribute.Enumeration<['Perfumer\u00EDa', 'Hogar']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'Perfumer\u00EDa'>;
+    titulo: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1491,9 +1518,10 @@ declare module '@strapi/strapi' {
       'api::categoria-especifica.categoria-especifica': ApiCategoriaEspecificaCategoriaEspecifica;
       'api::categoria.categoria': ApiCategoriaCategoria;
       'api::cliente.cliente': ApiClienteCliente;
+      'api::evento.evento': ApiEventoEvento;
       'api::gift-card.gift-card': ApiGiftCardGiftCard;
-      'api::oferta.oferta': ApiOfertaOferta;
       'api::ordenamiento-menu-header.ordenamiento-menu-header': ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader;
+      'api::pedido.pedido': ApiPedidoPedido;
       'api::producto.producto': ApiProductoProducto;
       'api::promocion-bancaria.promocion-bancaria': ApiPromocionBancariaPromocionBancaria;
       'api::promociones-inicio.promociones-inicio': ApiPromocionesInicioPromocionesInicio;

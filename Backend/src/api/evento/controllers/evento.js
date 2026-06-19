@@ -1,5 +1,3 @@
 'use strict';
-
 const { createCoreController } = require('@strapi/strapi').factories;
-
-module.exports = createCoreController('api::oferta.oferta');
+module.exports = createCoreController('api::evento.evento');

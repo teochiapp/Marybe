@@ -280,6 +280,7 @@ const formatPrice = (price) => {
 };
 
 const getProductImage = (product) => {
+  if (!product) return '/placeholder.png';
   let imgUrl = '/placeholder.png';
   if (product?.portada?.data?.attributes?.url) {
     imgUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${product.portada.data.attributes.url}`;
@@ -296,44 +297,61 @@ export default function OrderSuccess() {
     return <Navigate to="/carrito" replace />;
   }
 
-  const { paymentMethod, cartItems, cartTotal, savedAddress, email } = location.state;
+  const { paymentMethod, cartItems, cartTotal, savedAddress, email, orderNumber, isOrderDetail } = location.state;
 
   return (
     <PageContainer>
       <ContentWrapper>
-        <Breadcrumb>
-          <Link to="/">Inicio</Link> <span>/</span> <Link to="/carrito">Carrito</Link> <span>/</span> <Link to="/login">Identificación</Link> <span>/</span> <Link to="/envio">Envío</Link> <span>/</span> <span className="active">Pago</span>
-        </Breadcrumb>
+        {isOrderDetail ? (
+          <Breadcrumb>
+            <Link to="/">Inicio</Link> <span>/</span> <Link to="/mi-cuenta">Mi cuenta</Link> <span>/</span> <span className="active">Pedido {orderNumber}</span>
+          </Breadcrumb>
+        ) : (
+          <Breadcrumb>
+            <Link to="/">Inicio</Link> <span>/</span> <Link to="/carrito">Carrito</Link> <span>/</span> <Link to="/login">Identificación</Link> <span>/</span> <Link to="/envio">Envío</Link> <span>/</span> <span className="active">Pago</span>
+          </Breadcrumb>
+        )}
 
-        <ProgressContainer>
-          <ProgressLine />
-          <ProgressStep $active={false} $completed={true}>
-            <div className="circle">1</div>
-            <div className="label">Carrito</div>
-          </ProgressStep>
-          <ProgressStep $active={false} $completed={true}>
-            <div className="circle">2</div>
-            <div className="label">Identificación</div>
-          </ProgressStep>
-          <ProgressStep $active={false} $completed={true}>
-            <div className="circle">3</div>
-            <div className="label">Envío</div>
-          </ProgressStep>
-          <ProgressStep $active={true} $completed={true}>
-            <div className="circle">4</div>
-            <div className="label">Pago</div>
-          </ProgressStep>
-        </ProgressContainer>
+        {!isOrderDetail && (
+          <ProgressContainer>
+            <ProgressLine />
+            <ProgressStep $active={false} $completed={true}>
+              <div className="circle">1</div>
+              <div className="label">Carrito</div>
+            </ProgressStep>
+            <ProgressStep $active={false} $completed={true}>
+              <div className="circle">2</div>
+              <div className="label">Identificación</div>
+            </ProgressStep>
+            <ProgressStep $active={false} $completed={true}>
+              <div className="circle">3</div>
+              <div className="label">Envío</div>
+            </ProgressStep>
+            <ProgressStep $active={true} $completed={true}>
+              <div className="circle">4</div>
+              <div className="label">Pago</div>
+            </ProgressStep>
+          </ProgressContainer>
+        )}
 
         <ConfirmationContainer>
           <SuccessBanner>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
+            {isOrderDetail ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            )}
             <div className="text">
-              <h2>Pedido confirmado! N01-123-45</h2>
-              <p>Confirmación enviada a {email || 'tu email'}</p>
+              <h2>{isOrderDetail ? `Detalle del pedido ${orderNumber || ''}` : `Pedido confirmado! ${orderNumber || 'N01-123-45'}`}</h2>
+              {email && !isOrderDetail && <p>Confirmación enviada a {email}</p>}
+              {isOrderDetail && <p>Consulta los artículos y detalles del envío de tu pedido.</p>}
             </div>
           </SuccessBanner>
 
@@ -360,16 +378,20 @@ export default function OrderSuccess() {
           </DetailCard>
 
           <ProductsCard>
-            {cartItems.map(item => (
-              <div className="product-item" key={item.cartId || item.id}>
+            {cartItems.map((item, idx) => {
+              const imageSrc = item.imagen ? `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${item.imagen}` : getProductImage(item.product);
+              const isCleanFormat = item.producto !== undefined;
+
+              return (
+              <div className="product-item" key={item.cartId || item.id || idx}>
                 <div className="prod-info">
                   <div className="img-wrapper">
-                    <img src={getProductImage(item.product)} alt={item.product?.nombre} />
+                    <img src={imageSrc} alt={item.product?.nombre || item.producto} />
                   </div>
                   <div className="details">
-                    <h4>{item.product?.nombre}</h4>
+                    <h4>{item.product?.nombre || item.producto}</h4>
                     <p>
-                      <span>Tamaño: {item.size || 'N/A'}</span>
+                      <span>Tamaño/Variante: {item.size || item.variante || 'N/A'}</span>
                       {item.color && (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           Color: 
@@ -384,10 +406,11 @@ export default function OrderSuccess() {
                   </div>
                 </div>
                 <div className="prod-price">
-                  {formatPrice(item.price || (item.product?.precio * item.cantidad))}
+                  {formatPrice(item.price || item.precio_unitario || (item.product?.precio * item.cantidad) || 0)}
+                  <div style={{ fontSize: '0.8rem', color: '#777', fontWeight: 400 }}>x {item.quantity || item.cantidad || 1}</div>
                 </div>
               </div>
-            ))}
+            )})}
           </ProductsCard>
 
           <OrdersBtn to="/mi-cuenta">Ir a mis pedidos</OrdersBtn>

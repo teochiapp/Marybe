@@ -3,8 +3,11 @@ import styled from 'styled-components';
 import { FiUser, FiShoppingBag, FiHeart, FiLogOut, FiTrash2, FiTruck, FiEdit2, FiChevronDown } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../../context/AuthContext';
+import { FavoritesContext } from '../../../context/FavoritesContext';
+import { CartContext } from '../../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { generateProductUrl } from '../../../utils/productUrl';
 
 const DashboardLayout = styled.div`
   display: grid;
@@ -213,17 +216,15 @@ const WishThumb = styled.div`
   flex-shrink: 0;
   border-radius: 12px;
   background-color: #f3f3f3;
-  background-image: url('/isologo.png');
-  background-size: 46px;
-  background-repeat: no-repeat;
-  background-position: center;
-  opacity: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 12px;
   }
 `;
 
@@ -330,11 +331,7 @@ const DeleteBtn = styled.button`
   }
 `;
 
-const pedidosItems = [
-  { nombre: 'Neutros Esenciales', fecha: '27 de Julio de 2023', precio: '$22.00' },
-  { nombre: 'Eau de Parfum Floral', fecha: '12 de Abril de 2024', precio: '$48.00' },
-  { nombre: 'Set de Regalo Premium', fecha: '05 de Junio de 2026', precio: '$75.00' },
-];
+
 
 const OrderPriceMini = styled.span`
   font-family: var(--font-family-secondary);
@@ -612,12 +609,44 @@ const ConfirmBtn = styled.button`
 
 export default function MiCuentaContent() {
   const { token, logout } = useContext(AuthContext);
+  const { favorites, removeFavorite } = useContext(FavoritesContext);
+  const { addToCart } = useContext(CartContext);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('perfil');
   const [showAddressForm, setShowAddressForm] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [passwords, setPasswords] = useState({ password: '', confirm: '' });
+  const [passwords, setPasswords] = useState({ currentPassword: '', password: '', confirm: '' });
+  const [passwordStatus, setPasswordStatus] = useState({ type: '', message: '' });
   const [direcciones, setDirecciones] = useState([]);
+  const [misPedidos, setMisPedidos] = useState([]);
+  const [addressForm, setAddressForm] = useState({
+    calle: '',
+    numero: '',
+    provincia: '',
+    ciudad: '',
+    pais: '',
+    cp: ''
+  });
+
+  useEffect(() => {
+    if (token && activeTab === 'pedidos') {
+      const fetchPedidos = async () => {
+        try {
+          const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+          const res = await fetch(`${apiUrl}/api/mis-pedidos`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const json = await res.json();
+          if (json && json.data) {
+            setMisPedidos(json.data);
+          }
+        } catch (error) {
+          console.error("Error fetching pedidos", error);
+        }
+      };
+      fetchPedidos();
+    }
+  }, [token, activeTab]);
 
   useEffect(() => {
     if (token) {
@@ -630,7 +659,18 @@ export default function MiCuentaContent() {
           const json = await res.json();
 
           if (json && json.data) {
-            setDirecciones(json.data.direcciones || []);
+            const dirs = json.data.direcciones || [];
+            setDirecciones(dirs);
+            if (dirs.length > 0) {
+              setAddressForm({
+                calle: dirs[0].calle || '',
+                numero: dirs[0].numero || dirs[0].piso_depto || '',
+                provincia: dirs[0].provincia || '',
+                ciudad: dirs[0].ciudad || '',
+                pais: dirs[0].pais || '',
+                cp: dirs[0].cp || ''
+              });
+            }
           }
         } catch (error) {
           console.error("Error fetching profile data", error);
@@ -645,9 +685,90 @@ export default function MiCuentaContent() {
     setPasswords((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = async () => {
-    // Aquí idealmente haríamos un PUT/POST a la API para actualizar el perfil
-    alert('¡Cambios guardados localmente! (Integración de guardado pendiente)');
+  const handleAddressChange = (e) => {
+    const { name, value } = e.target;
+    setAddressForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSavePassword = async () => {
+    setPasswordStatus({ type: '', message: '' });
+    
+    if (!passwords.currentPassword || !passwords.password || !passwords.confirm) {
+      setPasswordStatus({ type: 'error', message: 'Por favor, completá todos los campos' });
+      return;
+    }
+    
+    if (passwords.password !== passwords.confirm) {
+      setPasswordStatus({ type: 'error', message: 'Las nuevas contraseñas no coinciden' });
+      return;
+    }
+
+    try {
+      const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+      const res = await fetch(`${apiUrl}/api/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword: passwords.currentPassword,
+          password: passwords.password,
+          passwordConfirmation: passwords.confirm
+        })
+      });
+      
+      const json = await res.json();
+      
+      if (res.ok) {
+        // Exito
+        setPasswordStatus({ type: 'success', message: '¡Tu contraseña fue actualizada con éxito!' });
+        setPasswords({ currentPassword: '', password: '', confirm: '' });
+        
+        // Strapi returns a new token on password change, so we must update it
+        if (json.jwt) {
+          localStorage.setItem('marybe_jwt', json.jwt);
+        }
+      } else {
+        // Error
+        let msg = json.error?.message || 'Hubo un error al cambiar la contraseña';
+        if (msg === 'Incorrect current password') {
+          msg = 'La contraseña actual es incorrecta';
+        }
+        setPasswordStatus({ type: 'error', message: msg });
+      }
+    } catch (error) {
+      console.error(error);
+      setPasswordStatus({ type: 'error', message: 'Ocurrió un error de red o de servidor.' });
+    }
+  };
+
+  const handleSaveAddress = async () => {
+    try {
+      const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+      const res = await fetch(`${apiUrl}/api/mi-perfil`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          data: {
+            direcciones: [addressForm]
+          }
+        })
+      });
+      
+      const json = await res.json();
+      if (res.ok) {
+        setDirecciones(json.data?.direcciones || [addressForm]);
+        setShowAddressForm(false);
+      } else {
+        console.error('Hubo un error al guardar la dirección');
+      }
+    } catch (error) {
+      console.error("Error saving address", error);
+    }
   };
 
   return (
@@ -678,8 +799,18 @@ export default function MiCuentaContent() {
             </ListHeader>
             <ListDivider />
             <ProfileGrid>
+              <FieldGroup style={{ gridColumn: '1 / -1' }}>
+                <Label>Contraseña actual</Label>
+                <ValueInput
+                  type="password"
+                  name="currentPassword"
+                  placeholder="Tu contraseña actual"
+                  value={passwords.currentPassword}
+                  onChange={handlePasswordChange}
+                />
+              </FieldGroup>
               <FieldGroup>
-                <Label>Cambiar contraseña</Label>
+                <Label>Nueva contraseña</Label>
                 <ValueInput
                   type="password"
                   name="password"
@@ -699,7 +830,23 @@ export default function MiCuentaContent() {
                 />
               </FieldGroup>
             </ProfileGrid>
-            <SaveBtn onClick={handleSave}>Guardar</SaveBtn>
+
+            {passwordStatus.message && (
+              <div style={{
+                marginTop: '16px',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                backgroundColor: passwordStatus.type === 'success' ? '#e6fcf0' : '#fdecec',
+                color: passwordStatus.type === 'success' ? '#27ae60' : '#c62828',
+                border: `1px solid ${passwordStatus.type === 'success' ? '#2ecc71' : '#e0a0a0'}`
+              }}>
+                {passwordStatus.message}
+              </div>
+            )}
+
+            <SaveBtn onClick={handleSavePassword}>Guardar cambios</SaveBtn>
           </div>
         )}
 
@@ -709,20 +856,43 @@ export default function MiCuentaContent() {
               <FiShoppingBag /> Mis Pedidos
             </ListHeader>
             <ListDivider />
-            {pedidosData.map((item, idx) => (
-              <WishRow key={idx}>
-                <WishThumb />
+            {misPedidos.length > 0 ? misPedidos.map((pedido, idx) => {
+              const primerProducto = pedido.productos && pedido.productos.length > 0 ? pedido.productos[0] : null;
+              let imgUrl = '/isologo.png';
+              
+              if (primerProducto?.portada?.data?.attributes?.url) {
+                imgUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${primerProducto.portada.data.attributes.url}`;
+              } else if (primerProducto?.portada?.url) {
+                imgUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${primerProducto.portada.url}`;
+              } else if (primerProducto?.imagen) {
+                imgUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${primerProducto.imagen}`;
+              }
+
+              return (
+              <WishRow key={pedido.id || idx}>
+                <WishThumb>
+                  <img src={imgUrl} alt={primerProducto ? primerProducto.nombre : 'Pedido'} style={{ objectFit: imgUrl === '/isologo.png' ? 'contain' : 'cover', padding: imgUrl === '/isologo.png' ? '10px' : '0' }} />
+                </WishThumb>
                 <WishMeta>
-                  <WishName>{item.nombre}</WishName>
-                  <WishDate>Pedido el: {item.fecha}</WishDate>
-                  <OrderPriceMini>{item.precio}</OrderPriceMini>
+                  <WishName>Pedido #{pedido.numero_pedido}</WishName>
+                  <WishDate>Fecha: {new Date(pedido.createdAt).toLocaleDateString('es-AR')}</WishDate>
+                  <OrderPriceMini>{'$ ' + Number(pedido.total).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</OrderPriceMini>
                 </WishMeta>
                 <WishActions>
-                  <OrderStatusLink $estado={item.estado}>{item.estado}</OrderStatusLink>
-                  <CartBtn>Ver artículo</CartBtn>
+                  <OrderStatusLink $estado={pedido.estado}>{pedido.estado}</OrderStatusLink>
+                  <CartBtn onClick={() => navigate('/order-success', {
+                    state: {
+                      orderNumber: pedido.numero_pedido,
+                      paymentMethod: pedido.metodo_pago,
+                      savedAddress: pedido.direccion_envio,
+                      cartTotal: pedido.total,
+                      cartItems: pedido.productos,
+                      isOrderDetail: true
+                    }
+                  })}>Ver detalle</CartBtn>
                 </WishActions>
               </WishRow>
-            ))}
+            )}) : <p style={{ fontFamily: 'var(--font-family-secondary)', color: '#888' }}>No tienes pedidos registrados todavía.</p>}
           </div>
         )}
 
@@ -769,7 +939,7 @@ export default function MiCuentaContent() {
               onClick={() => setShowAddressForm((v) => !v)}
               aria-expanded={showAddressForm}
             >
-              Agregar nueva dirección
+              Modificar mi dirección
               <FiChevronDown />
             </AddNewHeader>
 
@@ -786,16 +956,16 @@ export default function MiCuentaContent() {
                   }}
                 >
                   <FormGrid>
-                    <RoundedInput type="text" placeholder="Dirección" />
-                    <RoundedInput type="text" placeholder="Número / Departamento" />
-                    <RoundedInput type="text" placeholder="Provincia" />
-                    <RoundedInput type="text" placeholder="Ciudad" />
-                    <RoundedInput type="text" placeholder="País" />
-                    <RoundedInput type="text" placeholder="Código postal" />
+                    <RoundedInput type="text" name="calle" value={addressForm.calle} onChange={handleAddressChange} placeholder="Dirección / Calle" />
+                    <RoundedInput type="text" name="numero" value={addressForm.numero} onChange={handleAddressChange} placeholder="Número / Departamento" />
+                    <RoundedInput type="text" name="provincia" value={addressForm.provincia} onChange={handleAddressChange} placeholder="Provincia" />
+                    <RoundedInput type="text" name="ciudad" value={addressForm.ciudad} onChange={handleAddressChange} placeholder="Ciudad" />
+                    <RoundedInput type="text" name="pais" value={addressForm.pais} onChange={handleAddressChange} placeholder="País" />
+                    <RoundedInput type="text" name="cp" value={addressForm.cp} onChange={handleAddressChange} placeholder="Código postal" />
                   </FormGrid>
 
                   <SaveRow>
-                    <SaveDark onClick={handleSave}>Guardar</SaveDark>
+                    <SaveDark onClick={handleSaveAddress}>Guardar</SaveDark>
                   </SaveRow>
                 </FormCollapse>
               )}
@@ -809,22 +979,33 @@ export default function MiCuentaContent() {
               <FiHeart /> Lista de deseos
             </ListHeader>
             <ListDivider />
-            {pedidosItems.map((item, idx) => (
-              <WishRow key={idx}>
-                <WishThumb />
+            {favorites && favorites.length > 0 ? favorites.map((item) => (
+              <WishRow key={item.id}>
+                <WishThumb onClick={() => navigate(generateProductUrl(item.id, item.nombre))} style={{cursor: 'pointer'}}>
+                  {item.imagen ? (
+                    <img src={`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${item.imagen}`} alt={item.nombre} />
+                  ) : (
+                    <img src="/isologo.png" style={{ objectFit: 'contain', padding: '10px' }} alt="Placeholder" />
+                  )}
+                </WishThumb>
                 <WishMeta>
-                  <WishName>{item.nombre}</WishName>
-                  <WishDate>Agregado el: {item.fecha}</WishDate>
+                  <WishName onClick={() => navigate(generateProductUrl(item.id, item.nombre))} style={{cursor: 'pointer'}}>{item.nombre}</WishName>
+                  <WishDate>Agregado el: {new Date(item.fecha_agregado).toLocaleDateString('es-AR')}</WishDate>
                 </WishMeta>
                 <WishActions>
-                  <WishPrice>{item.precio}</WishPrice>
-                  <CartBtn>Agregar al carrito</CartBtn>
-                  <DeleteBtn aria-label="Eliminar">
+                  <WishPrice>${Number(item.precio).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</WishPrice>
+                  <CartBtn onClick={() => {
+                    addToCart({ id: item.id, nombre: item.nombre, precio: item.precio, portada: { url: item.imagen } });
+                    navigate('/carrito');
+                  }}>Agregar al carrito</CartBtn>
+                  <DeleteBtn aria-label="Eliminar" onClick={() => removeFavorite(item.id)}>
                     <FiTrash2 />
                   </DeleteBtn>
                 </WishActions>
               </WishRow>
-            ))}
+            )) : (
+              <p style={{ fontFamily: 'var(--font-family-secondary)', color: '#888' }}>No tienes productos en tu lista de deseos todavía.</p>
+            )}
           </div>
         )}
       </MainPanel>

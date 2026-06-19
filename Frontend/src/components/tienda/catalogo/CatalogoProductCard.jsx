@@ -6,11 +6,7 @@ import AddToCartModal from '../../carrito/AddToCartModal';
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 
-const HeartOutline = () => (
-  <svg viewBox="0 0 24 24">
-    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-  </svg>
-);
+import FavoriteButton from '../../shared/FavoriteButton';
 
 const CartIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -145,35 +141,7 @@ const HeartContainer = styled.div`
   z-index: 2;
 `;
 
-const HeartIcon = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: ${({ $fav }) => ($fav ? 'var(--color-bordo-secundario)' : '#bdbdbd')};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  transition: transform 0.2s ease;
 
-  svg {
-    width: 22px;
-    height: 22px;
-    fill: ${({ $fav }) => ($fav ? 'var(--color-bordo-secundario)' : 'none')};
-    stroke: var(--color-bordo-secundario);;
-    stroke-width: 2;
-
-    @media (max-width: 600px) {
-      width: 20px;
-      height: 20px;
-    }
-  }
-
-  &:hover {
-    color: currentColor;
-    transform: scale(1.1);
-  }
-`;
 
 const ProductBrand = styled.div`
   font-size: 0.65rem;
@@ -307,7 +275,7 @@ const AddButton = styled.button`
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
-export default function CatalogoProductCard({ product, isFav, onToggleFav, strapiUrl }) {
+export default function CatalogoProductCard({ product, strapiUrl }) {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const id = product.id || product.documentId;
@@ -361,16 +329,7 @@ export default function CatalogoProductCard({ product, isFav, onToggleFav, strap
         )}
 
         <HeartContainer>
-          <HeartIcon
-            $fav={isFav}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFav(id);
-            }}
-            aria-label={isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-          >
-            <HeartOutline />
-          </HeartIcon>
+          <FavoriteButton product={product} />
         </HeartContainer>
 
         {imgUrl ? (

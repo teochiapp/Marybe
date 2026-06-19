@@ -16,8 +16,7 @@
       "type": "component",
       "repeatable": true,
       "component": "shared.banner",
-      "min": 2,
-      "max": 2,
+      "min": 1,
       "required": true
     }
   }

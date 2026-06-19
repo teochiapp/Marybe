@@ -19,8 +19,14 @@ export interface LayoutFila1Columna extends Struct.ComponentSchema {
     icon: 'layout';
   };
   attributes: {
-    banner: Schema.Attribute.Component<'shared.banner', false> &
-      Schema.Attribute.Required;
+    banners: Schema.Attribute.Component<'shared.banner', true> &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+        },
+        number
+      >;
     es_carrusel: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<false>;
@@ -39,8 +45,7 @@ export interface LayoutFila2Columnas extends Struct.ComponentSchema {
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMax<
         {
-          max: 2;
-          min: 2;
+          min: 1;
         },
         number
       >;
@@ -62,8 +67,7 @@ export interface LayoutFila4Columnas extends Struct.ComponentSchema {
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMax<
         {
-          max: 4;
-          min: 4;
+          min: 1;
         },
         number
       >;
@@ -77,16 +81,21 @@ export interface LayoutFilaMixta extends Struct.ComponentSchema {
   collectionName: 'components_layout_fila_mixtas';
   info: {
     description: 'Fila con 1 banner principal y 2 banners secundarios.';
-    displayName: 'Fila Mixta';
+    displayName: 'Fila Personalizada';
     icon: 'layout';
   };
   attributes: {
-    banner_principal: Schema.Attribute.Component<'shared.banner', false> &
-      Schema.Attribute.Required;
-    banner_secundario_1: Schema.Attribute.Component<'shared.banner', false> &
-      Schema.Attribute.Required;
-    banner_secundario_2: Schema.Attribute.Component<'shared.banner', false> &
-      Schema.Attribute.Required;
+    banners: Schema.Attribute.Component<'shared.banner', true> &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+        },
+        number
+      >;
+    es_carrusel: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
   };
 }
 
@@ -118,6 +127,15 @@ export interface SharedBanner extends Struct.ComponentSchema {
     icon: 'picture';
   };
   attributes: {
+    ancho_porcentaje: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 100;
+          min: 1;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<100>;
     enlace: Schema.Attribute.String;
     imagen_desktop: Schema.Attribute.Media<'images'> &
       Schema.Attribute.Required;

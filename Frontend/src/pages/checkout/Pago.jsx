@@ -660,7 +660,7 @@ const Spinner = styled.div`
 `;
 
 export default function Pago() {
-  const { cartItems, cartTotal, appliedGiftCard, setAppliedGiftCard } = useContext(CartContext);
+  const { cartItems, cartTotal, appliedGiftCard, setAppliedGiftCard, clearCart } = useContext(CartContext);
   const { token, user } = useContext(AuthContext);
 
   const navigate = useNavigate();
@@ -674,22 +674,58 @@ export default function Pago() {
   const handlePayment = async () => {
     setIsProcessing(true);
 
+    let finalTotal = cartTotal;
     if (appliedGiftCard) {
-      try {
+      finalTotal = Math.max(0, finalTotal - appliedGiftCard.monto);
+    }
+
+    try {
+      // 1. Crear el pedido
+      const response = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/mis-pedidos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          productos: cartItems,
+          total: finalTotal,
+          metodo_pago: paymentMethod,
+          direccion_envio: savedAddress || {}
+        })
+      });
+
+      const json = await response.json();
+      
+      // 2. Si se usó una gift card, consumirla
+      if (appliedGiftCard) {
         await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/gift-cards/consume`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codigo: appliedGiftCard.codigo })
         });
         setAppliedGiftCard(null);
-      } catch (err) {
-        console.error("Error al consumir giftcard", err);
       }
-    }
 
-    setTimeout(() => {
-      navigate('/order-success', { state: { paymentMethod, cartItems, cartTotal, savedAddress, email: user?.email } });
-    }, 2500); // 2.5 segundos de simulación
+      clearCart();
+
+      const orderNumber = json.data?.numero_pedido || 'M-000000';
+
+      navigate('/order-success', { 
+        state: { 
+          paymentMethod, 
+          cartItems, 
+          cartTotal: finalTotal, 
+          savedAddress, 
+          email: user?.email,
+          orderNumber 
+        } 
+      });
+    } catch (err) {
+      console.error("Error al procesar pedido", err);
+      setIsProcessing(false);
+      alert('Hubo un error al procesar el pedido.');
+    }
   };
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import ShippingModal from './ShippingModal';
 import AddToCartModal from '../../carrito/AddToCartModal';
 import { CartContext } from '../../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import FavoriteButton from '../../shared/FavoriteButton';
 
 const InfoContainer = styled.div`
   display: flex;
@@ -36,6 +37,7 @@ const Pill = styled.span`
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 0.9rem;
+  text-transform: uppercase;
   font-weight: 600;
 `;
 
@@ -512,6 +514,8 @@ export default function SingleProductInfo({ producto }) {
     offerPrice = price - (price * (descuento / 100));
   }
 
+  const calcDescuento = offerPrice && offerPrice < price ? Math.round((1 - offerPrice / price) * 100) : (descuento || 0);
+
   const handleShare = async () => {
     const shareData = {
       title: `${nombre} - ${marca} | Marybe`,
@@ -566,8 +570,8 @@ export default function SingleProductInfo({ producto }) {
             +
           </button>
         </QuantityBox>
-        <AddToCartBtn 
-          disabled={stock === 0} 
+        <AddToCartBtn
+          disabled={stock === 0}
           style={{ opacity: stock === 0 ? 0.6 : 1, cursor: stock === 0 ? 'not-allowed' : 'pointer' }}
           onClick={() => {
             if (stock > 0) {
@@ -591,7 +595,8 @@ export default function SingleProductInfo({ producto }) {
     <InfoContainer>
       <TopRow>
         <PillsContainer>
-          {descuento > 0 && <Pill>Super oferta</Pill>}
+          {calcDescuento > 30 && <Pill>Super oferta</Pill>}
+          {calcDescuento > 0 && calcDescuento <= 30 && <Pill>Promoción</Pill>}
         </PillsContainer>
         <IconsContainer>
           <svg
@@ -609,9 +614,7 @@ export default function SingleProductInfo({ producto }) {
             <path d="M19 18.5C19 19.163 18.7366 19.7989 18.2678 20.2678C17.7989 20.7366 17.163 21 16.5 21C15.837 21 15.2011 20.7366 14.7322 20.2678C14.2634 19.7989 14 19.163 14 18.5C14 17.837 14.2634 17.2011 14.7322 16.7322C15.2011 16.2634 15.837 16 16.5 16C17.163 16 17.7989 16.2634 18.2678 16.7322C18.7366 17.2011 19 17.837 19 18.5ZM19 5.5C19 6.16304 18.7366 6.79893 18.2678 7.26777C17.7989 7.73661 17.163 8 16.5 8C15.837 8 15.2011 7.73661 14.7322 7.26777C14.2634 6.79893 14 6.16304 14 5.5C14 4.83696 14.2634 4.20107 14.7322 3.73223C15.2011 3.26339 15.837 3 16.5 3C17.163 3 17.7989 3.26339 18.2678 3.73223C18.7366 4.20107 19 4.83696 19 5.5Z" stroke="#7C0405" strokeWidth="1.5" />
           </svg>
 
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4.35939 4.66801C6.23639 2.95701 10.2674 3.30601 12.0004 7.23001C13.7334 3.30701 17.7644 2.95701 19.6414 4.66801C21.1704 6.04101 21.9044 9.33301 20.5084 12.363C18.1014 17.573 12.0004 20.309 12.0004 20.309C12.0004 20.309 5.90039 17.573 3.49239 12.363C2.09639 9.33301 2.83039 6.04101 4.35939 4.66801Z" stroke="#7C0405" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <FavoriteButton product={producto} size="24px" />
 
         </IconsContainer>
       </TopRow>

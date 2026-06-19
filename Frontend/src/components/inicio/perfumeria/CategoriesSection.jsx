@@ -257,7 +257,7 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
 
   const handleCategoryClick = (nombre) => {
     if (!isDragging.current) {
-      navigate(`/tienda?categoria=${encodeURIComponent(nombre)}`);
+      navigate(`/tienda?categoria=${encodeURIComponent(nombre)}&seccion=${encodeURIComponent(seccionName)}`);
     }
   };
 

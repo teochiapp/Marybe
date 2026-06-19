@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+
+const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+const WHATSAPP_NUMBER = "5403854211687";
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -125,7 +128,7 @@ const InfoRow = styled.div`
   }
 `;
 
-const ReservarBtn = styled.a`
+const ReservarBtn = styled.button`
   background-color: var(--color-boton-promo);
   color: var(--color-blanco);
   font-family: var(--font-family-secondary);
@@ -140,7 +143,7 @@ const ReservarBtn = styled.a`
   justify-content: center;
   gap: 10px;
   text-decoration: none;
-  margin-top: 4px;
+  margin-top: auto;
   transition: var(--transition-fast);
 
   &:hover {
@@ -258,35 +261,35 @@ const ChevronIcon = () => (
   </svg>
 );
 
-// ─── Datos ────────────────────────────────────────────────────────────────────
-
-const eventos = [
-  {
-    id: 1,
-    titulo: 'Día de Belleza',
-    descripcion: 'Consultorías gratuitas y descuentos especiales',
-    fecha: '28 de Mayo, 2026',
-    ubicacion: 'Todas las sucursales',
-  },
-  {
-    id: 2,
-    titulo: 'Lanzamiento Elixir',
-    descripcion: 'Nueva línea de fragancias premium',
-    fecha: '18 de Mayo, 2026',
-    ubicacion: 'Marybe Santiago Centro',
-  },
-  {
-    id: 3,
-    titulo: 'Masterclass de Maquillaje',
-    descripcion: 'Nueva línea de fragancias premium',
-    fecha: '22 de Mayo, 2026',
-    ubicacion: 'Tucumán',
-  },
-];
-
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function ProximosEventos() {
+  const [eventos, setEventos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${STRAPI_URL}/api/eventos?populate=*`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          setEventos(data.data);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error fetching eventos:', err);
+        setLoading(false);
+      });
+  }, []);
+
+  const handleReservar = (ev) => {
+    const message = `Hola, me gustaría reservar un turno para el evento "${ev.titulo}" el día ${ev.fecha} en ${ev.ubicacion}.`;
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
+  if (loading || eventos.length === 0) return null;
+
   return (
     <Section>
       <Header>
@@ -297,28 +300,33 @@ export default function ProximosEventos() {
       </Header>
 
       <CardsGrid>
-        {eventos.map((ev) => (
-          <Card key={ev.id}>
-            <CardTitle>{ev.titulo}</CardTitle>
-            <CardDesc>{ev.descripcion}</CardDesc>
+        {eventos.map((item) => {
+          const id = item.id || item.documentId;
+          const ev = item.attributes || item;
 
-            <InfoList>
-              <InfoRow>
-                <CalendarStoreIcon />
-                {ev.fecha}
-              </InfoRow>
-              <InfoRow>
-                <MapPinIcon />
-                {ev.ubicacion}
-              </InfoRow>
-            </InfoList>
+          return (
+            <Card key={id}>
+              <CardTitle>{ev.titulo}</CardTitle>
+              <CardDesc>{ev.descripcion}</CardDesc>
 
-            <ReservarBtn href="#">
-              Reservar turno
-              <WhatsAppIcon />
-            </ReservarBtn>
-          </Card>
-        ))}
+              <InfoList>
+                <InfoRow>
+                  <CalendarStoreIcon />
+                  {ev.fecha}
+                </InfoRow>
+                <InfoRow>
+                  <MapPinIcon />
+                  {ev.ubicacion}
+                </InfoRow>
+              </InfoList>
+
+              <ReservarBtn onClick={() => handleReservar(ev)}>
+                Reservar turno
+                <WhatsAppIcon />
+              </ReservarBtn>
+            </Card>
+          );
+        })}
       </CardsGrid>
 
       <Footer>

@@ -12,10 +12,11 @@
       "default": false,
       "required": true
     },
-    "banner": {
+    "banners": {
       "type": "component",
-      "repeatable": false,
+      "repeatable": true,
       "component": "shared.banner",
+      "min": 1,
       "required": true
     }
   }

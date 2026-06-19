@@ -34,7 +34,7 @@ const BANNER_CONFIG = {
     title: 'Tu espacio, tu hogar',
     subtitle: 'Calidez, diseño y aromas para ambientar cada rincón de tu hogar.',
     pills: ['Aromatizantes', 'Velas'],
-    image: '/inicio/hogar-featured.png',
+    image: '/inicio/discountedSectionHogar.png',
     imageAlt: 'Productos Hogar',
   },
   default: {
@@ -123,7 +123,6 @@ export default function Catalogo() {
   const [availableSizes, setAvailableSizes] = useState([]);
   const [availablePriceRange, setAvailablePriceRange] = useState([0, 200000]);
 
-  const [favorites, setFavorites] = useState({});
 
   const [accordions, setAccordions] = useState({
     marca: false,
@@ -175,9 +174,9 @@ export default function Catalogo() {
       : activeSeccion === 'Hogar'
         ? 'hogar'
         : 'default';
-  
+
   let currentBanner = { ...BANNER_CONFIG[bannerKey] };
-  
+
   if (activeSeccion === 'Hogar') {
     currentBanner.bgColor = 'var(--color-hogar)';
   }
@@ -201,16 +200,16 @@ export default function Catalogo() {
         .then(res => res.json())
         .then(data => {
           if (data?.data?.[0]) {
-             const attrs = data.data[0].attributes || data.data[0];
-             let imgUrl = null;
-             if (attrs.portada?.data?.attributes?.url) {
-               imgUrl = `${STRAPI_URL}${attrs.portada.data.attributes.url}`;
-             } else if (attrs.portada?.url) {
-               imgUrl = `${STRAPI_URL}${attrs.portada.url}`;
-             }
-             setDynamicBannerImg(imgUrl);
+            const attrs = data.data[0].attributes || data.data[0];
+            let imgUrl = null;
+            if (attrs.portada?.data?.attributes?.url) {
+              imgUrl = `${STRAPI_URL}${attrs.portada.data.attributes.url}`;
+            } else if (attrs.portada?.url) {
+              imgUrl = `${STRAPI_URL}${attrs.portada.url}`;
+            }
+            setDynamicBannerImg(imgUrl);
           } else {
-             setDynamicBannerImg(null);
+            setDynamicBannerImg(null);
           }
         })
         .catch(console.error);
@@ -223,8 +222,6 @@ export default function Catalogo() {
   const toggleAccordion = (field) =>
     setAccordions((prev) => ({ ...prev, [field]: !prev[field] }));
 
-  const toggleFavorite = (id) =>
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const updateUrlFilters = (newFilters) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -480,8 +477,6 @@ export default function Catalogo() {
             error={error}
             pageSize={PAGE_SIZE}
             strapiUrl={STRAPI_URL}
-            favorites={favorites}
-            onToggleFav={toggleFavorite}
             onClearAll={clearAllFilters}
             onRetry={fetchProductos}
             activePage={activePage}

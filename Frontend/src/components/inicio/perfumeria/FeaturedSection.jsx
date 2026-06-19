@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
 import AddToCartModal from '../../carrito/AddToCartModal';
+import FavoriteButton from '../../shared/FavoriteButton';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
@@ -232,29 +233,7 @@ const HeartContainer = styled.div`
   z-index: 2;
 `;
 
-const HeartIcon = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-bordo-secundario);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
 
-  svg {
-    width: 22px;
-    height: 22px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-
-    @media (max-width: 600px) {
-      width: 20px;
-      height: 20px;
-    }
-  }
-`;
 
 const ProductBrand = styled.div`
   font-size: 0.65rem;
@@ -465,11 +444,7 @@ const BannerImageWrapper = styled.div`
 `;
 
 // Helper SVG Icons
-const HeartOutline = () => (
-  <svg viewBox="0 0 24 24">
-    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-  </svg>
-);
+
 
 const CartIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -567,6 +542,11 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
     }
   };
 
+  const formatPrice = (price) => {
+    if (!price) return '$0';
+    return '$' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+
   return (
     <SectionWrapper>
       <HaloLuz src="/inicio/halo-luz.png" alt="Efecto de luz" />
@@ -611,6 +591,15 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
 
           const nombre = attrs.nombre;
           const marca = attrs.marca;
+          const descuento = attrs.descuento || 0;
+          const variantes = attrs.variantes || [];
+          const mainVariant = variantes[0] || {};
+          const price = mainVariant.precio || 0;
+          let offerPrice = mainVariant.precio_oferta || null;
+
+          if (!offerPrice && descuento > 0 && price > 0) {
+            offerPrice = price - (price * (descuento / 100));
+          }
 
           let imgUrl = null;
           if (attrs.portada?.data?.attributes?.url) {
@@ -628,9 +617,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
                   <ImagePlaceholder />
                 )}
                 <HeartContainer>
-                  <HeartIcon aria-label="Agregar a favoritos" onClick={(e) => { e.stopPropagation(); }}>
-                    <HeartOutline />
-                  </HeartIcon>
+                  <FavoriteButton product={item} />
                 </HeartContainer>
               </CardImageContainer>
 
@@ -638,13 +625,17 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
               <ProductBrand>{marca}</ProductBrand>
 
               <PriceRow>
-                <OldPrice>$194.600</OldPrice>
-                <CurrentPrice>$116.760</CurrentPrice>
-                <DiscountBadge>10%</DiscountBadge>
+                {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
+                <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
+                {descuento > 0 && <DiscountBadge>{descuento}% OFF</DiscountBadge>}
               </PriceRow>
 
-              <Installments>3 cuotas sin interés de $4.333</Installments>
-              <LegalText>Precio sin impuestos nacionales $200.000</LegalText>
+              <Installments>
+                3 cuotas sin interés de {formatPrice(Math.round((offerPrice || price) / 3))}
+              </Installments>
+              <LegalText>
+                Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
+              </LegalText>
 
               <AddButton onClick={(e) => handleAddClick(item, e)}>
                 Agregar <CartIcon />

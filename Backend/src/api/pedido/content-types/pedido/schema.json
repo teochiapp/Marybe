@@ -1,0 +1,54 @@
+{
+  "kind": "collectionType",
+  "collectionName": "pedidos",
+  "info": {
+    "singularName": "pedido",
+    "pluralName": "pedidos",
+    "displayName": "Pedido",
+    "description": "Pedidos de clientes"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "numero_pedido": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "productos": {
+      "type": "json",
+      "required": true
+    },
+    "total": {
+      "type": "decimal",
+      "required": true
+    },
+    "metodo_pago": {
+      "type": "string"
+    },
+    "estado": {
+      "type": "enumeration",
+      "enum": [
+        "Procesando",
+        "Enviado",
+        "Completado",
+        "Cancelado"
+      ],
+      "default": "Procesando",
+      "required": true
+    },
+    "direccion_envio": {
+      "type": "json"
+    },
+    "cliente_email": {
+      "type": "email"
+    },
+    "usuario": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    }
+  }
+}

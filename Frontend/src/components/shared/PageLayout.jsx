@@ -48,6 +48,12 @@ const Breadcrumbs = styled.div`
   span {
     user-select: none;
   }
+
+  .active {
+    color: #5c0a0a;
+    font-weight: 600;
+    opacity: 1;
+  }
 `;
 
 const PageHeader = styled.div`
@@ -84,7 +90,7 @@ export default function PageLayout({ title, subtitle, breadcrumbs = [], children
           {breadcrumbs.map((bc, idx) => (
             <React.Fragment key={idx}>
               <span>/</span>
-              {bc.href ? <Link to={bc.href}>{bc.label}</Link> : <span>{bc.label}</span>}
+              {bc.href ? <Link to={bc.href}>{bc.label}</Link> : <span className="active">{bc.label}</span>}
             </React.Fragment>
           ))}
         </Breadcrumbs>

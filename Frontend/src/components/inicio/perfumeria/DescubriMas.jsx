@@ -305,7 +305,7 @@ export default function DescubriMas() {
     <Section>
       <Header>
         <Title>Descubrí más</Title>
-        <InstagramBtn href="#" target="_blank" rel="noopener noreferrer">
+        <InstagramBtn href="https://www.instagram.com/perfumeriasmarybe/" target="_blank" rel="noopener noreferrer">
           Seguinos en Instagram
           <InstagramIcon />
         </InstagramBtn>

@@ -1,28 +1,22 @@
 {
   "collectionName": "components_layout_fila_mixtas",
   "info": {
-    "displayName": "Fila Mixta",
+    "displayName": "Fila Personalizada",
     "icon": "layout",
     "description": "Fila con 1 banner principal y 2 banners secundarios."
   },
   "options": {},
   "attributes": {
-    "banner_principal": {
-      "type": "component",
-      "repeatable": false,
-      "component": "shared.banner",
+    "es_carrusel": {
+      "type": "boolean",
+      "default": false,
       "required": true
     },
-    "banner_secundario_1": {
+    "banners": {
       "type": "component",
-      "repeatable": false,
+      "repeatable": true,
       "component": "shared.banner",
-      "required": true
-    },
-    "banner_secundario_2": {
-      "type": "component",
-      "repeatable": false,
-      "component": "shared.banner",
+      "min": 1,
       "required": true
     }
   }
