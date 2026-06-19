@@ -1,0 +1,29 @@
+{
+  "collectionName": "components_layout_fila_mixtas",
+  "info": {
+    "displayName": "Fila Mixta",
+    "icon": "layout",
+    "description": "Fila con 1 banner principal y 2 banners secundarios."
+  },
+  "options": {},
+  "attributes": {
+    "banner_principal": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.banner",
+      "required": true
+    },
+    "banner_secundario_1": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.banner",
+      "required": true
+    },
+    "banner_secundario_2": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.banner",
+      "required": true
+    }
+  }
+}

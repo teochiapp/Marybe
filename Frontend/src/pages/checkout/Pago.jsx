@@ -468,13 +468,215 @@ const formatPrice = (price) => {
   return '$ ' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const ConfirmationContainer = styled.div`
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: var(--font-family-secondary, sans-serif);
+`;
+
+const SuccessBanner = styled.div`
+  background-color: #e6fcf0;
+  border: 1px solid #2ecc71;
+  border-radius: 12px;
+  padding: 30px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+
+  svg {
+    width: 45px;
+    height: 45px;
+    color: #27ae60;
+  }
+  
+  .text {
+    h2 {
+      font-size: 1.8rem;
+      color: #27ae60;
+      margin: 0 0 10px 0;
+      font-weight: 700;
+    }
+    p {
+      margin: 0;
+      color: #333;
+      font-size: 1rem;
+    }
+  }
+`;
+
+const DetailCard = styled.div`
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 30px;
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+
+    .label {
+      color: #555;
+    }
+    .value {
+      font-weight: 500;
+      color: #333;
+      text-align: right;
+    }
+  }
+
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #333;
+  }
+`;
+
+const ProductsCard = styled.div`
+  background-color: #ffffff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 30px;
+
+  .product-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+
+    &:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .prod-info {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      
+      .img-wrapper {
+        width: 60px;
+        height: 60px;
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+      }
+
+      .details {
+        h4 {
+          margin: 0 0 5px 0;
+          font-size: 1rem;
+          color: #333;
+          font-weight: 600;
+        }
+        p {
+          margin: 0;
+          font-size: 0.85rem;
+          color: #777;
+        }
+      }
+    }
+
+    .prod-price {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #333;
+    }
+  }
+`;
+
+const OrdersBtn = styled(Link)`
+  display: block;
+  width: 250px;
+  margin: 0 auto;
+  background-color: #2b0b0a;
+  color: white;
+  text-align: center;
+  padding: 15px 0;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #4a1311;
+  }
+`;
+
+const ProcessingOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  font-family: var(--font-family-secondary, sans-serif);
+
+  h3 {
+    margin-top: 20px;
+    color: #333;
+    font-size: 1.2rem;
+  }
+`;
+
+const Spinner = styled.div`
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #5C0A0A;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
 export default function Pago() {
   const { cartItems, cartTotal } = useContext(CartContext);
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
 
-  const [paymentMethod, setPaymentMethod] = useState('debito');
+  const navigate = useNavigate();
+  const [paymentMethod, setPaymentMethod] = useState('transferencia');
   const [savedAddress, setSavedAddress] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState('Peatonal Tucuman 20, Santiago del Estero');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const buttonText = paymentMethod === 'qr' || paymentMethod === 'credito' || paymentMethod === 'debito' ? 'Pagar' : 'Hacer pedido';
+
+  const handlePayment = () => {
+    setIsProcessing(true);
+    setTimeout(() => {
+      navigate('/order-success', { state: { paymentMethod, cartItems, cartTotal, savedAddress, email: user?.email } });
+    }, 2500); // 2.5 segundos de simulación
+  };
 
   useEffect(() => {
     if (token) {
@@ -510,6 +712,12 @@ export default function Pago() {
 
   return (
     <PageContainer>
+      {isProcessing && (
+        <ProcessingOverlay>
+          <Spinner />
+          <h3>Procesando pago...</h3>
+        </ProcessingOverlay>
+      )}
       <ContentWrapper>
 
         <Breadcrumb>
@@ -684,8 +892,8 @@ export default function Pago() {
                 <span className="val">{formatPrice(cartTotal)}</span>
               </TotalRow>
 
-              <PrimaryBtn onClick={() => alert('¡Gracias por tu compra! (Simulación de pago exitoso)')}>
-                Pagar
+              <PrimaryBtn onClick={handlePayment} disabled={isProcessing}>
+                {isProcessing ? 'Procesando...' : buttonText}
               </PrimaryBtn>
             </SummaryCard>
 

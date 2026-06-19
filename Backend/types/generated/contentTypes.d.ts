@@ -753,6 +753,47 @@ export interface ApiPromocionBancariaPromocionBancaria
   };
 }
 
+export interface ApiPromocionesInicioPromocionesInicio
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'promociones_inicios';
+  info: {
+    description: 'Secci\u00F3n modular para las promociones de la p\u00E1gina de inicio.';
+    displayName: 'Promociones Inicio';
+    pluralName: 'promociones-inicios';
+    singularName: 'promociones-inicio';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    Filas: Schema.Attribute.DynamicZone<
+      [
+        'layout.fila-1-columna',
+        'layout.fila-2-columnas',
+        'layout.fila-4-columnas',
+        'layout.fila-mixta',
+      ]
+    > &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::promociones-inicio.promociones-inicio'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    seccion: Schema.Attribute.Enumeration<['Perfumer\u00EDa', 'Hogar']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Perfumer\u00EDa'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiSeccionDescuentoHogarSeccionDescuentoHogar
   extends Struct.SingleTypeSchema {
   collectionName: 'secciones_descuentos_hogar';
@@ -1418,6 +1459,7 @@ declare module '@strapi/strapi' {
       'api::ordenamiento-menu-header.ordenamiento-menu-header': ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader;
       'api::producto.producto': ApiProductoProducto;
       'api::promocion-bancaria.promocion-bancaria': ApiPromocionBancariaPromocionBancaria;
+      'api::promociones-inicio.promociones-inicio': ApiPromocionesInicioPromocionesInicio;
       'api::seccion-descuento-hogar.seccion-descuento-hogar': ApiSeccionDescuentoHogarSeccionDescuentoHogar;
       'api::seccion-descuento.seccion-descuento': ApiSeccionDescuentoSeccionDescuento;
       'api::seccion-destacada-hogar.seccion-destacada-hogar': ApiSeccionDestacadaHogarSeccionDestacadaHogar;

@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_layout_fila_1_columnas",
+  "info": {
+    "displayName": "Fila 1 Columna",
+    "icon": "layout",
+    "description": "Fila que contiene 1 único banner que ocupa el 100% del ancho."
+  },
+  "options": {},
+  "attributes": {
+    "es_carrusel": {
+      "type": "boolean",
+      "default": false,
+      "required": true
+    },
+    "banner": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.banner",
+      "required": true
+    }
+  }
+}

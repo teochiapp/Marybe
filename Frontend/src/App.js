@@ -53,6 +53,8 @@ import Carrito from './pages/carrito/Carrito';
 import Login from './pages/checkout/Login';
 import Envio from './pages/checkout/Envio';
 import Pago from './pages/checkout/Pago';
+import OrderSuccess from './pages/checkout/OrderSuccess';
+import OrderError from './pages/checkout/OrderError';
 
 function App() {
   return (
@@ -69,6 +71,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/envio" element={<Envio />} />
         <Route path="/pago" element={<Pago />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
+        <Route path="/order-error" element={<OrderError />} />
         <Route path="/auth/google/callback" element={<AuthRedirect />} />
 
         {/* Rutas de Ayuda */}

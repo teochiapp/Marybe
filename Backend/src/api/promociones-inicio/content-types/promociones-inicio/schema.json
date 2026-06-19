@@ -1,0 +1,35 @@
+{
+  "kind": "collectionType",
+  "collectionName": "promociones_inicios",
+  "info": {
+    "singularName": "promociones-inicio",
+    "pluralName": "promociones-inicios",
+    "displayName": "Promociones Inicio",
+    "description": "Sección modular para las promociones de la página de inicio."
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "seccion": {
+      "type": "enumeration",
+      "enum": [
+        "Perfumería",
+        "Hogar"
+      ],
+      "default": "Perfumería",
+      "required": true
+    },
+    "Filas": {
+      "type": "dynamiczone",
+      "components": [
+        "layout.fila-1-columna",
+        "layout.fila-2-columnas",
+        "layout.fila-4-columnas",
+        "layout.fila-mixta"
+      ],
+      "required": true
+    }
+  }
+}
