@@ -12,18 +12,14 @@ const Wrapper = styled.div`
   margin: 0 auto 40px auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  /* Permite que el scroll sobrepase el borde derecho para el efecto peek */
+  gap: 30px;
   overflow: visible;
 `;
 
-/* Contenedor con fade derecho para indicar que hay más contenido */
 const TrackOuter = styled.div`
   width: 100%;
   position: relative;
 
-  /* Gradiente de fade a la derecha para hint de scroll */
   &::after {
     content: '';
     position: absolute;
@@ -39,7 +35,6 @@ const TrackOuter = styled.div`
   }
 `;
 
-/* Fila scrolleable – NO tiene overflow hidden para que se vea el peek */
 const ScrollRow = styled.div`
   display: flex;
   gap: 16px;
@@ -47,240 +42,149 @@ const ScrollRow = styled.div`
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  /* padding izquierdo para separar del borde, derecho grande para que el último card pe keep visible */
-  padding: 6px 20px 8px 20px;
-  /* Las alturas las define cada imagen de forma natural */
+  padding: 6px 20px 8px 0;
   cursor: grab;
   user-select: none;
 
   &:active {
     cursor: grabbing;
   }
-
   &::-webkit-scrollbar {
     display: none;
   }
 `;
 
-const BannerCard = styled.a`
-  flex-shrink: 0;
-  scroll-snap-align: start;
+const Grid1Col = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  width: 100%;
+`;
+
+const Grid2Cols = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+`;
+
+const Grid4Cols = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+`;
+
+const GridMixta = styled.div`
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+`;
+
+const MixtaPrincipal = styled.div`
+  @media (min-width: 768px) {
+    grid-row: 1 / span 2;
+  }
+`;
+
+const MixtaSecundario = styled.div`
+  width: 100%;
+`;
+
+const BannerCard = styled.div`
   border-radius: 20px;
   overflow: hidden;
-  text-decoration: none;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
   background-color: #F5F2ED;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  user-select: none;
-  -webkit-user-drag: none;
-
-  /* Mobile: 85% para que el siguiente card asome ~15% (efecto peek) */
-  width: 85%;
-  min-width: 85%;
-
-  /* Desktop: usa el porcentaje del CMS pero ligeramente reducido para insinuar el siguiente */
-  @media (min-width: 768px) {
-    width: ${({ $tamano }) => `calc(${$tamano}% - 24px)`};
-    min-width: ${({ $tamano }) => `calc(${$tamano}% - 24px)`};
-  }
+  transition: transform 0.3s ease;
+  height: 100%;
 
   &:hover {
     transform: translateY(-4px);
   }
+
+  /* Si está dentro de un carrusel, debe tener un ancho fijo */
+  ${({ $isCarousel, $cols }) => $isCarousel && `
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    width: ${$cols === 1 ? '85%' : $cols === 2 ? '45%' : '35%'};
+    min-width: ${$cols === 1 ? '85%' : $cols === 2 ? '45%' : '35%'};
+
+    @media (min-width: 768px) {
+      width: ${$cols === 1 ? 'calc(100% - 24px)' : $cols === 2 ? 'calc(50% - 24px)' : 'calc(25% - 24px)'};
+      min-width: ${$cols === 1 ? 'calc(100% - 24px)' : $cols === 2 ? 'calc(50% - 24px)' : 'calc(25% - 24px)'};
+    }
+  `}
 `;
 
-const BannerImage = styled.img`
-  display: block;
+const ImgWrapper = styled.div`
   width: 100%;
-  height: auto; /* La altura la define la proporción natural de la imagen */
-  transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
-  user-select: none;
-  -webkit-user-drag: none;
-
-  ${BannerCard}:hover & {
-    transform: scale(1.025);
+  height: 100%;
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 20px;
   }
 `;
 
-const DotsRow = styled.div`
-  display: flex;
-  gap: 12px;
-  align-items: center;
-`;
-
-const Dot = styled.button`
-  width: 28px;
-  height: 4px;
-  background-color: ${({ $active }) =>
-    $active ? 'var(--color-bordo-secundario, #7C0405)' : '#BDBDBD'};
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    background-color: var(--color-bordo-secundario, #7C0405);
-  }
-`;
-
-// ─── Componente Principal ────────────────────────────────────────────────────
-export default function PromoCarousel({ seccion = 'perfumeria' }) {
+// ─── Componente Auxiliar: Responsive Banner ──────────────────────────────────
+const ResponsiveBanner = ({ banner, isCarousel, cols }) => {
   const navigate = useNavigate();
-  const [ofertas, setOfertas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [dotPositions, setDotPositions] = useState([]);
+  if (!banner) return null;
+
+  const desktop = banner.imagen_desktop?.data?.attributes?.url;
+  if (!desktop) return null; // Fallback si no hay imagen principal
+
+  const tablet = banner.imagen_tablet?.data?.attributes?.url || desktop;
+  const mobile = banner.imagen_mobile?.data?.attributes?.url || tablet;
+
+  const inner = (
+    <ImgWrapper>
+      <picture>
+        <source media="(max-width: 768px)" srcSet={`${STRAPI_URL}${mobile}`} />
+        <source media="(max-width: 1024px)" srcSet={`${STRAPI_URL}${tablet}`} />
+        <img src={`${STRAPI_URL}${desktop}`} alt={banner.titulo || ''} draggable="false" />
+      </picture>
+    </ImgWrapper>
+  );
+
+  const handleClick = (e) => {
+    if (banner.enlace && banner.enlace.startsWith('/')) {
+      e.preventDefault();
+      navigate(banner.enlace);
+    }
+  };
+
+  return (
+    <BannerCard $isCarousel={isCarousel} $cols={cols}>
+      {banner.enlace ? (
+        <a href={banner.enlace} onClick={handleClick} title={banner.titulo} style={{ display: 'block', height: '100%', textDecoration: 'none' }}>
+          {inner}
+        </a>
+      ) : (
+        <div style={{ height: '100%' }} title={banner.titulo}>{inner}</div>
+      )}
+    </BannerCard>
+  );
+};
+
+// ─── Componente Auxiliar: Carousel Track ─────────────────────────────────────
+const CarouselTrack = ({ children }) => {
   const scrollRef = useRef(null);
 
-  useEffect(() => {
-    setLoading(true);
-    async function fetchOfertas() {
-      try {
-        const seccionNameRaw = seccion === 'hogar' ? 'Hogar' : 'Perfumer\u00eda';
-        const encodedSeccion = encodeURIComponent(seccionNameRaw);
-        let params;
-        if (seccion === 'hogar') {
-          // Hogar: filtro estricto, solo mostrar ofertas explícitamente asignadas a Hogar
-          params = [
-            `filters[seccion][$eq]=${encodedSeccion}`,
-            `sort[0]=orden:asc`,
-            `populate=*`,
-          ].join('&');
-        } else {
-          // Perfumería: incluir también registros sin sección asignada (legacy)
-          params = [
-            `filters[$or][0][seccion][$eq]=${encodedSeccion}`,
-            `filters[$or][1][seccion][$null]=true`,
-            `sort[0]=orden:asc`,
-            `populate=*`,
-          ].join('&');
-        }
-
-        const res = await fetch(`${STRAPI_URL}/api/ofertas?${params}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-
-        if (json && json.data) {
-          // Sort client-side para garantizar orden por si Strapi no respeta nulls en orden
-          const sorted = [...json.data].sort((a, b) => {
-            const aAttrs = a.attributes || a;
-            const bAttrs = b.attributes || b;
-            return (aAttrs.orden ?? 999) - (bAttrs.orden ?? 999);
-          });
-          setOfertas(sorted);
-        } else {
-          setOfertas([]);
-        }
-      } catch (err) {
-        console.error('[PromoCarousel] Error al cargar ofertas:', err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchOfertas();
-  }, [seccion]);
-
-  /* Scroll horizontal con la rueda del mouse (wheel tilt) */
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const onWheel = (e) => {
-      // Si el usuario mueve la rueda en horizontal (tilt) o vertical, lo convertimos a scroll horizontal
-      if (Math.abs(e.deltaX) > 0 || Math.abs(e.deltaY) > 0) {
-        e.preventDefault();
-        el.scrollLeft += e.deltaX !== 0 ? e.deltaX : e.deltaY;
-      }
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
-
-  const updateDots = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el || !el.children.length) return;
-
-    const children = Array.from(el.children);
-    const scrollWidth = el.scrollWidth;
-    const clientWidth = el.clientWidth;
-    const maxScroll = scrollWidth - clientWidth;
-
-    if (maxScroll <= 0) {
-      setDotPositions([0]);
-      return;
-    }
-
-    const positions = [];
-    positions.push(0);
-
-    for (let i = 1; i < children.length; i++) {
-      const child = children[i];
-      const pos = child.offsetLeft - 20;
-
-      if (pos < maxScroll - 5) {
-        positions.push(pos);
-      } else {
-        positions.push(maxScroll);
-        break;
-      }
-    }
-
-    if (positions[positions.length - 1] < maxScroll - 5) {
-      positions.push(maxScroll);
-    }
-
-    setDotPositions(positions);
-  }, []);
-
-  useEffect(() => {
-    if (ofertas.length > 0) {
-      const timer = setTimeout(updateDots, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [ofertas, updateDots]);
-
-  useEffect(() => {
-    window.addEventListener('resize', updateDots);
-    return () => window.removeEventListener('resize', updateDots);
-  }, [updateDots]);
-
-  /* Actualiza el dot activo según la posición de scroll */
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el || !dotPositions.length) return;
-
-    const scrollLeft = el.scrollLeft;
-    let minDist = Infinity;
-    let idx = 0;
-
-    dotPositions.forEach((pos, i) => {
-      const dist = Math.abs(pos - scrollLeft);
-      if (dist < minDist) {
-        minDist = dist;
-        idx = i;
-      }
-    });
-
-    setActiveIdx(idx);
-  }, [dotPositions]);
-
-  /* Scroll suave al dot clickeado */
-  const scrollToCard = useCallback((index) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const targetPos = dotPositions[index];
-    if (targetPos !== undefined) {
-      el.scrollTo({ left: targetPos, behavior: 'smooth' });
-    }
-  }, [dotPositions]);
-
-  /* Gestión de arrastre (drag-to-scroll) con mouse */
   const isDown = useRef(false);
   const startX = useRef(0);
   const scrollLeftVal = useRef(0);
-  const hasDragged = useRef(false);
 
   const handleMouseDown = useCallback((e) => {
     const el = scrollRef.current;
@@ -290,20 +194,9 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
     el.style.scrollBehavior = 'auto';
     startX.current = e.pageX - el.offsetLeft;
     scrollLeftVal.current = el.scrollLeft;
-    hasDragged.current = false;
   }, []);
 
-  const handleMouseLeave = useCallback(() => {
-    if (!isDown.current) return;
-    isDown.current = false;
-    const el = scrollRef.current;
-    if (el) {
-      el.style.scrollSnapType = 'x mandatory';
-      el.style.scrollBehavior = '';
-    }
-  }, []);
-
-  const handleMouseUp = useCallback(() => {
+  const handleMouseLeaveOrUp = useCallback(() => {
     if (!isDown.current) return;
     isDown.current = false;
     const el = scrollRef.current;
@@ -320,86 +213,141 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
     if (!el) return;
     const x = e.pageX - el.offsetLeft;
     const walk = (x - startX.current) * 1.5;
-    if (Math.abs(walk) > 5) {
-      hasDragged.current = true;
-    }
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
-  const handleLinkClick = useCallback((e, enlace) => {
-    if (hasDragged.current) {
-      e.preventDefault();
-      return;
-    }
-    if (enlace && enlace.startsWith('/')) {
-      e.preventDefault();
-      navigate(enlace);
-    }
-  }, [navigate]);
+  return (
+    <TrackOuter>
+      <ScrollRow
+        ref={scrollRef}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeaveOrUp}
+        onMouseUp={handleMouseLeaveOrUp}
+        onMouseMove={handleMouseMove}
+      >
+        {children}
+      </ScrollRow>
+    </TrackOuter>
+  );
+};
 
-  if (loading || ofertas.length === 0) return null;
+
+// ─── Componente Principal ────────────────────────────────────────────────────
+export default function PromoCarousel({ seccion = 'perfumeria' }) {
+  const [filas, setFilas] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    async function fetchPromociones() {
+      try {
+        const seccionNameRaw = seccion === 'hogar' ? 'Hogar' : 'Perfumer\u00eda';
+        const encodedSeccion = encodeURIComponent(seccionNameRaw);
+        
+        // Construir la query con qs si estuviera disponible, o de forma robusta a mano:
+        // Strapi permite populeo profundo genérico con populate[Filas][populate]=*
+        // o si eso falla, usamos el objeto exacto de populate on fragments.
+        const queryParams = new URLSearchParams();
+        queryParams.append('filters[seccion][$eq]', seccionNameRaw);
+        
+        // Populemos las imágenes de los banners internos usando sintaxis de fragmentos (on)
+        queryParams.append('populate[Filas][on][layout.fila-1-columna][populate][banner][populate]', '*');
+        queryParams.append('populate[Filas][on][layout.fila-2-columnas][populate][banners][populate]', '*');
+        queryParams.append('populate[Filas][on][layout.fila-4-columnas][populate][banners][populate]', '*');
+        queryParams.append('populate[Filas][on][layout.fila-mixta][populate][banner_principal][populate]', '*');
+        queryParams.append('populate[Filas][on][layout.fila-mixta][populate][banner_secundario_1][populate]', '*');
+        queryParams.append('populate[Filas][on][layout.fila-mixta][populate][banner_secundario_2][populate]', '*');
+
+        const res = await fetch(`${STRAPI_URL}/api/promociones-inicios?${queryParams.toString()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+
+        // Si es collectionType, json.data es un array. Tomamos el primero que coincida.
+        if (json && json.data && json.data.length > 0) {
+          const entry = json.data[0];
+          setFilas(entry.attributes?.Filas || []);
+        } else {
+          setFilas([]);
+        }
+      } catch (err) {
+        console.error('[PromoModules] Error al cargar promociones:', err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPromociones();
+  }, [seccion]);
+
+  if (loading || filas.length === 0) return null;
 
   return (
     <Wrapper>
-      <TrackOuter>
-        <ScrollRow
-          ref={scrollRef}
-          onScroll={handleScroll}
-          onMouseDown={handleMouseDown}
-          onMouseLeave={handleMouseLeave}
-          onMouseUp={handleMouseUp}
-          onMouseMove={handleMouseMove}
-        >
-          {ofertas.map((o) => {
-            const attrs = o.attributes || o;
-            const titulo = attrs.titulo || '';
-            const enlace = attrs.enlace || null;
-            const tamano = attrs.tamano || 100;
-            const imageUrl = attrs.imagen?.data?.attributes?.url
-              ? `${STRAPI_URL}${attrs.imagen.data.attributes.url}`
-              : attrs.imagen?.url
-                ? `${STRAPI_URL}${attrs.imagen.url}`
-                : '';
-            const itemKey = o.documentId || o.id;
-
-            const inner = imageUrl ? <BannerImage src={imageUrl} alt={titulo} draggable="false" /> : null;
-
-            if (enlace) {
-              return (
-                <BannerCard
-                  key={itemKey}
-                  $tamano={tamano}
-                  href={enlace}
-                  onClick={(e) => handleLinkClick(e, enlace)}
-                  title={titulo}
-                >
-                  {inner}
-                </BannerCard>
-              );
-            }
-
+      {filas.map((fila, index) => {
+        const type = fila.__component;
+        
+        if (type === 'layout.fila-1-columna') {
+          if (fila.es_carrusel) {
             return (
-              <BannerCard key={itemKey} $tamano={tamano} as="div" style={{ cursor: 'default' }} title={titulo}>
-                {inner}
-              </BannerCard>
+              <CarouselTrack key={index}>
+                <ResponsiveBanner banner={fila.banner} isCarousel={true} cols={1} />
+              </CarouselTrack>
             );
-          })}
-        </ScrollRow>
-      </TrackOuter>
+          }
+          return (
+            <Grid1Col key={index}>
+              <ResponsiveBanner banner={fila.banner} isCarousel={false} />
+            </Grid1Col>
+          );
+        }
 
-      {/* Dots de paginación – solo si hay más de 1 dot de posición */}
-      {dotPositions.length > 1 && (
-        <DotsRow>
-          {dotPositions.map((_, i) => (
-            <Dot
-              key={i}
-              $active={i === activeIdx}
-              onClick={() => scrollToCard(i)}
-              aria-label={`Ir a oferta ${i + 1}`}
-            />
-          ))}
-        </DotsRow>
-      )}
+        if (type === 'layout.fila-2-columnas') {
+          const banners = fila.banners || [];
+          if (fila.es_carrusel) {
+            return (
+              <CarouselTrack key={index}>
+                {banners.map((b, i) => <ResponsiveBanner key={i} banner={b} isCarousel={true} cols={2} />)}
+              </CarouselTrack>
+            );
+          }
+          return (
+            <Grid2Cols key={index}>
+              {banners.map((b, i) => <ResponsiveBanner key={i} banner={b} isCarousel={false} />)}
+            </Grid2Cols>
+          );
+        }
+
+        if (type === 'layout.fila-4-columnas') {
+          const banners = fila.banners || [];
+          if (fila.es_carrusel) {
+            return (
+              <CarouselTrack key={index}>
+                {banners.map((b, i) => <ResponsiveBanner key={i} banner={b} isCarousel={true} cols={4} />)}
+              </CarouselTrack>
+            );
+          }
+          return (
+            <Grid4Cols key={index}>
+              {banners.map((b, i) => <ResponsiveBanner key={i} banner={b} isCarousel={false} />)}
+            </Grid4Cols>
+          );
+        }
+
+        if (type === 'layout.fila-mixta') {
+          return (
+            <GridMixta key={index}>
+              <MixtaPrincipal>
+                <ResponsiveBanner banner={fila.banner_principal} isCarousel={false} />
+              </MixtaPrincipal>
+              <MixtaSecundario style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ flex: 1 }}><ResponsiveBanner banner={fila.banner_secundario_1} isCarousel={false} /></div>
+                <div style={{ flex: 1 }}><ResponsiveBanner banner={fila.banner_secundario_2} isCarousel={false} /></div>
+              </MixtaSecundario>
+            </GridMixta>
+          );
+        }
+
+        return null;
+      })}
     </Wrapper>
   );
 }

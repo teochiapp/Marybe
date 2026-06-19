@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import ToggleSelection from '../../components/inicio/perfumeria/ToggleSelection';
 import PromoCarousel from '../../components/inicio/perfumeria/PromoCarousel';
 import FeaturedSection from '../../components/inicio/perfumeria/FeaturedSection';
@@ -27,6 +27,7 @@ const PageWrapper = styled.div`
 const GiftCardWrapper = styled.div`
   width: 100%;
   background-color: var(--color-fondo-tarjetas-promo);
+  cursor: pointer;
 
   @media (max-width: 768px) {
     padding: 24px 0;
@@ -35,6 +36,7 @@ const GiftCardWrapper = styled.div`
 
 export default function Inicio() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const seccionActiva = searchParams.get('seccion') || 'perfumeria';
 
   const handleSeccionChange = (seccion) => {
@@ -58,7 +60,7 @@ export default function Inicio() {
           <DiscountedSection seccion={seccionActiva} />
           <SpecificCategorySection seccion={seccionActiva} />
           <TarjetasPromociones />
-          <GiftCardWrapper>
+          <GiftCardWrapper onClick={() => navigate('/gift-card')}>
             <GiftCard seccion={seccionActiva} />
           </GiftCardWrapper>
           <ProximosEventos />
@@ -76,7 +78,7 @@ export default function Inicio() {
           <DiscountedSectionHogar />
           <SpecificCategorySection seccion={seccionActiva} />
           <TarjetasPromociones />
-          <GiftCardWrapper>
+          <GiftCardWrapper onClick={() => navigate('/gift-card')}>
             <GiftCard seccion={seccionActiva} />
           </GiftCardWrapper>
           <ProximosEventos />

@@ -20,7 +20,6 @@ import TerminosCondiciones from './pages/ayuda/TerminosCondiciones';
 // Páginas de Pedidos
 import MiCuenta from './pages/pedidos/MiCuenta';
 import SeguimientoEnvio from './pages/pedidos/SeguimientoEnvio';
-import CanjearGiftCard from './pages/pedidos/CanjearGiftCard';
 
 // Páginas de Categorías
 import Ofertas from './pages/categorias/Ofertas';
@@ -55,6 +54,8 @@ import Carrito from './pages/carrito/Carrito';
 import Login from './pages/checkout/Login';
 import Envio from './pages/checkout/Envio';
 import Pago from './pages/checkout/Pago';
+import OrderSuccess from './pages/checkout/OrderSuccess';
+import OrderError from './pages/checkout/OrderError';
 
 function App() {
   return (
@@ -71,6 +72,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/envio" element={<Envio />} />
         <Route path="/pago" element={<Pago />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
+        <Route path="/order-error" element={<OrderError />} />
         <Route path="/auth/google/callback" element={<AuthRedirect />} />
 
         {/* Rutas de Ayuda */}
@@ -82,7 +85,6 @@ function App() {
         {/* Rutas de Pedidos */}
         <Route path="/mi-cuenta" element={<MiCuenta />} />
         <Route path="/seguimiento-envio" element={<SeguimientoEnvio />} />
-        <Route path="/canjear-gift-card" element={<CanjearGiftCard />} />
 
         {/* Rutas de Categorías */}
         <Route path="/ofertas" element={<Ofertas />} />

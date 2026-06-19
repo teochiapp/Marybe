@@ -1,0 +1,24 @@
+{
+  "collectionName": "components_layout_fila_2_columnas",
+  "info": {
+    "displayName": "Fila 2 Columnas",
+    "icon": "layout",
+    "description": "Fila que contiene 2 banners dispuestos uno al lado del otro."
+  },
+  "options": {},
+  "attributes": {
+    "es_carrusel": {
+      "type": "boolean",
+      "default": false,
+      "required": true
+    },
+    "banners": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.banner",
+      "min": 2,
+      "max": 2,
+      "required": true
+    }
+  }
+}

@@ -13,6 +13,15 @@ export const CartProvider = ({ children }) => {
     }
   });
 
+  const [appliedGiftCard, setAppliedGiftCard] = useState(() => {
+    try {
+      const item = window.localStorage.getItem('marybe_giftcard');
+      return item ? JSON.parse(item) : null;
+    } catch (error) {
+      return null;
+    }
+  });
+
   useEffect(() => {
     try {
       window.localStorage.setItem('marybe_cart', JSON.stringify(cartItems));
@@ -20,6 +29,18 @@ export const CartProvider = ({ children }) => {
       console.warn("Error setting localStorage", error);
     }
   }, [cartItems]);
+
+  useEffect(() => {
+    try {
+      if (appliedGiftCard) {
+        window.localStorage.setItem('marybe_giftcard', JSON.stringify(appliedGiftCard));
+      } else {
+        window.localStorage.removeItem('marybe_giftcard');
+      }
+    } catch (error) {
+      console.warn("Error setting giftcard to localStorage", error);
+    }
+  }, [appliedGiftCard]);
 
   const addToCart = (product, quantity = 1, variant = null) => {
     setCartItems(prevItems => {
@@ -95,6 +116,8 @@ export const CartProvider = ({ children }) => {
       clearCart,
       cartTotal: getCartTotal(),
       itemCount: getCartCount(),
+      appliedGiftCard,
+      setAppliedGiftCard,
     }}>
       {children}
     </CartContext.Provider>

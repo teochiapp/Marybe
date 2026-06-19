@@ -11,6 +11,85 @@ export interface CategoriaSubcategoria extends Struct.ComponentSchema {
   };
 }
 
+export interface LayoutFila1Columna extends Struct.ComponentSchema {
+  collectionName: 'components_layout_fila_1_columnas';
+  info: {
+    description: 'Fila que contiene 1 \u00FAnico banner que ocupa el 100% del ancho.';
+    displayName: 'Fila 1 Columna';
+    icon: 'layout';
+  };
+  attributes: {
+    banner: Schema.Attribute.Component<'shared.banner', false> &
+      Schema.Attribute.Required;
+    es_carrusel: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+  };
+}
+
+export interface LayoutFila2Columnas extends Struct.ComponentSchema {
+  collectionName: 'components_layout_fila_2_columnas';
+  info: {
+    description: 'Fila que contiene 2 banners dispuestos uno al lado del otro.';
+    displayName: 'Fila 2 Columnas';
+    icon: 'layout';
+  };
+  attributes: {
+    banners: Schema.Attribute.Component<'shared.banner', true> &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 2;
+          min: 2;
+        },
+        number
+      >;
+    es_carrusel: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+  };
+}
+
+export interface LayoutFila4Columnas extends Struct.ComponentSchema {
+  collectionName: 'components_layout_fila_4_columnas';
+  info: {
+    description: 'Fila que contiene 4 banners.';
+    displayName: 'Fila 4 Columnas';
+    icon: 'layout';
+  };
+  attributes: {
+    banners: Schema.Attribute.Component<'shared.banner', true> &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 4;
+          min: 4;
+        },
+        number
+      >;
+    es_carrusel: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+  };
+}
+
+export interface LayoutFilaMixta extends Struct.ComponentSchema {
+  collectionName: 'components_layout_fila_mixtas';
+  info: {
+    description: 'Fila con 1 banner principal y 2 banners secundarios.';
+    displayName: 'Fila Mixta';
+    icon: 'layout';
+  };
+  attributes: {
+    banner_principal: Schema.Attribute.Component<'shared.banner', false> &
+      Schema.Attribute.Required;
+    banner_secundario_1: Schema.Attribute.Component<'shared.banner', false> &
+      Schema.Attribute.Required;
+    banner_secundario_2: Schema.Attribute.Component<'shared.banner', false> &
+      Schema.Attribute.Required;
+  };
+}
+
 export interface ProductoVariante extends Struct.ComponentSchema {
   collectionName: 'components_producto_variantes';
   info: {
@@ -31,11 +110,33 @@ export interface ProductoVariante extends Struct.ComponentSchema {
   };
 }
 
+export interface SharedBanner extends Struct.ComponentSchema {
+  collectionName: 'components_shared_banners';
+  info: {
+    description: 'Componente para un banner con im\u00E1genes para diferentes resoluciones.';
+    displayName: 'Banner Responsive';
+    icon: 'picture';
+  };
+  attributes: {
+    enlace: Schema.Attribute.String;
+    imagen_desktop: Schema.Attribute.Media<'images'> &
+      Schema.Attribute.Required;
+    imagen_mobile: Schema.Attribute.Media<'images'>;
+    imagen_tablet: Schema.Attribute.Media<'images'>;
+    titulo: Schema.Attribute.String;
+  };
+}
+
 declare module '@strapi/strapi' {
   export module Public {
     export interface ComponentSchemas {
       'categoria.subcategoria': CategoriaSubcategoria;
+      'layout.fila-1-columna': LayoutFila1Columna;
+      'layout.fila-2-columnas': LayoutFila2Columnas;
+      'layout.fila-4-columnas': LayoutFila4Columnas;
+      'layout.fila-mixta': LayoutFilaMixta;
       'producto.variante': ProductoVariante;
+      'shared.banner': SharedBanner;
     }
   }
 }

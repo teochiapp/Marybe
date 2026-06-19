@@ -1,0 +1,41 @@
+{
+  "collectionName": "components_shared_banners",
+  "info": {
+    "displayName": "Banner Responsive",
+    "icon": "picture",
+    "description": "Componente para un banner con imágenes para diferentes resoluciones."
+  },
+  "options": {},
+  "attributes": {
+    "titulo": {
+      "type": "string"
+    },
+    "enlace": {
+      "type": "string"
+    },
+    "imagen_desktop": {
+      "type": "media",
+      "multiple": false,
+      "required": true,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "imagen_tablet": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "imagen_mobile": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    }
+  }
+}

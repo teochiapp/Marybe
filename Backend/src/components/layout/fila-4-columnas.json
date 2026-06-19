@@ -1,0 +1,24 @@
+{
+  "collectionName": "components_layout_fila_4_columnas",
+  "info": {
+    "displayName": "Fila 4 Columnas",
+    "icon": "layout",
+    "description": "Fila que contiene 4 banners."
+  },
+  "options": {},
+  "attributes": {
+    "es_carrusel": {
+      "type": "boolean",
+      "default": false,
+      "required": true
+    },
+    "banners": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.banner",
+      "min": 4,
+      "max": 4,
+      "required": true
+    }
+  }
+}

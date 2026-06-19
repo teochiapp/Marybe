@@ -325,13 +325,19 @@ const CouponField = styled.div`
     font-weight: 500;
   }
 
+  .input-group {
+    display: flex;
+    gap: 10px;
+  }
+
   input {
-    width: 100%;
+    flex: 1;
     padding: 12px 15px;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     background-color: white;
     font-size: 0.95rem;
+    color: black;
 
     &::placeholder {
       color: #aaa;
@@ -341,7 +347,39 @@ const CouponField = styled.div`
       outline: none;
       border-color: #333;
     }
+
+    &:disabled {
+      background-color: #f5f5f5;
+      color: black;
+      -webkit-text-fill-color: black; /* override for Safari */
+    }
   }
+
+  button {
+    background-color: #333;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: #000;
+    }
+    
+    &:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+  }
+`;
+
+const Message = styled.div`
+  font-size: 0.85rem;
+  margin-top: 8px;
+  color: ${(props) => (props.$error ? '#d9534f' : '#5cb85c')};
 `;
 
 const SummaryRow = styled.div`
@@ -441,11 +479,53 @@ const formatPrice = (price) => {
 };
 
 export default function Carrito() {
-  const { cartItems, updateQuantity, removeFromCart, cartTotal } = useContext(CartContext);
+  const { cartItems, updateQuantity, removeFromCart, cartTotal, appliedGiftCard, setAppliedGiftCard } = useContext(CartContext);
   const { isAuthenticated, openAuthModal } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [waitingForAuth, setWaitingForAuth] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponMessage, setCouponMessage] = useState({ text: '', isError: false });
+  const [isLoadingCoupon, setIsLoadingCoupon] = useState(false);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsLoadingCoupon(true);
+    setCouponMessage({ text: '', isError: false });
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/gift-cards/apply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ codigo: couponCode })
+      });
+      const data = await response.json();
+
+      if (response.ok && data.data) {
+        setAppliedGiftCard(data.data);
+        setCouponMessage({ text: `Descuento aplicado: ${formatPrice(data.data.monto)}`, isError: false });
+      } else {
+        setCouponMessage({ text: data.error?.message || 'Código no válido o inactivo.', isError: true });
+        setAppliedGiftCard(null);
+      }
+    } catch (error) {
+      console.error('Error validando cupón:', error);
+      setCouponMessage({ text: 'Hubo un error al validar el cupón.', isError: true });
+    } finally {
+      setIsLoadingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedGiftCard(null);
+    setCouponCode('');
+    setCouponMessage({ text: '', isError: false });
+  };
+
+  const discountAmount = appliedGiftCard ? appliedGiftCard.monto : 0;
+  const finalTotal = Math.max(0, cartTotal - discountAmount);
 
   // Auto-redirigir al checkout si el usuario se acaba de loguear desde este botón
   useEffect(() => {
@@ -568,13 +648,38 @@ export default function Carrito() {
 
                 <CouponField>
                   <label>Cupón de descuento o Giftcard</label>
-                  <input type="text" placeholder="Ej: 12345ABC" />
+                  <div className="input-group">
+                    <input 
+                      type="text" 
+                      placeholder="Ej: 12345ABC" 
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      disabled={!!appliedGiftCard}
+                    />
+                    {appliedGiftCard ? (
+                      <button onClick={handleRemoveCoupon}>Quitar</button>
+                    ) : (
+                      <button onClick={handleApplyCoupon} disabled={isLoadingCoupon || !couponCode.trim()}>
+                        {isLoadingCoupon ? '...' : 'Aplicar'}
+                      </button>
+                    )}
+                  </div>
+                  {couponMessage.text && (
+                    <Message $error={couponMessage.isError}>{couponMessage.text}</Message>
+                  )}
                 </CouponField>
 
                 <SummaryRow>
                   <span>Subtotal</span>
                   <span className="val">{formatPrice(cartTotal)}</span>
                 </SummaryRow>
+
+                {appliedGiftCard && (
+                  <SummaryRow style={{ color: 'black', fontWeight: 600 }}>
+                    <span>Descuento (Gift Card)</span>
+                    <span className="val" style={{ color: 'black' }}>-{formatPrice(discountAmount)}</span>
+                  </SummaryRow>
+                )}
 
                 <SummaryRow>
                   <span>Envío:</span>
@@ -585,7 +690,7 @@ export default function Carrito() {
 
                 <TotalRow>
                   <span>Total</span>
-                  <span className="val">{formatPrice(cartTotal)}</span>
+                  <span className="val">{formatPrice(finalTotal)}</span>
                 </TotalRow>
 
                 <PrimaryBtn onClick={handleContinuar}>Continuar</PrimaryBtn>

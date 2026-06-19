@@ -577,6 +577,42 @@ export interface ApiClienteCliente extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiGiftCardGiftCard extends Struct.CollectionTypeSchema {
+  collectionName: 'gift_cards';
+  info: {
+    description: 'Gift Cards y C\u00F3digos de Descuento';
+    displayName: 'Gift Card';
+    pluralName: 'gift-cards';
+    singularName: 'gift-card';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    activa: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
+    codigo: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    fecha_expiracion: Schema.Attribute.DateTime;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::gift-card.gift-card'
+    > &
+      Schema.Attribute.Private;
+    monto: Schema.Attribute.Integer & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiOfertaOferta extends Struct.CollectionTypeSchema {
   collectionName: 'ofertas';
   info: {
@@ -747,6 +783,47 @@ export interface ApiPromocionBancariaPromocionBancaria
       > &
       Schema.Attribute.DefaultTo<0>;
     publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPromocionesInicioPromocionesInicio
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'promociones_inicios';
+  info: {
+    description: 'Secci\u00F3n modular para las promociones de la p\u00E1gina de inicio.';
+    displayName: 'Promociones Inicio';
+    pluralName: 'promociones-inicios';
+    singularName: 'promociones-inicio';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    Filas: Schema.Attribute.DynamicZone<
+      [
+        'layout.fila-1-columna',
+        'layout.fila-2-columnas',
+        'layout.fila-4-columnas',
+        'layout.fila-mixta',
+      ]
+    > &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::promociones-inicio.promociones-inicio'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    seccion: Schema.Attribute.Enumeration<['Perfumer\u00EDa', 'Hogar']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Perfumer\u00EDa'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1414,10 +1491,12 @@ declare module '@strapi/strapi' {
       'api::categoria-especifica.categoria-especifica': ApiCategoriaEspecificaCategoriaEspecifica;
       'api::categoria.categoria': ApiCategoriaCategoria;
       'api::cliente.cliente': ApiClienteCliente;
+      'api::gift-card.gift-card': ApiGiftCardGiftCard;
       'api::oferta.oferta': ApiOfertaOferta;
       'api::ordenamiento-menu-header.ordenamiento-menu-header': ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader;
       'api::producto.producto': ApiProductoProducto;
       'api::promocion-bancaria.promocion-bancaria': ApiPromocionBancariaPromocionBancaria;
+      'api::promociones-inicio.promociones-inicio': ApiPromocionesInicioPromocionesInicio;
       'api::seccion-descuento-hogar.seccion-descuento-hogar': ApiSeccionDescuentoHogarSeccionDescuentoHogar;
       'api::seccion-descuento.seccion-descuento': ApiSeccionDescuentoSeccionDescuento;
       'api::seccion-destacada-hogar.seccion-destacada-hogar': ApiSeccionDestacadaHogarSeccionDestacadaHogar;
