@@ -14,6 +14,7 @@ const SectionWrapper = styled.section`
   gap: 0px;
   position: relative;
   overflow: hidden;
+  padding: 0 100px;
 
   @media (max-width: 768px) {
     padding: 30px 20px;
@@ -140,7 +141,7 @@ const ProductsGrid = styled.div`
   position: relative;
   z-index: 1;
   cursor: grab;
-  margin-left: 60px;
+  margin-left: 155px;
   padding-right: 60px;
   padding-bottom: 30px;
 

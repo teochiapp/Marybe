@@ -1,5 +1,5 @@
 import React, { useRef, useCallback } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
@@ -50,6 +50,7 @@ const BadgesContainer = styled.div`
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  justify-content: space-around;
   gap: 25px;
   align-items: center;
   position: relative;
@@ -72,6 +73,11 @@ const BadgesContainer = styled.div`
   }
 `;
 
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
 const BadgeButton = styled.button`
   background: none;
   border: none;
@@ -89,8 +95,8 @@ const BadgeButton = styled.button`
   user-select: none;
   -webkit-user-drag: none;
 
-  width: 150px;
-  height: 150px;
+  width: 165px;
+  height: 165px;
 
   @media (max-width: 768px) {
     width: 65px;
@@ -110,6 +116,7 @@ const BadgeButton = styled.button`
     transform: scale(1.08);
     img {
       filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.22)) grayscale(0%);
+      animation: ${spin} 0.6s ease;
     }
   }
 `;

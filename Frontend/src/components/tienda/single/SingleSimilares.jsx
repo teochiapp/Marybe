@@ -72,18 +72,18 @@ const ProductCard = styled.div`
   -webkit-user-drag: none;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 
-  width: calc((100% - (4 * 40px)) / 4.5);
+  width: calc((100% - (4 * 40px)) / 3.75);
 
   @media (max-width: 1440px) {
-    width: calc((100% - (3 * 40px)) / 3.5);
+    width: calc((100% - (3 * 40px)) / 2.92);
   }
 
   @media (max-width: 1024px) {
-    width: calc((100% - (2 * 30px)) / 2.5);
+    width: calc((100% - (2 * 30px)) / 2.08);
   }
 
   @media (max-width: 600px) {
-    width: calc((100% - (1 * 20px)) / 1.5);
+    width: calc((100% - (1 * 20px)) / 1.25);
     padding: 12px;
     border-radius: 18px;
   }

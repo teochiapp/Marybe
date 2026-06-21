@@ -14,6 +14,7 @@ const GalleryWrapper = styled.div`
 const ThumbList = styled.div`
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 12px;
 
   @media (max-width: 768px) {

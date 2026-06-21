@@ -14,25 +14,29 @@ const Card = styled.article`
   }
 `;
 
-const Thumb = styled.img`
-  width: 120px;
-  height: 78px;
-  object-fit: cover;
-  border-radius: var(--radius-md);
+/* Contenedor que recorta la franja inferior del iframe (tarjeta de lugar
+   y controles de Google), que no se pueden quitar por ser cross-origin. */
+const MapWrap = styled.div`
+  width: 173px;
+  height: 113px;
   flex-shrink: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
   box-shadow: var(--shadow-sm);
-  transition: transform 0.25s ease;
-  cursor: pointer;
-
-  &:hover {
-    transform: scale(1.1);
-  }
+  position: relative;
 
   @media (max-width: 600px) {
     width: 100%;
-    height: 110px;
+    height: 158px;
     border-radius: 24px;
   }
+`;
+
+const MapFrame = styled.iframe`
+  display: block;
+  border: 0;
+  width: 100%;
+  height: 100%;
 `;
 
 const Info = styled.div`
@@ -62,7 +66,14 @@ const InfoRow = styled.span`
 export default function SucursalCard({ direccion, telefono, telefonoFijo, mapa }) {
   return (
     <Card>
-      <Thumb src={mapa} alt={`Ubicación de ${direccion}`} loading="lazy" />
+      <MapWrap>
+        <MapFrame
+          src={mapa}
+          title={`Mapa de ${direccion}`}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      </MapWrap>
       <Info>
         <InfoRow>
           <FiMapPin size={18} />

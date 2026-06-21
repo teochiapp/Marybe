@@ -157,7 +157,7 @@ const HeartContainer = styled.div`
 
 
 const ProductBrand = styled.div`
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-marron-secundario);
   text-transform: uppercase;
@@ -500,8 +500,8 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria' }) {
                 </HeartContainer>
               </CardImageContainer>
 
-              <ProductBrand>{marca}</ProductBrand>
               <ProductName title={nombre} onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
+              <ProductBrand>{marca}</ProductBrand>
 
               <PriceRow>
                 {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}

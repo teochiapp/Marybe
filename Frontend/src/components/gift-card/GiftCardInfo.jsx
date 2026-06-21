@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import styled from 'styled-components';
+import { CartContext } from '../../context/CartContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaWhatsapp, FaFacebookF, FaInstagram } from 'react-icons/fa';
+import { FiLink2, FiCheck } from 'react-icons/fi';
 
 const InfoWrapper = styled.div`
   display: flex;
@@ -40,11 +44,66 @@ const IconActions = styled.div`
   }
 `;
 
+const ShareWrapper = styled.div`
+  position: relative;
+  display: flex;
+`;
+
+const ShareBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+`;
+
+const ShareMenu = styled(motion.div)`
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 50;
+  background-color: var(--color-blanco);
+  border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
+  padding: 6px;
+  min-width: 210px;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ShareItem = styled.button`
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px !important;
+  border-radius: 10px;
+  font-family: var(--font-family-secondary);
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-align: left;
+  color: var(--color-marron-secundario) !important;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--color-giftcard-crema);
+    opacity: 1 !important;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: ${({ $color }) => $color || 'var(--color-bordo-secundario)'};
+  }
+`;
+
 const Title = styled.h1`
   font-family: var(--font-family-primary);
   font-size: clamp(2.4rem, 4vw, 3.4rem);
   font-weight: 400;
-  color: var(--color-marron-principal);
+  color: black;
   margin: 8px 0 24px 0;
 `;
 
@@ -128,13 +187,13 @@ const Quantity = styled.span`
   color: var(--color-marron-secundario);
 `;
 
-const AddButton = styled.button`
+const AddButton = styled(motion.button)`
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background-color: #280101;
+  background-color: ${({ $status }) => ($status === 'added' ? '#2e7d32' : '#280101')};
   color: var(--color-blanco);
   font-family: var(--font-family-secondary);
   font-size: 1rem;
@@ -144,10 +203,18 @@ const AddButton = styled.button`
   padding: 0 28px;
   height: 52px;
   cursor: pointer;
-  transition: var(--transition-fast);
+  overflow: hidden;
+  transition: background-color 0.3s ease;
 
   &:hover {
-    background-color: var(--color-bordo-tercero);
+    background-color: ${({ $status }) => ($status === 'added' ? '#2e7d32' : 'var(--color-bordo-tercero)')};
+  }
+
+  span.btn-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    white-space: nowrap;
   }
 `;
 
@@ -169,17 +236,15 @@ const InfoItem = styled.div`
   svg {
     flex-shrink: 0;
     margin-top: 2px;
-    color: var(--color-bordo-secundario);
+    color: #7e7e7e;
   }
 
   a {
     color: #9D4343;
     font-weight: 600;
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline;
-    }
+    text-decoration: underline;
+    text-decoration-color: #9D4343;
+    text-underline-offset: 2px;
   }
 `;
 
@@ -263,16 +328,109 @@ const GiftIcon = () => (
 
 export default function GiftCardInfo() {
   const [cantidad, setCantidad] = useState(1);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [monto, setMonto] = useState('');
+  const [status, setStatus] = useState('idle');
+  const { addToCart } = useContext(CartContext);
+
+  const handleAgregar = () => {
+    const montoNum = Number(monto.replace(/\D/g, '')) || 0;
+    if (montoNum <= 0) {
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 1600);
+      return;
+    }
+    const giftProduct = {
+      id: `gift-card-${montoNum}`,
+      nombre: `Gift Card Marybe $${montoNum.toLocaleString('es-AR')}`,
+      marca: 'Marybe',
+      descuento: 0,
+      precio: montoNum,
+      portada: { url: '/inicio/giftcard.png', local: true },
+    };
+    const variant = { volumen: 'Gift Card', precio: montoNum, stock: 99 };
+    addToCart(giftProduct, cantidad, variant);
+    setStatus('added');
+    setTimeout(() => setStatus('idle'), 1800);
+  };
+
+  const handleMontoChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '');
+    if (!digits) {
+      setMonto('');
+      return;
+    }
+    setMonto('$' + Number(digits).toLocaleString('es-AR'));
+  };
 
   const decrease = () => setCantidad((q) => Math.max(1, q - 1));
   const increase = () => setCantidad((q) => q + 1);
+
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch (e) {
+      // noop
+    }
+  };
+
+  const openShare = (url) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setShareOpen(false);
+  };
+
+  const shareWhatsapp = () => openShare(`https://wa.me/?text=${encodeURIComponent(shareUrl)}`);
+  const shareFacebook = () => openShare(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`);
+  const shareInstagram = async () => {
+    await copyLink();
+    openShare('https://www.instagram.com/');
+  };
 
   return (
     <InfoWrapper>
       <TopRow>
         <Eyebrow>Regalá Marybe</Eyebrow>
         <IconActions>
-          <button type="button" aria-label="Compartir"><ShareIcon /></button>
+          <ShareWrapper>
+            <button type="button" aria-label="Compartir" onClick={() => setShareOpen((v) => !v)}>
+              <ShareIcon />
+            </button>
+            <AnimatePresence>
+              {shareOpen && (
+                <>
+                  <ShareBackdrop onClick={() => setShareOpen(false)} />
+                  <ShareMenu
+                    initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                  >
+                    <ShareItem type="button" onClick={copyLink}>
+                      {copied ? <FiCheck /> : <FiLink2 />}
+                      <span>{copied ? '¡Enlace copiado!' : 'Copiar enlace'}</span>
+                    </ShareItem>
+                    <ShareItem type="button" $color="#25D366" onClick={shareWhatsapp}>
+                      <FaWhatsapp />
+                      <span>WhatsApp</span>
+                    </ShareItem>
+                    <ShareItem type="button" $color="#1877F2" onClick={shareFacebook}>
+                      <FaFacebookF />
+                      <span>Facebook</span>
+                    </ShareItem>
+                    <ShareItem type="button" $color="#E1306C" onClick={shareInstagram}>
+                      <FaInstagram />
+                      <span>Instagram</span>
+                    </ShareItem>
+                  </ShareMenu>
+                </>
+              )}
+            </AnimatePresence>
+          </ShareWrapper>
           <button type="button" aria-label="Agregar a favoritos"><HeartIcon /></button>
         </IconActions>
       </TopRow>
@@ -280,7 +438,7 @@ export default function GiftCardInfo() {
       <Title>Gift card</Title>
 
       <FieldLabel htmlFor="monto">Indicá el monto que querés regalar</FieldLabel>
-      <MontoInput id="monto" type="text" inputMode="numeric" placeholder="$20.000" />
+      <MontoInput id="monto" type="text" inputMode="numeric" placeholder="$20.000" value={monto} onChange={handleMontoChange} />
 
       <CantidadLabel>Cantidad</CantidadLabel>
       <ActionRow>
@@ -289,13 +447,63 @@ export default function GiftCardInfo() {
           <Quantity>{cantidad}</Quantity>
           <button type="button" onClick={increase} aria-label="Aumentar cantidad">+</button>
         </Stepper>
-        <AddButton type="button">
-          Agregar
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="9" cy="21" r="1" />
-            <circle cx="20" cy="21" r="1" />
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-          </svg>
+        <AddButton
+          type="button"
+          onClick={handleAgregar}
+          $status={status}
+          whileTap={{ scale: 0.96 }}
+          animate={status === 'added' ? { scale: [1, 1.05, 1] } : { scale: 1 }}
+          transition={{ duration: 0.35 }}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            {status === 'added' ? (
+              <motion.span
+                key="added"
+                className="btn-content"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <motion.svg
+                  width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                  initial={{ scale: 0, rotate: -40 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 13 }}
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </motion.svg>
+                ¡Agregado!
+              </motion.span>
+            ) : status === 'error' ? (
+              <motion.span
+                key="error"
+                className="btn-content"
+                initial={{ x: 0 }}
+                animate={{ x: [0, -7, 7, -5, 5, 0] }}
+                transition={{ duration: 0.4 }}
+              >
+                Ingresá un monto
+              </motion.span>
+            ) : (
+              <motion.span
+                key="idle"
+                className="btn-content"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                Agregar
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="9" cy="21" r="1" />
+                  <circle cx="20" cy="21" r="1" />
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                </svg>
+              </motion.span>
+            )}
+          </AnimatePresence>
         </AddButton>
       </ActionRow>
 

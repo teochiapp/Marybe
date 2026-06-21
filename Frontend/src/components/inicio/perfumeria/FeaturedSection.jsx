@@ -12,8 +12,13 @@ const SectionWrapper = styled.section`
   display: flex;
   flex-direction: column;
   gap: 0px;
+  padding: 0 100px;
   position: relative;
   overflow: hidden;
+
+  @media (max-width: 1200px) {
+    padding: 0 40px;
+  }
 
   @media (max-width: 768px) {
     padding: 30px 20px;
@@ -58,7 +63,7 @@ const TextBlock = styled.div`
 
 const Title = styled.h2`
   font-family: var(--font-family-primary);
-  font-size: clamp(2.5rem, 4vw, 4rem);
+  font-size: clamp(3.5rem, 5vw, 6rem);
   line-height: 0.95;
   font-weight: 600;
   margin-bottom: 15px;
@@ -87,7 +92,7 @@ const Title = styled.h2`
 `;
 
 const Subtitle = styled.p`
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   color: var(--color-fondo-beneficio-tarjeta);
   max-width: 350px;
   line-height: 1.35;
@@ -151,8 +156,13 @@ const ProductsGrid = styled.div`
 
   @media (max-width: 1024px) {
     gap: 30px;
-    margin-left: 40px;
+    margin-left: 60px;
     padding-right: 40px;
+  }
+
+  @media (max-width: 770px) {
+    margin-left: 0px;
+    padding-right: 0px;
   }
 
   @media (max-width: 600px) {
@@ -369,9 +379,13 @@ const BannersRow = styled.div`
   grid-template-columns: 1fr 1fr;
   position: relative;
   z-index: 1;
-  padding: 20px 60px 30px 60px;
+  padding: 10px 200px 30px 200px;
   gap: 30px;
   
+  @media (max-width: 1200px) {
+  padding: 10px 80px 30px;
+  }
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     padding: 10px 20px 30px 20px;
@@ -388,14 +402,14 @@ const BottomBanner = styled.div`
   text-align: center;
   position: relative;
   overflow: hidden;
-  min-height: 220px;
+  min-height: 280px;
   justify-content: flex-start;
   box-shadow: inset 0 0 50px rgba(0,0,0,0.2);
 `;
 
 const BannerTitle = styled.h3`
   font-family: var(--font-family-primary);
-  font-size: 1.8rem;
+  font-size: 35px;
   color: var(--color-blanco);
   letter-spacing: -0.02em;
   font-style: italic;
@@ -437,7 +451,7 @@ const BannerImageWrapper = styled.div`
   z-index: 1;
   
   img {
-    height: 100%;
+    height: 220px;
     object-fit: contain;
     filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));
   }

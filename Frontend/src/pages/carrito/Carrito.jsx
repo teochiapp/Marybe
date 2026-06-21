@@ -584,7 +584,9 @@ export default function Carrito() {
                 {cartItems.map(item => {
                   const { product, variant } = item;
                   let imgUrl = '/placeholder.png';
-                  if (product.portada?.data?.attributes?.url) {
+                  if (product.portada?.local) {
+                    imgUrl = product.portada.url;
+                  } else if (product.portada?.data?.attributes?.url) {
                     imgUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${product.portada.data.attributes.url}`;
                   } else if (product.portada?.url) {
                     imgUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${product.portada.url}`;
