@@ -42,7 +42,7 @@ export default function PedidosAdmin() {
     setLoginLoading(true);
 
     try {
-      const res = await axios.post(`${API_URL}/api/auth/local`, {
+      const res = await axios.post(`${API_URL}/api/importacion-admin/login`, {
         identifier: email,
         password,
       });
@@ -75,7 +75,7 @@ export default function PedidosAdmin() {
     setErrorPedidos('');
     try {
       // Pedimos pedidos ordenados, limitados a 10 por página
-      const res = await axios.get(`${API_URL}/api/pedidos?populate=usuario&sort=createdAt:desc&pagination[page]=${currentPage}&pagination[pageSize]=10`, {
+      const res = await axios.get(`${API_URL}/api/admin-pedidos?populate=usuario&sort=createdAt:desc&pagination[page]=${currentPage}&pagination[pageSize]=10`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPedidos(res.data.data || []);
@@ -102,7 +102,7 @@ export default function PedidosAdmin() {
   // ─── Cambiar Estado de Pedido ────────────────────────────────────────────────
   const handleUpdateEstado = async (id, nuevoEstado) => {
     try {
-      await axios.put(`${API_URL}/api/pedidos/${id}`, {
+      await axios.put(`${API_URL}/api/admin-pedidos/${id}`, {
         data: { estado: nuevoEstado }
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -131,7 +131,7 @@ export default function PedidosAdmin() {
   const confirmDeletePedido = async () => {
     if (!pedidoToDelete) return;
     try {
-      await axios.delete(`${API_URL}/api/pedidos/${pedidoToDelete}`, {
+      await axios.delete(`${API_URL}/api/admin-pedidos/${pedidoToDelete}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPedidos(prev => prev.filter(p => p.documentId !== pedidoToDelete));

@@ -1,6 +1,21 @@
 'use strict';
 
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+
+function verificarAdminImportacion(ctx) {
+  const authHeader = ctx.request.header.authorization || '';
+  const token = authHeader.replace('Bearer ', '').trim();
+  if (!token) return false;
+
+  try {
+    const secret = strapi.config.get('plugin.users-permissions.jwtSecret') || 'custom-secret-key';
+    const payload = jwt.verify(token, secret);
+    return payload.isAdminImport === true;
+  } catch (err) {
+    return false;
+  }
+}
 
 module.exports = {
   async createMyOrder(ctx) {
@@ -79,5 +94,22 @@ module.exports = {
       console.error(err);
       return ctx.internalServerError('Error al obtener los pedidos');
     }
+  },
+
+  // ─── Bypass Admin ────────────────────────────────────────────────────────────
+
+  async adminFind(ctx) {
+    if (!verificarAdminImportacion(ctx)) return ctx.unauthorized('No autenticado o sesión expirada');
+    return await strapi.controller('api::pedido.pedido').find(ctx);
+  },
+
+  async adminUpdate(ctx) {
+    if (!verificarAdminImportacion(ctx)) return ctx.unauthorized('No autenticado o sesión expirada');
+    return await strapi.controller('api::pedido.pedido').update(ctx);
+  },
+
+  async adminDelete(ctx) {
+    if (!verificarAdminImportacion(ctx)) return ctx.unauthorized('No autenticado o sesión expirada');
+    return await strapi.controller('api::pedido.pedido').delete(ctx);
   }
 };
