@@ -127,6 +127,37 @@ module.exports = {
 
   async bootstrap({ strapi }) {
 
+    // ── Auto-seed Usuario Administrador del Frontend ─────────────────────────
+    try {
+      const adminEmail = 'admin@marybe.com';
+      const existingUser = await strapi.query('plugin::users-permissions.user').findOne({
+        where: { email: adminEmail }
+      });
+
+      if (!existingUser) {
+        const role = await strapi.query('plugin::users-permissions.role').findOne({
+          where: { type: 'authenticated' }
+        });
+
+        if (role) {
+          // Utilizar plugin service para que se encargue de hashear la contraseña
+          await strapi.plugin('users-permissions').service('user').add({
+            username: 'ImportAdmin',
+            email: adminEmail,
+            password: 'MarybeSuperAdmin2025!',
+            confirmed: true,
+            blocked: false,
+            role: role.id
+          });
+          strapi.log.info(`[Seed] ✔ Creado usuario API (${adminEmail}) para importaciones.`);
+        } else {
+          strapi.log.warn('[Seed] ⚠ No se encontró el rol "authenticated" para el usuario API.');
+        }
+      }
+    } catch (err) {
+      strapi.log.error(`[Seed] ❌ Error creando usuario API: ${err.message}`);
+    }
+
     // ── Otorgar permisos públicos para la nueva sección destacada ──────────
     await grantPublicPermission(strapi, 'api::seccion-destacada.seccion-destacada.find');
 
