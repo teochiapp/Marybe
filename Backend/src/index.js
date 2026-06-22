@@ -152,9 +152,10 @@ module.exports = {
               blocked: false,
               role: role.id
             });
-          strapi.log.info(`[Seed] ✔ Creado usuario API (${adminEmail}) para importaciones.`);
-        } else {
-          strapi.log.warn('[Seed] ⚠ No se encontró el rol "authenticated" para el usuario API.');
+            strapi.log.info(`[Seed] ✔ Creado usuario API (${adminEmail}) para importaciones.`);
+          } else {
+            strapi.log.warn('[Seed] ⚠ No se encontró el rol "authenticated" para el usuario API.');
+          }
         }
       }
     } catch (err) {
