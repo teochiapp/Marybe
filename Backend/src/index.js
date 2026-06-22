@@ -150,13 +150,18 @@ module.exports = {
               password: adminPassword,
               confirmed: true,
               blocked: false,
-              role: role.id
+              role: role.id,
+              provider: 'local'
             });
             strapi.log.info(`[Seed] ✔ Creado usuario API (${adminEmail}) para importaciones.`);
           } else {
             strapi.log.warn('[Seed] ⚠ No se encontró el rol "authenticated" para el usuario API.');
           }
+        } else {
+          strapi.log.info(`[Seed] ℹ El usuario API (${adminEmail}) ya existe. Saltando creación.`);
         }
+      } else {
+        strapi.log.warn('[Seed] ⚠ IMPORT_ADMIN_PASSWORD no está definida en las variables de entorno. Saltando auto-creación del usuario API.');
       }
     } catch (err) {
       strapi.log.error(`[Seed] ❌ Error creando usuario API: ${err.message}`);
