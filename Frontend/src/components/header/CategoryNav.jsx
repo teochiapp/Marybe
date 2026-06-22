@@ -370,7 +370,7 @@ export default function CategoryNav() {
   const getMegaColumnsForCategory = (cat) => {
     if (cat === 'Ofertas') {
       return [
-        { title: 'Descuentos Especiales', items: ['Descuento 10%', 'Descuento 20%', 'Hasta 60%'] },
+        { title: 'Descuentos Especiales', items: ['Hasta 10%', 'Hasta 20%', 'Hasta 30%', 'Hasta 40%', 'Hasta 50%', 'Hasta 60%'] },
         MEGA_COLUMNS[0],
         MEGA_COLUMNS[1],
         MEGA_COLUMNS[2]

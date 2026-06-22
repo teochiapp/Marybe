@@ -187,17 +187,22 @@ const ProductCard = styled.div`
   
   /* Fórmula matemática: (100% ancho - espacio de los gaps) / Cantidad de tarjetas que queremos mostrar */
   
-  /* Pantallas muy grandes (> 1440px): 5.5 tarjetas */
+  /* Pantallas muy grandes (> 1600px): 5.5 tarjetas */
   width: calc((100% - (5 * 30px)) / 5.5);
   
-  @media (max-width: 1440px) {
-    /* Pantallas notebook (1025px - 1440px): 4.5 tarjetas */
+  @media (max-width: 1600px) {
+    /* Pantallas grandes (1401px - 1600px): 4.5 tarjetas */
     width: calc((100% - (4 * 30px)) / 4.5);
   }
 
-  @media (max-width: 1024px) {
-    /* Tablets (601px - 1024px): 2.5 tarjetas */
-    width: calc((100% - (2 * 24px)) / 2.5);
+  @media (max-width: 1400px) {
+    /* Notebooks (998px - 1400px): 3.5 tarjetas */
+    width: calc((100% - (3 * 30px)) / 3.5);
+  }
+
+  @media (max-width: 997px) {
+    /* Tablets (601px - 997px): 2.5 tarjetas */
+    width: calc((100% - (2 * 30px)) / 2.5);
   }
 
   @media (max-width: 600px) {

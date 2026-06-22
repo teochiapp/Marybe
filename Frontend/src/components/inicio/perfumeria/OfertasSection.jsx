@@ -50,7 +50,7 @@ const BadgesContainer = styled.div`
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  justify-content: space-around;
+  justify-content: flex-start;
   gap: 25px;
   align-items: center;
   position: relative;
