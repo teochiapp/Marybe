@@ -127,46 +127,6 @@ module.exports = {
 
   async bootstrap({ strapi }) {
 
-    // ── Auto-seed Usuario Administrador del Frontend ─────────────────────────
-    try {
-      const adminEmail = process.env.IMPORT_ADMIN_EMAIL || 'admin@marybe.com';
-      const adminPassword = process.env.IMPORT_ADMIN_PASSWORD;
-
-      if (adminPassword) {
-        const existingUser = await strapi.query('plugin::users-permissions.user').findOne({
-          where: { email: adminEmail }
-        });
-
-        if (!existingUser) {
-          const role = await strapi.query('plugin::users-permissions.role').findOne({
-            where: { type: 'authenticated' }
-          });
-
-          if (role) {
-            // Utilizar plugin service para que se encargue de hashear la contraseña
-            await strapi.plugin('users-permissions').service('user').add({
-              username: 'ImportAdmin',
-              email: adminEmail,
-              password: adminPassword,
-              confirmed: true,
-              blocked: false,
-              role: role.id,
-              provider: 'local'
-            });
-            strapi.log.info(`[Seed] ✔ Creado usuario API (${adminEmail}) para importaciones.`);
-          } else {
-            strapi.log.warn('[Seed] ⚠ No se encontró el rol "authenticated" para el usuario API.');
-          }
-        } else {
-          strapi.log.info(`[Seed] ℹ El usuario API (${adminEmail}) ya existe. Saltando creación.`);
-        }
-      } else {
-        strapi.log.warn('[Seed] ⚠ IMPORT_ADMIN_PASSWORD no está definida en las variables de entorno. Saltando auto-creación del usuario API.');
-      }
-    } catch (err) {
-      strapi.log.error(`[Seed] ❌ Error creando usuario API: ${err.message}`);
-    }
-
     // ── Otorgar permisos públicos para la nueva sección destacada ──────────
     await grantPublicPermission(strapi, 'api::seccion-destacada.seccion-destacada.find');
 

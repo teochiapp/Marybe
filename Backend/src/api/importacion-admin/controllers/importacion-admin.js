@@ -2,6 +2,21 @@
 
 const fs   = require('fs');
 const path = require('path');
+const jwt  = require('jsonwebtoken');
+
+function verificarAdminImportacion(ctx) {
+  const authHeader = ctx.request.header.authorization || '';
+  const token = authHeader.replace('Bearer ', '').trim();
+  if (!token) return false;
+
+  try {
+    const secret = strapi.config.get('plugin.users-permissions.jwtSecret') || 'custom-secret-key';
+    const payload = jwt.verify(token, secret);
+    return payload.isAdminImport === true;
+  } catch (err) {
+    return false;
+  }
+}
 
 /**
  * Controller de Importación Admin
@@ -12,25 +27,36 @@ const path = require('path');
  */
 module.exports = {
   /**
-   * POST /api/importacion-admin/upload
-   * Requiere: JWT con rol "admin-importacion" en el header Authorization.
+   * POST /api/importacion-admin/login
+   * Bypass de DB. Login basado en variables de entorno.
    */
-  async upload(ctx) {
-    // ── 1. Verificar que el usuario autenticado tiene el rol adecuado ─────────
-    const user = ctx.state.user;
-    if (!user) {
-      return ctx.unauthorized('No autenticado. Debés iniciar sesión como administrador.');
+  async login(ctx) {
+    const { identifier, password } = ctx.request.body;
+    const adminEmail = process.env.IMPORT_ADMIN_EMAIL || 'admin@marybe.com';
+    const adminPassword = process.env.IMPORT_ADMIN_PASSWORD;
+
+    if (!adminPassword) {
+      return ctx.internalServerError('Error del servidor: IMPORT_ADMIN_PASSWORD no configurado en entorno.');
     }
 
-    // Cargar el usuario con su rol (el populate no viene por default)
-    const userConRol = await strapi
-      .plugin('users-permissions')
-      .service('user')
-      .fetchAuthenticatedUser(user.id);
+    if (identifier === adminEmail && password === adminPassword) {
+      const secret = strapi.config.get('plugin.users-permissions.jwtSecret') || 'custom-secret-key';
+      const token = jwt.sign({ isAdminImport: true, email: adminEmail }, secret, { expiresIn: '1d' });
+      return ctx.send({ jwt: token });
+    }
 
-    const roleName = userConRol?.role?.name || '';
-    if (roleName !== 'admin-importacion') {
-      return ctx.forbidden('Acceso denegado. Se requiere rol "admin-importacion".');
+    // Devolvemos el mismo error de Strapi para mantener la compatibilidad con el front
+    return ctx.badRequest('Invalid identifier or password');
+  },
+
+  /**
+   * POST /api/importacion-admin/upload
+   * Requiere: JWT Custom en el header Authorization.
+   */
+  async upload(ctx) {
+    // ── 1. Verificar JWT Custom ─────────────────────────
+    if (!verificarAdminImportacion(ctx)) {
+      return ctx.unauthorized('No autenticado o sesión expirada. Debés iniciar sesión como administrador.');
     }
 
     // ── 2. Verificar que llegó un archivo ─────────────────────────────────────
@@ -90,8 +116,7 @@ module.exports = {
    * Devuelve el resultado de la última importación realizada en esta sesión.
    */
   async status(ctx) {
-    const user = ctx.state.user;
-    if (!user) {
+    if (!verificarAdminImportacion(ctx)) {
       return ctx.unauthorized('No autenticado.');
     }
 

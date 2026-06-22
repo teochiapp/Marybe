@@ -33,7 +33,7 @@ export default function ImportacionAdmin() {
     setLoginLoading(true);
 
     try {
-      const res = await axios.post(`${API_URL}/api/auth/local`, {
+      const res = await axios.post(`${API_URL}/api/importacion-admin/login`, {
         identifier: email,
         password,
       });
