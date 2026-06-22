@@ -129,26 +129,29 @@ module.exports = {
 
     // ── Auto-seed Usuario Administrador del Frontend ─────────────────────────
     try {
-      const adminEmail = 'admin@marybe.com';
-      const existingUser = await strapi.query('plugin::users-permissions.user').findOne({
-        where: { email: adminEmail }
-      });
+      const adminEmail = process.env.IMPORT_ADMIN_EMAIL || 'admin@marybe.com';
+      const adminPassword = process.env.IMPORT_ADMIN_PASSWORD;
 
-      if (!existingUser) {
-        const role = await strapi.query('plugin::users-permissions.role').findOne({
-          where: { type: 'authenticated' }
+      if (adminPassword) {
+        const existingUser = await strapi.query('plugin::users-permissions.user').findOne({
+          where: { email: adminEmail }
         });
 
-        if (role) {
-          // Utilizar plugin service para que se encargue de hashear la contraseña
-          await strapi.plugin('users-permissions').service('user').add({
-            username: 'ImportAdmin',
-            email: adminEmail,
-            password: 'MarybeSuperAdmin2025!',
-            confirmed: true,
-            blocked: false,
-            role: role.id
+        if (!existingUser) {
+          const role = await strapi.query('plugin::users-permissions.role').findOne({
+            where: { type: 'authenticated' }
           });
+
+          if (role) {
+            // Utilizar plugin service para que se encargue de hashear la contraseña
+            await strapi.plugin('users-permissions').service('user').add({
+              username: 'ImportAdmin',
+              email: adminEmail,
+              password: adminPassword,
+              confirmed: true,
+              blocked: false,
+              role: role.id
+            });
           strapi.log.info(`[Seed] ✔ Creado usuario API (${adminEmail}) para importaciones.`);
         } else {
           strapi.log.warn('[Seed] ⚠ No se encontró el rol "authenticated" para el usuario API.');
