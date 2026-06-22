@@ -470,6 +470,18 @@ export default function NavBar() {
     return () => document.removeEventListener('mousedown', handleClickOutsideMobile);
   }, []);
 
+  // Bloquear scroll de la página cuando el menú móvil está abierto
+  useEffect(() => {
+    if (drawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [drawerOpen]);
+
   const handleSearch = (e) => {
     if (e.key === 'Enter' || e.type === 'click') {
       const q = searchQuery.trim();

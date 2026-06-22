@@ -312,6 +312,7 @@ const MobilePill = styled.a`
 export default function CategoryNav() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [dynamicCategories, setDynamicCategories] = useState(DEFAULT_CATEGORIES);
+  const [latestProducts, setLatestProducts] = useState(['Cargando...']);
   const navRef = useRef(null);
 
   const handleCategoryClick = (cat) => {
@@ -338,7 +339,7 @@ export default function CategoryNav() {
             const attrs = c.attributes || c;
             return attrs.nombre;
           }).filter(Boolean);
-          
+
           if (catNames.length > 0) {
             setDynamicCategories(catNames);
           }
@@ -347,7 +348,44 @@ export default function CategoryNav() {
       .catch((err) => {
         console.error('Error fetching dynamic categories for header:', err);
       });
+
+    // Cargar los últimos productos para la pestaña Lanzamientos
+    fetch(`${STRAPI_URL}/api/productos?sort=createdAt:desc&pagination[limit]=5`)
+      .then((res) => res.json())
+      .then((json) => {
+        const prods = json?.data || [];
+        if (prods.length > 0) {
+          setLatestProducts(prods.map(p => p.attributes?.nombre || 'Producto Nuevo'));
+        } else {
+          setLatestProducts(['No hay productos recientes']);
+        }
+      })
+      .catch((err) => {
+        console.error('Error fetching latest products:', err);
+        setLatestProducts(['Error al cargar lanzamientos']);
+      });
   }, []);
+
+  // Función para obtener las columnas del MegaMenu dependiendo de la categoría activa
+  const getMegaColumnsForCategory = (cat) => {
+    if (cat === 'Ofertas') {
+      return [
+        { title: 'Descuentos Especiales', items: ['Descuento 10%', 'Descuento 20%', 'Hasta 60%'] },
+        MEGA_COLUMNS[0],
+        MEGA_COLUMNS[1],
+        MEGA_COLUMNS[2]
+      ];
+    }
+    if (cat === 'Lanzamientos') {
+      return [
+        { title: 'Últimos productos', items: latestProducts },
+        MEGA_COLUMNS[3],
+        MEGA_COLUMNS[4],
+        MEGA_COLUMNS[5]
+      ];
+    }
+    return MEGA_COLUMNS;
+  };
 
   return (
     <>
@@ -379,7 +417,7 @@ export default function CategoryNav() {
               </MegaTitle>
 
               <MegaGrid>
-                {MEGA_COLUMNS.map((col) => (
+                {getMegaColumnsForCategory(activeCategory).map((col) => (
                   <MegaColumn key={col.title}>
                     <MegaColumnTitle>{col.title}</MegaColumnTitle>
                     {col.items.map((item) => (
