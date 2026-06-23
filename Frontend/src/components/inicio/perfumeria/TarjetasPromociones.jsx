@@ -47,7 +47,7 @@ const Title = styled.h2`
 
 const CardsGrid = styled(motion.div)`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(${({ $cols }) => $cols || 4}, 1fr);
   gap: 0;
   width: 100%;
   margin-bottom: 40px;
@@ -69,8 +69,12 @@ const Card = styled(motion.div)`
   padding: 0 24px 24px 24px;
   border-bottom: 1px solid rgba(40, 1, 1, 0.15);
 
+  &:last-child {
+    border-bottom: none;
+  }
+
   @media (max-width: 992px) {
-    padding: 0 16px 24px 16px;
+    padding: 24px 16px;
   }
 `;
 
@@ -302,7 +306,7 @@ export default function TarjetasPromociones() {
         <Title>Beneficios para vos</Title>
 
         <CardsGrid 
-          style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+          $cols={cols}
           variants={staggerContainerVariants}
           initial="hidden"
           whileInView="show"
