@@ -10,12 +10,7 @@
     {
       "src": "isologo.png",
       "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "isologo.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "any"
     }
   ],
   "start_url": ".",
