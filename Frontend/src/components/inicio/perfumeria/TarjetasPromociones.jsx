@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { motion } from 'framer-motion';
+import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 
 const STRAPI_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
 
@@ -43,7 +45,7 @@ const Title = styled.h2`
 
 /* ─── Grid de tarjetas ──────────────────────────────────────────────────── */
 
-const CardsGrid = styled.div`
+const CardsGrid = styled(motion.div)`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0;
@@ -59,7 +61,7 @@ const CardsGrid = styled.div`
   }
 `;
 
-const Card = styled.div`
+const Card = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -299,7 +301,13 @@ export default function TarjetasPromociones() {
       <Container>
         <Title>Beneficios para vos</Title>
 
-        <CardsGrid style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+        <CardsGrid 
+          style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+          variants={staggerContainerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-50px" }}
+        >
           {loading ? (
             // Skeleton mientras carga
             Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
@@ -316,7 +324,7 @@ export default function TarjetasPromociones() {
                 : null;
 
               return (
-                <Card key={id}>
+                <Card key={id} variants={staggerItemLeftVariants}>
                   {logoUrl ? (
                     <CardImage src={logoUrl} alt={nombre} />
                   ) : (

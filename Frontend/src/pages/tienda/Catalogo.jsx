@@ -8,6 +8,7 @@ import CatalogoBanner from '../../components/tienda/catalogo/CatalogoBanner';
 import CatalogoSidebar from '../../components/tienda/catalogo/CatalogoSidebar';
 import CatalogoControlsBar from '../../components/tienda/catalogo/CatalogoControlsBar';
 import CatalogoProductGrid from '../../components/tienda/catalogo/CatalogoProductGrid';
+import { FadeIn, FadeInLeft } from '../../components/animations/ScrollAnimations';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -414,50 +415,56 @@ export default function Catalogo() {
 
       {/* Breadcrumb — ocultar en búsqueda */}
       {!activeBusqueda && (
-        <CatalogoBreadcrumb
-          activeSeccion={activeSeccion}
-          activeBanner={activeBanner}
-          activeDescuento={activeDescuentos}
-          currentBannerTitle={currentBanner?.breadcrumbTitle || currentBanner?.title}
-          onGoToSeccion={() => updateUrlFilters({ banner: null })}
-        />
+        <FadeIn>
+          <CatalogoBreadcrumb
+            activeSeccion={activeSeccion}
+            activeBanner={activeBanner}
+            activeDescuento={activeDescuentos}
+            currentBannerTitle={currentBanner?.breadcrumbTitle || currentBanner?.title}
+            onGoToSeccion={() => updateUrlFilters({ banner: null })}
+          />
+        </FadeIn>
       )}
 
       {/* Banner dinámico — ocultar en búsqueda */}
       {!activeBusqueda && (
-        <CatalogoBanner
-          currentBanner={currentBanner}
-          onPillClick={() => updateUrlFilters({ seccion: activeSeccion })}
-        />
+        <FadeIn delay={0.1}>
+          <CatalogoBanner
+            currentBanner={currentBanner}
+            onPillClick={() => updateUrlFilters({ seccion: activeSeccion })}
+          />
+        </FadeIn>
       )}
 
       {/* Layout principal */}
       <MainContent>
         {/* Sidebar de filtros */}
-        <CatalogoSidebar
-          mobileOpen={mobileFiltersOpen}
-          onCloseMobile={() => setMobileFiltersOpen(false)}
-          availableCategories={availableCategories}
-          availableBrands={availableBrands}
-          availableSizes={availableSizes}
-          availablePriceRange={availablePriceRange}
-          activeCategories={activeCategories}
-          activeBrands={activeBrands}
-          activeSizes={activeSizes}
-          activePrice={activePrice}
-          activePriceParam={activePriceParam}
-          activeSeccion={activeSeccion}
-          activeDescuento={activeDescuentos}
-          accordions={accordions}
-          onToggleAccordion={toggleAccordion}
-          onCheckboxToggle={handleCheckboxToggle}
-          onDescuentoChange={(val) => updateUrlFilters({ descuento: val, page: 1 })}
-          onPriceChange={(val) => updateUrlFilters({ precio: `${val[0]}-${val[1]}`, page: 1 })}
-          onRemoveTag={removeFilterTag}
-          onClearAll={clearAllFilters}
-          onSubmit={fetchProductos}
-          total={total}
-        />
+        <FadeInLeft delay={0.2}>
+          <CatalogoSidebar
+            mobileOpen={mobileFiltersOpen}
+            onCloseMobile={() => setMobileFiltersOpen(false)}
+            availableCategories={availableCategories}
+            availableBrands={availableBrands}
+            availableSizes={availableSizes}
+            availablePriceRange={availablePriceRange}
+            activeCategories={activeCategories}
+            activeBrands={activeBrands}
+            activeSizes={activeSizes}
+            activePrice={activePrice}
+            activePriceParam={activePriceParam}
+            activeSeccion={activeSeccion}
+            activeDescuento={activeDescuentos}
+            accordions={accordions}
+            onToggleAccordion={toggleAccordion}
+            onCheckboxToggle={handleCheckboxToggle}
+            onDescuentoChange={(val) => updateUrlFilters({ descuento: val, page: 1 })}
+            onPriceChange={(val) => updateUrlFilters({ precio: `${val[0]}-${val[1]}`, page: 1 })}
+            onRemoveTag={removeFilterTag}
+            onClearAll={clearAllFilters}
+            onSubmit={fetchProductos}
+            total={total}
+          />
+        </FadeInLeft>
 
         {/* Área principal */}
         <MainGridArea>

@@ -1,5 +1,7 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
+import { staggerContainerVariants, staggerItemFadeVariants } from '../../animations/ScrollAnimations';
 import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
@@ -27,7 +29,7 @@ const SectionTitle = styled.h2`
   }
 `;
 
-const CarouselContainer = styled.div`
+const CarouselContainer = styled(motion.div)`
   display: flex;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
@@ -54,7 +56,7 @@ const CarouselContainer = styled.div`
   }
 `;
 
-const CategoryCard = styled.div`
+const CategoryCard = styled(motion.div)`
   position: relative;
   flex-shrink: 0;
   scroll-snap-align: start;
@@ -284,6 +286,10 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
+        variants={staggerContainerVariants}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-50px" }}
       >
         {itemsToShow.map((item) => {
           const id = item.id || item.documentId || Math.random();
@@ -302,6 +308,7 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
               key={id} 
               $compact={compact}
               onClick={() => handleCategoryClick(nombre)}
+              variants={staggerItemFadeVariants}
             >
               {imgUrl ? (
                 <img src={imgUrl} alt={nombre} draggable="false" />

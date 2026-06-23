@@ -1,9 +1,11 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
 import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
+import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
@@ -128,7 +130,7 @@ const FeaturedPicture = styled.picture`
   }
 `;
 
-const ProductsGrid = styled.div`
+const ProductsGrid = styled(motion.div)`
   display: flex;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
@@ -172,7 +174,7 @@ const ProductsGrid = styled.div`
   }
 `;
 
-const ProductCard = styled.div`
+const ProductCard = styled(motion.div)`
   background-color: var(--color-blanco);
   border-radius: 20px;
   padding: 16px;
@@ -603,6 +605,10 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
+        variants={staggerContainerVariants}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-50px" }}
       >
         {productos.map((item) => {
           const id = item.id || item.documentId;
@@ -628,7 +634,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
           }
 
           return (
-            <ProductCard key={id}>
+            <ProductCard key={id} variants={staggerItemLeftVariants}>
               <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
                 {imgUrl ? (
                   <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" />

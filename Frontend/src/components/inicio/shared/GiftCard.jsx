@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -75,7 +76,7 @@ const MobileTitle = styled.h2`
 
 /* ─── Imagen ─────────────────────────────────────────────────────────────── */
 
-const ImageWrapper = styled.div`
+const ImageWrapper = styled(motion.div)`
   flex: 0 0 32%;
   position: relative;
   align-self: stretch;
@@ -257,7 +258,12 @@ export default function GiftCard({ seccion = 'perfumeria' }) {
         <em>Regalá</em> Marybe
       </MobileTitle>
 
-      <ImageWrapper>
+      <ImageWrapper
+        initial={{ opacity: 0, x: -50 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true, margin: '-50px' }}
+        transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+      >
         <CardImage src="/inicio/giftcard.png" alt="Gift card Marybe" />
       </ImageWrapper>
 
