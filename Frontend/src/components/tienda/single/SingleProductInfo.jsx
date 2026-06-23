@@ -310,9 +310,9 @@ const QtyNumber = styled.div`
 `;
 
 
-const AddToCartBtn = styled.button`
+const AddToCartBtn = styled(motion.button)`
   flex: 1;
-  background-color: #280101;
+  background-color: ${({ $added }) => ($added ? '#2e7d32' : '#280101')};
   color: white;
   border: none;
   border-radius: 8px;
@@ -325,12 +325,11 @@ const AddToCartBtn = styled.button`
   justify-content: center;
   align-items: center;
   gap: 10px;
-  transition: all 0.3s ease;
+  overflow: hidden;
+  transition: background-color 0.3s ease;
 
   &:hover {
-    background-color: #3f0303; /* Tono ligeramente más claro que #280101 */
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(40, 1, 1, 0.2);
+    background-color: ${({ $added }) => ($added ? '#2e7d32' : '#3f0303')};
   }
 
   &:active {
@@ -467,6 +466,7 @@ export default function SingleProductInfo({ producto }) {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isShippingModalOpen, setShippingModalOpen] = useState(false);
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+  const [addingCart, setAddingCart] = useState(false);
 
   if (!producto) return null;
 
@@ -572,20 +572,61 @@ export default function SingleProductInfo({ producto }) {
         </QuantityBox>
         <AddToCartBtn
           disabled={stock === 0}
+          $added={addingCart}
+          whileTap={{ scale: 0.97 }}
+          animate={addingCart ? { scale: [1, 1.03, 1] } : { scale: 1 }}
+          transition={{ duration: 0.3 }}
           style={{ opacity: stock === 0 ? 0.6 : 1, cursor: stock === 0 ? 'not-allowed' : 'pointer' }}
           onClick={() => {
-            if (stock > 0) {
-              addToCart(producto, qty, activeVariant);
-              setIsCartModalOpen(true);
+            if (stock > 0 && !addingCart) {
+              setAddingCart(true);
+              setTimeout(() => {
+                addToCart(producto, qty, activeVariant);
+                setIsCartModalOpen(true);
+                setAddingCart(false);
+              }, 850);
             }
           }}
         >
-          {stock === 0 ? 'Agotado' : 'Agregar'}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="9" cy="21" r="1"></circle>
-            <circle cx="20" cy="21" r="1"></circle>
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-          </svg>
+          <AnimatePresence mode="wait" initial={false}>
+            {addingCart ? (
+              <motion.span
+                key="added"
+                style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <motion.svg
+                  width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                  initial={{ scale: 0, rotate: -40 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 13 }}
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </motion.svg>
+                ¡Agregado!
+              </motion.span>
+            ) : (
+              <motion.span
+                key="idle"
+                style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                {stock === 0 ? 'Agotado' : 'Agregar'}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="9" cy="21" r="1"></circle>
+                  <circle cx="20" cy="21" r="1"></circle>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+              </motion.span>
+            )}
+          </AnimatePresence>
         </AddToCartBtn>
       </ActionRow>
     </>

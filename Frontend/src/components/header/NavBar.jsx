@@ -96,6 +96,13 @@ const LocationSelector = styled.button`
   }
 `;
 
+const searchPulse = keyframes`
+  0%   { transform: scale(1) rotate(0deg); }
+  30%  { transform: scale(1.18) rotate(-12deg); }
+  60%  { transform: scale(1.06) rotate(8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+`;
+
 const SearchBar = styled.label`
   display: flex;
   align-items: center;
@@ -107,9 +114,24 @@ const SearchBar = styled.label`
   cursor: text;
   outline: none;
   position: relative; /* Para posicionar el dropdown */
+  transition: box-shadow 0.25s ease, background-color 0.25s ease;
+
+  svg {
+    transition: transform 0.25s ease;
+    transform-origin: 50% 50%;
+  }
+
+  &:hover svg {
+    animation: ${searchPulse} 0.6s ease;
+  }
 
   &:focus-within {
     outline: none;
+    box-shadow: 0 0 0 2px rgba(124, 4, 5, 0.15);
+  }
+
+  &:focus-within svg {
+    transform: scale(1.12) rotate(-6deg);
   }
 `;
 
@@ -198,6 +220,66 @@ const CartBadge = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const cartBounce = keyframes`
+  0%   { transform: translateY(0) rotate(0deg); }
+  20%  { transform: translateY(-3px) rotate(-9deg); }
+  45%  { transform: translateY(0) rotate(0deg); }
+  65%  { transform: translateY(-2px) rotate(7deg); }
+  85%  { transform: translateY(0) rotate(-3deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+`;
+
+const badgePop = keyframes`
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.4); }
+  70%  { transform: scale(0.92); }
+  100% { transform: scale(1); }
+`;
+
+const CartButton = styled(IconButton)`
+  svg {
+    transition: transform 0.25s ease;
+    transform-origin: 50% 60%;
+  }
+
+  &:hover svg {
+    animation: ${cartBounce} 0.65s ease;
+  }
+
+  &:hover ${CartBadge} {
+    animation: ${badgePop} 0.45s ease;
+  }
+`;
+
+const SearchButton = styled(IconButton)`
+  svg {
+    transition: transform 0.25s ease;
+    transform-origin: 50% 50%;
+  }
+
+  &:hover svg {
+    animation: ${searchPulse} 0.6s ease;
+  }
+`;
+
+const userPop = keyframes`
+  0%   { transform: scale(1) translateY(0) rotate(0deg); }
+  30%  { transform: scale(1.16) translateY(-2px) rotate(-6deg); }
+  60%  { transform: scale(1.05) translateY(0) rotate(5deg); }
+  100% { transform: scale(1) translateY(0) rotate(0deg); }
+`;
+
+const UserButton = styled(IconButton)`
+  svg {
+    transition: transform 0.25s ease;
+    transform-origin: 50% 60%;
+  }
+
+  &:hover svg {
+    animation: ${userPop} 0.55s ease;
+  }
 `;
 
 /* ── Drawer ── */
@@ -569,22 +651,22 @@ export default function NavBar() {
 
         {/* Desktop: iconos */}
         <DesktopIcons>
-          <IconButton aria-label="Mi cuenta" onClick={goToAccount}><UserIcon /></IconButton>
-          <IconButton aria-label="Carrito" onClick={() => navigate('/carrito')}>
+          <UserButton aria-label="Mi cuenta" onClick={goToAccount}><UserIcon /></UserButton>
+          <CartButton aria-label="Carrito" onClick={() => navigate('/carrito')}>
             <CartIconSvg />
             {itemCount > 0 && <CartBadge>{itemCount}</CartBadge>}
-          </IconButton>
+          </CartButton>
         </DesktopIcons>
 
         {/* Mobile: búsqueda + carrito */}
         <MobileRight>
-          <IconButton aria-label="Buscar" onClick={() => setMobileSearchOpen(prev => !prev)}>
+          <SearchButton aria-label="Buscar" onClick={() => setMobileSearchOpen(prev => !prev)}>
             <SearchIconSvg />
-          </IconButton>
-          <IconButton aria-label="Carrito" onClick={() => navigate('/carrito')}>
+          </SearchButton>
+          <CartButton aria-label="Carrito" onClick={() => navigate('/carrito')}>
             <CartIconSvg />
             {itemCount > 0 && <CartBadge>{itemCount}</CartBadge>}
-          </IconButton>
+          </CartButton>
         </MobileRight>
       </NavBarWrapper>
 
@@ -637,10 +719,10 @@ export default function NavBar() {
                 <CloseIcon />
               </IconButton>
               <DrawerLogo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} />
-              <IconButton aria-label="Carrito" onClick={() => { closeDrawer(); navigate('/carrito'); }}>
+              <CartButton aria-label="Carrito" onClick={() => { closeDrawer(); navigate('/carrito'); }}>
                 <CartIconSvg />
                 {itemCount > 0 && <CartBadge>{itemCount}</CartBadge>}
-              </IconButton>
+              </CartButton>
             </DrawerHeader>
 
             <DrawerBody>

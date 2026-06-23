@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Styled Components
 const Overlay = styled.div`
@@ -173,6 +174,32 @@ const PrimaryButton = styled(Button)`
   }
 `;
 
+const AddCartBtn = styled(motion.button)`
+  flex: 1;
+  height: 44px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  background-color: ${({ $added }) => ($added ? '#2e7d32' : 'var(--color-marron-principal)')};
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: ${({ $added }) => ($added ? '#2e7d32' : 'var(--color-marron-cuarto)')};
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+`;
+
 const SecondaryButton = styled(Button)`
   background-color: white;
   color: var(--color-marron-principal);
@@ -239,6 +266,7 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
   const { addToCart } = useContext(CartContext);
   const navigate = useNavigate();
   const [mode, setMode] = useState(initialMode); // 'select' or 'success'
+  const [adding, setAdding] = useState(false);
   
   // States for selection
   const [selectedSize, setSelectedSize] = useState(0);
@@ -303,9 +331,13 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
   }
 
   const handleAddToCart = () => {
-    if (stock <= 0) return;
-    addToCart(product, qty, activeVariant);
-    setMode('success');
+    if (stock <= 0 || adding) return;
+    setAdding(true);
+    setTimeout(() => {
+      addToCart(product, qty, activeVariant);
+      setMode('success');
+      setAdding(false);
+    }, 850);
   };
 
   const handleGoToCart = () => {
@@ -417,9 +449,50 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
               <button disabled={qty >= stock} onClick={() => setQty(q => Math.min(stock, q + 1))}>+</button>
             </QuantityBox>
           </div>
-          <PrimaryButton onClick={handleAddToCart} disabled={stock <= 0} style={{ opacity: stock <= 0 ? 0.6 : 1, height: '44px' }}>
-            {stock <= 0 ? 'Sin stock' : 'Agregar al carrito'}
-          </PrimaryButton>
+          <AddCartBtn
+            type="button"
+            onClick={handleAddToCart}
+            disabled={stock <= 0}
+            $added={adding}
+            whileTap={{ scale: 0.96 }}
+            animate={adding ? { scale: [1, 1.04, 1] } : { scale: 1 }}
+            transition={{ duration: 0.3 }}
+            style={{ opacity: stock <= 0 ? 0.6 : 1 }}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {adding ? (
+                <motion.span
+                  key="added"
+                  style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <motion.svg
+                    width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                    initial={{ scale: 0, rotate: -40 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 13 }}
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </motion.svg>
+                  ¡Agregado!
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="idle"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {stock <= 0 ? 'Sin stock' : 'Agregar al carrito'}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </AddCartBtn>
         </div>
 
       </ModalContent>

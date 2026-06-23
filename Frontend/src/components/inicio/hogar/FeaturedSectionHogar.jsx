@@ -31,45 +31,20 @@ const SectionWrapper = styled.section`
 const HaloLuz = styled.img`
   position: absolute;
   top: 0;
-  right: 0%;
-  left: auto;
-  transform: none;
+  /* Centrado sobre la imagen de Hogar destacado (mitad derecha de la sección) */
+  left: 71%;
+  right: auto;
+  transform: translateX(-50%);
   height: 100%;
   width: auto;
   z-index: 0;
   pointer-events: none;
   opacity: 0.8;
 
-    @media (min-width: 1900px) {
-    right: -11%;
-  }
-
-
-  @media (max-width: 1900px) {
-    right: -13%;
-  }
-
-  @media (max-width: 1600px) {
-    right: -15%;
-  }
-
-  @media (max-width: 1200px) {
-    right: -20%;
-  }
-
-  @media (max-width: 900px) {
-    right: -30%;
-  }
-
-  @media (min-width: 768px) and (max-width: 899px) {
-    right: -20%;
-  }
-
   @media (max-width: 768px) {
     height: 100%;
     width: 100%;
     object-fit: cover;
-    right: auto;
     left: 50%;
     transform: translateX(-50%);
     top: 0;
