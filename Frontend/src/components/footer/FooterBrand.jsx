@@ -85,7 +85,7 @@ const CopyrightText = styled.p`
 export default function FooterBrand() {
   return (
     <BrandColumn>
-      <FooterLogo src="/logo-marybe.png" alt="Marybe" />
+      <FooterLogo src="/logo-marybe.png" alt="Marybe" width="200" height="40" />
 
       <Tagline>
         Tu farmacia y perfumería de confianza desde hace <strong>más de 50 años.</strong>

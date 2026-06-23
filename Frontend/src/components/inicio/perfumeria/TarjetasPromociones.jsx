@@ -326,7 +326,7 @@ export default function TarjetasPromociones() {
               return (
                 <Card key={id} variants={staggerItemLeftVariants}>
                   {logoUrl ? (
-                    <CardImage src={logoUrl} alt={nombre} />
+                    <CardImage src={logoUrl} alt={nombre} width="140" height="50" />
                   ) : (
                     <CardImagePlaceholder>{nombre}</CardImagePlaceholder>
                   )}

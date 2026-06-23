@@ -615,7 +615,7 @@ export default function NavBar() {
         </MobileLeft>
 
         {/* Logo */}
-        <Logo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} />
+        <Logo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} width="200" height="40" />
 
         {/* Desktop: centro */}
         <CenterGroup>
@@ -718,7 +718,7 @@ export default function NavBar() {
               <IconButton onClick={closeDrawer} aria-label="Cerrar">
                 <CloseIcon />
               </IconButton>
-              <DrawerLogo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} />
+              <DrawerLogo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} width="200" height="40" />
               <CartButton aria-label="Carrito" onClick={() => { closeDrawer(); navigate('/carrito'); }}>
                 <CartIconSvg />
                 {itemCount > 0 && <CartBadge>{itemCount}</CartBadge>}

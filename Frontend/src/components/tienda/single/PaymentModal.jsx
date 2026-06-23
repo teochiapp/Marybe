@@ -259,7 +259,7 @@ export default function PaymentModal({ isOpen, onClose }) {
               return (
                 <PromoItem key={id}>
                   {logoUrl ? (
-                    <PromoLogo src={logoUrl} alt={nombre} />
+                    <PromoLogo src={logoUrl} alt={nombre} width="60" height="40" />
                   ) : (
                     <PromoLogoPlaceholder>{nombre}</PromoLogoPlaceholder>
                   )}
