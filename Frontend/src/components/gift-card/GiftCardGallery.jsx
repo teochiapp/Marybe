@@ -78,12 +78,12 @@ export default function GiftCardGallery() {
     <GalleryWrapper>
       <ThumbList>
         <Thumb type="button" aria-label="Vista gift card Marybe">
-          <img src="/inicio/giftcard.png" alt="Miniatura gift card Marybe" />
+          <img src="/inicio/giftcard.webp" alt="Miniatura gift card Marybe" />
         </Thumb>
       </ThumbList>
 
       <MainImageBox>
-        <img src="/inicio/giftcard.png" alt="Gift card Marybe" />
+        <img src="/inicio/giftcard.webp" alt="Gift card Marybe" />
       </MainImageBox>
     </GalleryWrapper>
   );

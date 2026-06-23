@@ -290,12 +290,12 @@ const WhatsAppIconDark = () => (
 // ─── Datos ────────────────────────────────────────────────────────────────────
 
 const videos = [
-  { id: 1, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.png' },
-  { id: 2, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.png' },
-  { id: 3, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.png' },
-  { id: 4, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.png' },
-  { id: 5, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.png' },
-  { id: 6, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.png' },
+  { id: 1, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.webp' },
+  { id: 2, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.webp' },
+  { id: 3, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.webp' },
+  { id: 4, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.webp' },
+  { id: 5, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.webp' },
+  { id: 6, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.webp' },
 ];
 
 // ─── Componente ───────────────────────────────────────────────────────────────

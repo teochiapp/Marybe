@@ -591,7 +591,7 @@ export default function DiscountedSectionHogar() {
           </Title>
         </TextBlock>
         <FeaturedPicture>
-          <img src="/inicio/discountedSectionHogar.png" alt="Descuentos de Hogar" />
+          <img src="/inicio/discountedSectionHogar.webp" alt="Descuentos de Hogar" />
         </FeaturedPicture>
       </TopHeader>
 

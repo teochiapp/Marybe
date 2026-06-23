@@ -499,7 +499,7 @@ export default function FeaturedSectionHogar() {
           </Subtitle>
         </TextBlock>
         <FeaturedPicture>
-          <img src="/inicio/featuredSectionHogar.png" alt="Hogar destacado" />
+          <img src="/inicio/featuredSectionHogar.webp" alt="Hogar destacado" />
         </FeaturedPicture>
       </TopHeader>
 

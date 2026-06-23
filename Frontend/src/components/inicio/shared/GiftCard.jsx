@@ -258,7 +258,7 @@ export default function GiftCard({ seccion = 'perfumeria' }) {
       </MobileTitle>
 
       <ImageWrapper>
-        <CardImage src="/inicio/giftcard.png" alt="Gift card Marybe" />
+        <CardImage src="/inicio/giftcard.webp" alt="Gift card Marybe" />
       </ImageWrapper>
 
       <Content>

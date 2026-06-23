@@ -153,7 +153,7 @@ export default function HistoriaContent() {
   return (
     <>
       <Banner>
-        <Photo src="/nuestra-historia/foto-vieja.png" alt="Fundadores de MARYBE en los inicios de la perfumería" />
+        <Photo src="/nuestra-historia/foto-vieja.webp" alt="Fundadores de MARYBE en los inicios de la perfumería" />
         <BannerText>
           <TextBlock>
             <Title>Nuestra Historia</Title>
@@ -191,7 +191,7 @@ export default function HistoriaContent() {
         </OverlapWrap>
       </Banner>
 
-      <FullPhoto src="/contacto/familiaMarybenueva.jpg" alt="Familia y equipo de MARYBE Perfumerías" />
+      <FullPhoto src="/contacto/familiaMarybenueva.webp" alt="Familia y equipo de MARYBE Perfumerías" />
       <MobileFullPhoto src="/nuestra-historia/fotomarybe.jpg" alt="Familia y equipo de MARYBE Perfumerías" />
     </>
   );
