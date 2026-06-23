@@ -765,7 +765,7 @@ export default function SingleProductInfo({ producto }) {
           </svg>
           <div>
             Calculá costo de envío
-            <a onClick={() => setShippingModalOpen(true)} style={{ cursor: 'pointer' }}>Calcular costo</a>
+            <button onClick={() => setShippingModalOpen(true)} style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: '#000000', textDecoration: 'underline', fontWeight: 500, fontFamily: 'inherit', fontSize: 'inherit' }}>Calcular costo</button>
           </div>
         </InfoItem>
         <InfoItem>

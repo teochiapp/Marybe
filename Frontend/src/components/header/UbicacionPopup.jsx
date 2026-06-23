@@ -233,6 +233,7 @@ export default function UbicacionPopup({ onClose }) {
     const handleKey = (e) => { if (e.key === 'Escape') handleClose(); };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleOverlayClick = (e) => {

@@ -380,7 +380,6 @@ export default function OrderSuccess() {
           <ProductsCard>
             {cartItems.map((item, idx) => {
               const imageSrc = item.imagen ? `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${item.imagen}` : getProductImage(item.product);
-              const isCleanFormat = item.producto !== undefined;
 
               return (
               <div className="product-item" key={item.cartId || item.id || idx}>

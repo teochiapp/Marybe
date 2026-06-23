@@ -256,6 +256,7 @@ export default function ShippingModal({ isOpen, onClose }) {
     const handleKey = (e) => { if (e.key === 'Escape' && isOpen) handleClose(); };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const handleOverlayClick = (e) => {

@@ -97,6 +97,7 @@ export default function PedidosAdmin() {
     if (token) {
       fetchPedidos();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, currentPage]);
 
   // ─── Cambiar Estado de Pedido ────────────────────────────────────────────────

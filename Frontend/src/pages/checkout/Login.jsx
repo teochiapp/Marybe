@@ -343,7 +343,7 @@ export default function Login() {
       };
       fetchProfile();
     }
-  }, [token, user, navigate]);
+  }, [token, user, navigate, isEditing]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

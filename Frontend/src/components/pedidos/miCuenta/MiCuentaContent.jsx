@@ -351,10 +351,7 @@ const OrderStatusLink = styled.span`
   color: ${({ $estado }) => ($estado === 'Completado' ? '#2e7d32' : '#1a1a1a')};
 `;
 
-const pedidosData = [
-  { nombre: 'Línea de camisetas negras crudas', fecha: '27 de Julio de 2023', precio: '$70.00', estado: 'En proceso' },
-  { nombre: 'Guardarropa monocromático', fecha: '9 de Marzo de 2023', precio: '$27.00', estado: 'Completado' },
-];
+
 
 /* ---- Dirección (como la imagen) ---- */
 const SavedCard = styled.div`

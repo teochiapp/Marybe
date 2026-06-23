@@ -8,55 +8,75 @@ import AuthRedirect from './components/auth/AuthRedirect';
 import Header from './components/header/Header';
 import Footer from './components/footer/Footer';
 
-// Lazy load para las páginas
-const ApiProductos = lazy(() => import('./pages/ApiProductos'));
-const ProductoSingle = lazy(() => import('./pages/tienda/ProductoSingle'));
-const Inicio = lazy(() => import('./pages/inicio/Inicio'));
-const Catalogo = lazy(() => import('./pages/tienda/Catalogo'));
+// Función para reintentar la carga del chunk y recargar la página si falla (soluciona el ChunkLoadError)
+const lazyWithRetry = (componentImport) =>
+  lazy(async () => {
+    const pageHasAlreadyBeenForceRefreshed = JSON.parse(
+      window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false'
+    );
+
+    try {
+      const component = await componentImport();
+      window.sessionStorage.setItem('page-has-been-force-refreshed', 'false');
+      return component;
+    } catch (error) {
+      if (!pageHasAlreadyBeenForceRefreshed) {
+        window.sessionStorage.setItem('page-has-been-force-refreshed', 'true');
+        return window.location.reload();
+      }
+      throw error;
+    }
+  });
+
+// Lazy load para las páginas usando el reintento
+const ApiProductos = lazyWithRetry(() => import('./pages/ApiProductos'));
+const ProductoSingle = lazyWithRetry(() => import('./pages/tienda/ProductoSingle'));
+const Inicio = lazyWithRetry(() => import('./pages/inicio/Inicio'));
+const Catalogo = lazyWithRetry(() => import('./pages/tienda/Catalogo'));
 
 // Páginas de Ayuda
-const PreguntasFrecuentes = lazy(() => import('./pages/ayuda/PreguntasFrecuentes'));
-const Envios = lazy(() => import('./pages/ayuda/Envios'));
-const CambiosDevoluciones = lazy(() => import('./pages/ayuda/CambiosDevoluciones'));
-const TerminosCondiciones = lazy(() => import('./pages/ayuda/TerminosCondiciones'));
+const PreguntasFrecuentes = lazyWithRetry(() => import('./pages/ayuda/PreguntasFrecuentes'));
+// const Envios = lazyWithRetry(() => import('./pages/ayuda/Envios'));
+const CambiosDevoluciones = lazyWithRetry(() => import('./pages/ayuda/CambiosDevoluciones'));
+const TerminosCondiciones = lazyWithRetry(() => import('./pages/ayuda/TerminosCondiciones'));
 
 // Páginas de Pedidos
-const MiCuenta = lazy(() => import('./pages/pedidos/MiCuenta'));
+const MiCuenta = lazyWithRetry(() => import('./pages/pedidos/MiCuenta'));
 
 // Página de Contacto
-const Contacto = lazy(() => import('./pages/contacto/Contacto'));
+const Contacto = lazyWithRetry(() => import('./pages/contacto/Contacto'));
 
 // Página de Sucursales
-const Sucursales = lazy(() => import('./pages/sucursales/Sucursales'));
+const Sucursales = lazyWithRetry(() => import('./pages/sucursales/Sucursales'));
 
 // Página de Nuestra Historia
-const NuestraHistoria = lazy(() => import('./pages/nuestra-historia/NuestraHistoria'));
+const NuestraHistoria = lazyWithRetry(() => import('./pages/nuestra-historia/NuestraHistoria'));
 
 // Página de Arrepentimiento
-const Arrepentimiento = lazy(() => import('./pages/arrepentimiento/Arrepentimiento'));
+const Arrepentimiento = lazyWithRetry(() => import('./pages/arrepentimiento/Arrepentimiento'));
 
 // Página 404
-const NotFound = lazy(() => import('./pages/not-found/NotFound'));
+const NotFound = lazyWithRetry(() => import('./pages/not-found/NotFound'));
 
 // Página de Método de envío
-const MetodoEnvio = lazy(() => import('./pages/metodo-envio/MetodoEnvio'));
+const MetodoEnvio = lazyWithRetry(() => import('./pages/metodo-envio/MetodoEnvio'));
 
 // Panel de Administración
-const ImportacionAdmin = lazy(() => import('./pages/admin/ImportacionAdmin'));
-const PedidosAdmin = lazy(() => import('./pages/admin/PedidosAdmin'));
+const ImportacionAdmin = lazyWithRetry(() => import('./pages/admin/ImportacionAdmin'));
+const PedidosAdmin = lazyWithRetry(() => import('./pages/admin/PedidosAdmin'));
 
 // Página de Gift Card
-const GiftCardPage = lazy(() => import('./pages/gift-card/GiftCardPage'));
+const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'));
 
 // Carrito
-const Carrito = lazy(() => import('./pages/carrito/Carrito'));
+const Carrito = lazyWithRetry(() => import('./pages/carrito/Carrito'));
 
 // Checkout
-const Login = lazy(() => import('./pages/checkout/Login'));
-const Envio = lazy(() => import('./pages/checkout/Envio'));
-const Pago = lazy(() => import('./pages/checkout/Pago'));
-const OrderSuccess = lazy(() => import('./pages/checkout/OrderSuccess'));
-const OrderError = lazy(() => import('./pages/checkout/OrderError'));
+const Login = lazyWithRetry(() => import('./pages/checkout/Login'));
+const Envio = lazyWithRetry(() => import('./pages/checkout/Envio'));
+const Pago = lazyWithRetry(() => import('./pages/checkout/Pago'));
+const OrderSuccess = lazyWithRetry(() => import('./pages/checkout/OrderSuccess'));
+const OrderError = lazyWithRetry(() => import('./pages/checkout/OrderError'));
 
 function App() {
   return (

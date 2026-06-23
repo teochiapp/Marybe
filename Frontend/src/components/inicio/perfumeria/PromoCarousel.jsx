@@ -316,7 +316,6 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
     async function fetchPromociones() {
       try {
         const seccionNameRaw = seccion === 'hogar' ? 'Hogar' : 'Perfumer\u00eda';
-        const encodedSeccion = encodeURIComponent(seccionNameRaw);
 
         // Construir la query con qs si estuviera disponible, o de forma robusta a mano:
         // Strapi permite populeo profundo genérico con populate[Filas][populate]=*
