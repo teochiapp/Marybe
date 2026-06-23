@@ -591,7 +591,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             <img src="/inicio/hogar-featured.webp" alt="Hogar destacado" style={{ maxHeight: '42vh' }} loading="eager" decoding="sync" />
           ) : (
             <>
-              <source media="(max-width: 768px)" srcSet="/inicio/-mobile.webp" />fragancias
+              <source media="(max-width: 768px)" srcSet="/inicio/-mobile.webp" />
               <img src="/inicio/featured.webp" alt="Fragancias destacadas" loading="eager" decoding="sync" />
             </>
           )}
