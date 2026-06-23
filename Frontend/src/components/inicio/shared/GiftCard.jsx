@@ -258,18 +258,13 @@ export default function GiftCard({ seccion = 'perfumeria' }) {
         <em>Regalá</em> Marybe
       </MobileTitle>
 
-<<<<<<< HEAD
-      <ImageWrapper>
-        <CardImage src="/inicio/giftcard.webp" alt="Gift card Marybe" />
-=======
       <ImageWrapper
         initial={{ opacity: 0, x: -50 }}
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
       >
-        <CardImage src="/inicio/giftcard.png" alt="Gift card Marybe" />
->>>>>>> a811053d6e25617fec7581779fe14f52083f82c4
+        <CardImage src="/inicio/giftcard.webp" alt="Gift card Marybe" />
       </ImageWrapper>
 
       <Content>
