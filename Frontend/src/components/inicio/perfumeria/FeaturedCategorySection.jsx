@@ -1,9 +1,11 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
 import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
+import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
@@ -34,7 +36,7 @@ const SectionTitle = styled.h2`
   }
 `;
 
-const ProductsGrid = styled.div`
+const ProductsGrid = styled(motion.div)`
   display: flex;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
@@ -63,7 +65,7 @@ const ProductsGrid = styled.div`
   }
 `;
 
-const ProductCard = styled.div`
+const ProductCard = styled(motion.div)`
   background-color: var(--color-blanco);
   border-radius: 24px;
   padding: 20px;
@@ -454,6 +456,10 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria' }) {
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
+        variants={staggerContainerVariants}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-50px" }}
       >
         {productos.map(item => {
           const id = item.id || item.documentId;
@@ -483,7 +489,7 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria' }) {
           const stampVal = descuento > 0 ? getStampValue(descuento) : null;
 
           return (
-            <ProductCard key={id}>
+            <ProductCard key={id} variants={staggerItemLeftVariants}>
               <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
                 {/* Badge en estampa del descuento */}
                 {descuento > 0 && stampVal && (

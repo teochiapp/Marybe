@@ -1,11 +1,13 @@
 import React from 'react';
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
+import { staggerContainerVariants, staggerItemFadeVariants } from '../../animations/ScrollAnimations';
 import CatalogoProductCard from './CatalogoProductCard';
 import CategoriesSection from '../../inicio/perfumeria/CategoriesSection';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
-const ProductsGrid = styled.div`
+const ProductsGrid = styled(motion.div)`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 30px;
@@ -202,7 +204,11 @@ export default function CatalogoProductGrid({
 
       {/* Grilla */}
       {!error && (
-        <ProductsGrid>
+        <ProductsGrid
+          variants={staggerContainerVariants}
+          initial="hidden"
+          animate="show"
+        >
           {loading ? (
             Array.from({ length: pageSize }).map((_, i) => (
               <SkeletonCard key={i}>
@@ -243,11 +249,12 @@ export default function CatalogoProductGrid({
             )
           ) : (
             productos.map((product) => (
-              <CatalogoProductCard
-                key={product.id || product.documentId}
-                product={product}
-                strapiUrl={strapiUrl}
-              />
+              <motion.div key={product.id || product.documentId} variants={staggerItemFadeVariants}>
+                <CatalogoProductCard
+                  product={product}
+                  strapiUrl={strapiUrl}
+                />
+              </motion.div>
             ))
           )}
         </ProductsGrid>
