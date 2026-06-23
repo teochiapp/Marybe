@@ -392,7 +392,7 @@ export default function Catalogo() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [activePage, activeSort, activeBusqueda, activeDescuentos, activeSeccion, activeBrands, activeCategories, activeSizes]);
+  }, [activePage, activeSort, activeBusqueda, activeDescuentos, activeSeccion, activeBrands, activeCategories, activeSizes, activePrice, activePriceParam]);
 
   useEffect(() => {
     fetchProductos();
