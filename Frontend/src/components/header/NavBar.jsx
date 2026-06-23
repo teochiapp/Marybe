@@ -652,7 +652,7 @@ export default function NavBar() {
         {/* Desktop: iconos */}
         <DesktopIcons>
           <UserButton aria-label="Mi cuenta" onClick={goToAccount}><UserIcon /></UserButton>
-          <CartButton aria-label="Carrito" onClick={() => navigate('/carrito')}>
+          <CartButton aria-label="Carrito" onClick={() => { navigate('/carrito'); window.scrollTo(0, 0); }}>
             <CartIconSvg />
             {itemCount > 0 && <CartBadge>{itemCount}</CartBadge>}
           </CartButton>
@@ -663,7 +663,7 @@ export default function NavBar() {
           <SearchButton aria-label="Buscar" onClick={() => setMobileSearchOpen(prev => !prev)}>
             <SearchIconSvg />
           </SearchButton>
-          <CartButton aria-label="Carrito" onClick={() => navigate('/carrito')}>
+          <CartButton aria-label="Carrito" onClick={() => { navigate('/carrito'); window.scrollTo(0, 0); }}>
             <CartIconSvg />
             {itemCount > 0 && <CartBadge>{itemCount}</CartBadge>}
           </CartButton>
@@ -719,7 +719,7 @@ export default function NavBar() {
                 <CloseIcon />
               </IconButton>
               <DrawerLogo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} width="200" height="40" />
-              <CartButton aria-label="Carrito" onClick={() => { closeDrawer(); navigate('/carrito'); }}>
+              <CartButton aria-label="Carrito" onClick={() => { closeDrawer(); navigate('/carrito'); window.scrollTo(0, 0); }}>
                 <CartIconSvg />
                 {itemCount > 0 && <CartBadge>{itemCount}</CartBadge>}
               </CartButton>

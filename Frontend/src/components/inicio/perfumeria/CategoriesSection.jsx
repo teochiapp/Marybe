@@ -281,6 +281,7 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
       <SectionTitle>Categorías</SectionTitle>
 
       <CarouselContainer
+        key={categorias.length > 0 ? 'loaded' : 'dummy'}
         ref={scrollRef}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeave}
@@ -297,10 +298,11 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
           const nombre = attrs.nombre || 'Categoría';
 
           let imgUrl = null;
+          const getFullUrl = (url) => url?.startsWith('http') ? url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${url}`;
           if (attrs.portada?.data?.attributes?.url) {
-            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.data.attributes.url}`;
+            imgUrl = getFullUrl(attrs.portada.data.attributes.url);
           } else if (attrs.portada?.url) {
-            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
+            imgUrl = getFullUrl(attrs.portada.url);
           }
 
           return (

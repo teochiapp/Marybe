@@ -994,6 +994,7 @@ export default function MiCuentaContent() {
                   <CartBtn onClick={() => {
                     addToCart({ id: item.id, nombre: item.nombre, precio: item.precio, portada: { url: item.imagen } });
                     navigate('/carrito');
+                    window.scrollTo(0, 0);
                   }}>Agregar al carrito</CartBtn>
                   <DeleteBtn aria-label="Eliminar" onClick={() => removeFavorite(item.id)}>
                     <FiTrash2 />

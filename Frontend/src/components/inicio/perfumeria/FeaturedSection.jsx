@@ -591,7 +591,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             <img src="/inicio/hogar-featured.webp" alt="Hogar destacado" style={{ maxHeight: '42vh' }} />
           ) : (
             <>
-              <source media="(max-width: 768px)" srcSet="/inicio/fragancias-mobile.webp" />
+              <source media="(max-width: 768px)" srcSet="/inicio/-mobile.webp" />fragancias
               <img src="/inicio/featured.webp" alt="Fragancias destacadas" />
             </>
           )}
@@ -627,10 +627,11 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
           }
 
           let imgUrl = null;
+          const getFullUrl = (url) => url?.startsWith('http') ? url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${url}`;
           if (attrs.portada?.data?.attributes?.url) {
-            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.data.attributes.url}`;
+            imgUrl = getFullUrl(attrs.portada.data.attributes.url);
           } else if (attrs.portada?.url) {
-            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
+            imgUrl = getFullUrl(attrs.portada.url);
           }
 
           return (
