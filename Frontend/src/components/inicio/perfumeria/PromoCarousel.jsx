@@ -143,9 +143,9 @@ const BannerCard = styled.div`
   ${({ $isCarousel, $cols, $customWidth }) => $isCarousel && `
     flex-shrink: 0;
     scroll-snap-align: start;
-    /* En mobile se mantiene el peek de 85% o 45% */
-    width: ${$cols === 1 ? '85%' : $cols === 2 ? '45%' : '35%'};
-    min-width: ${$cols === 1 ? '85%' : $cols === 2 ? '45%' : '35%'};
+    /* En mobile 1 slide al 100% */
+    width: 100%;
+    min-width: 100%;
 
     @media (min-width: 768px) {
       /* En desktop hacemos peek para 1 y 2 cols (85% y 42%). La fila 4 cols queda exacta (calc(25% - 24px)) */
