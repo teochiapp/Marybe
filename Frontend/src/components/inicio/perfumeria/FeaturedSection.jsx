@@ -608,8 +608,8 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
         initial="hidden"
         animate={productos.length ? 'show' : 'hidden'}
       >
-        {productos.map((item) => {
-          const id = item.id || item.documentId;
+        {productos.map((item, index) => {
+          const id = item.id || item.documentId || `prod-${index}`;
           const attrs = item.attributes || item;
 
           const nombre = attrs.nombre;

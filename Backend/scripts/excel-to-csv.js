@@ -35,13 +35,17 @@ function cellVal(row, colIndex) {
   if (!cell || cell.value === null || cell.value === undefined) return '';
   // Si es resultado de fórmula, usar el valor calculado
   if (cell.value && typeof cell.value === 'object' && 'result' in cell.value) {
-    return cell.value.result !== null && cell.value.result !== undefined
-      ? String(cell.value.result).trim()
-      : '';
+    const r = cell.value.result;
+    if (r === null || r === undefined) return '';
+    return String(r).trim();
   }
   // Si es RichText (texto con formato como negrita/colores parciales)
   if (cell.value && cell.value.richText) {
     return cell.value.richText.map(rt => rt.text).join('').trim();
+  }
+  // Si es número directo de JS (ExcelJS devuelve así los campos numéricos)
+  if (typeof cell.value === 'number') {
+    return String(cell.value);
   }
   return String(cell.value).trim();
 }
@@ -110,6 +114,12 @@ async function main() {
     const precio        = parseFloat(cellVal(row, 7)) || 0;
     const pct_descuento = parseFloat(cellVal(row, 8)) || 0;
     const precio_oferta_raw = cellVal(row, 9);
+
+    // DEBUG: mostrar qué se lee en cada fila
+    console.log(`  [Fila ${rowNum}] ID=${id_original} | padre=${cellVal(row,2)} | sku=${cellVal(row,4)} | vol=${cellVal(row,5)} | stock=${cellVal(row,6)} | precio=${cellVal(row,7)} | dcto=${cellVal(row,8)} | precio_oferta=${precio_oferta_raw}`);
+    if (precio === 0) {
+      console.warn(`  ⚠ PRECIO=0 en fila ${rowNum}. Valor crudo col G(7): "${cellVal(row,7)}" | Revisar que la col G del Excel tenga el precio numérico sin formato de texto.`);
+    }
     
     // Preferir el valor calculado de la fórmula; si no, calcularlo nosotros
     let precio_oferta = '';

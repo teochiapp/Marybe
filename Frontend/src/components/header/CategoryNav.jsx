@@ -420,8 +420,8 @@ export default function CategoryNav() {
                 {getMegaColumnsForCategory(activeCategory).map((col) => (
                   <MegaColumn key={col.title}>
                     <MegaColumnTitle>{col.title}</MegaColumnTitle>
-                    {col.items.map((item) => (
-                      <MegaLink key={item} href="#">{item}</MegaLink>
+                    {col.items.map((item, idx) => (
+                      <MegaLink key={`${item}-${idx}`} href="#">{item}</MegaLink>
                     ))}
                   </MegaColumn>
                 ))}

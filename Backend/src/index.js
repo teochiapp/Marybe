@@ -30,8 +30,14 @@ function parseBoolean(val) {
 }
 
 function parseDecimal(val) {
-  if (!val || val.toString().trim() === '') return null;
-  const num = parseFloat(val.toString().replace(/\./g, '').replace(',', '.'));
+  if (val === null || val === undefined || val === '') return null;
+  // Si ya es número (ExcelJS puede devolver números JS directamente)
+  if (typeof val === 'number') return isNaN(val) ? null : val;
+  const str = val.toString().trim();
+  if (!str) return null;
+  // Formato argentino: 3.100,50 → remover puntos de miles, cambiar coma decimal
+  const normalizado = str.replace(/\./g, '').replace(',', '.');
+  const num = parseFloat(normalizado);
   return isNaN(num) ? null : num;
 }
 
@@ -281,6 +287,12 @@ module.exports = {
         const idOriginal     = (p.id_original || '').trim();
         const nombreCategoria = (p.categoria  || '').trim();
         const hijos          = variantesIndex.get(idOriginal) || [];
+
+        if (hijos.length === 0) {
+          strapi.log.warn(
+            `[Seed] ⚠ Producto "${(p.nombre || '').substring(0, 40)}" (id: ${idOriginal}) no tiene variantes en variantes.csv — se creará sin precios`
+          );
+        }
 
         // Resolver documentId de la categoría relacionada
         const categoriaDocId = categoriaIdPorNombre.get(nombreCategoria) || null;
