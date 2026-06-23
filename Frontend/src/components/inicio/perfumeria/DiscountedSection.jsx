@@ -562,7 +562,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
           </Title>
         </TextBlock>
         <FeaturedPicture>
-          <img src="/inicio/discountedSection.webp" alt="Descuentos de Miércoles" />
+          <img src="/inicio/discountedSection.webp" alt="Descuentos de Miércoles" loading="eager" decoding="sync" />
         </FeaturedPicture>
       </TopHeader>
 

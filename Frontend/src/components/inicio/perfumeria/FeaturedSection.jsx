@@ -588,11 +588,11 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
         </TextBlock>
         <FeaturedPicture>
           {seccion === 'hogar' ? (
-            <img src="/inicio/hogar-featured.webp" alt="Hogar destacado" style={{ maxHeight: '42vh' }} />
+            <img src="/inicio/hogar-featured.webp" alt="Hogar destacado" style={{ maxHeight: '42vh' }} loading="eager" decoding="sync" />
           ) : (
             <>
               <source media="(max-width: 768px)" srcSet="/inicio/-mobile.webp" />fragancias
-              <img src="/inicio/featured.webp" alt="Fragancias destacadas" />
+              <img src="/inicio/featured.webp" alt="Fragancias destacadas" loading="eager" decoding="sync" />
             </>
           )}
         </FeaturedPicture>
@@ -674,7 +674,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
           <BottomBanner>
             <BannerTitle>El poder del elixir</BannerTitle>
             <BannerImageWrapper>
-              <img src="/inicio/elixir.webp" alt="El poder del elixir" />
+              <img src="/inicio/elixir.webp" alt="El poder del elixir" loading="eager" decoding="sync" />
             </BannerImageWrapper>
             <BannerButton onClick={() => navigate('/tienda?banner=elixir&seccion=Perfumer%C3%ADa')}>Conocer más</BannerButton>
           </BottomBanner>
@@ -682,7 +682,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
           <BottomBanner>
             <BannerTitle>Toda la línea de Azzaro</BannerTitle>
             <BannerImageWrapper>
-              <img src="/inicio/azzaro.webp" alt="Línea Azzaro" />
+              <img src="/inicio/azzaro.webp" alt="Línea Azzaro" loading="eager" decoding="sync" />
             </BannerImageWrapper>
             <BannerButton onClick={() => navigate('/tienda?banner=azzaro&seccion=Perfumer%C3%ADa')}>Conocer más</BannerButton>
           </BottomBanner>
