@@ -1,7 +1,25 @@
 module.exports = [
   'strapi::logger',
   'strapi::errors',
-  'strapi::security',
+  {
+    name: 'strapi::security',
+    config: {
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          'connect-src': ["'self'", 'https:'],
+          'img-src': ["'self'", 'data:', 'blob:', 'res.cloudinary.com', 'https:'],
+          'media-src': ["'self'", 'data:', 'blob:', 'res.cloudinary.com', 'https:'],
+          upgradeInsecureRequests: null,
+        },
+      },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+      },
+      crossOriginEmbedderPolicy: false, // Prevents breaking images if they don't have CORS setup
+    },
+  },
   {
     name: 'strapi::cors',
     config: {

@@ -569,7 +569,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
 
   return (
     <SectionWrapper>
-      <HaloLuz src="/inicio/halo-luz.png" alt="Efecto de luz" />
+      <HaloLuz src="/inicio/halo-luz.webp" alt="Efecto de luz" width="1000" height="800" fetchpriority="high" loading="eager" decoding="sync" />
       <TopHeader>
         <TextBlock>
           <Title>
