@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { FadeIn, FadeInLeft, FadeInUp } from '../../components/animations/ScrollAnimations';
 import ToggleSelection from '../../components/inicio/perfumeria/ToggleSelection';
 import PromoCarousel from '../../components/inicio/perfumeria/PromoCarousel';
 import FeaturedSection from '../../components/inicio/perfumeria/FeaturedSection';
@@ -53,81 +52,37 @@ export default function Inicio() {
 
       {seccionActiva === 'perfumeria' && (
         <>
-          <FadeIn delay={0.1} duration={0.4}>
-            <PromoCarousel seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <FeaturedSection seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <CategoriesSection seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <FeaturedCategorySection seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <OfertasSection seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <DiscountedSection seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <SpecificCategorySection seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <TarjetasPromociones />
-          </FadeIn>
-          <FadeIn>
-            <GiftCardWrapper onClick={() => navigate('/gift-card')}>
-              <GiftCard seccion={seccionActiva} />
-            </GiftCardWrapper>
-          </FadeIn>
-          <FadeInUp>
-            <ProximosEventos />
-          </FadeInUp>
-          <FadeInLeft>
-            <DescubriMas />
-          </FadeInLeft>
+          <PromoCarousel seccion={seccionActiva} />
+          <FeaturedSection seccion={seccionActiva} />
+          <CategoriesSection seccion={seccionActiva} />
+          <FeaturedCategorySection seccion={seccionActiva} />
+          <OfertasSection seccion={seccionActiva} />
+          <DiscountedSection seccion={seccionActiva} />
+          <SpecificCategorySection seccion={seccionActiva} />
+          <TarjetasPromociones />
+          <GiftCardWrapper onClick={() => navigate('/gift-card')}>
+            <GiftCard seccion={seccionActiva} />
+          </GiftCardWrapper>
+          <ProximosEventos />
+          <DescubriMas />
         </>
       )}
 
       {seccionActiva === 'hogar' && (
         <>
-          <FadeIn delay={0.1} duration={0.4}>
-            <PromoCarousel seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <OfertasSection seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <FeaturedSectionHogar />
-          </FadeIn>
-          <FadeIn>
-            <CategoriesSection seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <FeaturedCategorySection seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <DiscountedSectionHogar />
-          </FadeIn>
-          <FadeIn>
-            <SpecificCategorySection seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <TarjetasPromociones />
-          </FadeIn>
-          <FadeIn>
-            <GiftCardWrapper onClick={() => navigate('/gift-card')}>
-              <GiftCard seccion={seccionActiva} />
-            </GiftCardWrapper>
-          </FadeIn>
-          <FadeInUp>
-            <ProximosEventos />
-          </FadeInUp>
-          <FadeInLeft>
-            <DescubriMas />
-          </FadeInLeft>
+          <PromoCarousel seccion={seccionActiva} />
+          <OfertasSection seccion={seccionActiva} />
+          <FeaturedSectionHogar />
+          <CategoriesSection seccion={seccionActiva} />
+          <FeaturedCategorySection seccion={seccionActiva} />
+          <DiscountedSectionHogar />
+          <SpecificCategorySection seccion={seccionActiva} />
+          <TarjetasPromociones />
+          <GiftCardWrapper onClick={() => navigate('/gift-card')}>
+            <GiftCard seccion={seccionActiva} />
+          </GiftCardWrapper>
+          <ProximosEventos />
+          <DescubriMas />
         </>
       )}
 
