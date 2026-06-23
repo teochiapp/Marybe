@@ -592,13 +592,14 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
           ) : (
             <>
               <source media="(max-width: 768px)" srcSet="/inicio/fragancias-mobile.webp" />
-              <img src="/inicio/featured.img" alt="Fragancias destacadas" />
+              <img src="/inicio/featured.webp" alt="Fragancias destacadas" />
             </>
           )}
         </FeaturedPicture>
       </TopHeader>
 
       <ProductsGrid
+        key={productos.length ? 'loaded' : 'loading'}
         ref={scrollRef}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeave}
