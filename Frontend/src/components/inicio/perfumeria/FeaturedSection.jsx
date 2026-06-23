@@ -12,7 +12,6 @@ const SectionWrapper = styled.section`
   display: flex;
   flex-direction: column;
   gap: 0px;
-  padding: 0 100px;
   position: relative;
   overflow: hidden;
 
@@ -53,7 +52,7 @@ const TopHeader = styled.div`
 
 const TextBlock = styled.div`
   max-width: 50%;
-  padding-left: 60px;
+  padding-left: 155px;
   
   @media (max-width: 768px) {
     max-width: 100%;

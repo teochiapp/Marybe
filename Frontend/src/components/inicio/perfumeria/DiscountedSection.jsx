@@ -14,7 +14,6 @@ const SectionWrapper = styled.section`
   gap: 0px;
   position: relative;
   overflow: hidden;
-  padding: 0 100px;
 
   @media (max-width: 768px) {
     padding: 30px 20px;
