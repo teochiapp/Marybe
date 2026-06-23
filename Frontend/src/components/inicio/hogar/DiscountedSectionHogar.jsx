@@ -598,7 +598,6 @@ export default function DiscountedSectionHogar() {
       </TopHeader>
 
       <ProductsGrid
-        key={productos.length ? 'loaded' : 'loading'}
         ref={scrollRef}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeave}
@@ -606,8 +605,7 @@ export default function DiscountedSectionHogar() {
         onMouseMove={handleMouseMove}
         variants={staggerContainerVariants}
         initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, margin: "-50px" }}
+        animate={productos.length ? 'show' : 'hidden'}
       >
         {productos.map((item) => {
           const id = item.id || item.documentId;

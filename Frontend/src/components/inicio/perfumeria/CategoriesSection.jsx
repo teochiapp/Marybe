@@ -281,7 +281,6 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
       <SectionTitle>Categorías</SectionTitle>
 
       <CarouselContainer
-        key={categorias.length > 0 ? 'loaded' : 'dummy'}
         ref={scrollRef}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeave}
@@ -289,8 +288,7 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
         onMouseMove={handleMouseMove}
         variants={staggerContainerVariants}
         initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, margin: "-50px" }}
+        animate={renderItems.length > 0 ? 'show' : 'hidden'}
       >
         {itemsToShow.map((item) => {
           const id = item.id || item.documentId || Math.random();
