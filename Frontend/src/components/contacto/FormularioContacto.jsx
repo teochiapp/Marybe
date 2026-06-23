@@ -5,7 +5,7 @@ const HeroSection = styled.section`
   position: relative;
   width: 100%;
   background-image: linear-gradient(rgba(22, 0, 0, 0.45), rgba(22, 0, 0, 0.45)),
-    url('/contacto/familiaMarybenueva.jpg');
+    url('/contacto/familiaMarybenueva.webp');
   background-size: cover;
   background-position: center;
   height: 600px;

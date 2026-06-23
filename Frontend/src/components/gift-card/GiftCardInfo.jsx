@@ -347,7 +347,7 @@ export default function GiftCardInfo() {
       marca: 'Marybe',
       descuento: 0,
       precio: montoNum,
-      portada: { url: '/inicio/giftcard.png', local: true },
+      portada: { url: '/inicio/giftcard.webp', local: true },
     };
     const variant = { volumen: 'Gift Card', precio: montoNum, stock: 99 };
     addToCart(giftProduct, cantidad, variant);
