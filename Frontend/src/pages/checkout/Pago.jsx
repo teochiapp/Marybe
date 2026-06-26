@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
 import { paymentOptions, sucursalesRetiro, infoTransferencia } from '../../data/checkout/paymentMethods';
+import MercadoPagoQRModal from '../../components/pago/MercadoPagoQRModal';
 
 const PageContainer = styled.div`
   min-height: 80vh;
@@ -514,6 +515,9 @@ export default function Pago() {
   const [savedAddress, setSavedAddress] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState('Peatonal Tucuman 20, Santiago del Estero');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [mpInitPoint, setMpInitPoint] = useState('');
+  const [mpExternalReference, setMpExternalReference] = useState('');
 
   const buttonText = paymentMethod === 'qr' || paymentMethod === 'credito' || paymentMethod === 'debito' ? 'Pagar' : 'Hacer pedido';
 
@@ -522,6 +526,54 @@ export default function Pago() {
 
     let finalTotal = cartTotal;
     if (appliedGiftCard) {
+      finalTotal = Math.max(0, finalTotal - appliedGiftCard.monto);
+    }
+
+    if (paymentMethod === 'qr') {
+      try {
+        const generatedRef = `MARYBE-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+        const res = await fetch(`${apiUrl}/api/mercado-pago/crear-preferencia`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            productos: cartItems,
+            total: finalTotal,
+            userEmail: user?.email,
+            externalReference: generatedRef,
+          }),
+        });
+
+        const data = await res.json();
+        setIsProcessing(false);
+
+        if (data.success && (data.sandbox_init_point || data.init_point)) {
+          setMpInitPoint(data.sandbox_init_point || data.init_point);
+          setMpExternalReference(generatedRef);
+          setIsQRModalOpen(true);
+          return;
+        } else {
+          throw new Error('No se pudo generar el link de Mercado Pago');
+        }
+      } catch (error) {
+        console.error('Error al generar preferencia QR:', error);
+        setIsProcessing(false);
+        alert('Hubo un error al conectar con Mercado Pago. Intenta nuevamente.');
+        return;
+      }
+    }
+
+    await confirmOrder(finalTotal);
+  };
+
+  const confirmOrder = async (overrideTotal) => {
+    setIsProcessing(true);
+    setIsQRModalOpen(false);
+    
+    let finalTotal = overrideTotal !== undefined ? overrideTotal : cartTotal;
+    if (overrideTotal === undefined && appliedGiftCard) {
       finalTotal = Math.max(0, finalTotal - appliedGiftCard.monto);
     }
 
@@ -608,6 +660,14 @@ export default function Pago() {
 
   return (
     <PageContainer>
+      <MercadoPagoQRModal 
+        isOpen={isQRModalOpen} 
+        onClose={() => setIsQRModalOpen(false)} 
+        onConfirmOrder={() => confirmOrder()} 
+        initPoint={mpInitPoint} 
+        total={cartTotal} 
+        externalReference={mpExternalReference}
+      />
       {isProcessing && (
         <ProcessingOverlay>
           <Spinner />
