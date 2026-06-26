@@ -511,10 +511,6 @@ export default function FeaturedSectionHogar() {
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
-        variants={staggerContainerVariants}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, margin: "-50px" }}
       >
         {productos.map((item) => {
           const id = item.id || item.documentId;
@@ -541,7 +537,7 @@ export default function FeaturedSectionHogar() {
           }
 
           return (
-            <ProductCard key={id} variants={staggerItemLeftVariants}>
+            <ProductCard key={id}>
               <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
                 {imgUrl ? (
                   <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" />
