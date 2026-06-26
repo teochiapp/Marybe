@@ -1,4 +1,4 @@
-import React, { useEffect, useContext } from 'react';
+import React, { useEffect, useContext, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -6,40 +6,36 @@ export default function AuthRedirect() {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
+  const called = useRef(false);
 
   useEffect(() => {
-    // Strapi manda el token en la URL, ej: ?access_token=...
-    const params = new URLSearchParams(location.search);
-    const token = params.get('access_token');
+    if (called.current) return;
+    called.current = true;
 
-    if (token) {
-      // Si recibimos el token, necesitamos hacer una llamada a Strapi para obtener 
-      // los detalles del usuario, o simplemente guardar el token.
-      // Strapi devuelve el JWT, pero normalmente necesitamos el objeto User.
-      // Strapi's auth/google/callback no siempre nos da el objeto User directo en el query
-      // Por convención, validaremos el token:
-      fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/users/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-      .then(res => res.json())
-      .then(user => {
-        if (user && user.id) {
-          login(token, user);
-          navigate('/'); // Redirigir al inicio o a donde estaba
-        } else {
+    if (location.search) {
+      const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+
+      // Llamamos al endpoint oficial de Strapi que procesa el access_token de Google
+      // y nos devuelve el JWT y el User de Strapi
+      fetch(`${apiUrl}/api/auth/google/callback${location.search}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.jwt && data.user) {
+            login(data.jwt, data.user);
+            navigate('/'); // Redirigir al inicio
+          } else {
+            console.error("Error en respuesta de Strapi:", data);
+            navigate('/login?error=auth_failed');
+          }
+        })
+        .catch(err => {
+          console.error("Error autenticando con Strapi:", err);
           navigate('/login?error=auth_failed');
-        }
-      })
-      .catch(err => {
-        console.error("Error validando token de Google:", err);
-        navigate('/login?error=auth_failed');
-      });
+        });
     } else {
       navigate('/login?error=no_token');
     }
-  }, [location, login, navigate]);
+  }, [location.search, login, navigate]);
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'var(--font-family-secondary)' }}>
