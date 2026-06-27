@@ -453,16 +453,7 @@ const EmptyCartWrapper = styled.div`
   max-width: 520px;
   margin: 40px auto 80px;
   padding: 50px 40px;
-  background-color: var(--color-blanco-pero-no-tan-blanco, #FAF0F0);
-  border-radius: 24px;
-  box-shadow: 0 12px 36px rgba(106, 3, 4, 0.06);
   text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 48px rgba(106, 3, 4, 0.12);
-  }
 `;
 
 const EmptyCartIconContainer = styled.div`
@@ -744,9 +735,9 @@ export default function Carrito() {
                 <CouponField>
                   <label>Cupón de descuento o Giftcard</label>
                   <div className="input-group">
-                    <input 
-                      type="text" 
-                      placeholder="Ej: 12345ABC" 
+                    <input
+                      type="text"
+                      placeholder="Ej: 12345ABC"
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value)}
                       disabled={!!appliedGiftCard}
