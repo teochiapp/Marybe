@@ -294,7 +294,7 @@ const getProductImage = (product) => {
 export default function OrderSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [orderData, setOrderData] = useState(null);
+  const [orderData, setOrderData] = useState(location.state || null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
