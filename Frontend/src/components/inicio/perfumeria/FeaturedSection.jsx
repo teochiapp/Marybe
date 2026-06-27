@@ -54,7 +54,7 @@ const TopHeader = styled.div`
 
 const TextBlock = styled.div`
   max-width: 50%;
-  padding-left: 155px;
+  padding-left: 60px;
   
   @media (max-width: 768px) {
     max-width: 100%;

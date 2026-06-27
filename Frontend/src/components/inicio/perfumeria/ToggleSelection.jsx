@@ -5,7 +5,7 @@ const ToggleContainer = styled.div`
   display: flex;
   background-color: var(--color-blanco);
   border-radius: 200px;
-  padding: 5px;
+  padding: 4px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   width: fit-content;
   max-width: 100%;
@@ -30,26 +30,8 @@ const ToggleContainer = styled.div`
   }
 `;
 
-/* Indicador que se desliza por detrás de las opciones */
-const Slider = styled.span`
-  position: absolute;
-  top: 5px;
-  bottom: 5px;
-  left: 5px;
-  width: calc(50% - 5px);
-  border-radius: 40px;
-  background-color: ${({ $activeColor }) => $activeColor};
-  transform: translateX(${({ $index }) => ($index === 1 ? '100%' : '0%')});
-  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
-    background-color 0.35s ease;
-  z-index: 1;
-  pointer-events: none;
-`;
-
 const ToggleOption = styled.button`
-  position: relative;
-  z-index: 2;
-  background-color: transparent;
+  background-color: ${({ $active, $activeColor }) => ($active ? ($activeColor || 'var(--color-bordo-tercero)') : 'transparent')};
   color: ${({ $active }) => ($active ? 'var(--color-blanco)' : 'var(--color-marron-principal)')};
   border: none;
   border-radius: 40px;
@@ -57,17 +39,14 @@ const ToggleOption = styled.button`
   font-size: 1.1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.3s ease, transform 0.2s ease;
+  transition: all 0.3s ease;
   font-family: var(--font-family-secondary);
   flex: 1;
   white-space: nowrap;
 
   &:hover {
-    color: ${({ $active }) => ($active ? 'var(--color-blanco)' : 'var(--color-bordo-secundario)')};
-  }
-
-  &:active {
-    transform: scale(0.96);
+    background-color: ${({ $active, $activeColor }) => ($active ? ($activeColor || 'var(--color-bordo-tercero)') : 'rgba(0,0,0,0.03)')};
+    filter: ${({ $active }) => ($active ? 'brightness(0.85)' : 'none')};
   }
 
   @media (max-width: 480px) {
@@ -109,20 +88,18 @@ export default function ToggleSelection({ seccionActiva, onSeccionChange }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const index = seccionActiva === 'hogar' ? 1 : 0;
-  const activeColor = seccionActiva === 'hogar' ? 'var(--color-hogar)' : 'var(--color-bordo-tercero)';
-
   return (
     <ToggleContainer $visible={visible} $sticky={sticky}>
-      <Slider $index={index} $activeColor={activeColor} aria-hidden="true" />
       <ToggleOption
         $active={seccionActiva === 'perfumeria'}
+        $activeColor="var(--color-bordo-tercero)"
         onClick={() => onSeccionChange('perfumeria')}
       >
         Perfumería
       </ToggleOption>
       <ToggleOption
         $active={seccionActiva === 'hogar'}
+        $activeColor="var(--color-hogar)"
         onClick={() => onSeccionChange('hogar')}
       >
         Hogar
