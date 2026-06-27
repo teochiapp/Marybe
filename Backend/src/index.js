@@ -129,7 +129,57 @@ async function grantPublicPermission(strapi, action) {
 }
 
 module.exports = {
-  register(/*{ strapi }*/) {},
+  register({ strapi }) {
+    strapi.server.app.proxy = true;
+    strapi.server.use(async (ctx, next) => {
+      // FORZAR ABSOLUTAMENTE a Koa y a la librería Cookies a saber que estamos en HTTPS
+      if (ctx.cookies) {
+        ctx.cookies.secure = true;
+      }
+      Object.defineProperty(ctx.request, 'protocol', {
+        get: () => 'https',
+        configurable: true
+      });
+      Object.defineProperty(ctx.request, 'secure', {
+        get: () => true,
+        configurable: true
+      });
+
+      if (ctx.request.path.startsWith('/api/connect/google')) {
+        strapi.log.info(`[OAuth Debug] ➡️ Petición entrante a ${ctx.request.path} | Query: ${JSON.stringify(ctx.request.query)}`);
+      }
+
+      await next();
+
+      if (ctx.request.path.startsWith('/api/connect/google/callback')) {
+        strapi.log.info(`[OAuth Debug] ⬅️ Respuesta de /api/connect/google/callback | Status: ${ctx.status}`);
+        strapi.log.info(`[OAuth Debug] ⬅️ ctx.state.grant: ${JSON.stringify(ctx.state?.grant || {})}`);
+        strapi.log.info(`[OAuth Debug] ⬅️ ctx.session: ${JSON.stringify(ctx.session || {})}`);
+        strapi.log.info(`[OAuth Debug] ⬅️ Destino de redirección original (ctx.response.get('Location')): ${ctx.response.get('Location')}`);
+
+        const location = ctx.response.get('Location');
+        if (location && location.includes('marybe.surcodes.com') && !location.includes('access_token')) {
+          strapi.log.warn(`[OAuth Debug] ⚠️ Redirección al frontend sin access_token detectada! Intentando inyectar desde grant/session...`);
+          
+          let accessToken = ctx.state?.grant?.response?.access_token || ctx.session?.grant?.response?.access_token || ctx.request.query?.access_token;
+          let idToken = ctx.state?.grant?.response?.id_token || ctx.session?.grant?.response?.id_token || ctx.request.query?.id_token;
+          let rawCode = ctx.request.query?.code;
+
+          if (accessToken) {
+            const separator = location.includes('?') ? '&' : '?';
+            const newLocation = `${location}${separator}access_token=${accessToken}${idToken ? `&id_token=${idToken}` : ''}`;
+            strapi.log.info(`[OAuth Debug] 💉 Inyectando tokens en Location: ${newLocation}`);
+            ctx.response.set('Location', newLocation);
+          } else if (rawCode) {
+            const separator = location.includes('?') ? '&' : '?';
+            const newLocation = `${location}${separator}access_token=${rawCode}`;
+            strapi.log.info(`[OAuth Debug] 💉 Inyectando fallback code como access_token en Location: ${newLocation}`);
+            ctx.response.set('Location', newLocation);
+          }
+        }
+      }
+    });
+  },
 
   async bootstrap({ strapi }) {
 
