@@ -1,5 +1,4 @@
-[providers]
-values = ["node", "static"]
+providers = ["node", "static"]
 
 # Configuración de Nixpacks para despliegues estáticos en Coolify VPS
 [static]
