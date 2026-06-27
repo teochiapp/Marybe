@@ -445,16 +445,95 @@ const ContinueBtn = styled(Link)`
   }
 `;
 
-const EmptyCartMsg = styled.div`
+const EmptyCartWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 520px;
+  margin: 40px auto 80px;
+  padding: 50px 40px;
+  background-color: var(--color-blanco-pero-no-tan-blanco, #FAF0F0);
+  border-radius: 24px;
+  box-shadow: 0 12px 36px rgba(106, 3, 4, 0.06);
   text-align: center;
-  padding: 60px 20px;
-  font-size: 1.2rem;
-  color: #555;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 
-  a {
-    color: var(--color-bordo-secundario);
-    font-weight: 600;
-    text-decoration: underline;
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(106, 3, 4, 0.12);
+  }
+`;
+
+const EmptyCartIconContainer = styled.div`
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background-color: var(--color-blanco, #FFFFFF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(106, 3, 4, 0.1);
+  color: var(--color-bordo-cuarto);
+  animation: float 3s ease-in-out infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  svg {
+    width: 48px;
+    height: 48px;
+    stroke: currentColor;
+  }
+`;
+
+const EmptyCartTitle = styled.h3`
+  font-family: var(--font-family-primary);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--color-bordo-cuarto);
+  margin-bottom: 12px;
+`;
+
+const EmptyCartSubtitle = styled.p`
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 32px;
+  line-height: 1.5;
+`;
+
+const EmptyCartButton = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--color-bordo-cuarto);
+  color: var(--color-blanco, #FFFFFF);
+  padding: 16px 36px;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 8px 20px rgba(106, 3, 4, 0.25);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: var(--color-marron-principal);
+    transform: scale(1.03);
+    box-shadow: 0 12px 28px rgba(106, 3, 4, 0.35);
+    color: var(--color-blanco, #FFFFFF);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.2s ease;
+  }
+
+  &:hover svg {
+    transform: translateX(4px);
   }
 `;
 
@@ -571,10 +650,24 @@ export default function Carrito() {
         </ProgressContainer>
 
         {cartItems.length === 0 ? (
-          <EmptyCartMsg>
-            Tu carrito está vacío. <br /><br />
-            <Link to="/tienda">Ir a la tienda</Link>
-          </EmptyCartMsg>
+          <EmptyCartWrapper>
+            <EmptyCartIconContainer>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+            </EmptyCartIconContainer>
+            <EmptyCartTitle>Tu carrito está vacío</EmptyCartTitle>
+            <EmptyCartSubtitle>Explora nuestro catálogo para encontrar los mejores productos de farmacia y perfumería.</EmptyCartSubtitle>
+            <EmptyCartButton to="/tienda">
+              Ir a la tienda
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </EmptyCartButton>
+          </EmptyCartWrapper>
         ) : (
           <LayoutGrid>
             {/* Lista de productos */}
