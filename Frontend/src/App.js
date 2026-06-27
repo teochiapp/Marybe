@@ -1,8 +1,9 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import AuthModal from './components/auth/AuthModal';
 import AuthRedirect from './components/auth/AuthRedirect';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
 // Componentes principales que siempre se cargan
 import Header from './components/header/Header';
@@ -19,63 +20,41 @@ import Pago from './pages/checkout/Pago';
 import OrderSuccess from './pages/checkout/OrderSuccess';
 import OrderError from './pages/checkout/OrderError';
 
-// Función para reintentar la carga del chunk y recargar la página si falla
-const lazyWithRetry = (componentImport) =>
-  lazy(async () => {
-    const pageHasAlreadyBeenForceRefreshed = JSON.parse(
-      window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false'
-    );
-
-    try {
-      const component = await componentImport();
-      window.sessionStorage.setItem('page-has-been-force-refreshed', 'false');
-      return component;
-    } catch (error) {
-      if (!pageHasAlreadyBeenForceRefreshed) {
-        window.sessionStorage.setItem('page-has-been-force-refreshed', 'true');
-        window.location.reload();
-        // Devolvemos una promesa que nunca se resuelve para que Suspense espere la recarga
-        return new Promise(() => {});
-      }
-      throw error;
-    }
-  });
-
-// ── Rutas Secundarias (Carga Perezosa / Lazy) ──
-const ApiProductos = lazyWithRetry(() => import('./pages/ApiProductos'));
+// ── Rutas Secundarias (Carga Perezosa / Lazy con reintentos) ──
+const ApiProductos = lazyWithRetry(() => import('./pages/ApiProductos'), 'ApiProductos');
 
 // Páginas de Ayuda
-const PreguntasFrecuentes = lazyWithRetry(() => import('./pages/ayuda/PreguntasFrecuentes'));
-const CambiosDevoluciones = lazyWithRetry(() => import('./pages/ayuda/CambiosDevoluciones'));
-const TerminosCondiciones = lazyWithRetry(() => import('./pages/ayuda/TerminosCondiciones'));
+const PreguntasFrecuentes = lazyWithRetry(() => import('./pages/ayuda/PreguntasFrecuentes'), 'PreguntasFrecuentes');
+const CambiosDevoluciones = lazyWithRetry(() => import('./pages/ayuda/CambiosDevoluciones'), 'CambiosDevoluciones');
+const TerminosCondiciones = lazyWithRetry(() => import('./pages/ayuda/TerminosCondiciones'), 'TerminosCondiciones');
 
 // Páginas de Pedidos
-const MiCuenta = lazyWithRetry(() => import('./pages/pedidos/MiCuenta'));
+const MiCuenta = lazyWithRetry(() => import('./pages/pedidos/MiCuenta'), 'MiCuenta');
 
 // Página de Contacto
-const Contacto = lazyWithRetry(() => import('./pages/contacto/Contacto'));
+const Contacto = lazyWithRetry(() => import('./pages/contacto/Contacto'), 'Contacto');
 
 // Página de Sucursales
-const Sucursales = lazyWithRetry(() => import('./pages/sucursales/Sucursales'));
+const Sucursales = lazyWithRetry(() => import('./pages/sucursales/Sucursales'), 'Sucursales');
 
 // Página de Nuestra Historia
-const NuestraHistoria = lazyWithRetry(() => import('./pages/nuestra-historia/NuestraHistoria'));
+const NuestraHistoria = lazyWithRetry(() => import('./pages/nuestra-historia/NuestraHistoria'), 'NuestraHistoria');
 
 // Página de Arrepentimiento
-const Arrepentimiento = lazyWithRetry(() => import('./pages/arrepentimiento/Arrepentimiento'));
+const Arrepentimiento = lazyWithRetry(() => import('./pages/arrepentimiento/Arrepentimiento'), 'Arrepentimiento');
 
 // Página 404
-const NotFound = lazyWithRetry(() => import('./pages/not-found/NotFound'));
+const NotFound = lazyWithRetry(() => import('./pages/not-found/NotFound'), 'NotFound');
 
 // Página de Método de envío
-const MetodoEnvio = lazyWithRetry(() => import('./pages/metodo-envio/MetodoEnvio'));
+const MetodoEnvio = lazyWithRetry(() => import('./pages/metodo-envio/MetodoEnvio'), 'MetodoEnvio');
 
 // Panel de Administración (Muy pesados, ideal para lazy)
-const ImportacionAdmin = lazyWithRetry(() => import('./pages/admin/ImportacionAdmin'));
-const PedidosAdmin = lazyWithRetry(() => import('./pages/admin/PedidosAdmin'));
+const ImportacionAdmin = lazyWithRetry(() => import('./pages/admin/ImportacionAdmin'), 'ImportacionAdmin');
+const PedidosAdmin = lazyWithRetry(() => import('./pages/admin/PedidosAdmin'), 'PedidosAdmin');
 
 // Página de Gift Card
-const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'));
+const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'), 'GiftCardPage');
 
 // Componente para la raíz / que detecta tokens de OAuth antes de redirigir a /inicio
 function RootRoute() {

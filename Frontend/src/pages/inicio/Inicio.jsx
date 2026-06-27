@@ -1,26 +1,27 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
 import styled from 'styled-components';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FadeIn, FadeInLeft, FadeInUp } from '../../components/animations/ScrollAnimations';
 import ToggleSelection from '../../components/inicio/perfumeria/ToggleSelection';
+import { lazyWithRetry } from '../../utils/lazyWithRetry';
 
 // ─── Above the fold: carga inmediata ──────────────────────────────────────────
 import PromoCarousel from '../../components/inicio/perfumeria/PromoCarousel';
 import FeaturedSection from '../../components/inicio/perfumeria/FeaturedSection';
 import ScrollToTopButton from '../../components/ScrollToTopButton';
 
-// ─── Below the fold: lazy load (code splitting real) ─────────────────────────
-const CategoriesSection       = lazy(() => import('../../components/inicio/perfumeria/CategoriesSection'));
-const FeaturedCategorySection = lazy(() => import('../../components/inicio/perfumeria/FeaturedCategorySection'));
-const OfertasSection          = lazy(() => import('../../components/inicio/perfumeria/OfertasSection'));
-const DiscountedSection       = lazy(() => import('../../components/inicio/perfumeria/DiscountedSection'));
-const SpecificCategorySection = lazy(() => import('../../components/inicio/perfumeria/SpecificCategorySection'));
-const TarjetasPromociones     = lazy(() => import('../../components/inicio/perfumeria/TarjetasPromociones'));
-const GiftCard                = lazy(() => import('../../components/inicio/shared/GiftCard'));
-const ProximosEventos         = lazy(() => import('../../components/inicio/perfumeria/ProximosEventos'));
-const DescubriMas             = lazy(() => import('../../components/inicio/perfumeria/DescubriMas'));
-const FeaturedSectionHogar    = lazy(() => import('../../components/inicio/hogar/FeaturedSectionHogar'));
-const DiscountedSectionHogar  = lazy(() => import('../../components/inicio/hogar/DiscountedSectionHogar'));
+// ─── Below the fold: lazy load con reintentos para evitar ChunkLoadError ─────
+const CategoriesSection       = lazyWithRetry(() => import('../../components/inicio/perfumeria/CategoriesSection'), 'CategoriesSection');
+const FeaturedCategorySection = lazyWithRetry(() => import('../../components/inicio/perfumeria/FeaturedCategorySection'), 'FeaturedCategorySection');
+const OfertasSection          = lazyWithRetry(() => import('../../components/inicio/perfumeria/OfertasSection'), 'OfertasSection');
+const DiscountedSection       = lazyWithRetry(() => import('../../components/inicio/perfumeria/DiscountedSection'), 'DiscountedSection');
+const SpecificCategorySection = lazyWithRetry(() => import('../../components/inicio/perfumeria/SpecificCategorySection'), 'SpecificCategorySection');
+const TarjetasPromociones     = lazyWithRetry(() => import('../../components/inicio/perfumeria/TarjetasPromociones'), 'TarjetasPromociones');
+const GiftCard                = lazyWithRetry(() => import('../../components/inicio/shared/GiftCard'), 'GiftCard');
+const ProximosEventos         = lazyWithRetry(() => import('../../components/inicio/perfumeria/ProximosEventos'), 'ProximosEventos');
+const DescubriMas             = lazyWithRetry(() => import('../../components/inicio/perfumeria/DescubriMas'), 'DescubriMas');
+const FeaturedSectionHogar    = lazyWithRetry(() => import('../../components/inicio/hogar/FeaturedSectionHogar'), 'FeaturedSectionHogar');
+const DiscountedSectionHogar  = lazyWithRetry(() => import('../../components/inicio/hogar/DiscountedSectionHogar'), 'DiscountedSectionHogar');
 
 
 const PageWrapper = styled.div`
