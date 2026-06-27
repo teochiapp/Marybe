@@ -1,11 +1,13 @@
 'use strict';
 
 module.exports = () => ({
-  async crearPreferencia({ productos = [], total = 0, userEmail = '', externalReference = '' }) {
+  async crearPreferencia({ productos = [], total = 0, userEmail = '', externalReference = '', frontendUrl = '' }) {
     const accessToken = process.env.MP_ACCESS_TOKEN || 'APP_USR-691693310529160-062610-1056889f46d52fffc24ade8b643e4090-3499762458';
     if (!accessToken) {
       throw new Error('Mercado Pago Access Token no configurado en el backend');
     }
+
+    const baseFrontendUrl = frontendUrl || process.env.FRONTEND_URL || 'https://marybe.surcodes.com';
 
     // Transformamos los productos del carrito al formato de Mercado Pago con validaciones estrictas
     const items = productos.map((item) => {
@@ -39,10 +41,12 @@ module.exports = () => ({
         email: userEmail || 'invitado@marybe.com',
       },
       back_urls: {
-        success: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/order-success`,
-        pending: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/order-success`,
-        failure: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/order-error`,
+        success: `${baseFrontendUrl}/order-success`,
+        pending: `${baseFrontendUrl}/order-success`,
+        failure: `${baseFrontendUrl}/order-error`,
       },
+      auto_return: 'all',
+      binary_mode: true,
       external_reference: externalReference || `MARYBE-${Date.now()}`,
       statement_descriptor: 'MARYBE PERFUMERIA',
     };

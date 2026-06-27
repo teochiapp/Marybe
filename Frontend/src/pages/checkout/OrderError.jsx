@@ -221,11 +221,15 @@ const formatPrice = (price) => {
 export default function OrderError() {
   const location = useLocation();
 
-  if (!location.state) {
+  // Al regresar de Mercado Pago por URL, location.state estará vacío, pero tenemos sessionStorage
+  const mpPending = JSON.parse(sessionStorage.getItem('mp_pending_order') || 'null');
+  const orderData = location.state || mpPending;
+
+  if (!orderData) {
     return <Navigate to="/carrito" replace />;
   }
 
-  const { paymentMethod, cartTotal, savedAddress } = location.state;
+  const { paymentMethod, cartTotal, savedAddress } = orderData;
 
   return (
     <PageContainer>
@@ -270,7 +274,7 @@ export default function OrderError() {
           <DetailCard>
             <div className="row">
               <span className="label">Pago</span>
-              <span className="value">{paymentMethod === 'transferencia' ? 'Transferencia' : paymentMethod === 'efectivo' ? 'Efectivo' : 'Débito/Crédito'}</span>
+              <span className="value">{paymentMethod === 'transferencia' ? 'Transferencia' : paymentMethod === 'efectivo' ? 'Efectivo' : paymentMethod === 'mercadopago' ? 'Mercado Pago' : 'Débito/Crédito'}</span>
             </div>
             <div className="row">
               <span className="label">Envío</span>

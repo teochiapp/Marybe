@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 
+// ─── Styled Components ──────────────────────────────────────────────────────
+
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -14,6 +16,7 @@ const ModalOverlay = styled.div`
   align-items: center;
   z-index: 99999;
   font-family: var(--font-family-secondary, sans-serif);
+  padding: 20px;
 `;
 
 const ModalContainer = styled.div`
@@ -34,6 +37,11 @@ const ModalContainer = styled.div`
   @keyframes modalScaleUp {
     0% { transform: scale(0.9); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
+  }
+
+  @media (max-width: 500px) {
+    padding: 30px 24px;
+    border-radius: 20px;
   }
 `;
 
@@ -78,6 +86,7 @@ const Subtitle = styled.p`
   line-height: 1.5;
 `;
 
+/* ── Desktop: QR Code ── */
 const QRCodeBox = styled.div`
   background: white;
   padding: 20px;
@@ -98,6 +107,56 @@ const QRCodeBox = styled.div`
   }
 `;
 
+const QRHint = styled.p`
+  font-size: 0.82rem;
+  color: #888;
+  margin-top: -15px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  span {
+    font-size: 1.1rem;
+  }
+`;
+
+/* ── Mobile: App Button ── */
+const MobilePaySection = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+`;
+
+const MobileIcon = styled.div`
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, var(--color-hogar), var(--color-marron-cuarto));
+  border-radius: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  box-shadow: 0 8px 20px rgba(177, 0, 2, 0.3);
+  animation: bounceIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes bounceIn {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+`;
+
+const MobileSubtitle = styled.p`
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.5;
+  max-width: 300px;
+`;
+
+/* ── Shared ── */
 const InfoCard = styled.div`
   background-color: var(--color-blanco-pero-no-tan-blanco, #FAF0F0);
   border-left: 4px solid var(--color-hogar);
@@ -115,7 +174,7 @@ const InfoCard = styled.div`
   }
 `;
 
-const DirectButton = styled.a`
+const PrimaryButton = styled.a`
   width: 100%;
   background-color: var(--color-marron-cuarto);
   color: white;
@@ -130,7 +189,7 @@ const DirectButton = styled.a`
   gap: 10px;
   box-shadow: 0 8px 20px rgba(40, 1, 1, 0.2);
   transition: all 0.2s;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 
   &:hover {
     background-color: var(--color-hogar);
@@ -221,9 +280,21 @@ const SuccessOverlay = styled.div`
   }
 `;
 
+// ─── Utilidad de detección de móvil ─────────────────────────────────────────
+const checkIsMobile = () =>
+  /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+// ─── Componente ─────────────────────────────────────────────────────────────
 export default function MercadoPagoQRModal({ isOpen, onClose, onConfirmOrder, initPoint, total, externalReference }) {
   const [isPaid, setIsPaid] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
+  // Detectar dispositivo al montar
+  useEffect(() => {
+    setIsMobile(checkIsMobile());
+  }, []);
+
+  // Polling: consultar estado del pago cada 4 segundos
   useEffect(() => {
     if (!isOpen || !externalReference) {
       setIsPaid(false);
@@ -239,15 +310,12 @@ export default function MercadoPagoQRModal({ isOpen, onClose, onConfirmOrder, in
         if (data && data.pagado) {
           setIsPaid(true);
           clearInterval(interval);
-          // Esperamos 2 segundos mostrando la hermosa pantalla de éxito antes de redirigir
-          setTimeout(() => {
-            onConfirmOrder();
-          }, 2000);
+          setTimeout(() => onConfirmOrder(), 2000);
         }
       } catch (err) {
         console.error('Error al consultar estado del pago:', err);
       }
-    }, 4000); // Consultar cada 4 segundos
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [isOpen, externalReference, onConfirmOrder]);
@@ -261,6 +329,7 @@ export default function MercadoPagoQRModal({ isOpen, onClose, onConfirmOrder, in
   return (
     <ModalOverlay onClick={onClose}>
       <ModalContainer onClick={(e) => e.stopPropagation()}>
+
         {isPaid && (
           <SuccessOverlay>
             <div className="circle">✓</div>
@@ -275,17 +344,78 @@ export default function MercadoPagoQRModal({ isOpen, onClose, onConfirmOrder, in
           <span style={{ color: 'var(--color-hogar)' }}>Pagar con</span> QR
         </HeaderTitle>
 
-        <Subtitle>
-          Escaneá el código con la app de <strong style={{ color: 'var(--color-marron-cuarto)' }}>Mercado Pago, Modo, Ualá o Naranja X </strong>desde tu celular para pagar.
-        </Subtitle>
+        {isMobile ? (
+          /* ── Vista Móvil: botón directo a la app ── */
+          <>
+            <Subtitle>
+              Tocá el botón para abrir <strong style={{ color: 'var(--color-marron-cuarto)' }}>Mercado Pago</strong> y completar el pago desde tu celular.
+            </Subtitle>
 
-        <QRCodeBox>
-          {qrImageUrl ? (
-            <img src={qrImageUrl} alt="Código QR Mercado Pago" />
-          ) : (
-            <div style={{ color: '#999', fontSize: '0.9rem' }}>Generando QR...</div>
-          )}
-        </QRCodeBox>
+            <MobilePaySection>
+              <MobileIcon>📱</MobileIcon>
+              <MobileSubtitle>
+                Tu celular abrirá la app de Mercado Pago directamente con el monto listo para pagar.
+              </MobileSubtitle>
+            </MobilePaySection>
+          </>
+        ) : (
+          /* ── Vista Desktop: QR para escanear con el celular ── */
+          <>
+            <Subtitle>
+              Escaneá el código con la <strong style={{ color: 'var(--color-marron-cuarto)' }}>cámara de tu celular</strong> (no con la app de MP). Se abrirá el checkout en tu navegador.
+            </Subtitle>
+
+            <QRCodeBox>
+              {qrImageUrl ? (
+                <img src={qrImageUrl} alt="Código QR de pago" />
+              ) : (
+                <div style={{ color: '#999', fontSize: '0.9rem' }}>Generando QR...</div>
+              )}
+            </QRCodeBox>
+
+            <div style={{
+              width: '100%',
+              background: '#f8f9fa',
+              border: '1px solid #e9ecef',
+              borderRadius: '12px',
+              padding: '14px 18px',
+              marginBottom: '20px',
+              textAlign: 'left',
+              fontSize: '0.88rem',
+              color: '#495057',
+              lineHeight: '1.8'
+            }}>
+              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--color-hogar)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Cómo pagar</div>
+              {[
+                { n: '1', text: <>Abrí la <strong style={{ color: 'var(--color-hogar)' }}>cámara nativa</strong> de tu celular</> },
+                { n: '2', text: 'Apuntá al código QR de arriba' },
+                { n: '3', text: 'Tocá el link que aparece en pantalla' },
+                { n: '4', text: <>Pagá con <strong style={{ color: 'var(--color-hogar)' }}>Mercado Pago, Modo, Ualá</strong> o tu banco</> },
+              ].map(({ n, text }) => (
+                <div key={n} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '6px' }}>
+                  <span style={{
+                    minWidth: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: 'var(--color-hogar)',
+                    color: 'white',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                    marginTop: '1px'
+                  }}>{n}</span>
+                  <span>{text}</span>
+                </div>
+              ))}
+              <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e9ecef', color: '#aaa', fontSize: '0.78rem' }}>
+                No uses el escáner interno de la app de Mercado Pago
+              </div>
+            </div>
+          </>
+        )}
 
         <InfoCard>
           Total a pagar: <strong>$ {Number(total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
@@ -293,9 +423,9 @@ export default function MercadoPagoQRModal({ isOpen, onClose, onConfirmOrder, in
           El sistema detectará tu pago automáticamente al instante.
         </InfoCard>
 
-        <DirectButton href={initPoint} target="_blank" rel="noopener noreferrer">
-          Abrir Mercado Pago en este equipo
-        </DirectButton>
+        <PrimaryButton href={initPoint} target="_blank" rel="noopener noreferrer">
+          {isMobile ? 'Abrir Mercado Pago' : 'Abrir en este equipo'}
+        </PrimaryButton>
 
         <PollingStatusBox>
           <div className="spinner" />

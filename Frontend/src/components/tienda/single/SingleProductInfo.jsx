@@ -470,7 +470,7 @@ export default function SingleProductInfo({ producto }) {
 
   if (!producto) return null;
 
-  console.log('📦 Datos del producto desde el Excel/Strapi:', producto);
+
 
   const { nombre, marca, descripcion_corta, descuento, caracteristicas } = producto;
   const variantes = producto.variantes || [];

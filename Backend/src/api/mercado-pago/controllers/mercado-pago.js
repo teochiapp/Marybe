@@ -5,7 +5,7 @@ const getMercadoPagoService = require('../services/mercado-pago');
 module.exports = {
   async crearPreferencia(ctx) {
     try {
-      const { productos = [], total = 0, userEmail = '', externalReference = '' } = ctx.request.body;
+      const { productos = [], total = 0, userEmail = '', externalReference = '', frontendUrl = '' } = ctx.request.body;
 
       const service = getMercadoPagoService();
       const preferencia = await service.crearPreferencia({
@@ -13,6 +13,7 @@ module.exports = {
         total,
         userEmail,
         externalReference,
+        frontendUrl,
       });
 
       ctx.send({

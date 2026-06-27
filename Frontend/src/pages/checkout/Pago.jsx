@@ -1,10 +1,9 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
 import { paymentOptions, sucursalesRetiro, infoTransferencia } from '../../data/checkout/paymentMethods';
-import MercadoPagoQRModal from '../../components/pago/MercadoPagoQRModal';
 
 const PageContainer = styled.div`
   min-height: 80vh;
@@ -515,11 +514,8 @@ export default function Pago() {
   const [savedAddress, setSavedAddress] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState('Peatonal Tucuman 20, Santiago del Estero');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
-  const [mpInitPoint, setMpInitPoint] = useState('');
-  const [mpExternalReference, setMpExternalReference] = useState('');
 
-  const buttonText = paymentMethod === 'qr' || paymentMethod === 'credito' || paymentMethod === 'debito' ? 'Pagar' : 'Hacer pedido';
+  const buttonText = paymentMethod === 'mercadopago' || paymentMethod === 'credito' || paymentMethod === 'debito' ? 'Pagar' : 'Hacer pedido';
 
   const handlePayment = async () => {
     setIsProcessing(true);
@@ -529,36 +525,46 @@ export default function Pago() {
       finalTotal = Math.max(0, finalTotal - appliedGiftCard.monto);
     }
 
-    if (paymentMethod === 'qr') {
+    if (paymentMethod === 'mercadopago') {
       try {
         const generatedRef = `MARYBE-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
         const res = await fetch(`${apiUrl}/api/mercado-pago/crear-preferencia`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             productos: cartItems,
             total: finalTotal,
             userEmail: user?.email,
             externalReference: generatedRef,
+            frontendUrl: window.location.origin,
           }),
         });
 
         const data = await res.json();
-        setIsProcessing(false);
 
-        if (data.success && (data.sandbox_init_point || data.init_point)) {
-          setMpInitPoint(data.sandbox_init_point || data.init_point);
-          setMpExternalReference(generatedRef);
-          setIsQRModalOpen(true);
+        if (data.success && (data.init_point || data.sandbox_init_point)) {
+          // ── Guardar datos del carrito en sessionStorage antes de salir ──
+          sessionStorage.setItem('mp_pending_order', JSON.stringify({
+            cartItems,
+            cartTotal: finalTotal,
+            paymentMethod: 'mercadopago',
+            savedAddress: savedAddress || null,
+            email: user?.email || '',
+            token: token || '',
+            externalReference: generatedRef,
+          }));
+
+          // ── Limpiar carrito y redirigir a Checkout Pro (igual que Maquifit) ──
+          clearCart();
+          const checkoutUrl = data.init_point || data.sandbox_init_point;
+          window.location.href = checkoutUrl;
           return;
         } else {
           throw new Error('No se pudo generar el link de Mercado Pago');
         }
       } catch (error) {
-        console.error('Error al generar preferencia QR:', error);
+        console.error('Error al generar preferencia MP:', error);
         setIsProcessing(false);
         alert('Hubo un error al conectar con Mercado Pago. Intenta nuevamente.');
         return;
@@ -568,17 +574,20 @@ export default function Pago() {
     await confirmOrder(finalTotal);
   };
 
-  const confirmOrder = async (overrideTotal) => {
+  const confirmOrder = useCallback(async (overrideTotal) => {
     setIsProcessing(true);
-    setIsQRModalOpen(false);
     
     let finalTotal = overrideTotal !== undefined ? overrideTotal : cartTotal;
     if (overrideTotal === undefined && appliedGiftCard) {
       finalTotal = Math.max(0, finalTotal - appliedGiftCard.monto);
     }
 
+    // Captura del carrito antes de limpiarlo
+    const itemsSnapshot = [...cartItems];
+    let orderNumber = 'M-000000';
+
     try {
-      // 1. Crear el pedido
+      // 1. Crear el pedido en Strapi
       const response = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/mis-pedidos`, {
         method: 'POST',
         headers: {
@@ -594,6 +603,7 @@ export default function Pago() {
       });
 
       const json = await response.json();
+      orderNumber = json.data?.numero_pedido || 'M-000000';
       
       // 2. Si se usó una gift card, consumirla
       if (appliedGiftCard) {
@@ -604,27 +614,24 @@ export default function Pago() {
         });
         setAppliedGiftCard(null);
       }
-
-      clearCart();
-
-      const orderNumber = json.data?.numero_pedido || 'M-000000';
-
-      navigate('/order-success', { 
-        state: { 
-          paymentMethod, 
-          cartItems, 
-          cartTotal: finalTotal, 
-          savedAddress, 
-          email: user?.email,
-          orderNumber 
-        } 
-      });
     } catch (err) {
-      console.error("Error al procesar pedido", err);
-      setIsProcessing(false);
-      alert('Hubo un error al procesar el pedido.');
+      console.error('Error al registrar el pedido en Strapi (el pago ya fue procesado):', err);
+      // No bloqueamos la navegación — el pago de Mercado Pago ya se completó
     }
-  };
+
+    // Limpiar carrito y navegar siempre al éxito
+    clearCart();
+    navigate('/order-success', { 
+      state: { 
+        paymentMethod, 
+        cartItems: itemsSnapshot, 
+        cartTotal: finalTotal, 
+        savedAddress, 
+        email: user?.email,
+        orderNumber 
+      } 
+    });
+  }, [cartItems, cartTotal, paymentMethod, savedAddress, appliedGiftCard, token, user, clearCart, navigate, setAppliedGiftCard]);
 
   useEffect(() => {
     if (token) {
@@ -660,14 +667,6 @@ export default function Pago() {
 
   return (
     <PageContainer>
-      <MercadoPagoQRModal 
-        isOpen={isQRModalOpen} 
-        onClose={() => setIsQRModalOpen(false)} 
-        onConfirmOrder={() => confirmOrder()} 
-        initPoint={mpInitPoint} 
-        total={cartTotal} 
-        externalReference={mpExternalReference}
-      />
       {isProcessing && (
         <ProcessingOverlay>
           <Spinner />
@@ -772,11 +771,11 @@ export default function Pago() {
                   {infoTransferencia.mensajeWhatsapp}
                 </InfoBox>
               </>
-            ) : paymentMethod === 'qr' ? (
+            ) : paymentMethod === 'mercadopago' ? (
               <>
-                <SectionTitle>Pago con código QR</SectionTitle>
+                <SectionTitle>Pago con Mercado Pago</SectionTitle>
                 <PaymentTextInfo>
-                  <p>Al hacer clic en "Pagar", te mostraremos el código QR en pantalla para que puedas escanearlo con la app de tu billetera virtual favorita (Mercado Pago, Modo, Ualá, Naranja X, etc).</p>
+                  <p>Al hacer clic en "Pagar", serás redirigido de forma segura a Mercado Pago para completar tu compra con tarjetas de débito, crédito o dinero en cuenta.</p>
                 </PaymentTextInfo>
               </>
             ) : (
