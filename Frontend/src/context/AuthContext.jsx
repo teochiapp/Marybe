@@ -36,11 +36,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   const openAuthModal = (redirectTo = null) => {
-    setAuthRedirect(redirectTo);
+    if (typeof redirectTo === 'string') {
+      setAuthRedirect(redirectTo);
+      sessionStorage.setItem('authRedirect', redirectTo);
+    } else {
+      setAuthRedirect(null);
+      sessionStorage.removeItem('authRedirect');
+    }
     setIsAuthModalOpen(true);
   };
   const closeAuthModal = () => setIsAuthModalOpen(false);
-  const clearAuthRedirect = () => setAuthRedirect(null);
+  const clearAuthRedirect = () => {
+    setAuthRedirect(null);
+    sessionStorage.removeItem('authRedirect');
+  };
 
   return (
     <AuthContext.Provider
