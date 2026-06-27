@@ -7,6 +7,7 @@ import ToggleSelection from '../../components/inicio/perfumeria/ToggleSelection'
 // ─── Above the fold: carga inmediata ──────────────────────────────────────────
 import PromoCarousel from '../../components/inicio/perfumeria/PromoCarousel';
 import FeaturedSection from '../../components/inicio/perfumeria/FeaturedSection';
+import ScrollToTopButton from '../../components/ScrollToTopButton';
 
 // ─── Below the fold: lazy load (code splitting real) ─────────────────────────
 const CategoriesSection       = lazy(() => import('../../components/inicio/perfumeria/CategoriesSection'));
@@ -21,7 +22,6 @@ const DescubriMas             = lazy(() => import('../../components/inicio/perfu
 const FeaturedSectionHogar    = lazy(() => import('../../components/inicio/hogar/FeaturedSectionHogar'));
 const DiscountedSectionHogar  = lazy(() => import('../../components/inicio/hogar/DiscountedSectionHogar'));
 
-import ScrollToTopButton from '../../components/ScrollToTopButton';
 
 const PageWrapper = styled.div`
   min-height: 80vh;
