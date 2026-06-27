@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Link, useLocation, Navigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
+import { CartContext } from '../../context/CartContext';
+
+// ─── Styled Components (sin cambios) ────────────────────────────────────────
 
 const PageContainer = styled.div`
   min-height: 80vh;
@@ -78,201 +82,196 @@ const ProgressLine = styled.div`
   top: 16px;
   left: 40px;
   right: 40px;
-  height: 1px;
-  background-color: #d3d3d3;
+  height: 2px;
+  background-color: #5C0A0A;
   z-index: 0;
 `;
 
 const ConfirmationContainer = styled.div`
   max-width: 900px;
   margin: 0 auto;
-  font-family: var(--font-family-secondary, sans-serif);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 `;
 
 const SuccessBanner = styled.div`
-  background-color: #e6fcf0;
-  border: 1px solid #2ecc71;
-  border-radius: 12px;
-  padding: 30px;
+  background-color: var(--color-marron-principal, #3E0102);
+  border-radius: 16px;
+  padding: 40px;
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 30px;
+  gap: 24px;
+  color: white;
 
   svg {
-    width: 45px;
-    height: 45px;
-    color: #27ae60;
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+    color: #f2dc8f;
   }
-  
-  .text {
-    h2 {
-      font-size: 1.8rem;
-      color: #27ae60;
-      font-family: var(--font-family-secondary, sans-serif);
-      margin: 0 0 10px 0;
-      font-weight: 700;
-    }
-    p {
-      margin: 0;
-      color: #333;
-      font-size: 1rem;
-    }
+
+  .text h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    font-family: var(--font-family-primary, serif);
+    color: var(--color-titulo-marybe, #f2dc8f);
+    margin-bottom: 8px;
+  }
+
+  .text p {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    text-align: center;
+    padding: 28px 20px;
+
+    .text h2 { font-size: 1.4rem; }
   }
 `;
 
 const DetailCard = styled.div`
-  background-color: #f9f9f9;
-  border-radius: 12px;
-  padding: 30px;
-  margin-bottom: 30px;
+  background-color: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 
   .row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 20px;
+    align-items: center;
     font-size: 0.95rem;
-
-    .label {
-      color: #555;
-    }
-    .value {
-      font-weight: 500;
-      color: #333;
-      text-align: right;
-    }
   }
+  .label { color: #777; }
+  .value { color: #333; font-weight: 500; }
 
   .total-row {
+    border-top: 1px solid #eee;
+    padding-top: 16px;
     display: flex;
     justify-content: space-between;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #ddd;
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    color: #333;
+    color: var(--color-marron-principal, #3E0102);
   }
 `;
 
 const ProductsCard = styled.div`
-  background-color: #ffffff;
+  background-color: #fafafa;
   border: 1px solid #eee;
-  border-radius: 12px;
-  padding: 30px;
-  margin-bottom: 30px;
+  border-radius: 16px;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 
   .product-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #eee;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
 
-    &:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-      padding-bottom: 0;
+    &:last-child { border-bottom: none; padding-bottom: 0; }
+  }
+
+  .prod-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .img-wrapper {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #f0f0f0;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
+  }
 
-    .prod-info {
-      display: flex;
-      gap: 15px;
-      align-items: center;
-      
-      .img-wrapper {
-        width: 60px;
-        height: 60px;
-        background-color: #f5f5f5;
-        border-radius: 8px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        overflow: hidden;
+  .details h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+  }
 
-        img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-        }
-      }
+  .details p {
+    font-size: 0.82rem;
+    color: #888;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
 
-      .details {
-        h4 {
-          margin: 0 0 5px 0;
-          font-size: 1rem;
-          color: #333;
-          font-weight: 600;
-        }
-        p {
-          margin: 0;
-          font-size: 0.85rem;
-          color: #777;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-      }
-    }
-
-    .prod-price {
-      font-weight: 600;
-      font-size: 1rem;
-      color: #333;
-    }
-
-    @media (max-width: 768px) {
-      flex-direction: column;
-      text-align: center;
-      gap: 15px;
-      
-      .prod-info {
-        flex-direction: column;
-        justify-content: center;
-        gap: 15px;
-
-        .img-wrapper {
-          width: 80px;
-          height: 80px;
-        }
-
-        .details {
-          h4 {
-            font-size: 1.1rem;
-            margin-bottom: 8px;
-          }
-          p {
-            justify-content: center;
-          }
-        }
-      }
-
-      .prod-price {
-        font-size: 1.1rem;
-      }
-    }
+  .prod-price {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-marron-principal);
+    text-align: right;
   }
 `;
 
 const OrdersBtn = styled(Link)`
-  display: block;
-  width: 250px;
-  margin: 0 auto;
-  background-color: #2b0b0a;
+  display: inline-block;
+  background-color: var(--color-marron-principal, #3E0102);
   color: white;
-  text-align: center;
-  padding: 15px 0;
-  border-radius: 8px;
+  padding: 16px 32px;
+  border-radius: 12px;
   text-decoration: none;
-  font-weight: 600;
   font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
   transition: background-color 0.2s;
 
   &:hover {
     background-color: #4a1311;
   }
 `;
+
+const LoadingBanner = styled.div`
+  background-color: var(--color-marron-principal, #3E0102);
+  border-radius: 16px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: white;
+  text-align: center;
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top: 3px solid #f2dc8f;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  h2 { font-size: 1.4rem; color: #f2dc8f; font-family: var(--font-family-primary, serif); }
+  p { font-size: 0.95rem; color: rgba(255,255,255,0.8); }
+`;
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 const formatPrice = (price) => {
   if (!price) return '$0.00';
@@ -290,14 +289,132 @@ const getProductImage = (product) => {
   return imgUrl;
 };
 
+// ─── Componente ─────────────────────────────────────────────────────────────
+
 export default function OrderSuccess() {
   const location = useLocation();
-  
-  if (!location.state) {
-    return <Navigate to="/carrito" replace />;
+  const navigate = useNavigate();
+  const [orderData, setOrderData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const mpStatus = searchParams.get('status');
+    const mpPaymentId = searchParams.get('payment_id');
+    const mpExternalRef = searchParams.get('external_reference');
+
+    // ── Flujo MP Checkout Pro: llegamos del redirect de Mercado Pago ──
+    if (mpStatus && mpPaymentId) {
+      const pending = JSON.parse(sessionStorage.getItem('mp_pending_order') || 'null');
+
+      if (mpStatus === 'failure') {
+        navigate('/order-error', { replace: true });
+        return;
+      }
+
+      if (pending && mpStatus === 'approved') {
+        const cacheKey = `mp_order_created_${mpPaymentId}`;
+        const alreadyCreated = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+
+        if (alreadyCreated) {
+          setOrderData(alreadyCreated);
+          return;
+        }
+
+        setLoading(true);
+        // Crear el pedido en Strapi
+        const createOrder = async () => {
+          let orderNumber = 'M-000000';
+          try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (pending.token) {
+              headers.Authorization = `Bearer ${pending.token}`;
+            }
+
+            const response = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/mis-pedidos`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                productos: pending.cartItems,
+                total: pending.cartTotal,
+                metodo_pago: 'mercadopago',
+                direccion_envio: pending.savedAddress || {},
+                mp_payment_id: mpPaymentId,
+                mp_external_reference: mpExternalRef,
+              })
+            });
+            const json = await response.json();
+            orderNumber = json.data?.numero_pedido || 'M-000000';
+          } catch (err) {
+            console.error('Error al registrar pedido MP en Strapi:', err);
+          }
+
+          const newOrderData = {
+            paymentMethod: 'mercadopago',
+            cartItems: pending.cartItems,
+            cartTotal: pending.cartTotal,
+            savedAddress: pending.savedAddress,
+            email: pending.email,
+            orderNumber,
+          };
+
+          sessionStorage.setItem(cacheKey, JSON.stringify(newOrderData));
+          setOrderData(newOrderData);
+          setLoading(false);
+        };
+        createOrder();
+        return;
+      } else if (mpStatus === 'pending') {
+        const data = pending || {};
+        setOrderData({
+          paymentMethod: 'mercadopago',
+          cartItems: data.cartItems || [],
+          cartTotal: data.cartTotal || 0,
+          savedAddress: data.savedAddress,
+          email: data.email,
+          orderNumber: 'Pendiente',
+        });
+        return;
+      }
+    }
+
+    // ── Flujo normal (React Router state) ──
+    if (location.state) {
+      setOrderData(location.state);
+    }
+  }, [location, navigate]);
+
+  // Redirigir si no hay datos ni params de MP
+  if (!loading && !orderData) {
+    const searchParams = new URLSearchParams(location.search);
+    if (!searchParams.get('payment_id')) {
+      return <Navigate to="/carrito" replace />;
+    }
+    return null; // Esperando procesamiento de MP
   }
 
-  const { paymentMethod, cartItems, cartTotal, savedAddress, email, orderNumber, isOrderDetail } = location.state;
+  if (loading) {
+    return (
+      <PageContainer>
+        <ContentWrapper>
+          <ConfirmationContainer>
+            <LoadingBanner>
+              <div className="spinner" />
+              <h2>Confirmando tu pago...</h2>
+              <p>Estamos registrando tu pedido. Un momento por favor.</p>
+            </LoadingBanner>
+          </ConfirmationContainer>
+        </ContentWrapper>
+      </PageContainer>
+    );
+  }
+
+  const { paymentMethod, cartItems = [], cartTotal, savedAddress, email, orderNumber, isOrderDetail } = orderData;
+
+  const paymentLabel = paymentMethod === 'transferencia' ? 'Transferencia'
+    : paymentMethod === 'efectivo' ? 'Efectivo'
+    : paymentMethod === 'mercadopago' || paymentMethod === 'qr' ? 'Mercado Pago'
+    : 'Débito/Crédito';
 
   return (
     <PageContainer>
@@ -358,7 +475,7 @@ export default function OrderSuccess() {
           <DetailCard>
             <div className="row">
               <span className="label">Pago</span>
-              <span className="value">{paymentMethod === 'transferencia' ? 'Transferencia' : paymentMethod === 'efectivo' ? 'Efectivo' : 'Débito/Crédito'}</span>
+              <span className="value">{paymentLabel}</span>
             </div>
             <div className="row">
               <span className="label">Envío</span>

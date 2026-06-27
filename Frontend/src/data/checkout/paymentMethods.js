@@ -1,7 +1,7 @@
 export const paymentOptions = [
   // { id: 'debito', title: 'Tarjeta de débito', subtitle: 'Visa Débito - MasterCard - Maestro - Cabal', right: 'Sin recargo' },
   // { id: 'credito', title: 'Tarjeta de crédito', subtitle: 'Visa - MasterCard - Naranja X - Sucrédito - Banco del Sol', right: 'Hasta x cuotas sin interés' },
-  { id: 'qr', title: 'Pago con QR', subtitle: 'Mercado Pago - Ualá - Modo - Naranja X', right: 'Sin recargo' },
+  { id: 'mercadopago', title: 'Mercado Pago', subtitle: 'Tarjetas de crédito, débito o dinero en cuenta', right: 'Sin recargo' },
   { id: 'transferencia', title: 'Transferencia bancaria', subtitle: 'CBU / CVU - Acreditación en 24 hs.', right: 'Sin recargo' },
   { id: 'efectivo', title: 'Efectivo', subtitle: 'Pagás al retirar el pedido', right: 'Sin recargo' },
 ];
