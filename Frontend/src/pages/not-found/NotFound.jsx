@@ -42,7 +42,7 @@ const Description = styled(motion.p)`
 `;
 
 const BackButton = styled(motion.button)`
-  background-color: var(--color-marron-cuarto);
+  background-color: #7C0405;
   color: var(--color-blanco);
   font-family: var(--font-family-secondary);
   font-weight: 600;

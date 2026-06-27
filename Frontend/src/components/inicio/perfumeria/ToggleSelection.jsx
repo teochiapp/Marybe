@@ -5,7 +5,7 @@ const ToggleContainer = styled.div`
   display: flex;
   background-color: var(--color-blanco);
   border-radius: 200px;
-  padding: 4px;
+  padding: 5px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   width: fit-content;
   max-width: 100%;
@@ -33,10 +33,10 @@ const ToggleContainer = styled.div`
 /* Indicador que se desliza por detrás de las opciones */
 const Slider = styled.span`
   position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc(50% - 4px);
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc(50% - 5px);
   border-radius: 40px;
   background-color: ${({ $activeColor }) => $activeColor};
   transform: translateX(${({ $index }) => ($index === 1 ? '100%' : '0%')});

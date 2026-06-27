@@ -94,6 +94,10 @@ const IconsContainer = styled.div`
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
+const GiftCardSection = styled.div`
+  background-color: var(--color-blanco);
+`;
+
 export default function ProductoSingle() {
   const { id } = useParams(); // Puede ser id numérico o documentId + slug (ej: 11138-shampoo)
   const actualId = id ? id.split('-')[0] : null;
@@ -261,9 +265,9 @@ export default function ProductoSingle() {
           <SingleSimilares producto={producto} />
         </ContentWrapper>
       </PageContainer>
-      <div style={{ paddingBottom: '80px', backgroundColor: 'var(--color-blanco)' }}>
+      <GiftCardSection>
         <GiftCard />
-      </div>
+      </GiftCardSection>
     </>
   );
 }

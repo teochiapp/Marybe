@@ -116,6 +116,7 @@ const CategoryLabel = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   font-size: 0.95rem;
   font-weight: 500;
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
@@ -123,6 +124,7 @@ const CategoryLabel = styled.div`
   svg {
     width: 16px;
     height: 16px;
+    flex-shrink: 0;
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
@@ -137,6 +139,13 @@ const CategoryLabel = styled.div`
     left: 10px;
     right: 10px;
   }
+`;
+
+const LabelText = styled.span`
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ArrowRightIcon = () => (
@@ -316,7 +325,7 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
                 <ImagePlaceholder />
               )}
               <CategoryLabel>
-                {nombre}
+                <LabelText>{nombre}</LabelText>
                 <ArrowRightIcon />
               </CategoryLabel>
             </CategoryCard>

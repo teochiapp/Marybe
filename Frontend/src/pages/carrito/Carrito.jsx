@@ -427,7 +427,7 @@ const PrimaryBtn = styled.button`
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: var(--color-marron-cuarto);
+    background-color: #7C0405;
   }
 `;
 

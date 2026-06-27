@@ -81,6 +81,13 @@ const ProductsGrid = styled(motion.div)`
     gap: 30px;
   }
 
+  @media (max-width: 768px) {
+    /* El carrusel sangra hasta el borde derecho de la pantalla
+       (contrarresta el padding lateral de 20px de la seccion) */
+    margin-right: -20px;
+    padding-right: 20px;
+  }
+
   @media (max-width: 600px) {
     gap: 20px;
   }
@@ -264,7 +271,7 @@ const LegalText = styled.div`
 `;
 
 const AddButton = styled.button`
-  background-color: var(--color-marron-cuarto);
+  background-color: #7C0405;
   color: white;
   border: none;
   border-radius: 12px;

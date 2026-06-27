@@ -329,7 +329,7 @@ const LegalText = styled.div`
 `;
 
 const AddButton = styled.button`
-  background-color: var(--color-marron-cuarto);
+  background-color: #7C0405;
   color: white;
   border: none;
   border-radius: 12px;
@@ -638,7 +638,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
         })}
       </ProductsGrid>
 
-      <BottomLink onClick={() => navigate(`/tienda?descuento=todas&seccion=${seccion === 'hogar' ? 'Hogar' : 'Perfumer%C3%ADa'}`)}>
+      <BottomLink onClick={() => { navigate(`/tienda?descuento=todas&seccion=${seccion === 'hogar' ? 'Hogar' : 'Perfumer%C3%ADa'}`); window.scrollTo({ top: 0, behavior: 'instant' }); }}>
         Conocer más <ChevronRightIcon />
       </BottomLink>
       {selectedProduct && (

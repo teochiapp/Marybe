@@ -29,10 +29,6 @@ const GiftCardWrapper = styled.div`
   width: 100%;
   background-color: var(--color-fondo-tarjetas-promo);
   cursor: pointer;
-
-  @media (max-width: 768px) {
-    padding: 24px 0;
-  }
 `;
 
 export default function Inicio() {

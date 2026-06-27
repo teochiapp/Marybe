@@ -83,6 +83,7 @@ const EmailLink = styled.a`
 const WhatsAppButton = styled.a`
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-sm);
   background-color: var(--color-blanco);
   color: var(--color-marron-tercero);
@@ -93,6 +94,8 @@ const WhatsAppButton = styled.a`
   cursor: pointer;
   transition: var(--transition-fast);
   text-decoration: none;
+  width: 100%;
+  max-width: 325px;
 
   &:hover {
     background-color: var(--color-rosa-tercero);
@@ -101,6 +104,7 @@ const WhatsAppButton = styled.a`
 
   @media (max-width: 600px) {
     width: 100%;
+    max-width: none;
     justify-content: center;
   }
 `;

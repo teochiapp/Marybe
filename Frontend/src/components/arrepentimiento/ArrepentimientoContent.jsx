@@ -90,7 +90,7 @@ const Input = styled.input`
 const SubmitButton = styled.button`
   align-self: flex-end;
   margin-top: var(--spacing-sm);
-  background-color: #280101;
+  background-color: #7C0405;
   color: var(--color-blanco);
   border: none;
   border-radius: var(--radius-md);

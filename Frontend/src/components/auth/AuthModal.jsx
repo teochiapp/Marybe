@@ -5,14 +5,16 @@ import { AuthContext } from '../../context/AuthContext';
 
 const ModalOverlay = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
+  width: 100%;
+  height: 100vh; /* fallback navegadores viejos */
+  height: 100dvh; /* iOS: usa el alto de viewport dinámico para cubrir toda la pantalla */
   background-color: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 10px;
+  overflow-y: auto;
   z-index: 9999;
 `;
 
@@ -27,13 +29,18 @@ const GoogleIcon = () => (
 
 const ModalContent = styled.div`
   background-color: white;
+  box-sizing: border-box;
   width: 100%;
   max-width: 420px;
   border-radius: 12px;
   padding: 30px;
   position: relative;
   box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    font-family: var(--font-family-secondary, sans-serif);
+  font-family: var(--font-family-secondary, sans-serif);
+
+  @media (max-width: 600px) {
+    padding: 24px 20px;
+  }
 `;
 
 const CloseButton = styled.button`
