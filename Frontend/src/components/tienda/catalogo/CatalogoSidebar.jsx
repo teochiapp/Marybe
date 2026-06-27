@@ -292,7 +292,7 @@ const CheckboxLabel = styled.label`
 
 const SidebarSubmitBtn = styled.button`
   width: 100%;
-  background-color: var(--color-marron-cuarto);
+  background-color: #7C0405;
   color: white;
   border-radius: 12px;
   padding: 14px;

@@ -279,7 +279,7 @@ const SegmentedControl = styled.div`
   display: flex;
   background-color: var(--color-blanco);
   border-radius: 200px;
-  padding: 4px;
+  padding: 5px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   width: calc(100% - 32px);
   max-width: 340px;

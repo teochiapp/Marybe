@@ -65,6 +65,7 @@ const Brand = styled.h4`
   letter-spacing: 10%;
   color: #535353;
   margin-bottom: 8px;
+  font-family: var(--font-family-primary);
 `;
 
 const Title = styled.h1`
@@ -312,7 +313,7 @@ const QtyNumber = styled.div`
 
 const AddToCartBtn = styled(motion.button)`
   flex: 1;
-  background-color: ${({ $added }) => ($added ? '#2e7d32' : '#280101')};
+  background-color: ${({ $added }) => ($added ? '#2e7d32' : '#7C0405')};
   color: white;
   border: none;
   border-radius: 8px;

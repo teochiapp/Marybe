@@ -342,7 +342,7 @@ const LegalText = styled.div`
 `;
 
 const AddButton = styled.button`
-  background-color: var(--color-marron-cuarto);
+  background-color: #7C0405;
   color: white;
   border: none;
   border-radius: 12px;
@@ -676,7 +676,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             <BannerImageWrapper>
               <img src="/inicio/elixir.webp" alt="El poder del elixir" loading="eager" decoding="sync" />
             </BannerImageWrapper>
-            <BannerButton onClick={() => navigate('/tienda?banner=elixir&seccion=Perfumer%C3%ADa')}>Conocer más</BannerButton>
+            <BannerButton onClick={() => { navigate('/tienda?banner=elixir&seccion=Perfumer%C3%ADa'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Conocer más</BannerButton>
           </BottomBanner>
 
           <BottomBanner>
@@ -684,7 +684,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             <BannerImageWrapper>
               <img src="/inicio/azzaro.webp" alt="Línea Azzaro" loading="eager" decoding="sync" />
             </BannerImageWrapper>
-            <BannerButton onClick={() => navigate('/tienda?banner=azzaro&seccion=Perfumer%C3%ADa')}>Conocer más</BannerButton>
+            <BannerButton onClick={() => { navigate('/tienda?banner=azzaro&seccion=Perfumer%C3%ADa'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Conocer más</BannerButton>
           </BottomBanner>
         </BannersRow>
       )}

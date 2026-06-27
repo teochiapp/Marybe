@@ -699,7 +699,7 @@ export default function NavBar() {
           </SearchBar>
           <button
             onClick={handleSearch}
-            style={{ backgroundColor: 'var(--color-marron-cuarto)', color: 'white', padding: '10px 16px', borderRadius: 20, fontFamily: 'var(--font-family-secondary)', fontSize: '0.85rem', flexShrink: 0 }}
+            style={{ backgroundColor: '#7C0405', color: 'white', padding: '10px 16px', borderRadius: 20, fontFamily: 'var(--font-family-secondary)', fontSize: '0.85rem', flexShrink: 0 }}
           >
             Buscar
           </button>

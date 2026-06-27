@@ -35,7 +35,7 @@ const ProductsGrid = styled.div`
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  gap: 40px;
+  gap: 30px;
   position: relative;
   z-index: 1;
   cursor: grab;
@@ -72,18 +72,18 @@ const ProductCard = styled.div`
   -webkit-user-drag: none;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 
-  width: calc((100% - (4 * 40px)) / 3.75);
+  width: calc((100% - (5 * 30px)) / 5.5);
 
   @media (max-width: 1440px) {
-    width: calc((100% - (3 * 40px)) / 2.92);
+    width: calc((100% - (4 * 30px)) / 4.5);
   }
 
   @media (max-width: 1024px) {
-    width: calc((100% - (2 * 30px)) / 2.08);
+    width: calc((100% - (2 * 24px)) / 2.5);
   }
 
   @media (max-width: 600px) {
-    width: calc((100% - (1 * 20px)) / 1.25);
+    width: calc((100% - (1 * 20px)) / 1.5);
     padding: 12px;
     border-radius: 18px;
   }
@@ -259,7 +259,7 @@ const LegalText = styled.div`
 `;
 
 const AddButton = styled.button`
-  background-color: var(--color-marron-cuarto);
+  background-color: #7C0405;
   color: white;
   border: none;
   border-radius: 12px;

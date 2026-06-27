@@ -73,6 +73,24 @@ const Grid1Col = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   width: 100%;
+
+  /* Banner unico full-width: altura fija para que perfumeria y hogar
+     queden del mismo tamano sin importar la imagen */
+  picture {
+    height: 300px;
+    max-height: 300px;
+  }
+
+  picture img {
+    object-fit: cover;
+  }
+
+  @media (max-width: 768px) {
+    picture {
+      height: 250px;
+      max-height: 250px;
+    }
+  }
 `;
 
 const Grid2Cols = styled.div`
@@ -128,7 +146,6 @@ const GridPersonalizada = styled.div`
 const BannerCard = styled.div`
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
   background-color: #F5F2ED; /* Color de fondo solicitado */
   transition: all 0.3s ease;
   display: flex;
@@ -136,7 +153,6 @@ const BannerCard = styled.div`
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
   }
 
   /* Si está dentro de un carrusel, debe tener un ancho fijo */
@@ -252,6 +268,55 @@ const ResponsiveBanner = ({ banner, isCarousel, cols }) => {
   );
 };
 
+const ArrowBtn = styled.button`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  ${({ $side }) => $side}: 8px;
+  z-index: 3;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  color: var(--color-marron-principal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    background-color: #fff;
+    transform: translateY(-50%) scale(1.08);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  @media (max-width: 600px) {
+    width: 34px;
+    height: 34px;
+    ${({ $side }) => $side}: 6px;
+    svg { width: 16px; height: 16px; }
+  }
+`;
+
+const ChevronLeft = () => (
+  <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+);
+const ChevronRight = () => (
+  <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
+);
+
 // ─── Componente Auxiliar: Carousel Track ─────────────────────────────────────
 const CarouselTrack = ({ children }) => {
   const scrollRef = useRef(null);
@@ -290,8 +355,35 @@ const CarouselTrack = ({ children }) => {
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
+  const count = React.Children.count(children);
+
+  const scrollByDir = useCallback((dir) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const first = el.children[0];
+    const gap = parseFloat(getComputedStyle(el).columnGap) || 16;
+    const step = first ? first.getBoundingClientRect().width + gap : el.clientWidth;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    let target = el.scrollLeft + dir * step;
+    if (dir > 0 && el.scrollLeft >= maxScroll - 5) target = 0;
+    else if (dir < 0 && el.scrollLeft <= 5) target = maxScroll;
+    el.scrollTo({ left: target, behavior: 'smooth' });
+  }, []);
+
+  // Autoplay cada 7s (solo si hay mas de 1 banner = carrusel real)
+  useEffect(() => {
+    if (count <= 1) return undefined;
+    const id = setInterval(() => scrollByDir(1), 7000);
+    return () => clearInterval(id);
+  }, [count, scrollByDir]);
+
   return (
     <TrackOuter>
+      {count > 1 && (
+        <ArrowBtn $side="left" type="button" aria-label="Anterior" onClick={() => scrollByDir(-1)}>
+          <ChevronLeft />
+        </ArrowBtn>
+      )}
       <ScrollRow
         ref={scrollRef}
         onMouseDown={handleMouseDown}
@@ -301,6 +393,11 @@ const CarouselTrack = ({ children }) => {
       >
         {children}
       </ScrollRow>
+      {count > 1 && (
+        <ArrowBtn $side="right" type="button" aria-label="Siguiente" onClick={() => scrollByDir(1)}>
+          <ChevronRight />
+        </ArrowBtn>
+      )}
     </TrackOuter>
   );
 };

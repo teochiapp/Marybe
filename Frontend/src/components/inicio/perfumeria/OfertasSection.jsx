@@ -1,5 +1,5 @@
 import React, { useRef, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
@@ -73,11 +73,6 @@ const BadgesContainer = styled.div`
   }
 `;
 
-const spin = keyframes`
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-`;
-
 const BadgeButton = styled.button`
   background: none;
   border: none;
@@ -108,15 +103,14 @@ const BadgeButton = styled.button`
     height: 100%;
     object-fit: contain;
     transition: filter 0.2s ease;
-    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15)) grayscale(10%);
+    filter: grayscale(10%);
     pointer-events: none;
   }
 
   &:hover {
-    transform: scale(1.08);
+    transform: rotate(-45deg) scale(1.2);
     img {
-      filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.22)) grayscale(0%);
-      animation: ${spin} 0.6s ease;
+      filter: grayscale(0%);
     }
   }
 `;

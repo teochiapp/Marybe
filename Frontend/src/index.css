@@ -19,7 +19,7 @@
   --color-blanco: #FFFFFF;
   --color-fondo-tarjetas-promo: #F6F4F0;
   --color-fondo-info-promo: #e7e2da;
-  --color-boton-promo: #280101;
+  --color-boton-promo: #7C0405;
 
   /* Gift card — paleta crema y dorada de la tarjeta */
   --color-giftcard-crema: #F7F3EC;
@@ -229,4 +229,20 @@ a {
 ::selection {
   background-color: var(--color-marron-principal);
   color: var(--color-titulo-marybe);
+}
+/* iOS: evita el zoom automático al enfocar inputs (se dispara con font-size < 16px).
+   Forzamos 16px en mobile sin desactivar el pinch-zoom del usuario. */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="search"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="url"],
+  input:not([type]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }

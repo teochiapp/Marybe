@@ -16,7 +16,6 @@ const TopBanner = styled.div`
   position: relative;
   overflow: hidden;
   min-height: 240px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 
   &::before {
     content: '';
