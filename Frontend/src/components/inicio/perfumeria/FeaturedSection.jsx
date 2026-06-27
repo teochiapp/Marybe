@@ -36,6 +36,9 @@ const HaloLuz = styled.img`
   max-width: 1000px;
   z-index: 0;
   pointer-events: none;
+  /* Reservar espacio antes de cargar para evitar CLS */
+  aspect-ratio: 1000 / 800;
+  height: auto;
 `;
 
 const TopHeader = styled.div`

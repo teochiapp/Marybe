@@ -14,6 +14,10 @@ const FooterWrapper = styled.footer`
   padding-top: var(--spacing-xxl);
   font-family: var(--font-family-secondary);
   padding-bottom: 30px;
+  /* Reservar altura mínima para evitar CLS cuando el footer carga */
+  min-height: 300px;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 300px;
 `;
 
 const FooterInner = styled.div`
