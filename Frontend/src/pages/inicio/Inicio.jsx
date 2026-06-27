@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FadeIn, FadeInLeft, FadeInUp } from '../../components/animations/ScrollAnimations';
 import ToggleSelection from '../../components/inicio/perfumeria/ToggleSelection';
 import { lazyWithRetry } from '../../utils/lazyWithRetry';
+import LazyViewport from '../../components/LazyViewport';
 
 // ─── Above the fold: carga inmediata ──────────────────────────────────────────
 import PromoCarousel from '../../components/inicio/perfumeria/PromoCarousel';
@@ -72,125 +73,119 @@ export default function Inicio() {
 
       {seccionActiva === 'perfumeria' && (
         <>
-          {/* Above the fold: carga inmediata */}
-          <FadeIn delay={0.1} duration={0.4}>
-            <PromoCarousel seccion={seccionActiva} />
-          </FadeIn>
-          <FadeIn>
-            <FeaturedSection seccion={seccionActiva} />
-          </FadeIn>
+          {/* Above the fold: carga inmediata sin animación FadeIn para optimizar LCP */}
+          <PromoCarousel seccion={seccionActiva} />
+          <FeaturedSection seccion={seccionActiva} />
 
-          {/* Below the fold: lazy + Suspense con skeleton para evitar CLS */}
-          <Suspense fallback={<SectionSkeleton $height="400px" />}>
+          {/* Below the fold: LazyViewport (IntersectionObserver) para eliminar Long Tasks */}
+          <LazyViewport fallback={<SectionSkeleton $height="400px" />}>
             <FadeIn>
               <CategoriesSection seccion={seccionActiva} />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="500px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="500px" />}>
             <FadeIn>
               <FeaturedCategorySection seccion={seccionActiva} />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="350px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="350px" />}>
             <FadeIn>
               <OfertasSection seccion={seccionActiva} />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="500px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="500px" />}>
             <FadeIn>
               <DiscountedSection seccion={seccionActiva} />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="400px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="400px" />}>
             <FadeIn>
               <SpecificCategorySection seccion={seccionActiva} />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="300px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="300px" />}>
             <FadeIn>
               <TarjetasPromociones />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="280px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="280px" />}>
             <FadeIn>
               <GiftCardWrapper onClick={() => navigate('/gift-card')}>
                 <GiftCard seccion={seccionActiva} />
               </GiftCardWrapper>
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="300px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="300px" />}>
             <FadeInUp>
               <ProximosEventos />
             </FadeInUp>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="250px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="250px" />}>
             <FadeInLeft>
               <DescubriMas />
             </FadeInLeft>
-          </Suspense>
+          </LazyViewport>
         </>
       )}
 
       {seccionActiva === 'hogar' && (
         <>
-          {/* Above the fold: carga inmediata */}
-          <FadeIn delay={0.1} duration={0.4}>
-            <PromoCarousel seccion={seccionActiva} />
-          </FadeIn>
+          {/* Above the fold: carga inmediata sin animación FadeIn para optimizar LCP */}
+          <PromoCarousel seccion={seccionActiva} />
 
-          {/* Below the fold: lazy + Suspense */}
-          <Suspense fallback={<SectionSkeleton $height="350px" />}>
+          {/* Below the fold: LazyViewport */}
+          <LazyViewport fallback={<SectionSkeleton $height="350px" />}>
             <FadeIn>
               <OfertasSection seccion={seccionActiva} />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="500px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="500px" />}>
             <FadeIn>
               <FeaturedSectionHogar />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="400px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="400px" />}>
             <FadeIn>
               <CategoriesSection seccion={seccionActiva} />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="500px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="500px" />}>
             <FadeIn>
               <FeaturedCategorySection seccion={seccionActiva} />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="500px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="500px" />}>
             <FadeIn>
               <DiscountedSectionHogar />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="400px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="400px" />}>
             <FadeIn>
               <SpecificCategorySection seccion={seccionActiva} />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="300px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="300px" />}>
             <FadeIn>
               <TarjetasPromociones />
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="280px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="280px" />}>
             <FadeIn>
               <GiftCardWrapper onClick={() => navigate('/gift-card')}>
                 <GiftCard seccion={seccionActiva} />
               </GiftCardWrapper>
             </FadeIn>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="300px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="300px" />}>
             <FadeInUp>
               <ProximosEventos />
             </FadeInUp>
-          </Suspense>
-          <Suspense fallback={<SectionSkeleton $height="250px" />}>
+          </LazyViewport>
+          <LazyViewport fallback={<SectionSkeleton $height="250px" />}>
             <FadeInLeft>
               <DescubriMas />
             </FadeInLeft>
-          </Suspense>
+          </LazyViewport>
         </>
       )}
 

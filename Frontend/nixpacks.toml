@@ -1,0 +1,7 @@
+[providers]
+values = ["node", "static"]
+
+# Configuración de Nixpacks para despliegues estáticos en Coolify VPS
+[static]
+conf = "nginx.conf"
+publish = "build"

@@ -1,0 +1,18 @@
+:80 {
+    root * /srv
+    encode gzip zstd
+    try_files {path} {path}/ /index.html
+    file_server
+
+    # Cabeceras Cache-Control de 1 año para estáticos en Coolify con Caddy
+    @static {
+        path *.js *.css *.webp *.png *.jpg *.jpeg *.gif *.svg *.ico *.woff *.woff2 *.ttf *.otf
+    }
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    # HTML sin caché
+    @html {
+        path *.html *.htm
+    }
+    header @html Cache-Control "no-cache, no-store, must-revalidate"
+}

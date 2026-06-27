@@ -145,6 +145,7 @@ const ProductsGrid = styled(motion.div)`
   margin-left: 60px;
   padding-right: 60px; /* Para mantener simetría al final del scroll */
   padding-bottom: 10px;
+  min-height: 470px; /* Reservar espacio vertical exacto para evitar CLS en la carga */
 
   &:active {
     cursor: grabbing;
@@ -173,7 +174,30 @@ const ProductsGrid = styled(motion.div)`
     gap: 20px;
     margin-left: 0px; /* El padre ya tiene padding lateral en mobile */
     padding-right: 0px;
+    min-height: 430px;
   }
+`;
+
+const SkeletonProductCard = styled.div`
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 20px;
+  padding: 16px;
+  flex-shrink: 0;
+  height: 460px;
+
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Misma anchura matemática que ProductCard */
+  width: calc((100% - (5 * 30px)) / 5.5);
+  @media (max-width: 1600px) { width: calc((100% - (4 * 30px)) / 4.5); }
+  @media (max-width: 1400px) { width: calc((100% - (3 * 30px)) / 3.5); }
+  @media (max-width: 997px) { width: calc((100% - (2 * 30px)) / 2.5); }
+  @media (max-width: 600px) { width: calc((100% - (1 * 20px)) / 1.5); height: 420px; }
 `;
 
 const ProductCard = styled(motion.div)`
@@ -511,9 +535,16 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
       .catch(err => console.error('Error fetching productos:', err));
   }, [seccionName]);
 
+  const [visibleCount, setVisibleCount] = useState(5);
   const isDown = useRef(false);
   const startX = useRef(0);
   const scrollLeftVal = useRef(0);
+
+  const handleInteract = useCallback(() => {
+    if (visibleCount < productos.length) {
+      setVisibleCount(productos.length);
+    }
+  }, [visibleCount, productos.length]);
 
   const handleMouseDown = useCallback((e) => {
     const el = scrollRef.current;
@@ -524,7 +555,8 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
     el.style.scrollBehavior = 'auto';
     startX.current = e.pageX - el.offsetLeft;
     scrollLeftVal.current = el.scrollLeft;
-  }, []);
+    handleInteract();
+  }, [handleInteract]);
 
   const handleMouseLeave = useCallback(() => {
     if (!isDown.current) return;
@@ -557,7 +589,8 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
       isDragging.current = true;
     }
     el.scrollLeft = scrollLeftVal.current - walk;
-  }, []);
+    handleInteract();
+  }, [handleInteract]);
 
   const handleProductClick = (id, nombre) => {
     if (!isDragging.current) {
@@ -607,12 +640,26 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
+        onScroll={handleInteract}
+        onTouchStart={handleInteract}
         variants={staggerContainerVariants}
         initial="hidden"
-        animate={productos.length ? 'show' : 'hidden'}
+        animate="show"
       >
-        {productos.map((item, index) => {
+        {productos.length === 0 ? (
+          <>
+            <SkeletonProductCard />
+            <SkeletonProductCard />
+            <SkeletonProductCard />
+            <SkeletonProductCard />
+            <SkeletonProductCard />
+          </>
+        ) : (
+          productos.map((item, index) => {
           const id = item.id || item.documentId || `prod-${index}`;
+          if (index >= visibleCount) {
+            return <SkeletonProductCard key={id} />;
+          }
           const attrs = item.attributes || item;
 
           const nombre = attrs.nombre;
@@ -669,7 +716,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
               </AddButton>
             </ProductCard>
           );
-        })}
+        }))}
       </ProductsGrid>
 
       {seccion !== 'hogar' && (
@@ -677,7 +724,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
           <BottomBanner>
             <BannerTitle>El poder del elixir</BannerTitle>
             <BannerImageWrapper>
-              <img src="/inicio/elixir.webp" alt="El poder del elixir" loading="eager" decoding="sync" />
+              <img src="/inicio/elixir.webp" alt="El poder del elixir" width="220" height="220" loading="eager" decoding="sync" />
             </BannerImageWrapper>
             <BannerButton onClick={() => { navigate('/tienda?banner=elixir&seccion=Perfumer%C3%ADa'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Conocer más</BannerButton>
           </BottomBanner>
@@ -685,7 +732,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
           <BottomBanner>
             <BannerTitle>Toda la línea de Azzaro</BannerTitle>
             <BannerImageWrapper>
-              <img src="/inicio/azzaro.webp" alt="Línea Azzaro" loading="eager" decoding="sync" />
+              <img src="/inicio/azzaro.webp" alt="Línea Azzaro" width="220" height="220" loading="eager" decoding="sync" />
             </BannerImageWrapper>
             <BannerButton onClick={() => { navigate('/tienda?banner=azzaro&seccion=Perfumer%C3%ADa'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Conocer más</BannerButton>
           </BottomBanner>

@@ -1,24 +1,29 @@
 import React, { Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { LazyMotion, domAnimation } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
-import AuthModal from './components/auth/AuthModal';
 import AuthRedirect from './components/auth/AuthRedirect';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 
-// Componentes principales que siempre se cargan
+// Componentes principales que siempre se cargan en la estructura base
 import Header from './components/header/Header';
 import Footer from './components/footer/Footer';
 
-// ── Rutas Críticas (Carga Síncrona) ──
+// ── Rutas Críticas (Carga Síncrona solo para la portada) ──
 import Inicio from './pages/inicio/Inicio';
-import Catalogo from './pages/tienda/Catalogo';
-import ProductoSingle from './pages/tienda/ProductoSingle';
-import Carrito from './pages/carrito/Carrito';
-import Login from './pages/checkout/Login';
-import Envio from './pages/checkout/Envio';
-import Pago from './pages/checkout/Pago';
-import OrderSuccess from './pages/checkout/OrderSuccess';
-import OrderError from './pages/checkout/OrderError';
+
+// Modales y rutas que no se necesitan en el render principal inicial (Lazy load para reducir Script Evaluation)
+const AuthModal = lazyWithRetry(() => import('./components/auth/AuthModal'), 'AuthModal');
+
+// ── Rutas de Tienda y Checkout (Carga Perezosa / Lazy con reintentos para evitar sobrecargar el Main Bundle) ──
+const Catalogo = lazyWithRetry(() => import('./pages/tienda/Catalogo'), 'Catalogo');
+const ProductoSingle = lazyWithRetry(() => import('./pages/tienda/ProductoSingle'), 'ProductoSingle');
+const Carrito = lazyWithRetry(() => import('./pages/carrito/Carrito'), 'Carrito');
+const Login = lazyWithRetry(() => import('./pages/checkout/Login'), 'Login');
+const Envio = lazyWithRetry(() => import('./pages/checkout/Envio'), 'Envio');
+const Pago = lazyWithRetry(() => import('./pages/checkout/Pago'), 'Pago');
+const OrderSuccess = lazyWithRetry(() => import('./pages/checkout/OrderSuccess'), 'OrderSuccess');
+const OrderError = lazyWithRetry(() => import('./pages/checkout/OrderError'), 'OrderError');
 
 // ── Rutas Secundarias (Carga Perezosa / Lazy con reintentos) ──
 const ApiProductos = lazyWithRetry(() => import('./pages/ApiProductos'), 'ApiProductos');
@@ -59,68 +64,68 @@ const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'
 // Componente para la raíz / que detecta tokens de OAuth antes de redirigir a /inicio
 function RootRoute() {
   const location = useLocation();
-  if (location.search.includes('access_token') || location.search.includes('id_token') || location.search.includes('oauth_login')) {
-    return <AuthRedirect />;
-  }
-  return <Navigate to="/inicio" replace />;
+  const query = location.search;
+  return <Navigate to={`/inicio${query}`} replace />;
 }
 
 function App() {
   return (
     <AuthProvider>
-      <Header />
-      <AuthModal />
-      <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>Cargando...</div>}>
-        <Routes>
-          <Route path="/" element={<RootRoute />} />
-          <Route path="/inicio" element={<Inicio />} />
-          <Route path="/tienda" element={<Catalogo />} />
-          <Route path="/producto/:id" element={<ProductoSingle />} />
-          <Route path="/productos" element={<ApiProductos />} />
-          <Route path="/carrito" element={<Carrito />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/envio" element={<Envio />} />
-          <Route path="/pago" element={<Pago />} />
-          <Route path="/order-success" element={<OrderSuccess />} />
-          <Route path="/order-error" element={<OrderError />} />
-          <Route path="/auth/google/callback" element={<AuthRedirect />} />
+      <LazyMotion features={domAnimation}>
+        <Header />
+        <AuthModal />
+        <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>Cargando...</div>}>
+          <Routes>
+            <Route path="/" element={<RootRoute />} />
+            <Route path="/inicio" element={<Inicio />} />
+            <Route path="/tienda" element={<Catalogo />} />
+            <Route path="/producto/:id" element={<ProductoSingle />} />
+            <Route path="/productos" element={<ApiProductos />} />
+            <Route path="/carrito" element={<Carrito />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/envio" element={<Envio />} />
+            <Route path="/pago" element={<Pago />} />
+            <Route path="/order-success" element={<OrderSuccess />} />
+            <Route path="/order-error" element={<OrderError />} />
+            <Route path="/auth/google/callback" element={<AuthRedirect />} />
 
-          {/* Rutas de Ayuda */}
-          <Route path="/preguntas-frecuentes" element={<PreguntasFrecuentes />} />
-          {/* <Route path="/envios" element={<Envios />} /> */}
-          <Route path="/cambios-devoluciones" element={<CambiosDevoluciones />} />
-          <Route path="/terminos-condiciones" element={<TerminosCondiciones />} />
+            {/* Rutas de Ayuda */}
+            <Route path="/preguntas-frecuentes" element={<PreguntasFrecuentes />} />
+            {/* <Route path="/envios" element={<Envios />} /> */}
+            <Route path="/cambios-devoluciones" element={<CambiosDevoluciones />} />
+            <Route path="/terminos-condiciones" element={<TerminosCondiciones />} />
 
-          {/* Rutas de Pedidos */}
-          <Route path="/mi-cuenta" element={<MiCuenta />} />
+            {/* Rutas de Pedidos */}
+            <Route path="/mi-cuenta" element={<MiCuenta />} />
 
-          {/* Ruta de Contacto */}
-          <Route path="/contacto" element={<Contacto />} />
+            {/* Ruta de Contacto */}
+            <Route path="/contacto" element={<Contacto />} />
 
-          {/* Ruta de Sucursales */}
-          <Route path="/sucursales" element={<Sucursales />} />
+            {/* Ruta de Sucursales */}
+            <Route path="/sucursales" element={<Sucursales />} />
 
-          {/* Ruta de Nuestra Historia */}
-          <Route path="/nuestra-historia" element={<NuestraHistoria />} />
+            {/* Ruta de Nuestra Historia */}
+            <Route path="/nuestra-historia" element={<NuestraHistoria />} />
 
-          {/* Ruta de Arrepentimiento */}
-          <Route path="/arrepentimiento" element={<Arrepentimiento />} />
+            {/* Ruta de Arrepentimiento */}
+            <Route path="/arrepentimiento" element={<Arrepentimiento />} />
 
-          {/* Ruta de Método de envío */}
-          <Route path="/metodo-envio" element={<MetodoEnvio />} />
+            {/* Ruta de Método de envío */}
+            <Route path="/metodo-envio" element={<MetodoEnvio />} />
 
-          {/* Panel de Administración */}
-          <Route path="/importacion-admin" element={<ImportacionAdmin />} />
-          <Route path="/pedidos-admin" element={<PedidosAdmin />} />
+            {/* Panel de Administración */}
+            <Route path="/importacion-admin" element={<ImportacionAdmin />} />
+            <Route path="/pedidos-admin" element={<PedidosAdmin />} />
 
-          {/* Ruta de Gift Card */}
-          <Route path="/gift-card" element={<GiftCardPage />} />
+            {/* Ruta de Gift Card */}
+            <Route path="/gift-card" element={<GiftCardPage />} />
 
-          {/* Ruta 404 (Catch all) */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
-      <Footer />
+            {/* Ruta 404 (Catch all) */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+        <Footer />
+      </LazyMotion>
     </AuthProvider>
   );
 }

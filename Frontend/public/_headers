@@ -1,0 +1,25 @@
+# Cache de 1 año para recursos estáticos generados por Webpack / React
+/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.webp
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.png
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.jpg
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML sin caché para evitar problemas al publicar nuevas versiones
+/*.html
+  Cache-Control: no-cache, no-store, must-revalidate

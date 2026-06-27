@@ -324,6 +324,9 @@ const CarouselTrack = ({ children }) => {
   const isDown = useRef(false);
   const startX = useRef(0);
   const scrollLeftVal = useRef(0);
+  const offsetLeftVal = useRef(0);
+  const stepRef = useRef(0);
+  const maxScrollRef = useRef(0);
 
   const handleMouseDown = useCallback((e) => {
     const el = scrollRef.current;
@@ -331,7 +334,8 @@ const CarouselTrack = ({ children }) => {
     isDown.current = true;
     el.style.scrollSnapType = 'none';
     el.style.scrollBehavior = 'auto';
-    startX.current = e.pageX - el.offsetLeft;
+    offsetLeftVal.current = el.offsetLeft;
+    startX.current = e.pageX - offsetLeftVal.current;
     scrollLeftVal.current = el.scrollLeft;
   }, []);
 
@@ -350,7 +354,7 @@ const CarouselTrack = ({ children }) => {
     e.preventDefault();
     const el = scrollRef.current;
     if (!el) return;
-    const x = e.pageX - el.offsetLeft;
+    const x = e.pageX - offsetLeftVal.current;
     const walk = (x - startX.current) * 1.5;
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
@@ -360,14 +364,31 @@ const CarouselTrack = ({ children }) => {
   const scrollByDir = useCallback((dir) => {
     const el = scrollRef.current;
     if (!el) return;
-    const first = el.children[0];
-    const gap = parseFloat(getComputedStyle(el).columnGap) || 16;
-    const step = first ? first.getBoundingClientRect().width + gap : el.clientWidth;
-    const maxScroll = el.scrollWidth - el.clientWidth;
+
+    // Solo recalcular propiedades geométricas pesadas si no están cacheadas o cambió el tamaño
+    if (!stepRef.current || !maxScrollRef.current) {
+      const first = el.children[0];
+      const gap = 16; // Propiedad constante de diseño (16px en CSS)
+      stepRef.current = first ? first.getBoundingClientRect().width + gap : el.clientWidth;
+      maxScrollRef.current = el.scrollWidth - el.clientWidth;
+    }
+
+    const step = stepRef.current;
+    const maxScroll = maxScrollRef.current;
     let target = el.scrollLeft + dir * step;
     if (dir > 0 && el.scrollLeft >= maxScroll - 5) target = 0;
     else if (dir < 0 && el.scrollLeft <= 5) target = maxScroll;
     el.scrollTo({ left: target, behavior: 'smooth' });
+  }, []);
+
+  // Limpiar caché en caso de redimensionamiento de pantalla
+  useEffect(() => {
+    const handleResize = () => {
+      stepRef.current = 0;
+      maxScrollRef.current = 0;
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Autoplay cada 7s (solo si hay mas de 1 banner = carrusel real)
@@ -433,7 +454,29 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
         // Si es collectionType, json.data es un array. Tomamos el primero que coincida.
         if (json && json.data && json.data.length > 0) {
           const entry = json.data[0];
-          setFilas(entry.Filas || entry.attributes?.Filas || []);
+          const fetchedFilas = entry.Filas || entry.attributes?.Filas || [];
+          setFilas(fetchedFilas);
+
+          // Optimización de LCP: Inyectar dinámicamente un preload en el <head> para el primer banner
+          if (fetchedFilas.length > 0) {
+            const primeraFila = fetchedFilas[0];
+            const banners = primeraFila.banners || (primeraFila.banner ? [primeraFila.banner] : []);
+            if (banners.length > 0 && banners[0]) {
+              const b = banners[0];
+              const desktopUrl = b.imagen_desktop?.url || b.imagen_desktop?.data?.attributes?.url;
+              if (desktopUrl) {
+                const fullUrl = `${STRAPI_URL}${desktopUrl}`;
+                if (!document.querySelector(`link[href="${fullUrl}"]`)) {
+                  const link = document.createElement('link');
+                  link.rel = 'preload';
+                  link.as = 'image';
+                  link.href = fullUrl;
+                  link.setAttribute('fetchpriority', 'high');
+                  document.head.appendChild(link);
+                }
+              }
+            }
+          }
         } else {
           setFilas([]);
         }
@@ -449,7 +492,7 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
   if (loading) {
     return (
       <Wrapper>
-        <div style={{ display: 'flex', gap: '16px', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', gap: '16px', overflow: 'hidden', padding: '6px 10px 8px 0' }}>
           <SkeletonCard style={{ flex: '0 0 calc(50% - 8px)' }} />
           <SkeletonCard style={{ flex: '0 0 calc(50% - 8px)' }} />
         </div>

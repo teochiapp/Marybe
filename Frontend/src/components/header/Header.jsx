@@ -44,6 +44,7 @@ export default function Header() {
   const [headerHeight, setHeaderHeight] = useState(0);
   const headerRef = useRef(null);
   const topBarRef = useRef(null);
+  const topBarHeightRef = useRef(44);
 
   useEffect(() => {
     const updateHeight = () => {
@@ -52,12 +53,15 @@ export default function Header() {
         setHeaderHeight(h);
         document.documentElement.style.setProperty('--header-height', h + 'px');
       }
+      if (topBarRef.current) {
+        topBarHeightRef.current = topBarRef.current.offsetHeight;
+      }
     };
 
     updateHeight();
 
     const handleScroll = () => {
-      const topBarH = topBarRef.current ? topBarRef.current.offsetHeight : 44;
+      const topBarH = topBarHeightRef.current;
       const scrollY = window.scrollY;
 
       // Ocultar TopBar y activar sticky cuando se scrollea más de la altura del TopBar
