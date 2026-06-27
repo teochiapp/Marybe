@@ -96,32 +96,43 @@ const ConfirmationContainer = styled.div`
 `;
 
 const SuccessBanner = styled.div`
-  background-color: var(--color-marron-principal, #3E0102);
+  background-color: #eefbee;
+  border: 1px solid #00840F;
   border-radius: 16px;
-  padding: 40px;
+  padding: 36px 40px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 24px;
-  color: white;
+  color: #1a1a1a;
 
   svg {
-    width: 60px;
-    height: 60px;
+    width: 52px;
+    height: 52px;
     flex-shrink: 0;
-    color: #f2dc8f;
+    color: #00840F;
+  }
+
+  .text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .text h2 {
     font-size: 1.8rem;
-    font-weight: 700;
-    font-family: var(--font-family-primary, serif);
-    color: var(--color-titulo-marybe, #f2dc8f);
-    margin-bottom: 8px;
+    font-weight: 600;
+    font-family: var(--font-family-secondary, sans-serif);
+    color: #00840F;
+    margin: 0;
   }
 
   .text p {
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.95rem;
+    font-family: var(--font-family-secondary, sans-serif);
+    color: #1a1a1a;
+    font-weight: 500;
+    margin: 0;
   }
 
   @media (max-width: 600px) {
