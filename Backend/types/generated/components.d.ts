@@ -8,6 +8,18 @@ export interface CategoriaSubcategoria extends Struct.ComponentSchema {
   };
   attributes: {
     nombre: Schema.Attribute.String & Schema.Attribute.Required;
+    tipos: Schema.Attribute.Component<'categoria.tipo', true>;
+  };
+}
+
+export interface CategoriaTipo extends Struct.ComponentSchema {
+  collectionName: 'components_categoria_tipos';
+  info: {
+    displayName: 'tipo';
+    icon: 'bulletList';
+  };
+  attributes: {
+    nombre: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
 
@@ -149,6 +161,7 @@ declare module '@strapi/strapi' {
   export module Public {
     export interface ComponentSchemas {
       'categoria.subcategoria': CategoriaSubcategoria;
+      'categoria.tipo': CategoriaTipo;
       'layout.fila-1-columna': LayoutFila1Columna;
       'layout.fila-2-columnas': LayoutFila2Columnas;
       'layout.fila-4-columnas': LayoutFila4Columnas;

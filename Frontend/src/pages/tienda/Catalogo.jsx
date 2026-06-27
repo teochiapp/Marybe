@@ -352,9 +352,15 @@ export default function Catalogo() {
 
       if (activeDescuentos.length > 0) {
         if (activeDescuentos.includes('todas')) {
+          // Cualquier producto con descuento mayor a 0
           params.set('filters[descuento][$gt]', 0);
         } else {
-          activeDescuentos.forEach((desc, idx) => params.set(`filters[descuento][$in][${idx}]`, Number(desc)));
+          // Tomamos el valor más alto seleccionado como tope máximo.
+          // Así "Hasta 20%" devuelve productos con descuento ≤ 20
+          // (incluye 10%, 15%, 18%, 20%, etc.)
+          const maxDescuento = Math.max(...activeDescuentos.map(Number));
+          params.set('filters[descuento][$gt]', 0);          // solo con algún descuento
+          params.set('filters[descuento][$lte]', maxDescuento); // hasta el tope elegido
         }
       }
 

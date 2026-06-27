@@ -9,6 +9,11 @@
     "nombre": {
       "type": "string",
       "required": true
+    },
+    "tipos": {
+      "type": "component",
+      "repeatable": true,
+      "component": "categoria.tipo"
     }
   }
 }

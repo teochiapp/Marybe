@@ -1,0 +1,14 @@
+{
+  "collectionName": "components_categoria_tipos",
+  "info": {
+    "displayName": "tipo",
+    "icon": "bulletList"
+  },
+  "options": {},
+  "attributes": {
+    "nombre": {
+      "type": "string",
+      "required": true
+    }
+  }
+}

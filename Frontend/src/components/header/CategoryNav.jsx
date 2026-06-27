@@ -2,33 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 
-// ─── Datos ────────────────────────────────────────────────────────────────────
-
-const DEFAULT_CATEGORIES = [
-  'Ofertas', 'Lanzamientos', 'Dermocosmética', 'Fragancias',
-  'Maquillaje', 'Cuidado personal', 'Niños y bebés',
-  'Limpieza de hogar', 'Electro belleza',
-];
-
-const MOBILE_FEATURED = [
-  { label: 'Perfumería', active: true },
-  { label: 'Hogar', active: false },
-];
-
-const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
-
-// Columnas placeholder — todas las categorías usan las mismas por ahora
-const MEGA_COLUMNS = [
-  { title: 'Cocina', items: ['Detergentes', 'Lava vajillas', 'Limpieza de superficies'] },
-  { title: 'Baño', items: ['Desinfectantes', 'Pastillas de inodoro'] },
-  { title: 'Pisos y muebles', items: ['Lavandina', 'Desinfectantes', 'Aromatizantes', 'Lustramuebles', 'Ceras y autobrillos'] },
-  { title: 'Insecticidas y repelentes', items: ['Aerosoles', 'Repelentes', 'Aparatos y cebos'] },
-  { title: 'Ropa', items: ['Jabones líquidos', 'Suavizantes'] },
-  { title: 'Calzado', items: ['Brillos limpiadores', 'Pomadas'] },
-  { title: 'Desodorante de ambiente', items: ['Aromatizantes', 'Desinfectantes'] },
-  { title: 'Papeles', items: ['Pañuelos', 'Papel higiénico', 'Rollos de cocina', 'Servilletas'] },
-  { title: 'Accesorios de limpieza', items: ['Mopas', 'Escobas', 'Esponjas', 'Guantes', 'Palas y cabos', 'Trapos de pisos y paños multiuso'] },
-];
+// ─── Datos (ver src/data/megamenu.js) ────────────────────────────────────────
+import {
+  DEFAULT_CATEGORIES,
+  MOBILE_FEATURED,
+  STRAPI_URL,
+  MEGA_COLUMNS,
+  OFERTAS_PERFUMERIA,
+  OFERTAS_HOGAR,
+} from '../../data/megamenu';
+import { useMegaMenu } from '../../hooks/useMegaMenu';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -315,6 +298,9 @@ export default function CategoryNav() {
   const [latestProducts, setLatestProducts] = useState(['Cargando...']);
   const navRef = useRef(null);
 
+  // Hook de megamenú dinámico (Strapi → Categoría → Subcategoría → Tipo)
+  const { getColumnsForCategory } = useMegaMenu();
+
   const handleCategoryClick = (cat) => {
     setActiveCategory((prev) => (prev === cat ? null : cat));
   };
@@ -366,14 +352,15 @@ export default function CategoryNav() {
       });
   }, []);
 
-  // Función para obtener las columnas del MegaMenu dependiendo de la categoría activa
+  // Columnas del MegaMenu según la categoría activa
   const getMegaColumnsForCategory = (cat) => {
+    // ── Estáticas ────────────────────────────────────────────────────────────
     if (cat === 'Ofertas') {
       return [
-        { title: 'Descuentos Especiales', items: ['Hasta 10%', 'Hasta 20%', 'Hasta 30%', 'Hasta 40%', 'Hasta 50%', 'Hasta 60%'] },
+        OFERTAS_PERFUMERIA,
+        OFERTAS_HOGAR,
         MEGA_COLUMNS[0],
         MEGA_COLUMNS[1],
-        MEGA_COLUMNS[2]
       ];
     }
     if (cat === 'Lanzamientos') {
@@ -381,10 +368,11 @@ export default function CategoryNav() {
         { title: 'Últimos productos', items: latestProducts },
         MEGA_COLUMNS[3],
         MEGA_COLUMNS[4],
-        MEGA_COLUMNS[5]
+        MEGA_COLUMNS[5],
       ];
     }
-    return MEGA_COLUMNS;
+    // ── Dinámicas (Strapi) — fallback automático a MEGA_COLUMNS si no hay datos
+    return getColumnsForCategory(cat) || MEGA_COLUMNS;
   };
 
   return (
@@ -420,9 +408,13 @@ export default function CategoryNav() {
                 {getMegaColumnsForCategory(activeCategory).map((col) => (
                   <MegaColumn key={col.title}>
                     <MegaColumnTitle>{col.title}</MegaColumnTitle>
-                    {col.items.map((item, idx) => (
-                      <MegaLink key={`${item}-${idx}`} href="#">{item}</MegaLink>
-                    ))}
+                    {col.items.map((item, idx) => {
+                      const label = typeof item === 'object' ? item.label : item;
+                      const href  = typeof item === 'object' ? item.href  : '#';
+                      return (
+                        <MegaLink key={`${label}-${idx}`} href={href}>{label}</MegaLink>
+                      );
+                    })}
                   </MegaColumn>
                 ))}
               </MegaGrid>

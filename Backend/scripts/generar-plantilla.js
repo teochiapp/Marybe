@@ -112,11 +112,12 @@ async function main() {
   });
 
   // Columnas: A=id_original, B=sku, C=nombre, D=marca,
-  //           E=seccion, F=categoria, G=subcategoria,
-  //           H=descripcion_corta, I=proveedor, J=publicado, K=destacado, L=moneda, M=caracteristicas
+  //           E=seccion, F=categoria, G=subcategoria, H=tipo,
+  //           I=descripcion_corta, J=descripcion_completa, K=especificaciones,
+  //           L=proveedor, M=publicado, N=destacado, O=moneda, P=caracteristicas
 
   // ── Fila 1: Título ──
-  wsP.mergeCells('A1:M1');
+  wsP.mergeCells('A1:N1');
   const titleP = wsP.getCell('A1');
   titleP.value = '📦 MARYBE — Plantilla de Productos (Hoja 1 de 2)';
   titleP.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.grisOscuro } };
@@ -125,7 +126,7 @@ async function main() {
   wsP.getRow(1).height = 36;
 
   // ── Fila 2: Instrucción ──
-  wsP.mergeCells('A2:M2');
+  wsP.mergeCells('A2:N2');
   const instrP = wsP.getCell('A2');
   instrP.value = '⚠ Completar un producto por fila. El campo "id_original" debe coincidir con "producto_padre_id" en la hoja Variantes. No modificar los nombres de columnas.';
   applyStyle(instrP, noteStyle());
@@ -143,6 +144,7 @@ async function main() {
     { key: 'seccion',           header: 'Sección *',          width: 16, group: 'cat',   note: 'Nivel 1: Perfumería o Hogar. Usar el dropdown.' },
     { key: 'categoria',         header: 'Categoría',          width: 22, group: 'cat',   note: 'Nivel 2: Ej: Electro Belleza, Maquillaje, Baño, Pisos y Muebles' },
     { key: 'subcategoria',      header: 'Subcategoría',       width: 22, group: 'cat',   note: 'Nivel 3: Ej: Lavandina, Perfumes, Rizadores, Lava Vajillas' },
+    { key: 'tipo',              header: 'Tipo',               width: 22, group: 'cat',   note: 'Nivel 4: Ej: Eau de Parfum, Kit, Crema, Aerosol, Pastilla' },
     { key: 'descripcion_corta', header: 'Descripción Corta',  width: 45, group: 'extra', note: 'Texto breve para mostrar en la web' },
     { key: 'descripcion_completa', header: 'Descripción Completa', width: 60, group: 'extra', note: 'Texto extenso con detalles del producto' },
     { key: 'especificaciones',  header: 'Especificaciones',   width: 50, group: 'extra', note: 'Especificaciones técnicas (opcional)' },
@@ -167,30 +169,30 @@ async function main() {
 
   // ── Datos de ejemplo ──
   const datosProductos = [
-    // id_orig, sku,              nombre,                               marca,       seccion,       categoria,        subcategoria,    desc_corta,                                                     desc_comp, espec, proveedor,                  publicado, destacado, moneda, caracteristicas
-    ['4751',  '4751',           'ISSUE COLORACION SACHET + oxidante', 'Issue',     'Perfumería',  'Coloración',     'Kits',          'Kit coloración completo con oxidante incluido.',                '', '', 'LABORATORIO CUENCA SA',    'TRUE', 'FALSE', 'ARS', 'Kit Completo|Con Oxidante'],
-    ['1001',  '7790416066525',  'CUTEX QUITAESMALTE FORTALECEDOR',    'Cutex',     'Perfumería',  'Maquillaje',     'Quitaesmalte',  'Elimina el esmalte y fortalece la uña con vitamina E.',         '', '', 'NEW REVLON ARG',           'TRUE', 'FALSE', 'ARS', 'Vitamina E|Fortalecedor'],
-    ['1003',  '7791001009811',  'BIFERDIL ACONDICIONADOR VITAMINADO', 'Biferdil',  'Perfumería',  'Electro Belleza','Acondicionador','Acondicionador sin enjuague con vitaminas A, C y E.',           '', '', 'BIFERDIL SRL',             'TRUE', 'FALSE', 'ARS', 'Sin Enjuague|Vitaminas A C y E|Edición Limitada'],
-    ['2001',  '7792000100012',  'LAVANDINA CONCENTRADA 2L',           'AyudasDin', 'Hogar',       'Baño',           'Lavandina',     'Lavandina concentrada apta para pisos y sanitarios.',           '', '', 'DISTRIBUIDORA NORTE SA',   'TRUE', 'TRUE',  'ARS', 'Concentrada|Uso Doméstico'],
-    ['2010',  '7792000100029',  'DETERGENTE LIMÓN 500ML',             'Skip',      'Hogar',       'Cocina',         'Detergentes',   'Detergente líquido con aroma a limón. Gran poder limpiador.',   '', '', 'UNILEVER ARG SA',          'TRUE', 'FALSE', 'ARS', 'Aroma Limón'],
-    ['3001',  '7793000000010',  'PERFUME ACQUA DI GIO 100ML',         'Armani',    'Perfumería',  'Fragancias',     'Hombre',        'Elegante fragancia masculina con notas marinas y cítricas.',    '', '', 'LOREAL ARGENTINA',         'TRUE', 'TRUE',  'ARS', 'Notas Marinas|100ml'],
-    ['3002',  '7793000000020',  'BASE DE MAQUILLAJE FIT ME',          'Maybelline','Perfumería',  'Maquillaje',     'Rostro',        'Base de maquillaje líquida mate, ideal para piel normal a grasa.','', '', 'LOREAL ARGENTINA',         'TRUE', 'FALSE', 'ARS', 'Efecto Mate|Larga Duración'],
-    ['3003',  '7793000000030',  'SHAMPOO ELVIVE REPARACIÓN TOTAL 5',  'Loreal',    'Perfumería',  'Cuidado Capilar','Shampoo',       'Repara el cabello dañado y fortalece las puntas.',              '', '', 'LOREAL ARGENTINA',         'TRUE', 'TRUE',  'ARS', 'Reparador|Sin Sulfatos'],
-    ['3004',  '7793000000040',  'CREMA ANTIARRUGAS REVITALIFT',       'Loreal',    'Perfumería',  'Cuidado Facial', 'Cremas',        'Crema de día con ácido hialurónico y protector solar.',         '', '', 'LOREAL ARGENTINA',         'TRUE', 'FALSE', 'ARS', 'Ácido Hialurónico|FPS 30'],
-    ['3005',  '7793000000050',  'DESODORANTE DOVE ORIGINAL',          'Dove',      'Perfumería',  'Cuidado Personal','Desodorantes', 'Protección 48h y cuarto de crema humectante.',                  '', '', 'UNILEVER ARG SA',          'TRUE', 'FALSE', 'ARS', 'Protección 48hs|Con Crema'],
-    ['3006',  '7793000000060',  'PASTA DENTAL COLGATE TOTAL 12',      'Colgate',   'Perfumería',  'Cuidado Bucal',  'Pastas',        'Protección antibacterial por 12 horas.',                        '', '', 'COLGATE PALMOLIVE',        'TRUE', 'TRUE',  'ARS', 'Antibacterial|12 horas'],
-    ['3007',  '7793000000070',  'JABÓN LÍQUIDO ARIEL 3L',             'Ariel',     'Hogar',       'Ropa',           'Jabones Líquidos','Jabón líquido para diluir, remueve manchas difíciles.',         '', '', 'PROCTER & GAMBLE',         'TRUE', 'TRUE',  'ARS', 'Para Diluir|Anti Manchas'],
-    ['3008',  '7793000000080',  'SUAVIZANTE VIVERE CLASSIC 3L',       'Vivere',    'Hogar',       'Ropa',           'Suavizantes',   'Deja tu ropa suave y con perfume duradero.',                    '', '', 'UNILEVER ARG SA',          'TRUE', 'FALSE', 'ARS', 'Perfume Duradero'],
-    ['3009',  '7793000000090',  'LIMPIADOR POETT PRIMAVERA 900ML',    'Poett',     'Hogar',       'Pisos y Muebles','Desinfectantes','Limpiador líquido antibacterial con exquisita fragancia.',      '', '', 'CLOROX ARGENTINA',         'TRUE', 'FALSE', 'ARS', 'Antibacterial|Aroma Primavera'],
-    ['3010',  '7793000000100',  'INSECTICIDA RAID MATA MOSQUITOS',    'Raid',      'Hogar',       'Insecticidas y Repelentes','Aerosoles','Mata mosquitos al instante con base acuosa.',            '', '', 'SC JOHNSON',               'TRUE', 'TRUE',  'ARS', 'Base Acuosa|Acción Inmediata'],
-    ['3011',  '7793000000110',  'ESPONJA MORTIMER MULTIUSO X3',       'Mortimer',  'Hogar',       'Accesorios de Limpieza','Esponjas','Pack de 3 esponjas con fibra verde, ideales para cocina.',     '', '', 'CLOROX ARGENTINA',         'TRUE', 'FALSE', 'ARS', 'Pack x3|Multiuso'],
-    ['3012',  '7793000000120',  'PAPEL HIGIÉNICO CAMPANITA 30M X4',   'Campanita', 'Hogar',       'Papeles',        'Papel Higiénico','Papel higiénico hoja simple, suave y absorbente.',             '', '', 'PAPELERA DEL PLATA',       'TRUE', 'FALSE', 'ARS', 'Pack x4|Hoja Simple'],
-    ['3013',  '7793000000130',  'ROLLO DE COCINA SUSSEX CLASSIC X3',  'Sussex',    'Hogar',       'Papeles',        'Rollos de Cocina','Rollo de cocina súper absorbente x3 unidades.',               '', '', 'PAPELERA DEL PLATA',       'TRUE', 'FALSE', 'ARS', 'Pack x3|Súper Absorbente'],
-    ['3014',  '7793000000140',  'AEROSOL LYSOL DESINFECTANTE CRISP',  'Lysol',     'Hogar',       'Desodorante de Ambiente','Desinfectantes','Mata el 99.9% de los virus y bacterias del hogar.',   '', '', 'RECKITT BENCKISER',        'TRUE', 'TRUE',  'ARS', '99.9% Bacterias|Desinfectante'],
-    ['3015',  '7793000000150',  'ESCOBA PLASTICA ALASKA C/CABO',      'Alaska',    'Hogar',       'Accesorios de Limpieza','Escobas', 'Escoba reforzada con cerdas plumadas para mejor barrido.',     '', '', 'INDUSTRIAS ALASKA',        'TRUE', 'FALSE', 'ARS', 'Reforzada|Con Cabo'],
+    // id_orig, sku,              nombre,                               marca,       seccion,       categoria,        subcategoria,    tipo,                  desc_corta,                                                     desc_comp, espec, proveedor,                  publicado, destacado, moneda, caracteristicas
+    ['4751',  '4751',           'ISSUE COLORACION SACHET + oxidante', 'Issue',     'Perfumería',  'Coloración',     'Kits',          'Kit',                 'Kit coloración completo con oxidante incluido.',                '', '', 'LABORATORIO CUENCA SA',    'TRUE', 'FALSE', 'ARS', 'Kit Completo|Con Oxidante'],
+    ['1001',  '7790416066525',  'CUTEX QUITAESMALTE FORTALECEDOR',    'Cutex',     'Perfumería',  'Maquillaje',     'Quitaesmalte',  'Líquido',             'Elimina el esmalte y fortalece la uña con vitamina E.',         '', '', 'NEW REVLON ARG',           'TRUE', 'FALSE', 'ARS', 'Vitamina E|Fortalecedor'],
+    ['1003',  '7791001009811',  'BIFERDIL ACONDICIONADOR VITAMINADO', 'Biferdil',  'Perfumería',  'Electro Belleza','Acondicionador','Leave-in',            'Acondicionador sin enjuague con vitaminas A, C y E.',           '', '', 'BIFERDIL SRL',             'TRUE', 'FALSE', 'ARS', 'Sin Enjuague|Vitaminas A C y E|Edición Limitada'],
+    ['2001',  '7792000100012',  'LAVANDINA CONCENTRADA 2L',           'AyudasDin', 'Hogar',       'Baño',           'Lavandina',     'Concentrada',         'Lavandina concentrada apta para pisos y sanitarios.',           '', '', 'DISTRIBUIDORA NORTE SA',   'TRUE', 'TRUE',  'ARS', 'Concentrada|Uso Doméstico'],
+    ['2010',  '7792000100029',  'DETERGENTE LIMÓN 500ML',             'Skip',      'Hogar',       'Cocina',         'Detergentes',   'Líquido',             'Detergente líquido con aroma a limón. Gran poder limpiador.',   '', '', 'UNILEVER ARG SA',          'TRUE', 'FALSE', 'ARS', 'Aroma Limón'],
+    ['3001',  '7793000000010',  'PERFUME ACQUA DI GIO 100ML',         'Armani',    'Perfumería',  'Fragancias',     'Hombre',        'Eau de Toilette',     'Elegante fragancia masculina con notas marinas y cítricas.',    '', '', 'LOREAL ARGENTINA',         'TRUE', 'TRUE',  'ARS', 'Notas Marinas|100ml'],
+    ['3002',  '7793000000020',  'BASE DE MAQUILLAJE FIT ME',          'Maybelline','Perfumería',  'Maquillaje',     'Rostro',        'Base líquida',        'Base de maquillaje líquida mate, ideal para piel normal a grasa.','', '', 'LOREAL ARGENTINA',         'TRUE', 'FALSE', 'ARS', 'Efecto Mate|Larga Duración'],
+    ['3003',  '7793000000030',  'SHAMPOO ELVIVE REPARACIÓN TOTAL 5',  'Loreal',    'Perfumería',  'Cuidado Capilar','Shampoo',       'Reparador',           'Repara el cabello dañado y fortalece las puntas.',              '', '', 'LOREAL ARGENTINA',         'TRUE', 'TRUE',  'ARS', 'Reparador|Sin Sulfatos'],
+    ['3004',  '7793000000040',  'CREMA ANTIARRUGAS REVITALIFT',       'Loreal',    'Perfumería',  'Cuidado Facial', 'Cremas',        'Crema de día',        'Crema de día con ácido hialurónico y protector solar.',         '', '', 'LOREAL ARGENTINA',         'TRUE', 'FALSE', 'ARS', 'Ácido Hialurónico|FPS 30'],
+    ['3005',  '7793000000050',  'DESODORANTE DOVE ORIGINAL',          'Dove',      'Perfumería',  'Cuidado Personal','Desodorantes', 'Roll-on',             'Protección 48h y cuarto de crema humectante.',                  '', '', 'UNILEVER ARG SA',          'TRUE', 'FALSE', 'ARS', 'Protección 48hs|Con Crema'],
+    ['3006',  '7793000000060',  'PASTA DENTAL COLGATE TOTAL 12',      'Colgate',   'Perfumería',  'Cuidado Bucal',  'Pastas',        'Pasta dental',        'Protección antibacterial por 12 horas.',                        '', '', 'COLGATE PALMOLIVE',        'TRUE', 'TRUE',  'ARS', 'Antibacterial|12 horas'],
+    ['3007',  '7793000000070',  'JABÓN LÍQUIDO ARIEL 3L',             'Ariel',     'Hogar',       'Ropa',           'Jabones Líquidos','Para diluir',        'Jabón líquido para diluir, remueve manchas difíciles.',         '', '', 'PROCTER & GAMBLE',         'TRUE', 'TRUE',  'ARS', 'Para Diluir|Anti Manchas'],
+    ['3008',  '7793000000080',  'SUAVIZANTE VIVERE CLASSIC 3L',       'Vivere',    'Hogar',       'Ropa',           'Suavizantes',   'Concentrado',         'Deja tu ropa suave y con perfume duradero.',                    '', '', 'UNILEVER ARG SA',          'TRUE', 'FALSE', 'ARS', 'Perfume Duradero'],
+    ['3009',  '7793000000090',  'LIMPIADOR POETT PRIMAVERA 900ML',    'Poett',     'Hogar',       'Pisos y Muebles','Desinfectantes','Líquido',             'Limpiador líquido antibacterial con exquisita fragancia.',      '', '', 'CLOROX ARGENTINA',         'TRUE', 'FALSE', 'ARS', 'Antibacterial|Aroma Primavera'],
+    ['3010',  '7793000000100',  'INSECTICIDA RAID MATA MOSQUITOS',    'Raid',      'Hogar',       'Insecticidas y Repelentes','Aerosoles','Aerosol',          'Mata mosquitos al instante con base acuosa.',            '', '', 'SC JOHNSON',               'TRUE', 'TRUE',  'ARS', 'Base Acuosa|Acción Inmediata'],
+    ['3011',  '7793000000110',  'ESPONJA MORTIMER MULTIUSO X3',       'Mortimer',  'Hogar',       'Accesorios de Limpieza','Esponjas','Pack',               'Pack de 3 esponjas con fibra verde, ideales para cocina.',     '', '', 'CLOROX ARGENTINA',         'TRUE', 'FALSE', 'ARS', 'Pack x3|Multiuso'],
+    ['3012',  '7793000000120',  'PAPEL HIGIÉNICO CAMPANITA 30M X4',   'Campanita', 'Hogar',       'Papeles',        'Papel Higiénico','Hoja simple',         'Papel higiénico hoja simple, suave y absorbente.',             '', '', 'PAPELERA DEL PLATA',       'TRUE', 'FALSE', 'ARS', 'Pack x4|Hoja Simple'],
+    ['3013',  '7793000000130',  'ROLLO DE COCINA SUSSEX CLASSIC X3',  'Sussex',    'Hogar',       'Papeles',        'Rollos de Cocina','Pack',               'Rollo de cocina súper absorbente x3 unidades.',               '', '', 'PAPELERA DEL PLATA',       'TRUE', 'FALSE', 'ARS', 'Pack x3|Súper Absorbente'],
+    ['3014',  '7793000000140',  'AEROSOL LYSOL DESINFECTANTE CRISP',  'Lysol',     'Hogar',       'Desodorante de Ambiente','Desinfectantes','Aerosol',       'Mata el 99.9% de los virus y bacterias del hogar.',   '', '', 'RECKITT BENCKISER',        'TRUE', 'TRUE',  'ARS', '99.9% Bacterias|Desinfectante'],
+    ['3015',  '7793000000150',  'ESCOBA PLASTICA ALASKA C/CABO',      'Alaska',    'Hogar',       'Accesorios de Limpieza','Escobas', 'Con cabo',            'Escoba reforzada con cerdas plumadas para mejor barrido.',     '', '', 'INDUSTRIAS ALASKA',        'TRUE', 'FALSE', 'ARS', 'Reforzada|Con Cabo'],
     // Fila guía vacía
-    ['',      '',               '',                                    '',          '',            '',               '',              '',                                                              '', '', '',                         '',         '',     '', ''],
-    ['→ TU PRODUCTO', '→ EAN', '→ NOMBRE DEL PRODUCTO',             '→ MARCA',   'Perfumería',  '→ Categoría',    '→ Subcategoría','→ Descripción (opcional)',                                      '', '', '→ PROVEEDOR',              'TRUE',  'FALSE', 'ARS', '→ Característica 1|Característica 2'],
+    ['',      '',               '',                                    '',          '',            '',               '',              '',                    '',                                                              '', '', '',                         '',         '',     '', ''],
+    ['→ TU PRODUCTO', '→ EAN', '→ NOMBRE DEL PRODUCTO',             '→ MARCA',   'Perfumería',  '→ Categoría',    '→ Subcategoría','→ Tipo (opcional)',    '→ Descripción (opcional)',                                      '', '', '→ PROVEEDOR',              'TRUE',  'FALSE', 'ARS', '→ Característica 1|Característica 2'],
   ];
 
   datosProductos.forEach((row, idx) => {
@@ -209,11 +211,11 @@ async function main() {
       } else {
         applyStyle(cell, dataStyle(idx % 2 === 0 ? C.blanco : C.grisClaro));
         // Resaltar columnas de categoría
-        if (ci >= 4 && ci <= 6) {
+        if (ci >= 4 && ci <= 7) {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: idx % 2 === 0 ? C.azulClaro : 'FFBFDBFE' } };
           cell.font = { color: { argb: '1E3A5F' }, size: 10, name: 'Calibri' };
         }
-        if (ci === 9 || ci === 10) { // publicado, destacado
+        if (ci === 10 || ci === 11) { // publicado, destacado
           cell.font = { bold: true, color: { argb: val === 'TRUE' ? '16A34A' : C.rojo }, size: 10 };
         }
       }
@@ -221,6 +223,8 @@ async function main() {
   });
 
   // Validación dropdown para Sección (E) — solo Perfumería o Hogar
+  // Nota: con la nueva columna H=Tipo, las columnas de control se desplazan:
+  //   Publicado=M, Destacado=N, Moneda=O
   for (let i = 4; i <= 1000; i++) {
     wsP.getCell(`E${i}`).dataValidation = {
       type: 'list', allowBlank: true,
@@ -229,21 +233,21 @@ async function main() {
       errorTitle: 'Sección inválida',
       error: 'Solo se permite: Perfumería o Hogar',
     };
-    wsP.getCell(`J${i}`).dataValidation = {
+    wsP.getCell(`M${i}`).dataValidation = {
       type: 'list', allowBlank: true,
       formulae: ['"TRUE,FALSE"'],
       showErrorMessage: true,
       errorTitle: 'Valor inválido',
       error: 'Solo se permite TRUE o FALSE',
     };
-    wsP.getCell(`K${i}`).dataValidation = {
+    wsP.getCell(`N${i}`).dataValidation = {
       type: 'list', allowBlank: true,
       formulae: ['"TRUE,FALSE"'],
       showErrorMessage: true,
       errorTitle: 'Valor inválido',
       error: 'Solo se permite TRUE o FALSE',
     };
-    wsP.getCell(`L${i}`).dataValidation = {
+    wsP.getCell(`O${i}`).dataValidation = {
       type: 'list', allowBlank: true,
       formulae: ['"ARS,USD,EUR"'],
     };
@@ -594,11 +598,13 @@ async function main() {
     ['',  '',  'Cada PRODUCTO (hoja 1) puede tener una o varias VARIANTES (hoja 2).'],
     ['',  '',  'La relación se establece con el campo "ID Original" = "ID Producto Padre".'],
     ['',  '',  ''],
-    ['',  'Jerarquía de Categorías (3 niveles)', ''],
-    ['',  '',  'Los productos se clasifican en 3 niveles en la Hoja 1:'],
-    ['',  '',  '  1. SECCIÓN   → Perfumería  |  Hogar  (dropdown, solo estas opciones)'],
-    ['',  '',  '  2. CATEGORÍA → Electro Belleza, Maquillaje, Baño, Cocina, Pisos y Muebles, etc.'],
+    ['',  'Jerarquía de Categorías (4 niveles)', ''],
+    ['',  '',  'Los productos se clasifican en 4 niveles en la Hoja 1:'],
+    ['',  '',  '  1. SECCIÓN      → Perfumería  |  Hogar  (dropdown, solo estas opciones)'],
+    ['',  '',  '  2. CATEGORÍA    → Electro Belleza, Maquillaje, Baño, Cocina, Pisos y Muebles, etc.'],
     ['',  '',  '  3. SUBCATEGORÍA → Lavandina, Perfumes, Rizadores, Lava Vajillas, etc.'],
+    ['',  '',  '  4. TIPO         → Eau de Parfum, Kit, Crema, Aerosol, Pastilla, etc. (opcional)'],
+    ['',  '',  '     El Tipo se usa para agrupar productos en el megamenú del sitio web.'],
     ['',  '',  ''],
     ['',  'Cálculo automático del Precio Oferta (Hoja 2)', ''],
     ['',  '',  'En la columna G (% Descuento) ingresá el porcentaje de descuento.'],
@@ -661,7 +667,7 @@ async function main() {
 
   await wb.xlsx.writeFile(OUTPUT);
   console.log(`✅ Plantilla generada en: ${OUTPUT}`);
-  console.log(`   ↳ Hoja 1: 15 columnas — ID, SKU, Nombre, Marca, Sección, Categoría, Subcategoría, Desc, Desc Completa, Especificaciones, Proveedor, Publicado, Destacado, Moneda, Características`);
+  console.log(`   ↳ Hoja 1: 16 columnas — ID, SKU, Nombre, Marca, Sección, Categoría, Subcategoría, Tipo, Desc, Desc Completa, Especificaciones, Proveedor, Publicado, Destacado, Moneda, Características`);
   console.log(`   ↳ Hoja 2: 11 columnas — % Descuento y Precio Oferta calculado automáticamente`);
 }
 
