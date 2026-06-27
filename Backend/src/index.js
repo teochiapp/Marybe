@@ -129,7 +129,42 @@ async function grantPublicPermission(strapi, action) {
 }
 
 module.exports = {
-  register(/*{ strapi }*/) {},
+  register({ strapi }) {
+    strapi.server.app.proxy = true;
+    strapi.server.use(async (ctx, next) => {
+      // FORZAR ABSOLUTAMENTE a Koa y a la librería Cookies a saber que estamos en HTTPS
+      if (ctx.cookies) {
+        ctx.cookies.secure = true;
+      }
+      Object.defineProperty(ctx.request, 'protocol', {
+        get: () => 'https',
+        configurable: true
+      });
+      Object.defineProperty(ctx.request, 'secure', {
+        get: () => true,
+        configurable: true
+      });
+
+      await next();
+
+      if (ctx.request.path.startsWith('/api/connect/google/callback')) {
+        const location = ctx.response.get('Location');
+        if (location && location.includes('marybe.surcodes.com') && !location.includes('access_token')) {
+          let accessToken = ctx.state?.grant?.response?.access_token || ctx.session?.grant?.response?.access_token || ctx.request.query?.access_token;
+          let idToken = ctx.state?.grant?.response?.id_token || ctx.session?.grant?.response?.id_token || ctx.request.query?.id_token;
+          let rawCode = ctx.request.query?.code;
+
+          if (accessToken) {
+            const separator = location.includes('?') ? '&' : '?';
+            ctx.response.set('Location', `${location}${separator}access_token=${accessToken}${idToken ? `&id_token=${idToken}` : ''}`);
+          } else if (rawCode) {
+            const separator = location.includes('?') ? '&' : '?';
+            ctx.response.set('Location', `${location}${separator}access_token=${rawCode}`);
+          }
+        }
+      }
+    });
+  },
 
   async bootstrap({ strapi }) {
 

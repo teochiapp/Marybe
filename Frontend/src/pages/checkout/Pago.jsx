@@ -505,6 +505,87 @@ const Spinner = styled.div`
   }
 `;
 
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+`;
+
+const ModalCard = styled.div`
+  background-color: #ffffff;
+  border-radius: 24px;
+  padding: 40px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0px 20px 40px rgba(0, 0, 0, 0.15);
+  font-family: var(--font-family-secondary, sans-serif);
+  animation: modalScale 0.25s ease-out;
+
+  @keyframes modalScale {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-marron-cuarto, #2b0b0a);
+  margin-bottom: 25px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+`;
+
+const ModalButtonGroup = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 30px;
+`;
+
+const SecondaryBtn = styled.button`
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 14px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-family-secondary, sans-serif);
+
+  &:hover {
+    background-color: #ebebeb;
+  }
+`;
+
+const ConfirmBtn = styled.button`
+  background-color: #2b0b0a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-family: var(--font-family-secondary, sans-serif);
+
+  &:hover {
+    background-color: #4a1311;
+  }
+`;
+
 export default function Pago() {
   const { cartItems, cartTotal, appliedGiftCard, setAppliedGiftCard, clearCart } = useContext(CartContext);
   const { token, user } = useContext(AuthContext);
@@ -514,16 +595,22 @@ export default function Pago() {
   const [savedAddress, setSavedAddress] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState('Peatonal Tucuman 20, Santiago del Estero');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
 
   const buttonText = paymentMethod === 'mercadopago' || paymentMethod === 'credito' || paymentMethod === 'debito' ? 'Pagar' : 'Hacer pedido';
 
   const handlePayment = async () => {
-    setIsProcessing(true);
-
     let finalTotal = cartTotal;
     if (appliedGiftCard) {
       finalTotal = Math.max(0, finalTotal - appliedGiftCard.monto);
     }
+
+    if (paymentMethod === 'transferencia') {
+      setShowTransferModal(true);
+      return;
+    }
+
+    setIsProcessing(true);
 
     if (paymentMethod === 'mercadopago') {
       try {
@@ -672,6 +759,31 @@ export default function Pago() {
           <Spinner />
           <h3>Procesando pago...</h3>
         </ProcessingOverlay>
+      )}
+
+      {showTransferModal && (
+        <ModalOverlay onClick={() => setShowTransferModal(false)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>Datos para Transferencia Bancaria</ModalTitle>
+            <TransferCard>
+              <TransferRow><span className="label">Banco</span> <span className="value">{infoTransferencia.banco}</span></TransferRow>
+              <TransferRow><span className="label">Titular</span> <span className="value">{infoTransferencia.titular}</span></TransferRow>
+              <TransferRow><span className="label">CUIT</span> <span className="value">{infoTransferencia.cuit}</span></TransferRow>
+              <TransferRow><span className="label">CBU</span> <span className="value">{infoTransferencia.cbu}</span></TransferRow>
+              <TransferRow><span className="label">Alias</span> <span className="value">{infoTransferencia.alias}</span></TransferRow>
+            </TransferCard>
+            <InfoBox>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19.0498 4.91005C18.1329 3.98416 17.0408 3.25002 15.8373 2.75042C14.6338 2.25081 13.3429 1.99574 12.0398 2.00005C6.5798 2.00005 2.1298 6.45005 2.1298 11.9101C2.1298 13.6601 2.5898 15.3601 3.4498 16.8601L2.0498 22.0001L7.2998 20.6201C8.7498 21.4101 10.3798 21.8301 12.0398 21.8301C17.4998 21.8301 21.9498 17.3801 21.9498 11.9201C21.9498 9.27005 20.9198 6.78005 19.0498 4.91005ZM12.0398 20.1501C10.5598 20.1501 9.1098 19.7501 7.8398 19.0001L7.5398 18.8201L4.4198 19.6401L5.2498 16.6001L5.0498 16.2901C4.22735 14.9771 3.79073 13.4593 3.7898 11.9101C3.7898 7.37005 7.4898 3.67005 12.0298 3.67005C14.2298 3.67005 16.2998 4.53005 17.8498 6.09005C18.6174 6.85392 19.2257 7.7626 19.6394 8.76338C20.0531 9.76417 20.264 10.8371 20.2598 11.9201C20.2798 16.4601 16.5798 20.1501 12.0398 20.1501ZM16.5598 13.9901C16.3098 13.8701 15.0898 13.2701 14.8698 13.1801C14.6398 13.1001 14.4798 13.0601 14.3098 13.3001C14.1398 13.5501 13.6698 14.1101 13.5298 14.2701C13.3898 14.4401 13.2398 14.4601 12.9898 14.3301C12.7398 14.2101 11.9398 13.9401 10.9998 13.1001C10.2598 12.4401 9.7698 11.6301 9.6198 11.3801C9.4798 11.1301 9.5998 11.0001 9.7298 10.8701C9.8398 10.7601 9.9798 10.5801 10.0998 10.4401C10.2198 10.3001 10.2698 10.1901 10.3498 10.0301C10.4298 9.86005 10.3898 9.72005 10.3298 9.60005C10.2698 9.48005 9.7698 8.26005 9.5698 7.76005C9.3698 7.28005 9.1598 7.34005 9.0098 7.33005H8.5298C8.3598 7.33005 8.0998 7.39005 7.8698 7.64005C7.6498 7.89005 7.0098 8.49005 7.0098 9.71005C7.0098 10.9301 7.89981 12.1101 8.0198 12.2701C8.1398 12.4401 9.7698 14.9401 12.2498 16.0101C12.8398 16.2701 13.2998 16.4201 13.6598 16.5301C14.2498 16.7201 14.7898 16.6901 15.2198 16.6301C15.6998 16.5601 16.6898 16.0301 16.8898 15.4501C17.0998 14.8701 17.0998 14.3801 17.0298 14.2701C16.9598 14.1601 16.8098 14.1101 16.5598 13.9901Z" fill="#560203" />
+              </svg>
+              {infoTransferencia.mensajeWhatsapp}
+            </InfoBox>
+            <ModalButtonGroup>
+              <SecondaryBtn onClick={() => setShowTransferModal(false)}>Cancelar</SecondaryBtn>
+              <ConfirmBtn onClick={() => { setShowTransferModal(false); confirmOrder(); }}>Ya transferí, confirmar pedido</ConfirmBtn>
+            </ModalButtonGroup>
+          </ModalCard>
+        </ModalOverlay>
       )}
       <ContentWrapper>
 

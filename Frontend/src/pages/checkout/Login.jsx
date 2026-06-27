@@ -465,7 +465,7 @@ export default function Login() {
                 <p style={{ fontSize: '1.05rem', color: '#555', marginBottom: '20px' }}>
                   Para continuar con tu compra, inicia sesión o crea una cuenta rápida.
                 </p>
-                <PrimaryBtn type="button" onClick={openAuthModal}>
+                <PrimaryBtn type="button" onClick={() => openAuthModal('/envio')}>
                   Iniciar Sesión / Registrarse
                 </PrimaryBtn>
               </div>

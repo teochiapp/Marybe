@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import AuthModal from './components/auth/AuthModal';
 import AuthRedirect from './components/auth/AuthRedirect';
@@ -77,6 +77,15 @@ const PedidosAdmin = lazyWithRetry(() => import('./pages/admin/PedidosAdmin'));
 // Página de Gift Card
 const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'));
 
+// Componente para la raíz / que detecta tokens de OAuth antes de redirigir a /inicio
+function RootRoute() {
+  const location = useLocation();
+  if (location.search.includes('access_token') || location.search.includes('id_token') || location.search.includes('oauth_login')) {
+    return <AuthRedirect />;
+  }
+  return <Navigate to="/inicio" replace />;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -84,7 +93,7 @@ function App() {
       <AuthModal />
       <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>Cargando...</div>}>
         <Routes>
-          <Route path="/" element={<Navigate to="/inicio" replace />} />
+          <Route path="/" element={<RootRoute />} />
           <Route path="/inicio" element={<Inicio />} />
           <Route path="/tienda" element={<Catalogo />} />
           <Route path="/producto/:id" element={<ProductoSingle />} />
