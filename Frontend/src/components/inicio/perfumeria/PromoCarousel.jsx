@@ -18,7 +18,7 @@ const Wrapper = styled.div`
 
 const SkeletonCard = styled.div`
   width: 100%;
-  height: 300px;
+  height: 480px;
   background: #f5f5f5;
   border-radius: 20px;
   animation: skeletonPulse 1.5s ease-in-out infinite;
@@ -77,8 +77,8 @@ const Grid1Col = styled.div`
   /* Banner unico full-width: altura fija para que perfumeria y hogar
      queden del mismo tamano sin importar la imagen */
   picture {
-    height: 300px;
-    max-height: 300px;
+    height: 480px;
+    max-height: 480px;
   }
 
   picture img {
@@ -196,7 +196,7 @@ const StyledPicture = styled.picture`
   width: 100%;
   height: 100%; /* Asegura que la imagen ocupe todo el espacio de la tarjeta */
   /* 👇 ACÁ PODÉS AJUSTAR LA ALTURA MÁXIMA EN COMPUTADORA 👇 */
-  max-height: 300px; 
+  max-height: 480px; 
 
   @media (max-width: 768px) {
     /* 👇 ACÁ PODÉS AJUSTAR LA ALTURA MÁXIMA EN CELULARES 👇 */
@@ -235,10 +235,10 @@ const ResponsiveBanner = ({ banner, isCarousel, cols }) => {
       <StyledPicture>
         <source media="(max-width: 768px)" srcSet={`${STRAPI_URL}${mobile}`} />
         <source media="(max-width: 1024px)" srcSet={`${STRAPI_URL}${tablet}`} />
-        <img 
-          src={`${STRAPI_URL}${desktop}`} 
-          alt={banner.titulo || ''} 
-          draggable="false" 
+        <img
+          src={`${STRAPI_URL}${desktop}`}
+          alt={banner.titulo || ''}
+          draggable="false"
           fetchPriority="high"
           loading="eager"
         />
