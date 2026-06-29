@@ -19,7 +19,9 @@ const SectionWrapper = styled.section`
   overflow: hidden;
 
   @media (max-width: 768px) {
-    padding: 30px 0;
+    padding: 30px 20px;
+    padding-right: 0 !important;
+    padding-left: 20px;
     gap: 30px;
   }
 `;
@@ -450,7 +452,7 @@ export default function DiscountedSectionHogar() {
   const [tituloNormal, setTituloNormal] = useState('de Hogar');
   const scrollRef = useRef(null);
   const navigate = useNavigate();
-  
+
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 

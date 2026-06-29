@@ -10,20 +10,18 @@ import { staggerContainerVariants, staggerItemLeftVariants } from '../../animati
 const SectionWrapper = styled.section`
   background-color: var(--color-hogar);
   border-radius: var(--radius-xl);
-  margin-top: 20px;
+  padding-left: 60px;
+  margin-top: 40px;
   display: flex;
   flex-direction: column;
   gap: 0px;
-  padding: 0 100px;
   position: relative;
   overflow: hidden;
 
-  @media (max-width: 1200px) {
-    padding: 0 40px;
-  }
-
   @media (max-width: 768px) {
     padding: 30px 20px;
+    padding-right: 0 !important;
+    padding-left: 20px;
     gap: 30px;
   }
 `;

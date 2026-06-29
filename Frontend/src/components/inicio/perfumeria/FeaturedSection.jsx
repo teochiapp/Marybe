@@ -23,6 +23,8 @@ const SectionWrapper = styled.section`
 
   @media (max-width: 768px) {
     padding: 30px 20px;
+    padding-right: 0 !important;
+    padding-left: 20px;
     gap: 30px;
   }
 `;
@@ -656,67 +658,67 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
           </>
         ) : (
           productos.map((item, index) => {
-          const id = item.id || item.documentId || `prod-${index}`;
-          if (index >= visibleCount) {
-            return <SkeletonProductCard key={id} />;
-          }
-          const attrs = item.attributes || item;
+            const id = item.id || item.documentId || `prod-${index}`;
+            if (index >= visibleCount) {
+              return <SkeletonProductCard key={id} />;
+            }
+            const attrs = item.attributes || item;
 
-          const nombre = attrs.nombre;
-          const marca = attrs.marca;
-          const descuento = attrs.descuento || 0;
-          const variantes = attrs.variantes || [];
-          const mainVariant = variantes[0] || {};
-          const price = mainVariant.precio || 0;
-          let offerPrice = mainVariant.precio_oferta || null;
+            const nombre = attrs.nombre;
+            const marca = attrs.marca;
+            const descuento = attrs.descuento || 0;
+            const variantes = attrs.variantes || [];
+            const mainVariant = variantes[0] || {};
+            const price = mainVariant.precio || 0;
+            let offerPrice = mainVariant.precio_oferta || null;
 
-          if (!offerPrice && descuento > 0 && price > 0) {
-            offerPrice = price - (price * (descuento / 100));
-          }
+            if (!offerPrice && descuento > 0 && price > 0) {
+              offerPrice = price - (price * (descuento / 100));
+            }
 
-          let imgUrl = null;
-          const getFullUrl = (url) => url?.startsWith('http') ? url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${url}`;
-          if (attrs.portada?.data?.attributes?.url) {
-            imgUrl = getFullUrl(attrs.portada.data.attributes.url);
-          } else if (attrs.portada?.url) {
-            imgUrl = getFullUrl(attrs.portada.url);
-          }
+            let imgUrl = null;
+            const getFullUrl = (url) => url?.startsWith('http') ? url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${url}`;
+            if (attrs.portada?.data?.attributes?.url) {
+              imgUrl = getFullUrl(attrs.portada.data.attributes.url);
+            } else if (attrs.portada?.url) {
+              imgUrl = getFullUrl(attrs.portada.url);
+            }
 
-          return (
-            <ProductCard key={id} variants={staggerItemLeftVariants}>
-              <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
-                {imgUrl ? (
-                  <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" />
-                ) : (
-                  <ImagePlaceholder />
-                )}
-                <HeartContainer>
-                  <FavoriteButton product={item} />
-                </HeartContainer>
-              </CardImageContainer>
+            return (
+              <ProductCard key={id} variants={staggerItemLeftVariants}>
+                <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
+                  {imgUrl ? (
+                    <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" />
+                  ) : (
+                    <ImagePlaceholder />
+                  )}
+                  <HeartContainer>
+                    <FavoriteButton product={item} />
+                  </HeartContainer>
+                </CardImageContainer>
 
-              <ProductName onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
-              <ProductBrand>{marca}</ProductBrand>
+                <ProductName onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
+                <ProductBrand>{marca}</ProductBrand>
 
-              <PriceRow>
-                {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
-                <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
-                {descuento > 0 && <DiscountBadge>{descuento}% OFF</DiscountBadge>}
-              </PriceRow>
+                <PriceRow>
+                  {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
+                  <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
+                  {descuento > 0 && <DiscountBadge>{descuento}% OFF</DiscountBadge>}
+                </PriceRow>
 
-              <Installments>
-                3 cuotas sin interés de {formatPrice(Math.round((offerPrice || price) / 3))}
-              </Installments>
-              <LegalText>
-                Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
-              </LegalText>
+                <Installments>
+                  3 cuotas sin interés de {formatPrice(Math.round((offerPrice || price) / 3))}
+                </Installments>
+                <LegalText>
+                  Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
+                </LegalText>
 
-              <AddButton onClick={(e) => handleAddClick(item, e)}>
-                Agregar <CartIcon />
-              </AddButton>
-            </ProductCard>
-          );
-        }))}
+                <AddButton onClick={(e) => handleAddClick(item, e)}>
+                  Agregar <CartIcon />
+                </AddButton>
+              </ProductCard>
+            );
+          }))}
       </ProductsGrid>
 
       {seccion !== 'hogar' && (
