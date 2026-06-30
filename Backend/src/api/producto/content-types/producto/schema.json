@@ -31,16 +31,16 @@
     "subcategoria": {
       "type": "string"
     },
+    "tipo": {
+      "type": "string"
+    },
     "categoria": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::categoria.categoria",
       "inversedBy": "productos"
     },
-    "descripcion_corta": {
-      "type": "text"
-    },
-    "descripcion_completa": {
+    "descripcion": {
       "type": "text"
     },
     "especificaciones": {
@@ -88,6 +88,12 @@
     },
     "caracteristicas": {
       "type": "text"
+    },
+    "precio": {
+      "type": "decimal"
+    },
+    "precio_oferta": {
+      "type": "decimal"
     }
   }
 }

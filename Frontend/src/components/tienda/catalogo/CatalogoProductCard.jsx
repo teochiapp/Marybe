@@ -288,8 +288,8 @@ export default function CatalogoProductCard({ product, strapiUrl }) {
   // Variante principal con stock
   const variantes = attrs.variantes || [];
   const mainVariant = variantes.find((v) => v.publicado !== false && v.stock > 0) || variantes[0] || {};
-  const price = mainVariant.precio || 0;
-  const offerPrice = mainVariant.precio_oferta || null;
+  const price = mainVariant.precio || attrs.precio || 0;
+  const offerPrice = mainVariant.precio_oferta || attrs.precio_oferta || null;
 
   const tieneOferta = offerPrice && offerPrice > 0 && offerPrice < price;
   const currentPriceVal = tieneOferta ? offerPrice : price;

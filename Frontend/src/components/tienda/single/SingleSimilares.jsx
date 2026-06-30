@@ -467,8 +467,8 @@ export default function SingleSimilares({ producto, title = 'Similares', query, 
 
           const variantes = attrs.variantes || [];
           const mainVariant = variantes[0] || {};
-          const price = mainVariant.precio || 0;
-          const offerPrice = mainVariant.precio_oferta || null;
+          const price = mainVariant.precio || attrs.precio || 0;
+          const offerPrice = mainVariant.precio_oferta || attrs.precio_oferta || null;
 
           let imgUrl = null;
           if (attrs.portada?.data?.attributes?.url) {

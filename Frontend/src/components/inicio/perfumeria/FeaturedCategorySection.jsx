@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState, useEffect } from 'react';
+﻿import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -479,7 +479,7 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria' }) {
           // Obtener precio y precio oferta de la primera variante
           const variantes = attrs.variantes || [];
           const mainVariant = variantes[0] || {};
-          const price = mainVariant.precio || 0;
+          const price = mainVariant.precio || attrs.precio || 0;
           let offerPrice = mainVariant.precio_oferta || null;
 
           if (!offerPrice && descuento > 0 && price > 0) {

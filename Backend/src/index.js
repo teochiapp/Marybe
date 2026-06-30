@@ -363,7 +363,7 @@ module.exports = {
               marca:             (p.marca || '').trim(),
               seccion:           (p.seccion || '').trim(),
               subcategoria:      (p.subcategoria || '').trim(),
-              descripcion_corta: (p.descripcion_corta || '').trim(),
+              descripcion:       (p.descripcion_corta || p.descripcion || '').trim(),
               proveedor:         (p.proveedor || '').trim(),
               publicado:         parseBoolean(p.publicado),
               destacado:         parseBoolean(p.destacado),

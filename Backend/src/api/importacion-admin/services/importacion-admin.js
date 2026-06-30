@@ -64,20 +64,23 @@ async function leerExcel(rutaArchivo) {
 
     productos.push({
       id_original,
-      sku:                  cellVal(row, 2),
-      nombre:               cellVal(row, 3),
-      marca:                cellVal(row, 4),
-      seccion:              cellVal(row, 5),
-      categoria:            cellVal(row, 6),
-      subcategoria:         cellVal(row, 7),
-      descripcion_corta:    cellVal(row, 8),
-      descripcion_completa: cellVal(row, 9),
-      especificaciones:     cellVal(row, 10),
-      proveedor:            cellVal(row, 11),
-      publicado:            cellVal(row, 12),
-      destacado:            cellVal(row, 13) || 'FALSE',
-      moneda:               cellVal(row, 14) || 'ARS',
-      caracteristicas:      cellVal(row, 15),
+      sku:             cellVal(row, 2),
+      nombre:          cellVal(row, 3),
+      marca:           cellVal(row, 4),
+      seccion:         cellVal(row, 5),
+      categoria:       cellVal(row, 6),
+      subcategoria:    cellVal(row, 7),
+      tipo:            cellVal(row, 8),
+      descripcion:     cellVal(row, 9),
+      especificaciones: cellVal(row, 10),
+      proveedor:       cellVal(row, 11),
+      publicado:       cellVal(row, 12),
+      destacado:       cellVal(row, 13) || 'FALSE',
+      moneda:          cellVal(row, 14) || 'ARS',
+      caracteristicas: cellVal(row, 15),
+      precio:          cellVal(row, 16),
+      pct_descuento:   cellVal(row, 17),
+      precio_oferta:   cellVal(row, 18),
     });
   });
 
@@ -250,23 +253,34 @@ async function procesarImportacion(strapi, rutaExcel) {
         return pct > max ? pct : max;
       }, 0);
 
+      const precioProd     = parseDecimal(p.precio);
+      const pctDescProd    = parseDecimal(p.pct_descuento);
+      const precioOfertaProd = (() => {
+        const raw = parseDecimal(p.precio_oferta);
+        if (raw && raw > 0) return raw;
+        if (pctDescProd && precioProd) return Math.round(precioProd * (1 - pctDescProd / 100) * 100) / 100;
+        return null;
+      })();
+
       const productoData = {
-        id_original:          idOriginal,
-        sku:                  (p.sku || '').trim(),
-        nombre:               (p.nombre || '').trim(),
-        marca:                (p.marca || '').trim(),
-        seccion:              (p.seccion || '').trim(),
-        subcategoria:         (p.subcategoria || '').trim(),
-        descripcion_corta:    (p.descripcion_corta || '').trim(),
-        descripcion_completa: (p.descripcion_completa || '').trim(),
-        especificaciones:     (p.especificaciones || '').trim(),
-        proveedor:            (p.proveedor || '').trim(),
-        publicado:            parseBoolean(p.publicado),
-        destacado:            parseBoolean(p.destacado),
-        moneda:               (p.moneda || 'ARS').trim(),
-        descuento:            maxDescuento,
-        variantes:            variantesData,
-        caracteristicas:      (p.caracteristicas || '').trim() || null,
+        id_original:     idOriginal,
+        sku:             (p.sku || '').trim(),
+        nombre:          (p.nombre || '').trim(),
+        marca:           (p.marca || '').trim(),
+        seccion:         (p.seccion || '').trim(),
+        subcategoria:    (p.subcategoria || '').trim(),
+        tipo:            (p.tipo || '').trim(),
+        descripcion:     (p.descripcion || '').trim(),
+        especificaciones: (p.especificaciones || '').trim(),
+        proveedor:       (p.proveedor || '').trim(),
+        publicado:       parseBoolean(p.publicado),
+        destacado:       parseBoolean(p.destacado),
+        moneda:          (p.moneda || 'ARS').trim(),
+        descuento:       maxDescuento || Math.round(pctDescProd || 0),
+        precio:          precioProd,
+        precio_oferta:   precioOfertaProd,
+        variantes:       variantesData,
+        caracteristicas: (p.caracteristicas || '').trim() || null,
         ...(categoriaDocId ? { categoria: { documentId: categoriaDocId } } : {}),
       };
 

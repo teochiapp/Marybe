@@ -473,7 +473,7 @@ export default function SingleProductInfo({ producto }) {
 
 
 
-  const { nombre, marca, descripcion_corta, descuento, caracteristicas } = producto;
+  const { nombre, marca, descripcion, descuento, caracteristicas } = producto;
   const variantes = producto.variantes || [];
 
   // ── Colores: extraer variantes únicas que tienen color_nombre ──
@@ -520,7 +520,7 @@ export default function SingleProductInfo({ producto }) {
   const handleShare = async () => {
     const shareData = {
       title: `${nombre} - ${marca} | Marybe`,
-      text: descripcion_corta || `Mirá este producto en Marybe: ${nombre}`,
+      text: descripcion || `Mirá este producto en Marybe: ${nombre}`,
       url: window.location.href,
     };
 
@@ -671,7 +671,7 @@ export default function SingleProductInfo({ producto }) {
         }
       </SubBadges>
 
-      {descripcion_corta && <DescriptionExcerpt>{descripcion_corta}</DescriptionExcerpt>}
+      {descripcion && <DescriptionExcerpt>{descripcion}</DescriptionExcerpt>}
 
       <MobileActionRow>
         {renderAddToCart()}

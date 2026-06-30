@@ -338,6 +338,32 @@ export default function CatalogoSidebar({
   const hasActiveFilters =
     activeDescuento.length > 0 || activeBrands.length > 0 || activeCategories.length > 0 || activeSizes.length > 0 || activePriceParam;
 
+  const sortedSizes = React.useMemo(() => {
+    if (!availableSizes) return [];
+    return [...availableSizes].sort((a, b) => {
+      const numA = parseFloat(a.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+      const numB = parseFloat(b.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+      
+      const unitA = a.replace(/[\d.,\s]/g, '').toLowerCase();
+      const unitB = b.replace(/[\d.,\s]/g, '').toLowerCase();
+
+      let valA = numA;
+      let valB = numB;
+      if (unitA === 'l' || unitA === 'lt') valA *= 1000;
+      if (unitB === 'l' || unitB === 'lt') valB *= 1000;
+      if (unitA === 'kg') valA *= 1000;
+      if (unitB === 'kg') valB *= 1000;
+
+      const isWeightA = unitA.includes('g') || unitA.includes('k');
+      const isWeightB = unitB.includes('g') || unitB.includes('k');
+      if (isWeightA !== isWeightB) return isWeightA ? 1 : -1;
+      
+      if (valA !== valB) return valA - valB;
+      
+      return a.localeCompare(b);
+    });
+  }, [availableSizes]);
+
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget && onCloseMobile) {
       onCloseMobile();
@@ -433,7 +459,7 @@ export default function CatalogoSidebar({
                 <AccordionChevron $open={accordions.tamano}><ChevronIcon /></AccordionChevron>
               </AccordionHeader>
               <AccordionContent $open={accordions.tamano}>
-                {availableSizes.map((sz) => (
+                {sortedSizes.map((sz) => (
                   <CheckboxLabel key={sz}>
                     <input
                       type="checkbox"

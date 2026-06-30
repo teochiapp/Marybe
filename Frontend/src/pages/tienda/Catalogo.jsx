@@ -296,14 +296,20 @@ export default function Catalogo() {
           const attrs = p.attributes || p;
           if (attrs.marca) brands.add(attrs.marca);
           if (attrs.categoria?.nombre) categories.add(attrs.categoria.nombre);
-          if (attrs.variantes) {
+          if (attrs.variantes && attrs.variantes.length > 0) {
             attrs.variantes.forEach((v) => {
               if (v.volumen) sizes.add(v.volumen);
               if (v.precio) {
-                if (v.precio < globalMin) globalMin = v.precio;
-                if (v.precio > globalMax) globalMax = v.precio;
+                const effectivePrice = v.precio_oferta || v.precio;
+                if (effectivePrice < globalMin) globalMin = effectivePrice;
+                if (effectivePrice > globalMax) globalMax = effectivePrice;
               }
             });
+          } else if (attrs.precio) {
+            // Producto sin variantes: usar precio del producto
+            const effectivePrice = attrs.precio_oferta || attrs.precio;
+            if (effectivePrice < globalMin) globalMin = effectivePrice;
+            if (effectivePrice > globalMax) globalMax = effectivePrice;
           }
         });
 
@@ -369,8 +375,13 @@ export default function Catalogo() {
       activeSizes.forEach((sz, idx) => params.set(`filters[variantes][volumen][$in][${idx}]`, sz));
 
       if (activePriceParam) {
-        params.set('filters[variantes][precio][$gte]', activePrice[0]);
-        params.set('filters[variantes][precio][$lte]', activePrice[1]);
+        // Filtrar donde: (precio_oferta está en rango) O (precio_oferta es nulo Y precio normal está en rango)
+        params.set('filters[$or][0][variantes][precio_oferta][$gte]', activePrice[0]);
+        params.set('filters[$or][0][variantes][precio_oferta][$lte]', activePrice[1]);
+        
+        params.set('filters[$or][1][$and][0][variantes][precio_oferta][$null]', true);
+        params.set('filters[$or][1][$and][1][variantes][precio][$gte]', activePrice[0]);
+        params.set('filters[$or][1][$and][2][variantes][precio][$lte]', activePrice[1]);
       }
 
       const res = await fetch(`${STRAPI_URL}/api/productos?${params.toString()}`);

@@ -192,7 +192,7 @@ export default function ProductoSingle() {
     if (!producto) return;
     const shareData = {
       title: `${producto.nombre} - ${producto.marca || ''} | Marybe`,
-      text: producto.descripcion_corta || `Mirá este producto en Marybe: ${producto.nombre}`,
+      text: producto.descripcion || `Mirá este producto en Marybe: ${producto.nombre}`,
       url: window.location.href,
     };
 
@@ -255,7 +255,7 @@ export default function ProductoSingle() {
 
               {/* Acordeones inferiores */}
               <SingleAccordion
-                descripcion={producto.descripcion_completa}
+                descripcion={producto.descripcion}
                 especificaciones={producto.especificaciones}
                 politicas={null} // Idem
               />
