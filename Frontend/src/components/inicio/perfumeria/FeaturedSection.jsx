@@ -1,4 +1,4 @@
-﻿import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -644,9 +644,6 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
         onMouseMove={handleMouseMove}
         onScroll={handleInteract}
         onTouchStart={handleInteract}
-        variants={staggerContainerVariants}
-        initial="hidden"
-        animate="show"
       >
         {productos.length === 0 ? (
           <>
@@ -685,7 +682,13 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             }
 
             return (
-              <ProductCard key={id} variants={staggerItemLeftVariants}>
+              <ProductCard 
+                key={id} 
+                variants={staggerItemLeftVariants}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, margin: "50px" }}
+              >
                 <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
                   {imgUrl ? (
                     <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" />
