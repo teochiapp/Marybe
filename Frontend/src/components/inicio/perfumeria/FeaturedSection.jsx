@@ -537,16 +537,11 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
       .catch(err => console.error('Error fetching productos:', err));
   }, [seccionName]);
 
-  const [visibleCount, setVisibleCount] = useState(5);
   const isDown = useRef(false);
   const startX = useRef(0);
   const scrollLeftVal = useRef(0);
 
-  const handleInteract = useCallback(() => {
-    if (visibleCount < productos.length) {
-      setVisibleCount(productos.length);
-    }
-  }, [visibleCount, productos.length]);
+  const handleInteract = useCallback(() => {}, []);
 
   const handleMouseDown = useCallback((e) => {
     const el = scrollRef.current;
@@ -644,6 +639,9 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
         onMouseMove={handleMouseMove}
         onScroll={handleInteract}
         onTouchStart={handleInteract}
+        variants={staggerContainerVariants}
+        initial="hidden"
+        animate="show"
       >
         {productos.length === 0 ? (
           <>
@@ -656,9 +654,6 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
         ) : (
           productos.map((item, index) => {
             const id = item.id || item.documentId || `prod-${index}`;
-            if (index >= visibleCount) {
-              return <SkeletonProductCard key={id} />;
-            }
             const attrs = item.attributes || item;
 
             const nombre = attrs.nombre;
@@ -682,13 +677,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             }
 
             return (
-              <ProductCard 
-                key={id} 
-                variants={staggerItemLeftVariants}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, margin: "50px" }}
-              >
+              <ProductCard key={id} variants={staggerItemLeftVariants}>
                 <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
                   {imgUrl ? (
                     <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" />

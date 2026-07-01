@@ -146,7 +146,6 @@ const GridPersonalizada = styled.div`
 const BannerCard = styled.div`
   border-radius: 20px;
   overflow: hidden;
-  background-color: #F5F2ED; /* Color de fondo solicitado */
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
