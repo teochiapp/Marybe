@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
-import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
+
 
 const STRAPI_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
 
@@ -305,13 +305,7 @@ export default function TarjetasPromociones() {
       <Container>
         <Title>Beneficios para vos</Title>
 
-        <CardsGrid 
-          $cols={cols}
-          variants={staggerContainerVariants}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-50px" }}
-        >
+        <CardsGrid $cols={cols}>
           {loading ? (
             // Skeleton mientras carga
             Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
@@ -328,7 +322,7 @@ export default function TarjetasPromociones() {
                 : null;
 
               return (
-                <Card key={id} variants={staggerItemLeftVariants}>
+                <Card key={id}>
                   {logoUrl ? (
                     <CardImage src={logoUrl} alt={nombre} width="140" height="50" />
                   ) : (
