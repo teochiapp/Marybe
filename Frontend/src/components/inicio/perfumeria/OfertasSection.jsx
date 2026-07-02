@@ -108,7 +108,7 @@ const BadgeButton = styled.button`
   }
 
   &:hover {
-    transform: rotate(-45deg) scale(1.2);
+    transform: scale(1.05);
     img {
       filter: grayscale(0%);
     }

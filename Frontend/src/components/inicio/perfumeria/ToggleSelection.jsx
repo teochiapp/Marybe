@@ -7,27 +7,30 @@ const ToggleContainer = styled.div`
   background-color: var(--color-blanco);
   border-radius: 200px;
   padding: 5px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   width: fit-content;
   max-width: 100%;
-  margin: 0 auto -5vh auto;
-  position: relative;
-  z-index: 10;
+
+  /* Sticky behaviour — applies to ALL screen sizes */
+  position: ${({ $sticky }) => ($sticky ? 'fixed' : 'relative')};
+  top: ${({ $sticky }) => ($sticky ? 'calc(var(--header-height, 70px) + 12px)' : 'auto')};
+  left: ${({ $sticky }) => ($sticky ? '50%' : 'auto')};
+  transform: ${({ $sticky, $visible }) =>
+    $sticky
+      ? `translateX(-50%) translateY(${$visible ? '0' : '-200px'})`
+      : 'none'};
+  margin: ${({ $sticky }) => ($sticky ? '0' : '0 auto -3vh auto')};
+  z-index: ${({ $sticky }) => ($sticky ? 1000 : 10)};
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: ${({ $sticky }) =>
+    $sticky ? '0 6px 24px rgba(0, 0, 0, 0.14)' : '0 4px 16px rgba(0, 0, 0, 0.08)'};
+
+  @media (min-width: 769px) {
+    top: ${({ $sticky }) => ($sticky ? '150px' : 'auto')};
+  }
 
   @media (max-width: 768px) {
-    position: ${({ $sticky }) => ($sticky ? 'fixed' : 'relative')};
-    top: ${({ $sticky }) => ($sticky ? 'calc(var(--header-height, 70px) + 8px)' : 'auto')};
-    left: ${({ $sticky }) => ($sticky ? '50%' : 'auto')};
-    transform: ${({ $sticky, $visible }) =>
-      $sticky
-        ? `translateX(-50%) translateY(${$visible ? '0' : '-200px'})`
-        : 'none'};
     width: ${({ $sticky }) => ($sticky ? 'calc(100% - 40px)' : 'calc(100% - 20px)')};
     margin: ${({ $sticky }) => ($sticky ? '0' : '0 auto 20px auto')};
-    z-index: ${({ $sticky }) => ($sticky ? 1000 : 10)};
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: ${({ $sticky }) =>
-      $sticky ? '0 6px 24px rgba(0, 0, 0, 0.14)' : '0 4px 16px rgba(0, 0, 0, 0.08)'};
   }
 `;
 
@@ -85,11 +88,7 @@ export default function ToggleSelection({ seccionActiva, onSeccionChange }) {
   const lastScrollY = useRef(0);
 
   useEffect(() => {
-    const isMobile = () => window.innerWidth <= 768;
-
     const handleScroll = () => {
-      if (!isMobile()) return;
-
       const currentY = window.scrollY;
       const diff = currentY - lastScrollY.current;
       const threshold = parseFloat(

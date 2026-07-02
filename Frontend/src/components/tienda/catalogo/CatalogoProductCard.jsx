@@ -167,8 +167,16 @@ const ProductName = styled.h3`
   letter-spacing: 0%;
   cursor: pointer;
 
+  /* Siempre reserva espacio para exactamente 2 líneas */
+  height: calc(2 * 1.2em);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+
   @media (max-width: 600px) {
     font-size: 14px;
+    height: calc(2 * 1.2em);
   }
 `;
 

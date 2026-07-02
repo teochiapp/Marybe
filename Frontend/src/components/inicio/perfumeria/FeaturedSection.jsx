@@ -680,7 +680,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
               <ProductCard key={id} variants={staggerItemLeftVariants}>
                 <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
                   {imgUrl ? (
-                    <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" />
+                    <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" loading="eager" decoding="sync" />
                   ) : (
                     <ImagePlaceholder />
                   )}
