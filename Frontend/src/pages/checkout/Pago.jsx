@@ -602,7 +602,9 @@ export default function Pago() {
   // Lógica de costo de envío dinámico desde Strapi
   const costoEnvio = siteConfig?.costo_envio ?? null;
   const envioGratisDesde = siteConfig?.envio_gratis_desde ?? null;
-  const envioEsGratis = envioGratisDesde !== null && cartTotal >= envioGratisDesde;
+  // Efectivo = retiro en sucursal, sin costo de envío
+  const esEfectivo = paymentMethod === 'efectivo';
+  const envioEsGratis = esEfectivo || (envioGratisDesde !== null && cartTotal >= envioGratisDesde);
   const costoEnvioFinal = envioEsGratis ? 0 : (costoEnvio ?? 0);
 
   const buttonText = paymentMethod === 'mercadopago' || paymentMethod === 'credito' || paymentMethod === 'debito'
@@ -993,10 +995,12 @@ export default function Pago() {
               <SummaryRow>
                 <span>Envío:</span>
                 <span className="val" style={{ color: envioEsGratis ? '#27ae60' : '#333' }}>
-                  {costoEnvio === null
+                  {costoEnvio === null && !esEfectivo
                     ? 'Calculando...'
+                    : esEfectivo
+                    ? 'Gratis (retiro)'
                     : envioEsGratis
-                    ? '¡Gratis!'
+                    ? 'Gratis'
                     : formatPrice(costoEnvio)}
                 </span>
               </SummaryRow>
