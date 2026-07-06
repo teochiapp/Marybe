@@ -577,6 +577,39 @@ export interface ApiClienteCliente extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiConfiguracionGeneralConfiguracionGeneral
+  extends Struct.SingleTypeSchema {
+  collectionName: 'configuracion_general';
+  info: {
+    description: 'Configuraciones globales del sitio: WhatsApp, costos de env\u00EDo, etc.';
+    displayName: 'Configuraci\u00F3n General';
+    pluralName: 'configuracion-generals';
+    singularName: 'configuracion-general';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    costo_envio: Schema.Attribute.BigInteger;
+    costo_uber_moto: Schema.Attribute.BigInteger;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    envio_gratis_desde: Schema.Attribute.BigInteger;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::configuracion-general.configuracion-general'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    whatsapp_numero: Schema.Attribute.String;
+  };
+}
+
 export interface ApiEventoEvento extends Struct.CollectionTypeSchema {
   collectionName: 'eventos';
   info: {
@@ -742,8 +775,7 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    descripcion_completa: Schema.Attribute.Text;
-    descripcion_corta: Schema.Attribute.Text;
+    descripcion: Schema.Attribute.Text;
     descuento: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     destacado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     especificaciones: Schema.Attribute.Text;
@@ -759,12 +791,15 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     moneda: Schema.Attribute.String & Schema.Attribute.DefaultTo<'ARS'>;
     nombre: Schema.Attribute.String & Schema.Attribute.Required;
     portada: Schema.Attribute.Media<'images'>;
+    precio: Schema.Attribute.Decimal;
+    precio_oferta: Schema.Attribute.Decimal;
     proveedor: Schema.Attribute.String;
     publicado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     publishedAt: Schema.Attribute.DateTime;
     seccion: Schema.Attribute.String;
     sku: Schema.Attribute.String;
     subcategoria: Schema.Attribute.String;
+    tipo: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1518,6 +1553,7 @@ declare module '@strapi/strapi' {
       'api::categoria-especifica.categoria-especifica': ApiCategoriaEspecificaCategoriaEspecifica;
       'api::categoria.categoria': ApiCategoriaCategoria;
       'api::cliente.cliente': ApiClienteCliente;
+      'api::configuracion-general.configuracion-general': ApiConfiguracionGeneralConfiguracionGeneral;
       'api::evento.evento': ApiEventoEvento;
       'api::gift-card.gift-card': ApiGiftCardGiftCard;
       'api::ordenamiento-menu-header.ordenamiento-menu-header': ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader;

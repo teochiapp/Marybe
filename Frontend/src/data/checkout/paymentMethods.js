@@ -4,6 +4,7 @@ export const paymentOptions = [
   { id: 'mercadopago', title: 'Mercado Pago', subtitle: 'Tarjetas de crédito, débito o dinero en cuenta', right: 'Sin recargo' },
   { id: 'transferencia', title: 'Transferencia bancaria', subtitle: 'CBU / CVU - Acreditación en 24 hs.', right: 'Sin recargo' },
   { id: 'efectivo', title: 'Efectivo', subtitle: 'Pagás al retirar el pedido', right: 'Sin recargo' },
+  { id: 'aconvenir', title: 'A Convenir', subtitle: 'Coordinamos el pago por WhatsApp', right: 'Flexible' },
 ];
 
 export const sucursalesRetiro = [

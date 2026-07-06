@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
+import { useConfiguracionGeneral } from '../../hooks/useConfiguracionGeneral';
 
 // Styled Components
 const PageContainer = styled.div`
@@ -212,7 +213,7 @@ const Price = styled.div`
   font-size: 1.2rem;
   font-weight: 600;
   color: #333;
-  width: 120px;
+  width: 140px;
   text-align: right;
 
   @media (max-width: 600px) {
@@ -559,12 +560,19 @@ const formatPrice = (price) => {
 export default function Carrito() {
   const { cartItems, updateQuantity, removeFromCart, cartTotal, appliedGiftCard, setAppliedGiftCard } = useContext(CartContext);
   const { isAuthenticated, openAuthModal } = useContext(AuthContext);
+  const { config: siteConfig } = useConfiguracionGeneral();
   const navigate = useNavigate();
 
   const [waitingForAuth, setWaitingForAuth] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [couponMessage, setCouponMessage] = useState({ text: '', isError: false });
   const [isLoadingCoupon, setIsLoadingCoupon] = useState(false);
+
+  // Lógica de costo de envío dinámico desde Strapi
+  const costoEnvio = siteConfig?.costo_envio ?? null;
+  const envioGratisDesde = siteConfig?.envio_gratis_desde ?? null;
+  const envioEsGratis = envioGratisDesde !== null && cartTotal >= envioGratisDesde;
+  const costoEnvioFinal = envioEsGratis ? 0 : (costoEnvio ?? 0);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -603,7 +611,7 @@ export default function Carrito() {
   };
 
   const discountAmount = appliedGiftCard ? appliedGiftCard.monto : 0;
-  const finalTotal = Math.max(0, cartTotal - discountAmount);
+  const finalTotal = Math.max(0, cartTotal - discountAmount + costoEnvioFinal);
 
   // Auto-redirigir al checkout si el usuario se acaba de loguear desde este botón
   useEffect(() => {
@@ -786,8 +794,20 @@ export default function Carrito() {
 
                 <SummaryRow>
                   <span>Envío:</span>
-                  <span className="val">Gratis</span>
+                  <span className="val" style={{ color: envioEsGratis ? '#27ae60' : '#333' }}>
+                    {costoEnvio === null
+                      ? 'Calculando...'
+                      : envioEsGratis
+                      ? 'Gratis'
+                      : formatPrice(costoEnvio)}
+                  </span>
                 </SummaryRow>
+                {!envioEsGratis && envioGratisDesde !== null && costoEnvio !== null && (
+                  <SummaryRow style={{ fontSize: '0.8rem', color: '#888', marginTop: '-8px' }}>
+                    <span style={{ fontStyle: 'italic' }}>Envío gratis desde {formatPrice(envioGratisDesde)}</span>
+                    <span />
+                  </SummaryRow>
+                )}
 
                 <Divider />
 

@@ -1,0 +1,28 @@
+{
+  "kind": "singleType",
+  "collectionName": "configuracion_general",
+  "info": {
+    "singularName": "configuracion-general",
+    "pluralName": "configuracion-generals",
+    "displayName": "Configuración General",
+    "description": "Configuraciones globales del sitio: WhatsApp, costos de envío, etc."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "whatsapp_numero": {
+      "type": "string"
+    },
+    "costo_envio": {
+      "type": "biginteger"
+    },
+    "envio_gratis_desde": {
+      "type": "biginteger"
+    },
+    "costo_uber_moto": {
+      "type": "biginteger"
+    }
+  }
+}
