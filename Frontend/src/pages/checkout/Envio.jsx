@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
+import { useConfiguracionGeneral } from '../../hooks/useConfiguracionGeneral';
 
 // Styled Components
 const PageContainer = styled.div`
@@ -343,7 +344,16 @@ export default function Envio() {
     return imgUrl;
   };
 
-  const shippingCost = shippingMethod === 'domicilio' ? 0 /* Change this if there's a cost */ : 0;
+  const { config: siteConfig } = useConfiguracionGeneral();
+
+  // Lógica de costo de envío dinámico desde Strapi
+  const costoEnvio = siteConfig?.costo_envio ?? null;
+  const envioGratisDesde = siteConfig?.envio_gratis_desde ?? null;
+  
+  const esSucursal = shippingMethod === 'sucursal';
+  const envioEsGratis = esSucursal || (envioGratisDesde !== null && cartTotal >= envioGratisDesde);
+  const shippingCost = envioEsGratis ? 0 : (costoEnvio ?? 0);
+  
   const finalTotal = cartTotal + shippingCost;
 
   return (
@@ -388,7 +398,13 @@ export default function Envio() {
                   <span className="subtitle">3 a 4 días hábiles - Envío por correo Argentino.</span>
                 </div>
               </OptionInfo>
-              <OptionPrice>$0.000</OptionPrice>
+              <OptionPrice>
+                {costoEnvio === null 
+                  ? 'Calculando...' 
+                  : (envioGratisDesde !== null && cartTotal >= envioGratisDesde) 
+                  ? 'Gratis' 
+                  : formatPrice(costoEnvio)}
+              </OptionPrice>
             </OptionCard>
 
             <OptionCard $selected={shippingMethod === 'sucursal'} onClick={() => setShippingMethod('sucursal')}>
@@ -451,8 +467,22 @@ export default function Envio() {
 
               <SummaryRow>
                 <span>Envío:</span>
-                <span className="val">{shippingMethod === 'sucursal' ? 'Free' : formatPrice(shippingCost)}</span>
+                <span className="val" style={{ color: envioEsGratis ? '#27ae60' : '#333' }}>
+                  {costoEnvio === null && !esSucursal
+                    ? 'Calculando...'
+                    : esSucursal
+                    ? 'Gratis (retiro)'
+                    : envioEsGratis
+                    ? 'Gratis'
+                    : formatPrice(costoEnvio)}
+                </span>
               </SummaryRow>
+              {!envioEsGratis && envioGratisDesde !== null && costoEnvio !== null && (
+                <SummaryRow style={{ fontSize: '0.8rem', color: '#888', marginTop: '-8px' }}>
+                  <span style={{ fontStyle: 'italic' }}>Envío gratis desde {formatPrice(envioGratisDesde)}</span>
+                  <span />
+                </SummaryRow>
+              )}
 
               <Divider />
 
