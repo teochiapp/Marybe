@@ -296,19 +296,27 @@ const wsVTpl = wbTpl.getWorksheet('🔗 Variantes');
 let maxProductId  = 0;
 let maxVarianteId = 0;
 
-wsPTpl.eachRow((row, rowNum) => {
-  if (rowNum < 4) return;
-  const val = row.getCell(1).value;
-  const num = parseInt(val);
-  if (!isNaN(num)) maxProductId = Math.max(maxProductId, num);
-});
+if (wsPTpl) {
+  wsPTpl.eachRow((row, rowNum) => {
+    if (rowNum < 4) return;
+    const val = row.getCell(1).value;
+    const num = parseInt(val);
+    if (!isNaN(num)) maxProductId = Math.max(maxProductId, num);
+  });
+} else {
+  console.warn('⚠ No se encontró la hoja "📦 Productos" en la plantilla. Se empezará desde ID 1.');
+}
 
-wsVTpl.eachRow((row, rowNum) => {
-  if (rowNum < 4) return;
-  const val = row.getCell(1).value;
-  const num = parseInt(val);
-  if (!isNaN(num)) maxVarianteId = Math.max(maxVarianteId, num);
-});
+if (wsVTpl) {
+  wsVTpl.eachRow((row, rowNum) => {
+    if (rowNum < 4) return;
+    const val = row.getCell(1).value;
+    const num = parseInt(val);
+    if (!isNaN(num)) maxVarianteId = Math.max(maxVarianteId, num);
+  });
+} else {
+  console.warn('⚠ No se encontró la hoja "🔗 Variantes" en la plantilla. Se empezará desde ID 1.');
+}
 
 let nextProductId  = maxProductId  + 1;
 let nextVarianteId = Math.max(maxVarianteId, maxProductId) + 1;
