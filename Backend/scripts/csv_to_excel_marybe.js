@@ -933,16 +933,87 @@ instrucciones.forEach((row, idx) => {
 console.log('\n💾 Guardando archivo...');
 await wb.xlsx.writeFile(OUTPUT_PATH);
 
-console.log(`\n✅ COMPLETADO!`);
-console.log(`📦 Productos: ${productGroups.size} | 🔗 Variantes: ${totalVariantes}`);
-console.log(`📁 Archivo: ${OUTPUT_PATH}`);
+// ─── Reporte final detallado ─────────────────────────────────────────────────
+const LINE = '═'.repeat(58);
+const line = '─'.repeat(58);
 
-// ─── Pequeño resumen de grupos con variantes múltiples ───────────────────────
+// Estadísticas por marca
+const marcaStats = {};
+const catStats   = {};
+let   preciosValidos = [];
+for (const [nombreBase, grupo] of productGroups) {
+  const marca = extractMarca(grupo.proveedor, nombreBase);
+  marcaStats[marca] = (marcaStats[marca] || { productos: 0, variantes: 0 });
+  marcaStats[marca].productos++;
+  marcaStats[marca].variantes += grupo.variantes.length;
+
+  const cat = mapCategoria(grupo.rubro);
+  catStats[cat] = (catStats[cat] || 0) + 1;
+
+  for (const v of grupo.variantes) {
+    if (v.publico !== null) preciosValidos.push(v.publico);
+  }
+}
+
 const multiVariante = [...productGroups.entries()].filter(([, g]) => g.variantes.length > 1);
-console.log(`\n🔁 Productos con variantes múltiples: ${multiVariante.length}`);
-multiVariante.slice(0, 8).forEach(([nombre, g]) =>
-  console.log(`   ${nombre} → ${g.variantes.length} variantes (${g.variantes.map(v => v.size || '?').join(', ')})`)
-);
+const soloUnaVar    = [...productGroups.entries()].filter(([, g]) => g.variantes.length === 1);
+
+preciosValidos.sort((a, b) => a - b);
+const precioMin = preciosValidos[0] ?? 0;
+const precioMax = preciosValidos[preciosValidos.length - 1] ?? 0;
+const precioAvg = preciosValidos.length > 0
+  ? Math.round(preciosValidos.reduce((s, p) => s + p, 0) / preciosValidos.length)
+  : 0;
+
+const fileSizeKB = Math.round(fs.statSync(OUTPUT_PATH).size / 1024);
+
+const fmt = n => n.toLocaleString('es-AR');
+
+console.log(`\n${LINE}`);
+console.log(`  ✅  EXPORTACIÓN COMPLETADA`);
+console.log(LINE);
+console.log(`  📦  Productos únicos    : ${productGroups.size}`);
+console.log(`  🔗  Variantes totales   : ${totalVariantes}`);
+console.log(`  📁  Archivo             : ${path.basename(OUTPUT_PATH)}`);
+console.log(`  💾  Tamaño              : ${fileSizeKB} KB`);
+console.log(line);
+
+console.log(`  🏷️   Distribución por marca:`);
+Object.entries(marcaStats)
+  .sort((a, b) => b[1].productos - a[1].productos)
+  .forEach(([marca, s]) => {
+    const bar  = '█'.repeat(Math.round(s.productos / productGroups.size * 20));
+    const pct  = Math.round(s.productos / productGroups.size * 100);
+    console.log(`       ${marca.padEnd(12)} ${String(s.productos).padStart(4)} prod / ${String(s.variantes).padStart(4)} var  ${bar} ${pct}%`);
+  });
+
+console.log(line);
+console.log(`  📂  Distribución por categoría:`);
+Object.entries(catStats)
+  .sort((a, b) => b[1] - a[1])
+  .forEach(([cat, n]) => {
+    console.log(`       ${cat.padEnd(28)} ${String(n).padStart(4)} productos`);
+  });
+
+console.log(line);
+console.log(`  🔁  Productos con variantes múltiples : ${multiVariante.length}`);
+console.log(`  🔸  Productos con variante única       : ${soloUnaVar.length}`);
+multiVariante.slice(0, 6).forEach(([nombre, g]) => {
+  const sizes = g.variantes.map(v => v.size || '—').join(', ');
+  console.log(`       · ${nombre.substring(0, 38).padEnd(38)} [${g.variantes.length}]  ${sizes}`);
+});
+if (multiVariante.length > 6)
+  console.log(`       ... y ${multiVariante.length - 6} más`);
+
+console.log(line);
+console.log(`  💲  Estadísticas de precio (precio público):`);
+console.log(`       Mínimo   : $${fmt(precioMin)}`);
+console.log(`       Máximo   : $${fmt(precioMax)}`);
+console.log(`       Promedio : $${fmt(precioAvg)}`);
+
+console.log(LINE);
+console.log(`  ▶  Para verificar: node Backend/scripts/test_export_integrity.js`);
+console.log(`${LINE}\n`);
 
 } // end main
 
