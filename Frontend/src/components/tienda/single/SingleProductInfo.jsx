@@ -313,7 +313,7 @@ const QtyNumber = styled.div`
 
 const AddToCartBtn = styled(motion.button)`
   flex: 1;
-  background-color: ${({ $added }) => ($added ? '#2e7d32' : '#7C0405')};
+  background-color: ${({ $added }) => ($added ? '#2e7d32' : '#280201')};
   color: white;
   border: none;
   border-radius: 8px;

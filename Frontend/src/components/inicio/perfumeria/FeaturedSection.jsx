@@ -371,7 +371,7 @@ const LegalText = styled.div`
 `;
 
 const AddButton = styled.button`
-  background-color: #7C0405;
+  background-color: #280201;
   color: white;
   border: none;
   border-radius: 12px;

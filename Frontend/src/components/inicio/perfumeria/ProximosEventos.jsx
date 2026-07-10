@@ -129,7 +129,7 @@ const InfoRow = styled.div`
 `;
 
 const ReservarBtn = styled.button`
-  background-color: var(--color-boton-promo);
+  background-color: #280201;
   color: var(--color-blanco);
   font-family: var(--font-family-secondary);
   font-size: 16px;

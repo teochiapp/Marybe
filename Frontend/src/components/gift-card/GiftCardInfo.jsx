@@ -19,7 +19,9 @@ const TopRow = styled.div`
 const Eyebrow = styled.span`
   font-family: var(--font-family-primary);
   font-size: 0.8rem;
-  font-weight: 600;
+  /* Brygada 1918 solo llega a 700; el text-stroke simula el 800 */
+  font-weight: 800;
+  -webkit-text-stroke: 0.4px currentColor;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #535353;
@@ -170,42 +172,42 @@ const CantidadLabel = styled.span`
 
 const ActionRow = styled.div`
   display: flex;
-  gap: 16px;
-
-  @media (max-width: 600px) {
-    flex-direction: column;
-  }
+  gap: 15px;
 `;
 
 const Stepper = styled.div`
   display: flex;
   align-items: center;
-  border: 1px solid var(--color-giftcard-borde);
-  border-radius: var(--radius-md);
-  overflow: hidden;
+  justify-content: space-between;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  height: 48px;
+  padding: 0 5px;
+  width: 110px;
+  flex-shrink: 0;
 
   button {
-    width: 44px;
-    height: 52px;
     background: none;
     border: none;
-    font-size: 1.3rem;
-    color: var(--color-marron-secundario);
+    font-size: 1.4rem;
+    font-weight: 300;
     cursor: pointer;
-    transition: var(--transition-fast);
-  }
-
-  button:hover {
-    background-color: var(--color-giftcard-crema);
+    color: #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 100%;
   }
 `;
 
 const Quantity = styled.span`
-  min-width: 40px;
+  min-width: 30px;
   text-align: center;
   font-family: var(--font-family-secondary);
   font-size: 1rem;
-  color: var(--color-marron-secundario);
+  font-weight: 600;
+  color: #000;
 `;
 
 const AddButton = styled(motion.button)`
@@ -214,21 +216,21 @@ const AddButton = styled(motion.button)`
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background-color: ${({ $status }) => ($status === 'added' ? '#2e7d32' : '#7C0405')};
+  background-color: ${({ $status }) => ($status === 'added' ? '#2e7d32' : '#280201')};
   color: var(--color-blanco);
   font-family: var(--font-family-secondary);
   font-size: 1rem;
   font-weight: 500;
   border: none;
-  border-radius: var(--radius-md);
-  padding: 0 28px;
-  height: 52px;
+  border-radius: 8px;
+  padding: 8px 16px;
+  height: 48px;
   cursor: pointer;
   overflow: hidden;
   transition: background-color 0.3s ease;
 
   &:hover {
-    background-color: ${({ $status }) => ($status === 'added' ? '#2e7d32' : 'var(--color-bordo-tercero)')};
+    background-color: ${({ $status }) => ($status === 'added' ? '#2e7d32' : '#3f0303')};
   }
 
   span.btn-content {
@@ -236,12 +238,6 @@ const AddButton = styled(motion.button)`
     align-items: center;
     gap: 12px;
     white-space: nowrap;
-  }
-
-  @media (max-width: 600px) {
-    flex: none;
-    width: 100%;
-    height: 52px;
   }
 `;
 

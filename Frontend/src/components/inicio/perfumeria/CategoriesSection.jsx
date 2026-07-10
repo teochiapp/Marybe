@@ -29,6 +29,69 @@ const SectionTitle = styled.h2`
   }
 `;
 
+const CarouselWrapper = styled.div`
+  position: relative;
+`;
+
+/* Flecha igual a la de los banners (PromoCarousel), con animación de entrada */
+const NavArrowBtn = styled.button`
+  position: absolute;
+  top: calc(50% - 10px); /* compensa el padding-bottom del carrusel */
+  ${({ $side }) => $side}: 8px;
+  z-index: 3;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  color: var(--color-marron-principal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(${({ $side }) => ($side === 'left' ? '-12px' : '12px')});
+  transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.2s ease;
+
+  ${CarouselWrapper}:hover & {
+    opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+    pointer-events: ${({ $visible }) => ($visible ? 'auto' : 'none')};
+    transform: translateY(-50%) translateX(0);
+  }
+
+  &:hover {
+    background-color: #fff;
+    transform: translateY(-50%) scale(1.08);
+  }
+
+  &:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const ChevronLeftNav = () => (
+  <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+);
+const ChevronRightNav = () => (
+  <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
+);
+
 const CarouselContainer = styled(motion.div)`
   display: flex;
   overflow-x: auto;
@@ -266,6 +329,35 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
+  const [canScroll, setCanScroll] = useState({ left: false, right: true });
+
+  const updateArrows = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setCanScroll({ left: el.scrollLeft > 5, right: el.scrollLeft < max - 5 });
+  }, []);
+
+  useEffect(() => {
+    updateArrows();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', updateArrows, { passive: true });
+    window.addEventListener('resize', updateArrows);
+    return () => {
+      el.removeEventListener('scroll', updateArrows);
+      window.removeEventListener('resize', updateArrows);
+    };
+  }, [updateArrows, categorias]);
+
+  const scrollByDir = (dir) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const card = el.firstElementChild;
+    const step = card ? card.offsetWidth + 20 : el.clientWidth * 0.8;
+    el.scrollBy({ left: dir * step, behavior: 'smooth' });
+  };
+
   const handleCategoryClick = (nombre) => {
     if (!isDragging.current) {
       navigate(`/tienda?categoria=${encodeURIComponent(nombre)}&seccion=${encodeURIComponent(seccionName)}`);
@@ -289,6 +381,10 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
     <SectionWrapper>
       <SectionTitle>Categorías</SectionTitle>
 
+      <CarouselWrapper>
+      <NavArrowBtn $side="left" $visible={canScroll.left} type="button" aria-label="Anterior" onClick={() => scrollByDir(-1)}>
+        <ChevronLeftNav />
+      </NavArrowBtn>
       <CarouselContainer
         ref={scrollRef}
         onMouseDown={handleMouseDown}
@@ -332,7 +428,11 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
           );
         })}
       </CarouselContainer>
-      
+      <NavArrowBtn $side="right" $visible={canScroll.right} type="button" aria-label="Siguiente" onClick={() => scrollByDir(1)}>
+        <ChevronRightNav />
+      </NavArrowBtn>
+      </CarouselWrapper>
+
       {isMobile && renderItems.length > 0 && (
         <ViewMoreContainer 
           $isOpen={showAllMobile} 

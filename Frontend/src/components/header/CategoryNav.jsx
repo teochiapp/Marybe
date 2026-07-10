@@ -130,7 +130,7 @@ const MegaTitle = styled.div`
 `;
 
 const MegaTitleText = styled.h3`
-  font-family: var(--font-family-primary);
+  font-family: var(--font-family-secondary);
   font-size: 1.4rem;
   font-weight: 600;
   color: var(--color-bordo-secundario);

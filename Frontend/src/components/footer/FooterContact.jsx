@@ -23,6 +23,7 @@ const ContactBar = styled.div`
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-xxl);
+  column-gap: calc(var(--spacing-xxl) + 20px);
   flex-wrap: wrap;
 
   @media (max-width: 768px) {

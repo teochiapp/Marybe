@@ -198,7 +198,7 @@ const PlayIcon = styled.div`
 /* ─── Banner inferior ────────────────────────────────────────────────────── */
 
 const Banner = styled.div`
-  background-color: var(--color-boton-promo);
+  background-color: #280201;
   border-radius: 16px;
   padding: 24px 32px;
   display: flex;

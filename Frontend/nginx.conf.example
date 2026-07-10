@@ -1,0 +1,45 @@
+# Ejemplo de configuracion nginx para servir el build de produccion de React (CRA)
+# con cache-control eficiente (resuelve "Usa tiempos de almacenamiento en cache eficientes").
+#
+# IMPORTANTE: primero generar el build de produccion:  npm run build
+# y servir la carpeta /build (NO usar `react-scripts start` en produccion).
+
+server {
+  listen 80;
+  server_name marybe.surcodes.com;
+  root /var/www/marybe/build;   # ruta al build de produccion
+  index index.html;
+
+  # Compresion
+  gzip on;
+  gzip_types text/css application/javascript application/json image/svg+xml;
+  gzip_min_length 1024;
+
+  # Assets con hash de contenido (/static/...) -> cache 1 año, inmutable
+  location /static/ {
+    expires 1y;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    try_files $uri =404;
+  }
+
+  # Otros estaticos (fuentes, imagenes, js/css sueltos)
+  location ~* \.(js|css|woff2?|ttf|otf|eot)$ {
+    expires 1y;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+  }
+
+  location ~* \.(png|jpe?g|gif|webp|avif|svg|ico)$ {
+    expires 30d;
+    add_header Cache-Control "public, max-age=2592000";
+  }
+
+  # index.html SIEMPRE revalida (para que tomen los assets nuevos tras un deploy)
+  location = /index.html {
+    add_header Cache-Control "public, max-age=0, must-revalidate";
+  }
+
+  # SPA fallback (React Router)
+  location / {
+    try_files $uri /index.html;
+  }
+}

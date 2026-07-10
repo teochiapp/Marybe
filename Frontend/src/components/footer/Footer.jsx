@@ -23,7 +23,6 @@ const FooterWrapper = styled.footer`
 const FooterInner = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 var(--spacing-xl);
 
   @media (max-width: 600px) {
     padding: 0 var(--spacing-md);
@@ -35,6 +34,7 @@ const FooterMain = styled.div`
   display: grid;
   grid-template-columns: 260px 1fr;
   gap: 80px;
+  column-gap: 100px;
   padding-bottom: var(--spacing-xxl);
   align-items: stretch;
 
@@ -56,6 +56,7 @@ const NavColumns = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-xxl);
+  column-gap: calc(var(--spacing-xxl) + 20px);
 
   @media (max-width: 600px) {
     grid-template-columns: 1fr;
