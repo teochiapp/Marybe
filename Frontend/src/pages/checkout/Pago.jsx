@@ -721,7 +721,31 @@ export default function Pago() {
       const json = await response.json();
       orderNumber = json.data?.numero_pedido || 'M-000000';
       
-      // 2. Si se usó una gift card, consumirla
+      // 2. Si hay gift cards en el carrito, generarlas en Strapi
+      const giftCardItems = cartItems.filter(item =>
+        item.product?.id?.toString().startsWith('gift-card-') ||
+        item.product?.nombre?.toLowerCase().includes('gift card')
+      );
+
+      if (giftCardItems.length > 0) {
+        const giftItems = giftCardItems.map(item => ({
+          monto: item.price || item.product?.precio || 0,
+          cantidad: item.quantity || 1,
+        }));
+
+        try {
+          await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/gift-cards/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: giftItems, numero_pedido: orderNumber })
+          });
+        } catch (gcErr) {
+          console.error('Error al generar gift cards en Strapi:', gcErr);
+          // No bloqueamos la navegación
+        }
+      }
+
+      // 3. Si se usó una gift card como descuento, consumirla
       if (appliedGiftCard) {
         await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/gift-cards/consume`, {
           method: 'POST',

@@ -16,5 +16,14 @@ module.exports = {
         auth: false,
       },
     },
+    {
+      method: 'POST',
+      path: '/gift-cards/generate',
+      handler: 'custom-gift-card.generate',
+      config: {
+        auth: false,
+      },
+    },
   ],
 };
+
