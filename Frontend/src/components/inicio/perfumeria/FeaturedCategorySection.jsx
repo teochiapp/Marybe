@@ -1,4 +1,4 @@
-﻿import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -86,23 +86,27 @@ const ProductCard = styled(motion.div)`
   -webkit-user-drag: none;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 
-  /* Formula to match FeaturedSection: (100% width - spaces between gaps) / card count */
-  /* Extra large screens (> 1440px): 4.5 cards */
-  width: calc((100% - (4 * 40px)) / 4.5);
-
-  @media (max-width: 1440px) {
-    /* Laptop (1025px - 1440px): 3.5 cards */
-    width: calc((100% - (3 * 40px)) / 3.5);
+  /* Pantallas muy grandes (> 1600px): 5.5 tarjetas */
+  width: 290px;
+  
+  @media (max-width: 1600px) {
+    /* Pantallas grandes (1401px - 1600px): 4.5 tarjetas */
+    width: 290px;
   }
 
-  @media (max-width: 1024px) {
-    /* Tablet (601px - 1024px): 2.5 cards (using gap of 30px) */
-    width: calc((100% - (2 * 30px)) / 2.5);
+  @media (max-width: 1400px) {
+    /* Notebooks (998px - 1400px): 3.5 tarjetas */
+    width: 290px;
+  }
+
+  @media (max-width: 997px) {
+    /* Tablets (601px - 997px): 2.5 tarjetas */
+    width: 280px;
   }
 
   @media (max-width: 600px) {
-    /* Mobile (<= 600px): 1.5 cards (using gap of 20px) */
-    width: calc((100% - (1 * 20px)) / 1.5);
+    /* Mobile (<= 600px): 1.5 tarjetas */
+    width: 240px;
     padding: 12px;
     border-radius: 18px;
   }
@@ -255,7 +259,7 @@ const LegalText = styled.div`
 `;
 
 const AddButton = styled.button`
-  background-color: #7C0405;
+  background-color: var(--color-marron-principal);
   color: white;
   border: none;
   border-radius: 12px;
@@ -276,7 +280,7 @@ const AddButton = styled.button`
   }
 
   &:hover {
-    background-color: var(--color-marron-principal);
+    background-color: var(--color-bordo-secundario);
   }
 
   svg {

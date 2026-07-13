@@ -9,11 +9,22 @@ import CategoriesSection from '../../inicio/perfumeria/CategoriesSection';
 
 const ProductsGrid = styled(motion.div)`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+
+  @media (max-width: 1600px) {
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  }
+
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  }
+
+  @media (max-width: 997px) {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
 
   @media (max-width: 600px) {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 16px;
   }
 `;

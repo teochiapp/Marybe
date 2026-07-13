@@ -87,8 +87,8 @@ const Grid1Col = styled.div`
 
   @media (max-width: 768px) {
     picture {
-      height: 250px;
-      max-height: 250px;
+      height: 280px;
+      max-height: 280px;
     }
   }
 `;
@@ -292,8 +292,8 @@ const ArrowBtn = styled.button`
   }
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     stroke: currentColor;
     stroke-width: 2.5;
     fill: none;
@@ -304,7 +304,7 @@ const ArrowBtn = styled.button`
   @media (max-width: 600px) {
     width: 34px;
     height: 34px;
-    ${({ $side }) => $side}: 6px;
+    ${({ $side }) => $side}: 0px;
     svg { width: 16px; height: 16px; }
   }
 `;

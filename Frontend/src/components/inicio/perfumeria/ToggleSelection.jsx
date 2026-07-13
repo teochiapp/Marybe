@@ -78,7 +78,7 @@ const ToggleOption = styled.button`
 
   @media (max-width: 480px) {
     padding: 8px 24px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
 `;
 

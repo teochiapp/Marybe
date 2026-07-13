@@ -61,11 +61,11 @@ const IconsContainer = styled.div`
 const Brand = styled.h4`
   font-size: 1rem;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 10%;
   color: #535353;
   margin-bottom: 8px;
-  font-family: var(--font-family-primary);
+  font-family: var(--font-family-secondary);
 `;
 
 const Title = styled.h1`

@@ -133,21 +133,36 @@ const CategoryCard = styled(motion.div)`
   transition: box-shadow 0.3s ease;
   cursor: pointer;
 
-  /* Desktop: 5.5 tarjetas por defecto, 4.5 en modo compact (con sidebar) */
-  width: ${({ $compact }) =>
-    $compact
-      ? 'calc((100% - (4 * 20px)) / 4.5)'
-      : 'calc((100% - (5 * 20px)) / 5.5)'};
+  /* Pantallas muy grandes (> 1600px): 5.5 tarjetas */
+  width: 290px;
+  
+  @media (max-width: 1600px) {
+    /* Pantallas grandes (1401px - 1600px): 4.5 tarjetas */
+    width: 290px;
+  }
+
+  @media (max-width: 1400px) {
+    /* Notebooks (998px - 1400px): 3.5 tarjetas */
+    width: 290px;
+  }
+
+  @media (max-width: 997px) {
+    /* Tablets (601px - 997px): 2.5 tarjetas */
+    width: 280px;
+  }
 
   @media (max-width: 1024px) {
-    /* Tablet: 3.5 tarjetas */
-    width: calc((100% - (3 * 20px)) / 3.5);
     height: 220px;
   }
 
   @media (max-width: 768px) {
-    width: 100%;
     height: 200px;
+  }
+
+  @media (max-width: 600px) {
+    /* Mobile (<= 600px): 1.5 tarjetas */
+    width: 240px;
+    padding: 12px;
   }
 
   img {

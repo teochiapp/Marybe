@@ -1,4 +1,4 @@
-﻿import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -188,10 +188,29 @@ const SkeletonProductCard = styled.div`
     100% { background-position: -200% 0; }
   }
 
-  width: calc((100% - (5 * 30px)) / 5.5);
-  @media (max-width: 1440px) { width: calc((100% - (4 * 30px)) / 4.5); }
-  @media (max-width: 1024px) { width: calc((100% - (2 * 24px)) / 2.5); }
-  @media (max-width: 600px) { width: calc((100% - (1 * 20px)) / 1.5); height: 420px; }
+  /* Pantallas muy grandes (> 1600px): 5.5 tarjetas */
+  width: 290px;
+  
+  @media (max-width: 1600px) {
+    /* Pantallas grandes (1401px - 1600px): 4.5 tarjetas */
+    width: 290px;
+  }
+
+  @media (max-width: 1400px) {
+    /* Notebooks (998px - 1400px): 3.5 tarjetas */
+    width: 290px;
+  }
+
+  @media (max-width: 997px) {
+    /* Tablets (601px - 997px): 2.5 tarjetas */
+    width: 280px;
+  }
+
+  @media (max-width: 600px) {
+    /* Mobile (<= 600px): 1.5 tarjetas */
+    width: 240px;
+    height: 420px;
+  }
 `;
 
 const ProductCard = styled(motion.div)`
@@ -207,18 +226,27 @@ const ProductCard = styled(motion.div)`
   user-select: none;
   -webkit-user-drag: none;
   
-  width: calc((100% - (5 * 30px)) / 5.5);
+  /* Pantallas muy grandes (> 1600px): 5.5 tarjetas */
+  width: 290px;
   
-  @media (max-width: 1440px) {
-    width: calc((100% - (4 * 30px)) / 4.5);
+  @media (max-width: 1600px) {
+    /* Pantallas grandes (1401px - 1600px): 4.5 tarjetas */
+    width: 290px;
   }
 
-  @media (max-width: 1024px) {
-    width: calc((100% - (2 * 24px)) / 2.5);
+  @media (max-width: 1400px) {
+    /* Notebooks (998px - 1400px): 3.5 tarjetas */
+    width: 290px;
+  }
+
+  @media (max-width: 997px) {
+    /* Tablets (601px - 997px): 2.5 tarjetas */
+    width: 280px;
   }
 
   @media (max-width: 600px) {
-    width: calc((100% - (1 * 20px)) / 1.5);
+    /* Mobile (<= 600px): 1.5 tarjetas */
+    width: 240px;
     padding: 12px;
   }
   
@@ -352,7 +380,7 @@ const LegalText = styled.div`
 `;
 
 const AddButton = styled.button`
-  background-color: #280201;
+  background-color: var(--color-marron-principal);
   color: white;
   border: none;
   border-radius: 12px;
@@ -374,7 +402,7 @@ const AddButton = styled.button`
   }
 
   &:hover {
-    background-color: var(--color-marron-principal);
+    background-color: var(--color-bordo-secundario);
   }
   
   svg {

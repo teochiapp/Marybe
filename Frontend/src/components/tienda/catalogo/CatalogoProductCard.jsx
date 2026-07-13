@@ -242,7 +242,7 @@ const LegalText = styled.div`
 `;
 
 const AddButton = styled.button`
-  background-color: #280201;
+  background-color: var(--color-marron-principal);
   color: white;
   border: none;
   border-radius: 12px;
@@ -265,7 +265,7 @@ const AddButton = styled.button`
   }
 
   &:hover {
-    background-color: var(--color-marron-principal);
+    background-color: var(--color-bordo-secundario);
   }
   
   svg {

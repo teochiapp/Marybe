@@ -17,10 +17,6 @@ const SectionWrapper = styled.section`
   position: relative;
   overflow: hidden;
 
-  @media (max-width: 1200px) {
-    padding: 0 40px;
-  }
-
   @media (max-width: 768px) {
     padding: 30px 20px;
     padding-right: 0 !important;
@@ -195,11 +191,11 @@ const SkeletonProductCard = styled.div`
   }
 
   /* Misma anchura matemática que ProductCard */
-  width: calc((100% - (5 * 30px)) / 5.5);
-  @media (max-width: 1600px) { width: calc((100% - (4 * 30px)) / 4.5); }
-  @media (max-width: 1400px) { width: calc((100% - (3 * 30px)) / 3.5); }
-  @media (max-width: 997px) { width: calc((100% - (2 * 30px)) / 2.5); }
-  @media (max-width: 600px) { width: calc((100% - (1 * 20px)) / 1.5); height: 420px; }
+  width: 290px;
+  @media (max-width: 1600px) { width: 290px; }
+  @media (max-width: 1400px) { width: 290px; }
+  @media (max-width: 997px) { width: 290px; }
+  @media (max-width: 600px) { width: 290px; height: 420px; }
 `;
 
 const ProductCard = styled(motion.div)`
@@ -215,29 +211,28 @@ const ProductCard = styled(motion.div)`
   user-select: none;
   -webkit-user-drag: none;
   
-  /* Fórmula matemática: (100% ancho - espacio de los gaps) / Cantidad de tarjetas que queremos mostrar */
   
   /* Pantallas muy grandes (> 1600px): 5.5 tarjetas */
-  width: calc((100% - (5 * 30px)) / 5.5);
+  width: 290px;
   
   @media (max-width: 1600px) {
     /* Pantallas grandes (1401px - 1600px): 4.5 tarjetas */
-    width: calc((100% - (4 * 30px)) / 4.5);
+    width: 290px;
   }
 
   @media (max-width: 1400px) {
     /* Notebooks (998px - 1400px): 3.5 tarjetas */
-    width: calc((100% - (3 * 30px)) / 3.5);
+    width: 290px;
   }
 
   @media (max-width: 997px) {
     /* Tablets (601px - 997px): 2.5 tarjetas */
-    width: calc((100% - (2 * 30px)) / 2.5);
+    width: 280px;
   }
 
   @media (max-width: 600px) {
     /* Mobile (<= 600px): 1.5 tarjetas */
-    width: calc((100% - (1 * 20px)) / 1.5);
+    width: 240px;
     padding: 12px;
   }
   
@@ -371,7 +366,7 @@ const LegalText = styled.div`
 `;
 
 const AddButton = styled.button`
-  background-color: #280201;
+  background-color: var(--color-marron-principal);
   color: white;
   border: none;
   border-radius: 12px;
@@ -393,7 +388,7 @@ const AddButton = styled.button`
   }
 
   &:hover {
-    background-color: var(--color-marron-principal);
+    background-color: var(--color-bordo-secundario);
   }
   
   svg {
@@ -541,7 +536,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
   const startX = useRef(0);
   const scrollLeftVal = useRef(0);
 
-  const handleInteract = useCallback(() => {}, []);
+  const handleInteract = useCallback(() => { }, []);
 
   const handleMouseDown = useCallback((e) => {
     const el = scrollRef.current;
