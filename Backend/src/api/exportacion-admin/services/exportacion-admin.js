@@ -51,237 +51,109 @@ function colLetter(n) {
 }
 
 /**
- * Crea la hoja "Listas" con todas las listas de selección.
- * En vez de depender de named ranges (que ExcelJS no resuelve bien en
- * data-validation), devuelve un objeto `refs` con las referencias
- * directas a celdas que se usan en las fórmulas de validación.
- *
- * Retorna: { secciones, categorias, booleanos, colores, mapeoRangos }
- *   donde cada valor es un string como "Listas!$A$2:$A$3"
+ * Calcula las posiciones de columna para la hoja Listas y construye
+ * las referencias a las listas planas, SIN crear la hoja todavía.
  */
-function construirHojaListas(wb) {
+function calcularRefs() {
+  let col = 1;
+
+  // Col 1: Secciones
+  const secLtr = colLetter(col);
+  const secciones = `Listas!$${secLtr}$2:$${secLtr}$${SECCIONES.length + 1}`;
+  col++;
+
+  // Col 2: Categorías
+  const categorias_list = Object.keys(TAXONOMY);
+  const catLtr = colLetter(col);
+  const categorias = `Listas!$${catLtr}$2:$${catLtr}$${categorias_list.length + 1}`;
+  col++;
+
+  // Col 3: Subcategorías (todas aplanadas)
+  const subcatLtr = colLetter(col);
+  const subcategoriasSet = new Set();
+  for (const subcats of Object.values(TAXONOMY)) {
+    for (const subcat of Object.keys(subcats)) subcategoriasSet.add(subcat);
+  }
+  const subcategoriasArr = Array.from(subcategoriasSet);
+  const subcategorias = `Listas!$${subcatLtr}$2:$${subcatLtr}$${subcategoriasArr.length + 1}`;
+  col++;
+
+  // Col 4: Tipos (todos aplanados)
+  const tipoLtr = colLetter(col);
+  const tiposSet = new Set();
+  for (const subcats of Object.values(TAXONOMY)) {
+    for (const tipos of Object.values(subcats)) {
+      for (const tipo of tipos) tiposSet.add(tipo);
+    }
+  }
+  const tiposArr = Array.from(tiposSet);
+  const tipos = `Listas!$${tipoLtr}$2:$${tipoLtr}$${tiposArr.length + 1}`;
+  col++;
+
+  // Col 5: Colores
+  const coloresLtr = colLetter(col);
+  const colores = `Listas!$${coloresLtr}$2:$${coloresLtr}$${COLORES.length + 1}`;
+  col++;
+
+  // Col 6: Booleanos
+  const boolLtr = colLetter(col);
+  const booleanos = `Listas!$${boolLtr}$2:$${boolLtr}$3`;
+
+  return {
+    secciones,
+    categorias,
+    subcategorias,
+    tipos,
+    booleanos,
+    colores,
+    data: {
+      categorias: categorias_list,
+      subcategorias: subcategoriasArr,
+      tipos: tiposArr,
+    }
+  };
+}
+
+/**
+ * Crea la hoja "Listas" al final del workbook usando los datos pre-calculados.
+ */
+function construirHojaListas(wb, refs) {
   const wsL = wb.addWorksheet('Listas');
   let col = 1;
 
-  // Mapa de rangos directos para la cascada (KEY → rango explícito)
-  const rangoDirecto = {};
-  // Rango dummy para combos sin opciones
-  let sinOpcionesRef = '';
-
-  // ── 1. Secciones ─────────────────────────────────────────────────────────
+  // 1. Secciones
   wsL.getCell(1, col).value = '_SECCIONES';
   SECCIONES.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
-  const secLtr = colLetter(col);
-  const seccionesRef = `Listas!$${secLtr}$2:$${secLtr}$${SECCIONES.length + 1}`;
   col++;
 
-  // ── 2. Categorías ─────────────────────────────────────────────────────────
-  const categorias = Object.keys(TAXONOMY);
+  // 2. Categorías
   wsL.getCell(1, col).value = '_CATEGORIAS';
-  categorias.forEach((c, i) => { wsL.getCell(i + 2, col).value = c; });
-  const catLtr = colLetter(col);
-  const categoriasRef = `Listas!$${catLtr}$2:$${catLtr}$${categorias.length + 1}`;
+  refs.data.categorias.forEach((c, i) => { wsL.getCell(i + 2, col).value = c; });
   col++;
 
-  // ── 3. Subcategorías por cada Categoría ───────────────────────────────────
-  for (const [catName, subcats] of Object.entries(TAXONOMY)) {
-    const subcatList = Object.keys(subcats);
-    if (subcatList.length === 0) continue;
+  // 3. Subcategorías
+  wsL.getCell(1, col).value = '_SUBCATEGORIAS';
+  refs.data.subcategorias.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
+  col++;
 
-    wsL.getCell(1, col).value = `_${catName}`;
-    subcatList.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
+  // 4. Tipos
+  wsL.getCell(1, col).value = '_TIPOS';
+  refs.data.tipos.forEach((t, i) => { wsL.getCell(i + 2, col).value = t; });
+  col++;
 
-    const ltr = colLetter(col);
-    // Guardar referencia directa: KEY = catName → rango de subcategorías
-    rangoDirecto[catName] = `Listas!$${ltr}$2:$${ltr}$${subcatList.length + 1}`;
-    col++;
-  }
-
-  // ── 4. Tipos por cada (Categoría + Subcategoría) ──────────────────────────
-  for (const [catName, subcats] of Object.entries(TAXONOMY)) {
-    for (const [subName, tipos] of Object.entries(subcats)) {
-      if (!tipos || tipos.length === 0) continue;
-
-      wsL.getCell(1, col).value = `_${catName}_${subName}`;
-      tipos.forEach((t, i) => { wsL.getCell(i + 2, col).value = t; });
-
-      const ltr = colLetter(col);
-      // Guardar referencia directa: KEY = catName_subName → rango de tipos
-      rangoDirecto[`${catName}_${subName}`] = `Listas!$${ltr}$2:$${ltr}$${tipos.length + 1}`;
-      col++;
-    }
-  }
-
-  // ── 5. Colores ─────────────────────────────────────────────────────────
+  // 5. Colores
   wsL.getCell(1, col).value = '_COLORES';
   COLORES.forEach((c, i) => { wsL.getCell(i + 2, col).value = c; });
-  const coloresLtr = colLetter(col);
-  const coloresRef = `Listas!$${coloresLtr}$2:$${coloresLtr}$${COLORES.length + 1}`;
   col++;
 
-  // ── (dummy) rango para combos sin opciones ──────────
-  wsL.getCell(1, col).value = '_SIN_OPCIONES';
-  wsL.getCell(2, col).value = '';
-  const noOptLtr = colLetter(col);
-  sinOpcionesRef = `Listas!$${noOptLtr}$2:$${noOptLtr}$2`;
-  col++;
-
-  // ── 6. Tabla de mapeo para VLOOKUP ────────────────────────────────────────
-  // KEY = nombre de categoría o "catName_subName"
-  // VALUE = referencia directa a celdas (ej: Listas!$C$2:$C$5)
-  // INDIRECT resuelve estas referencias directamente, sin named ranges.
-  const mapColKey = col;
-  const mapColVal = col + 1;
-  let mapRow = 1;
-  wsL.getCell(mapRow, mapColKey).value = 'KEY';
-  wsL.getCell(mapRow, mapColVal).value = 'RANGO_DIRECTO';
-  mapRow++;
-
-  for (const [catName, subcats] of Object.entries(TAXONOMY)) {
-    // Para categoría → rango de subcategorías
-    wsL.getCell(mapRow, mapColKey).value = catName;
-    wsL.getCell(mapRow, mapColVal).value = rangoDirecto[catName] || sinOpcionesRef;
-    mapRow++;
-
-    // Para subcategorías → rango de tipos
-    for (const [subName] of Object.entries(subcats)) {
-      const key = `${catName}_${subName}`;
-      wsL.getCell(mapRow, mapColKey).value = key;
-      wsL.getCell(mapRow, mapColVal).value = rangoDirecto[key] || sinOpcionesRef;
-      mapRow++;
-    }
-  }
-
-  // Referencia directa a la tabla de mapeo (para VLOOKUP)
-  const keyLtr = colLetter(mapColKey);
-  const valLtr = colLetter(mapColVal);
-  const mapeoRef = `Listas!$${keyLtr}$2:$${valLtr}$${mapRow - 1}`;
-  col += 2;
-
-  // ── 7. Opciones Booleanas (SI / NO) ─────────────────────────────────────
+  // 6. Booleanos
   wsL.getCell(1, col).value = '_BOOLEANOS';
   wsL.getCell(2, col).value = 'SI';
   wsL.getCell(3, col).value = 'NO';
-  const boolLtr = colLetter(col);
-  const booleanosRef = `Listas!$${boolLtr}$2:$${boolLtr}$3`;
   col++;
-
-  // Retornar todas las referencias directas
-  return {
-    secciones:    seccionesRef,
-    categorias:   categoriasRef,
-    booleanos:    booleanosRef,
-    colores:      coloresRef,
-    mapeoRangos:  mapeoRef,
-    sinOpciones:  sinOpcionesRef,
-    // Para los defaults de INDIRECT
-    defaultSubcat: rangoDirecto['Dermocosmetica'] || sinOpcionesRef,
-    defaultTipo:   rangoDirecto['Dermocosmetica_Cuidado_facial'] || sinOpcionesRef,
-    // Mapa completo por si se necesita
-    rangos:       rangoDirecto,
-  };
 }
 
-/**
- * Aplica validación en cascada a una fila de la hoja Productos.
- * E(5)=Sección, F(6)=Categoría, G(7)=Subcategoría, H(8)=Tipo
- *
- * @param {Worksheet} ws  Hoja de productos
- * @param {number} rowIndex  Índice de fila (1-based)
- * @param {object} refs  Referencias directas retornadas por construirHojaListas
- */
-function aplicarValidacionFila(ws, rowIndex, refs) {
-  // E: Sección (lista fija: Perfumería / Hogar)
-  ws.getCell(`E${rowIndex}`).dataValidation = {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.secciones],
-  };
-  // F (col 6): Categoría — referencia directa a la columna de categorías
-  ws.getCell(`F${rowIndex}`).dataValidation = {
-    type: 'list',
-    allowBlank: true,
-    showErrorMessage: false,
-    formulae: [refs.categorias],
-  };
 
-  // G (col 7): Subcategoría (cascada basada en F)
-  // Usamos la columna oculta AA (27) que devuelve una referencia directa a celdas
-  ws.getCell(`G${rowIndex}`).dataValidation = {
-    type: 'list',
-    allowBlank: true,
-    showErrorMessage: false,
-    formulae: [`INDIRECT($AA${rowIndex})`],
-  };
-
-  // H (col 8): Tipo (cascada basada en G)
-  // Usamos la columna oculta AB (28)
-  ws.getCell(`H${rowIndex}`).dataValidation = {
-    type: 'list',
-    allowBlank: true,
-    showErrorMessage: false,
-    formulae: [`INDIRECT($AB${rowIndex})`],
-  };
-
-  // ── Columnas ocultas AA y AB ──────────────────────────────────────────────
-  // VLOOKUP busca la categoría/subcategoría en la tabla de mapeo y devuelve
-  // la referencia directa a celdas (ej: "Listas!$C$2:$C$5").
-  // INDIRECT resuelve esa referencia como rango de celdas.
-  const valF = ws.getCell(`F${rowIndex}`).value || '';
-  const valG = ws.getCell(`G${rowIndex}`).value || '';
-
-  // Result cacheado: referencia directa (no nombre de rango)
-  const resAA = (valF && refs.rangos[valF]) ? refs.rangos[valF] : refs.defaultSubcat;
-  const keyAB = valF && valG ? `${valF}_${valG}` : '';
-  const resAB = (keyAB && refs.rangos[keyAB]) ? refs.rangos[keyAB] : refs.defaultTipo;
-
-  const cAA = ws.getCell(`AA${rowIndex}`);
-  cAA.value = {
-    formula: `IF(F${rowIndex}="","${refs.defaultSubcat}",VLOOKUP(F${rowIndex},${refs.mapeoRangos},2,FALSE))`,
-    result: resAA,
-  };
-  const cAB = ws.getCell(`AB${rowIndex}`);
-  cAB.value = {
-    formula: `IF(G${rowIndex}="","${refs.defaultTipo}",VLOOKUP(F${rowIndex}&"_"&G${rowIndex},${refs.mapeoRangos},2,FALSE))`,
-    result: resAB,
-  };
-
-  // L (col 12): Publicado
-  ws.getCell(`L${rowIndex}`).dataValidation = {
-    type: 'list',
-    allowBlank: true,
-    showErrorMessage: false,
-    formulae: [refs.booleanos],
-  };
-
-  // M (col 13): Destacado
-  ws.getCell(`M${rowIndex}`).dataValidation = {
-    type: 'list',
-    allowBlank: true,
-    showErrorMessage: false,
-    formulae: [refs.booleanos],
-  };
-}
-
-/**
- * Aplica validación a una fila de la hoja Variantes.
- */
-function aplicarValidacionVariante(ws, rowIndex, refs) {
-  // J (col 10): Publicado
-  ws.getCell(`J${rowIndex}`).dataValidation = {
-    type: 'list',
-    allowBlank: true,
-    showErrorMessage: false,
-    formulae: [refs.booleanos],
-  };
-
-  // L (col 12): Color
-  ws.getCell(`L${rowIndex}`).dataValidation = {
-    type: 'list',
-    allowBlank: true,
-    showErrorMessage: false,
-    formulae: [refs.colores],
-  };
-}
 
 // ─── Traer TODOS los productos de Strapi con paginación ──────────────────────
 async function fetchAllProductos(strapi) {
@@ -325,8 +197,9 @@ async function generarExcel(strapi) {
   wb.creator = 'Marybe';
   wb.created = new Date();
 
-  // ── Crear hoja de Listas PRIMERO (para obtener las refs de validación) ────
-  const refs = construirHojaListas(wb);
+  // ── Pre-computar referencias sin crear la hoja aún ─────────────────────────
+  // La hoja Listas se creará AL FINAL para respetar el orden Productos → Variantes → Listas
+  const refs = calcularRefs();
 
   // ══════════════════════════════════════════════════════════════════════════
   // HOJA 1: PRODUCTOS (A–R)
@@ -469,7 +342,6 @@ async function generarExcel(strapi) {
       }
       // Publicado/Destacado en verde/rojo (L,M = índices 11,12)
       if (ci === 11 || ci === 12) {
-        cell.dataValidation = { type: 'list', allowBlank: true, formulae: ['BOOLEANOS'] };
         cell.font = { bold: true, color: { argb: val === 'SI' ? '16A34A' : 'EF4444' }, size: 10 };
       }
     });
@@ -510,17 +382,39 @@ async function generarExcel(strapi) {
     cR.alignment = { vertical: 'middle', horizontal: 'center' };
 
     // ── Validaciones en cascada para esta fila ──────────────────────────────
-    aplicarValidacionFila(wsP, rowIdxP, refs);
-
+    // (Ahora se aplican todas juntas al final mediante bloques)
     r.commit();
     totalVariantes += (prod.variantes || []).length;
   }
 
-  // ── Validaciones para filas vacías extra (por si agregan productos) ───────
+  // ── Validaciones en bloque para toda la hoja de Productos ────────────────────
   const EXTRA_ROWS = 300;
-  for (let extra = 1; extra <= EXTRA_ROWS; extra++) {
-    aplicarValidacionFila(wsP, rowIdxP + extra, refs);
-  }
+  const lastRow    = rowIdxP + EXTRA_ROWS;
+
+  wsP.dataValidations.add(`E4:E${lastRow}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.secciones],
+  });
+  wsP.dataValidations.add(`F4:F${lastRow}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.categorias],
+  });
+  wsP.dataValidations.add(`G4:G${lastRow}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.subcategorias],
+  });
+  wsP.dataValidations.add(`H4:H${lastRow}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.tipos],
+  });
+  wsP.dataValidations.add(`L4:L${lastRow}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.booleanos],
+  });
+  wsP.dataValidations.add(`M4:M${lastRow}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.booleanos],
+  });
 
   // ══════════════════════════════════════════════════════════════════════════
   // HOJA 2: VARIANTES (A–L)
@@ -678,18 +572,24 @@ async function generarExcel(strapi) {
       cM.value = v.color_nombre || '';
       applyStyle(cM, dataStyle(bgColor));
 
-      aplicarValidacionVariante(wsV, rowIdxV, refs);
 
       r.commit();
     }
   }
 
-  // ── Validaciones para filas vacías extra de Variantes ───────
-  for (let extra = 1; extra <= EXTRA_ROWS; extra++) {
-    aplicarValidacionVariante(wsV, rowIdxV + extra, refs);
-  }
-  
-  // La hoja de Listas ya fue creada al inicio por construirHojaListas(wb)
+  // ── Validaciones en bloque para toda la hoja de Variantes ────────────────
+  const lastRowV = rowIdxV + EXTRA_ROWS;
+  wsV.dataValidations.add(`J4:J${lastRowV}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.booleanos],
+  });
+  wsV.dataValidations.add(`L4:L${lastRowV}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.colores],
+  });
+
+  // ── Hoja Listas al final (Productos → Variantes → Listas) ───────────────
+  construirHojaListas(wb, refs);
 
   const buffer = await wb.xlsx.writeBuffer();
 

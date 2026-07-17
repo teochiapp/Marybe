@@ -2,6 +2,14 @@
 
 // ─── Taxonomía completa ───────────────────────────────────────────────────────
 const TAXONOMY = {
+  "Ofertas": {
+    "Fragancias": [],
+    "Maquillaje": [],
+    "Dermocosmetica": [],
+    "Cuidado Personal": [],
+    "Bebés y niños": [],
+    "Limpieza del hogar": []
+  },
   "Dermocosmetica": {
     "Cuidado facial": [
       "Limpieza facial",
