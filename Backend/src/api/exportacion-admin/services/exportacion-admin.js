@@ -127,6 +127,26 @@ function construirHojaListas(wb) {
   const colLtr = colLetter(col);
   wb.definedNames.add(`Listas!$${colLtr}$2:$${colLtr}$${COLORES.length + 1}`, 'COLORES');
   col++;
+
+  // ── 6. Mapping para VLOOKUP (Columnas BA y BB) ──────────────────────────
+  let mapRow = 1;
+  wsL.getCell(mapRow, 53).value = 'KEY'; // BA
+  wsL.getCell(mapRow, 54).value = 'NAMED_RANGE'; // BB
+  mapRow++;
+
+  for (const [catName, subcats] of Object.entries(TAXONOMY)) {
+    // Para categoría
+    wsL.getCell(mapRow, 53).value = catName;
+    wsL.getCell(mapRow, 54).value = toRangeName(catName);
+    mapRow++;
+
+    // Para subcategorías (catName_subName)
+    for (const subName of Object.keys(subcats)) {
+      wsL.getCell(mapRow, 53).value = `${catName}_${subName}`;
+      wsL.getCell(mapRow, 54).value = toRangeName(`${catName}_${subName}`);
+      mapRow++;
+    }
+  }
 }
 
 /**
@@ -162,7 +182,7 @@ function aplicarValidacionFila(ws, rowIndex) {
     formulae: [`INDIRECT($AB${rowIndex})`]
   };
 
-  // Columnas ocultas AA y AB para calcular los nombres de los rangos sin romper por el locale de Excel (coma vs punto y coma)
+  // Columnas ocultas AA y AB para calcular los nombres de los rangos usando VLOOKUP contra la tabla de mapeo
   const valF = ws.getCell(`F${rowIndex}`).value || '';
   const valG = ws.getCell(`G${rowIndex}`).value || '';
   
@@ -171,9 +191,15 @@ function aplicarValidacionFila(ws, rowIndex) {
   const resAB = valF && valG ? toRangeName(`${valF}_${valG}`) : 'Dermocosmetica_Cuidado_facial';
   
   const cAA = ws.getCell(`AA${rowIndex}`);
-  cAA.value = { formula: `SUBSTITUTE(F${rowIndex}, " ", "_")`, result: resAA };
+  cAA.value = { 
+    formula: `IF(F${rowIndex}="", "Dermocosmetica", VLOOKUP(F${rowIndex}, Listas!$BA:$BB, 2, FALSE))`, 
+    result: resAA 
+  };
   const cAB = ws.getCell(`AB${rowIndex}`);
-  cAB.value = { formula: `SUBSTITUTE(F${rowIndex}&"_"&G${rowIndex}, " ", "_")`, result: resAB };
+  cAB.value = { 
+    formula: `IF(G${rowIndex}="", "Dermocosmetica_Cuidado_facial", VLOOKUP(F${rowIndex}&"_"&G${rowIndex}, Listas!$BA:$BB, 2, FALSE))`, 
+    result: resAB 
+  };
 
   // L (col 12): Publicado
   ws.getCell(`L${rowIndex}`).dataValidation = {

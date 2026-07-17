@@ -2,70 +2,200 @@
 
 // ─── Taxonomía completa ───────────────────────────────────────────────────────
 const TAXONOMY = {
-  'Ofertas': {
-    'Fragancias': [],
-    'Maquillaje': [],
-    'Dermocosmetica': [],
-    'Cuidado Personal': [],
-    'Bebés y niños': [],
-    'Limpieza del hogar': [],
+  "Dermocosmetica": {
+    "Cuidado facial": [
+      "Limpieza facial",
+      "Exfoliantes y Mascarillas",
+      "Tónicos",
+      "Cremas Faciales",
+      "Serums",
+      "Contornos de ojos y labios",
+      "Accesorios"
+    ],
+    "Cuidado Corporal": [
+      "Cremas Corporales",
+      "Cremas de manos",
+      "Cremas para masajes",
+      "Exfoliantes",
+      "Accesorios"
+    ],
+    "Solares": [
+      "Faciales",
+      "Corporales",
+      "Autobronceantes",
+      "Post Solares",
+      "Accesorios"
+    ]
   },
-  'Dermocosmetica': {
-    'Cuidado facial':   ['Limpieza facial', 'Exfoliantes y Mascarillas', 'Tónicos', 'Cremas Faciales', 'Serums', 'Contornos de ojos y labios', 'Accesorios'],
-    'Cuidado Corporal': ['Cremas Corporales', 'Cremas de manos', 'Cremas para masajes', 'Exfoliantes', 'Accesorios'],
-    'Solares':          ['Faciales', 'Corporales', 'Autobronceantes', 'Post Solares', 'Accesorios'],
+  "Fragancias": {
+    "Femeninas": [
+      "Premium",
+      "Sets",
+      "Semi selectivos",
+      "Nacionales",
+      "Body Splash y Colonias"
+    ],
+    "Masculinos": [
+      "Premium",
+      "Sets",
+      "Semi selectivos",
+      "Nacionales",
+      "Body Splash y Colonias"
+    ],
+    "Bebés y niños": [
+      "Premium",
+      "Sets",
+      "Nacionales",
+      "Body Splash y Colonias"
+    ]
   },
-  'Fragancias': {
-    'Femeninas':    ['Premium', 'Sets', 'Semi selectivos', 'Nacionales', 'Body Splash y Colonias'],
-    'Masculinos':   ['Premium', 'Sets', 'Semi selectivos', 'Nacionales', 'Body Splash y Colonias'],
-    'Bebés y niños': ['Premium', 'Sets', 'Nacionales', 'Body Splash y Colonias'],
+  "Maquillaje": {
+    "Labios": [
+      "Labiales Liquidos",
+      "Labiales en Barra",
+      "Bálsamos Labiales",
+      "Brillos Labiales",
+      "Delineadores"
+    ],
+    "Ojos": [
+      "Mascaras de pestañas",
+      "Sombras",
+      "Delineadores en Lapiz",
+      "Delineadores Liquidos",
+      "Cejas"
+    ],
+    "Rostro": [
+      "Bases de Maquillaje",
+      "Correctores de Ojeras",
+      "Polvos",
+      "Bronzer",
+      "Iluminadores",
+      "Rubores",
+      "Fijadores",
+      "Primer"
+    ],
+    "Uñas": [
+      "Esmaltes",
+      "Quita esmaltes",
+      "Tratamientos"
+    ],
+    "Accesorios": [
+      "Brochas y Pinceles",
+      "Esponjas"
+    ]
   },
-  'Maquillaje': {
-    'Labios':     ['Labiales Liquidos', 'Labiales en Barra', 'Bálsamos Labiales', 'Brillos Labiales', 'Delineadores'],
-    'Ojos':       ['Mascaras de pestañas', 'Sombras', 'Delineadores en Lapiz', 'Delineadores Liquidos', 'Cejas'],
-    'Rostro':     ['Bases de Maquillaje', 'Correctores de Ojeras', 'Polvos', 'Bronzer', 'Iluminadores', 'Rubores', 'Fijadores', 'Primer'],
-    'Uñas':       ['Esmaltes', 'Quita esmaltes', 'Tratamientos'],
-    'Accesorios': ['Brochas y Pinceles', 'Esponjas'],
+  "Cuidado Personal": {
+    "Cuidado Capilar": [
+      "Shampoo",
+      "Acondicionadores",
+      "Tratamientos Capilares",
+      "Coloración",
+      "Gel y Fijadores",
+      "Cepillos y Peines"
+    ],
+    "Higiene Corporal": [
+      "Desodorantes",
+      "Depilacion",
+      "Afeitado",
+      "Jabones de Tocador",
+      "Algodones e hisopos",
+      "Talcos"
+    ],
+    "Higiene Oral": [
+      "Pastas Dentales",
+      "Cepillos de dientes",
+      "Hilos dentales",
+      "Enjuagues bucales"
+    ],
+    "Cuidado Intimo": [
+      "Toallitas",
+      "Protectores diarios",
+      "Salud intima",
+      "Incontinencia"
+    ],
+    "Accesorios": []
   },
-  'Cuidado Personal': {
-    'Cuidado Capilar':  ['Shampoo', 'Acondicionadores', 'Tratamientos Capilares', 'Coloración', 'Gel y Fijadores', 'Cepillos y Peines'],
-    'Higiene Corporal': ['Desodorantes', 'Depilacion', 'Afeitado', 'Jabones de Tocador', 'Algodones e hisopos', 'Talcos'],
-    'Higiene Oral':     ['Pastas Dentales', 'Cepillos de dientes', 'Hilos dentales', 'Enjuagues bucales'],
-    'Cuidado Intimo':   ['Toallitas', 'Protectores diarios', 'Salud intima', 'Incontinencia'],
-    'Accesorios':       [],
+  "Niños y BebÉs": {
+    "Pañales": [],
+    "Higiene del Bebe": [
+      "Toallas humedas",
+      "Oleos y algodón",
+      "Talcos y Aceites"
+    ],
+    "Jabones": [],
+    "Colonias": [],
+    "Fragancias": [],
+    "Desodorantes": [],
+    "Cuidado materno": [
+      "Protectores Mamarios",
+      "Cuidado de piel"
+    ],
+    "Cremas y cepillos dentales": [],
+    "Solares": [],
+    "Capilares": [
+      "Shampoo",
+      "Acondicionadores",
+      "Tratamientos"
+    ]
   },
-  'Niños y Bebés': {
-    'Pañales':                   [],
-    'Higiene del Bebe':          ['Toallas humedas', 'Oleos y algodón', 'Talcos y Aceites'],
-    'Jabones':                   [],
-    'Colonias':                  [],
-    'Fragancias':                [],
-    'Desodorantes':              [],
-    'Cuidado materno':           ['Protectores Mamarios', 'Cuidado de piel'],
-    'Cremas y cepillos dentales': [],
-    'Solares':                   [],
-    'Capilares':                 ['Shampoo', 'Acondicionadores', 'Tratamientos'],
+  "Limpieza del hogar": {
+    "Cocina": [
+      "Detergentes",
+      "Lava Vajillas",
+      "Limpieza de Superficies"
+    ],
+    "Baño": [
+      "Desinfectantes",
+      "Pastillas de inodoro"
+    ],
+    "Pisos y Muebles": [
+      "Lavandina",
+      "Desinfectantes",
+      "Aromatizantes",
+      "Lustramuebles",
+      "Ceras y Autobrillos"
+    ],
+    "Insecticida y Repelentes": [
+      "Aerosoles",
+      "Repelentes",
+      "Apartos y cebos"
+    ],
+    "Ropa": [
+      "Jabones Liquidos",
+      "Suavizantes"
+    ],
+    "Calzado": [
+      "Brillos Limpiadores",
+      "Pomadas"
+    ],
+    "Desodorante de Ambiente": [
+      "Aromatizantes",
+      "Desinfectantes"
+    ],
+    "Papeles": [
+      "Pañuelos",
+      "Papel Higienico",
+      "Rollos de Cocina",
+      "Servilletas"
+    ],
+    "Accesorios de Limpieza": [
+      "Mopas",
+      "Escobas",
+      "Esponjas",
+      "Guantes",
+      "Palas y Cabos",
+      "Trapos de Piso y Paños Multiuso"
+    ]
   },
-  'Limpieza del hogar': {
-    'Cocina':                  ['Detergentes', 'Lava Vajillas', 'Limpieza de Superficies'],
-    'Baño':                    ['Desinfectantes', 'Pastillas de inodoro'],
-    'Pisos y Muebles':         ['Lavandina', 'Desinfectantes', 'Aromatizantes', 'Lustramuebles', 'Ceras y Autobrillos'],
-    'Insecticida y Repelentes': ['Aerosoles', 'Repelentes', 'Aparatos y cebos'],
-    'Ropa':                    ['Jabones Liquidos', 'Suavizantes'],
-    'Calzado':                 ['Brillos Limpiadores', 'Pomadas'],
-    'Desodorante de Ambiente': ['Aromatizantes', 'Desinfectantes'],
-    'Papeles':                 ['Pañuelos', 'Papel Higienico', 'Rollos de Cocina', 'Servilletas'],
-    'Accesorios de Limpieza':  ['Mopas', 'Escobas', 'Esponjas', 'Guantes', 'Palas y Cabos', 'Trapos de Piso y Paños Multiuso'],
+  "Electro belleza": {
+    "Maquinas de Corte Cabello y Barba": [],
+    "Planchas y Rizadores": [],
+    "Secadores de Pelo": [],
+    "Depilación": [],
+    "Masajeadores": [],
+    "Cabinas y Tornos de Uñas": []
   },
-  'Electro belleza': {
-    'Maquinas de Corte Cabello y Barba': [],
-    'Planchas y Rizadores':              [],
-    'Secadores de Pelo':                 [],
-    'Depilación':                        [],
-    'Masajeadores':                      [],
-    'Cabinas y Tornos de Uñas':          [],
-  },
-  'Lanzamientos': {},
+  "Lanzamientos": {}
 };
 
 const SECCIONES = ['Perfumería', 'Hogar'];
