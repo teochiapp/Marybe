@@ -148,6 +148,9 @@ function construirHojaListas(wb) {
     }
   }
 
+  // Definir nombre de rango para la tabla de mapeo (columnas BA y BB)
+  wb.definedNames.add('Listas!$BA:$BB', 'MAPEO_RANGOS');
+
   // ── 7. Opciones Booleanas (SI / NO) ─────────────────────────────────────
   wsL.getCell(1, col).value = '_BOOLEANOS';
   wsL.getCell(2, col).value = 'SI';
@@ -178,14 +181,14 @@ function aplicarValidacionFila(ws, rowIndex) {
   ws.getCell(`G${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: [`INDIRECT(VLOOKUP(F${rowIndex}, Listas!$BA:$BB, 2, FALSE))`]
+    formulae: [`INDIRECT(VLOOKUP(F${rowIndex}, MAPEO_RANGOS, 2, FALSE))`]
   };
 
   // H (col 8): Tipo (cascada basada en G)
   ws.getCell(`H${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: [`INDIRECT(VLOOKUP(F${rowIndex}&"_"&G${rowIndex}, Listas!$BA:$BB, 2, FALSE))`]
+    formulae: [`INDIRECT(VLOOKUP(F${rowIndex}&"_"&G${rowIndex}, MAPEO_RANGOS, 2, FALSE))`]
   };
 
   // L (col 12): Publicado
