@@ -35,9 +35,8 @@ function isSeparatorOrEmpty(row) {
 }
 
 function parseBoolean(val) {
-  return ['1', 'true', 'si', 'sí', 'yes'].includes(
-    (val || '').toString().toLowerCase().trim()
-  );
+  const v = (val || '').toString().toLowerCase().trim();
+  return ['1', 'true', 'si', 'sí', 'yes', 'verdadero', 'v', 't', 'y'].includes(v);
 }
 
 function parseDecimal(val) {

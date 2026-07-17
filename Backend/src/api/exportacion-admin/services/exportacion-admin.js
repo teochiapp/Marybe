@@ -20,7 +20,7 @@ const {
 
 // ─── Helpers de datos ─────────────────────────────────────────────────────────
 function boolStr(val) {
-  return val === true || val === 1 || String(val).toLowerCase() === 'true' ? 'TRUE' : 'FALSE';
+  return val === true || val === 1 || String(val).toLowerCase() === 'true' || String(val).toLowerCase() === 'si' ? 'SI' : 'NO';
 }
 
 function safeNum(val) {
@@ -74,7 +74,7 @@ function toRangeName(str) {
  *   Col N+: Tipos por subcat  → named range: toRangeName(catName + "_" + subName)
  */
 function construirHojaListas(wb) {
-  const wsL = wb.addWorksheet('Listas', { state: 'veryHidden' });
+  const wsL = wb.addWorksheet('Listas');
   let col = 1;
 
   // ── 1. Secciones ─────────────────────────────────────────────────────────
@@ -147,6 +147,14 @@ function construirHojaListas(wb) {
       mapRow++;
     }
   }
+
+  // ── 7. Opciones Booleanas (SI / NO) ─────────────────────────────────────
+  wsL.getCell(1, col).value = '_BOOLEANOS';
+  wsL.getCell(2, col).value = 'SI';
+  wsL.getCell(3, col).value = 'NO';
+  const boolLtr = colLetter(col);
+  wb.definedNames.add(`Listas!$${boolLtr}$2:$${boolLtr}$3`, 'BOOLEANOS');
+  col++;
 }
 
 /**
@@ -205,14 +213,14 @@ function aplicarValidacionFila(ws, rowIndex) {
   ws.getCell(`L${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: ['"TRUE,FALSE"']
+    formulae: ['BOOLEANOS']
   };
 
   // M (col 13): Destacado
   ws.getCell(`M${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: ['"TRUE,FALSE"']
+    formulae: ['BOOLEANOS']
   };
 }
 
@@ -224,7 +232,7 @@ function aplicarValidacionVariante(ws, rowIndex) {
   ws.getCell(`J${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: ['"TRUE,FALSE"']
+    formulae: ['BOOLEANOS']
   };
 
   // L (col 12): Color
@@ -309,8 +317,8 @@ async function generarExcel(strapi) {
     { header: 'Descripción',      width: 60, group: 'extra',  note: 'Descripción del producto' },
     { header: 'Especificaciones', width: 50, group: 'extra',  note: 'Especificaciones técnicas' },
     { header: 'Proveedor',        width: 28, group: 'extra',  note: 'Nombre del proveedor' },
-    { header: 'Publicado',        width: 12, group: 'extra',  note: 'TRUE = visible | FALSE = oculto' },
-    { header: 'Destacado',        width: 12, group: 'extra',  note: 'TRUE = destacado | FALSE = normal' },
+    { header: 'Publicado',        width: 12, group: 'extra',  note: 'SI = visible | NO = oculto' },
+    { header: 'Destacado',        width: 12, group: 'extra',  note: 'SI = destacado | NO = normal' },
     { header: 'Stock',            width: 12, group: 'extra',  note: 'Stock disponible (solo para productos sin variantes)' },
     { header: 'Características',  width: 40, group: 'extra',  note: 'Separadas por |' },
     { header: 'Precio *',         width: 16, group: 'precio', note: 'Precio de lista (sin descuento)' },
@@ -385,8 +393,8 @@ async function generarExcel(strapi) {
       }
       // Publicado/Destacado en verde/rojo (L,M = índices 11,12)
       if (ci === 11 || ci === 12) {
-        cell.dataValidation = { type: 'list', allowBlank: true, formulae: ['"TRUE,FALSE"'] };
-        cell.font = { bold: true, color: { argb: val === 'TRUE' ? '16A34A' : 'EF4444' }, size: 10 };
+        cell.dataValidation = { type: 'list', allowBlank: true, formulae: ['BOOLEANOS'] };
+        cell.font = { bold: true, color: { argb: val === 'SI' ? '16A34A' : 'EF4444' }, size: 10 };
       }
     });
 
@@ -580,7 +588,7 @@ async function generarExcel(strapi) {
       const cJ = r.getCell(10);
       cJ.value = boolStr(v.publicado);
       applyStyle(cJ, dataStyle(bgColor));
-      cJ.font  = { bold: true, color: { argb: cJ.value === 'TRUE' ? '16A34A' : 'EF4444' }, size: 10 };
+      cJ.font  = { bold: true, color: { argb: cJ.value === 'SI' ? '16A34A' : 'EF4444' }, size: 10 };
       cJ.alignment = { vertical: 'middle' };
 
       // K: Envío
