@@ -175,38 +175,17 @@ function aplicarValidacionFila(ws, rowIndex) {
   };
 
   // G (col 7): Subcategoría (cascada basada en F)
-  // Usamos la columna oculta AA (27) que tiene el nombre del rango ya calculado
   ws.getCell(`G${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: [`INDIRECT($AA${rowIndex})`]
+    formulae: [`INDIRECT(VLOOKUP(F${rowIndex}, Listas!$BA:$BB, 2, FALSE))`]
   };
 
   // H (col 8): Tipo (cascada basada en G)
-  // Usamos la columna oculta AB (28)
   ws.getCell(`H${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: [`INDIRECT($AB${rowIndex})`]
-  };
-
-  // Columnas ocultas AA y AB para calcular los nombres de los rangos usando VLOOKUP contra la tabla de mapeo
-  const valF = ws.getCell(`F${rowIndex}`).value || '';
-  const valG = ws.getCell(`G${rowIndex}`).value || '';
-  
-  // Proveer un "result" válido inicial evita que Excel desactive el INDIRECT al abrir el archivo si la celda original está vacía
-  const resAA = valF ? toRangeName(valF) : 'Dermocosmetica';
-  const resAB = valF && valG ? toRangeName(`${valF}_${valG}`) : 'Dermocosmetica_Cuidado_facial';
-  
-  const cAA = ws.getCell(`AA${rowIndex}`);
-  cAA.value = { 
-    formula: `IF(F${rowIndex}="", "Dermocosmetica", VLOOKUP(F${rowIndex}, Listas!$BA:$BB, 2, FALSE))`, 
-    result: resAA 
-  };
-  const cAB = ws.getCell(`AB${rowIndex}`);
-  cAB.value = { 
-    formula: `IF(G${rowIndex}="", "Dermocosmetica_Cuidado_facial", VLOOKUP(F${rowIndex}&"_"&G${rowIndex}, Listas!$BA:$BB, 2, FALSE))`, 
-    result: resAB 
+    formulae: [`INDIRECT(VLOOKUP(F${rowIndex}&"_"&G${rowIndex}, Listas!$BA:$BB, 2, FALSE))`]
   };
 
   // L (col 12): Publicado
@@ -275,9 +254,6 @@ async function generarExcel(strapi) {
   const wb   = new ExcelJS.Workbook();
   wb.creator = 'Marybe';
   wb.created = new Date();
-
-  // ── Hoja oculta de listas para validaciones ───────────────────────────────
-  construirHojaListas(wb);
 
   // ══════════════════════════════════════════════════════════════════════════
   // HOJA 1: PRODUCTOS (A–R)
@@ -612,6 +588,10 @@ async function generarExcel(strapi) {
   for (let extra = 1; extra <= EXTRA_ROWS; extra++) {
     aplicarValidacionVariante(wsV, rowIdxV + extra);
   }
+  
+  // ── Hoja visible de listas para validaciones ──────────────────────────────
+  // Generada al final para que aparezca como última pestaña en Excel
+  construirHojaListas(wb);
 
   const buffer = await wb.xlsx.writeBuffer();
 
