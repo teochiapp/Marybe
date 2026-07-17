@@ -128,28 +128,42 @@ function construirHojaListas(wb) {
   wb.definedNames.add(`Listas!$${colLtr}$2:$${colLtr}$${COLORES.length + 1}`, 'COLORES');
   col++;
 
-  // ── 6. Mapping para VLOOKUP (Columnas BA y BB) ──────────────────────────
+  // ── (nuevo) rango dummy para combos sin opciones ──────────
+  wsL.getCell(1, col).value = '_SIN_OPCIONES';
+  wsL.getCell(2, col).value = '';
+  const noOptLtr = colLetter(col);
+  wb.definedNames.add(`Listas!$${noOptLtr}$2:$${noOptLtr}$2`, 'SIN_OPCIONES');
+  col++;
+
+  // ── 6. Mapping para VLOOKUP (Columnas dinámicas, no hardcodeadas) ──────────
+  const mapColKey = col;
+  const mapColVal = col + 1;
   let mapRow = 1;
-  wsL.getCell(mapRow, 53).value = 'KEY'; // BA
-  wsL.getCell(mapRow, 54).value = 'NAMED_RANGE'; // BB
+  wsL.getCell(mapRow, mapColKey).value = 'KEY';
+  wsL.getCell(mapRow, mapColVal).value = 'NAMED_RANGE';
   mapRow++;
 
   for (const [catName, subcats] of Object.entries(TAXONOMY)) {
+    const subcatList = Object.keys(subcats);
+
     // Para categoría
-    wsL.getCell(mapRow, 53).value = catName;
-    wsL.getCell(mapRow, 54).value = toRangeName(catName);
+    wsL.getCell(mapRow, mapColKey).value = catName;
+    wsL.getCell(mapRow, mapColVal).value = subcatList.length > 0 ? toRangeName(catName) : 'SIN_OPCIONES';
     mapRow++;
 
     // Para subcategorías (catName_subName)
-    for (const subName of Object.keys(subcats)) {
-      wsL.getCell(mapRow, 53).value = `${catName}_${subName}`;
-      wsL.getCell(mapRow, 54).value = toRangeName(`${catName}_${subName}`);
+    for (const [subName, tipos] of Object.entries(subcats)) {
+      wsL.getCell(mapRow, mapColKey).value = `${catName}_${subName}`;
+      wsL.getCell(mapRow, mapColVal).value = (tipos && tipos.length > 0) ? toRangeName(`${catName}_${subName}`) : 'SIN_OPCIONES';
       mapRow++;
     }
   }
 
-  // Definir nombre de rango para la tabla de mapeo (columnas BA y BB)
-  wb.definedNames.add('Listas!$BA:$BB', 'MAPEO_RANGOS');
+  // Definir nombre de rango para la tabla de mapeo
+  const keyLtr = colLetter(mapColKey);
+  const valLtr = colLetter(mapColVal);
+  wb.definedNames.add(`Listas!$${keyLtr}:$${valLtr}`, 'MAPEO_RANGOS');
+  col += 2;
 
   // ── 7. Opciones Booleanas (SI / NO) ─────────────────────────────────────
   wsL.getCell(1, col).value = '_BOOLEANOS';
