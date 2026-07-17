@@ -151,7 +151,7 @@ function aplicarValidacionFila(ws, rowIndex) {
   ws.getCell(`G${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: [`INDIRECTO($AA${rowIndex})`]
+    formulae: [`INDIRECT($AA${rowIndex})`]
   };
 
   // H (col 8): Tipo (cascada basada en G)
@@ -159,7 +159,7 @@ function aplicarValidacionFila(ws, rowIndex) {
   ws.getCell(`H${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: [`INDIRECTO($AB${rowIndex})`]
+    formulae: [`INDIRECT($AB${rowIndex})`]
   };
 
   // Columnas ocultas AA y AB para calcular los nombres de los rangos sin romper por el locale de Excel (coma vs punto y coma)
@@ -167,8 +167,8 @@ function aplicarValidacionFila(ws, rowIndex) {
   const valG = ws.getCell(`G${rowIndex}`).value || '';
   
   // Proveer un "result" válido inicial evita que Excel desactive el INDIRECT al abrir el archivo si la celda original está vacía
-  const resAA = valF ? valF.replace(/\s+/g, '_') : 'Dermocosmetica';
-  const resAB = valF && valG ? `${valF}_${valG}`.replace(/\s+/g, '_') : 'Dermocosmetica_Cuidado_facial';
+  const resAA = valF ? toRangeName(valF) : 'Dermocosmetica';
+  const resAB = valF && valG ? toRangeName(`${valF}_${valG}`) : 'Dermocosmetica_Cuidado_facial';
   
   const cAA = ws.getCell(`AA${rowIndex}`);
   cAA.value = { formula: `SUBSTITUTE(F${rowIndex}, " ", "_")`, result: resAA };
