@@ -94,6 +94,10 @@
     },
     "precio_oferta": {
       "type": "decimal"
+    },
+    "stock": {
+      "type": "integer",
+      "default": 0
     }
   }
 }

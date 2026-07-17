@@ -798,6 +798,7 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     publishedAt: Schema.Attribute.DateTime;
     seccion: Schema.Attribute.String;
     sku: Schema.Attribute.String;
+    stock: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     subcategoria: Schema.Attribute.String;
     tipo: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;

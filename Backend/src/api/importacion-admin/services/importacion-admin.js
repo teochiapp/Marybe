@@ -51,8 +51,9 @@ async function leerExcel(rutaArchivo) {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(rutaArchivo);
 
-  // Hoja 1: Productos
-  const wsP = wb.getWorksheet('📦 Productos') || wb.worksheets[0];
+  // Hoja 1: Productos (busca por nombre; omite hoja oculta 'Listas')
+  const wsP = wb.getWorksheet('📦 Productos')
+    || wb.worksheets.find(ws => ws.name !== 'Listas');
   if (!wsP) throw new Error('No se encontró la hoja de Productos en el Excel.');
 
   const productos = [];
@@ -76,16 +77,17 @@ async function leerExcel(rutaArchivo) {
       proveedor:       cellVal(row, 11),
       publicado:       cellVal(row, 12),
       destacado:       cellVal(row, 13) || 'FALSE',
-      moneda:          cellVal(row, 14) || 'ARS',
+      stock:           cellVal(row, 14) || '0',
       caracteristicas: cellVal(row, 15),
       precio:          cellVal(row, 16),
-      pct_descuento:   cellVal(row, 17),
-      precio_oferta:   cellVal(row, 18),
+      precio_oferta:   cellVal(row, 17),   // Col Q — ahora el usuario ingresa el precio oferta
+      pct_descuento:   cellVal(row, 18),   // Col R — calculado en Excel (lectura de respaldo)
     });
   });
 
   // Hoja 2: Variantes
-  const wsV = wb.getWorksheet('🔗 Variantes') || wb.worksheets[1];
+  const wsV = wb.getWorksheet('🔗 Variantes')
+    || wb.worksheets.find(ws => ws.name !== 'Listas' && ws !== wsP);
   if (!wsV) throw new Error('No se encontró la hoja de Variantes en el Excel.');
 
   const variantes = [];
@@ -95,16 +97,18 @@ async function leerExcel(rutaArchivo) {
     const id_original = cellVal(row, 1);
     if (!id_original) return;
 
-    const precio        = parseFloat(cellVal(row, 7)) || 0;
-    const pct_descuento = parseFloat(cellVal(row, 8)) || 0;
-    const precio_oferta_raw = cellVal(row, 9);
+    const precio           = parseFloat(cellVal(row, 7)) || 0;
+    const precio_oferta_raw = cellVal(row, 8); // Col H — ahora el usuario ingresa el precio oferta
+    const pct_descuento_raw = cellVal(row, 9); // Col I — calculado en Excel (lectura de respaldo)
 
+    // Precio oferta: primario desde col 8 (usuario), fallback calculado desde col 9 (% desc)
     let precio_oferta = null;
     if (precio_oferta_raw && parseFloat(precio_oferta_raw) > 0) {
       precio_oferta = parseFloat(precio_oferta_raw);
-    } else if (pct_descuento > 0 && precio > 0) {
-      precio_oferta = Math.round(precio * (1 - pct_descuento / 100) * 100) / 100;
     }
+    const pct_descuento = precio_oferta && precio > 0
+      ? Math.round((1 - precio_oferta / precio) * 100)
+      : parseFloat(pct_descuento_raw) || 0;
 
     variantes.push({
       id_original,
@@ -117,8 +121,7 @@ async function leerExcel(rutaArchivo) {
       precio_oferta:     precio_oferta ? String(precio_oferta) : '',
       publicado:         cellVal(row, 10) || 'TRUE',
       envio:             cellVal(row, 11) || '1',
-      moneda:            cellVal(row, 12) || 'ARS',
-      color_nombre:      cellVal(row, 13),
+      color_nombre:      cellVal(row, 12),
     });
   });
 
@@ -236,31 +239,45 @@ async function procesarImportacion(strapi, rutaExcel) {
         volumen:       (v.volumen || '').trim(),
         stock:         parseInt(v.stock) || 0,
         precio:        parseDecimal(v.precio) || 0,
+        // precio_oferta es primario (col 8, usuario lo ingresa)
         precio_oferta: (() => {
+          const oferta = parseDecimal(v.precio_oferta);
+          if (oferta && oferta > 0) return oferta;
+          // fallback: calcular desde % descuento (col 9)
           const pct    = parseDecimal(v.pct_descuento);
           const precio = parseDecimal(v.precio);
           if (pct && precio) return Math.round(precio * (1 - pct / 100) * 100) / 100;
-          return parseDecimal(v.precio_oferta);
+          return null;
         })(),
         publicado:    parseBoolean(v.publicado),
         envio:        (v.envio  || '').trim(),
-        moneda:       (v.moneda || 'ARS').trim(),
         color_nombre: (v.color_nombre || '').trim() || null,
       }));
 
+      // maxDescuento: calculado desde precio_oferta de las variantes
       const maxDescuento = hijos.reduce((max, v) => {
-        const pct = Math.round(parseDecimal(v.pct_descuento) || 0);
+        const precioV  = parseDecimal(v.precio);
+        const ofertaV  = parseDecimal(v.precio_oferta);
+        const pct = ofertaV && precioV && precioV > 0
+          ? Math.round((1 - ofertaV / precioV) * 100)
+          : Math.round(parseDecimal(v.pct_descuento) || 0);
         return pct > max ? pct : max;
       }, 0);
 
-      const precioProd     = parseDecimal(p.precio);
-      const pctDescProd    = parseDecimal(p.pct_descuento);
+      const precioProd       = parseDecimal(p.precio);
+      // precio_oferta es primario (col Q, usuario lo ingresa)
       const precioOfertaProd = (() => {
         const raw = parseDecimal(p.precio_oferta);
         if (raw && raw > 0) return raw;
-        if (pctDescProd && precioProd) return Math.round(precioProd * (1 - pctDescProd / 100) * 100) / 100;
+        // fallback: calcular desde % descuento (col R, calculado en Excel)
+        const pct = parseDecimal(p.pct_descuento);
+        if (pct && precioProd) return Math.round(precioProd * (1 - pct / 100) * 100) / 100;
         return null;
       })();
+      // Calcular % descuento para Strapi desde precio y precio_oferta
+      const pctDescProd = precioOfertaProd && precioProd && precioProd > 0
+        ? Math.round((1 - precioOfertaProd / precioProd) * 100)
+        : Math.round(parseDecimal(p.pct_descuento) || 0);
 
       const productoData = {
         id_original:     idOriginal,
@@ -275,8 +292,8 @@ async function procesarImportacion(strapi, rutaExcel) {
         proveedor:       (p.proveedor || '').trim(),
         publicado:       parseBoolean(p.publicado),
         destacado:       parseBoolean(p.destacado),
-        moneda:          (p.moneda || 'ARS').trim(),
-        descuento:       maxDescuento || Math.round(pctDescProd || 0),
+        stock:           parseInt(p.stock) || 0,
+        descuento:       maxDescuento || pctDescProd,
         precio:          precioProd,
         precio_oferta:   precioOfertaProd,
         variantes:       variantesData,

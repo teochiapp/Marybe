@@ -17,36 +17,7 @@ export const ChevronIcon = ({ open }) => (
 );
 
 export const DataFiscalQR = () => (
-  <svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
-    <rect width="72" height="72" rx="6" fill="#1a6eb5" />
-    <rect x="6" y="6" width="24" height="24" rx="2" fill="white" />
-    <rect x="10" y="10" width="16" height="16" rx="1" fill="#1a6eb5" />
-    <rect x="13" y="13" width="10" height="10" fill="white" />
-    <rect x="42" y="6" width="24" height="24" rx="2" fill="white" />
-    <rect x="46" y="10" width="16" height="16" rx="1" fill="#1a6eb5" />
-    <rect x="49" y="13" width="10" height="10" fill="white" />
-    <rect x="6" y="42" width="24" height="24" rx="2" fill="white" />
-    <rect x="10" y="46" width="16" height="16" rx="1" fill="#1a6eb5" />
-    <rect x="13" y="49" width="10" height="10" fill="white" />
-    <rect x="34" y="34" width="4" height="4" fill="white" />
-    <rect x="40" y="34" width="4" height="4" fill="white" />
-    <rect x="46" y="34" width="4" height="4" fill="white" />
-    <rect x="52" y="34" width="4" height="4" fill="white" />
-    <rect x="58" y="34" width="8" height="4" fill="white" />
-    <rect x="34" y="40" width="4" height="4" fill="white" />
-    <rect x="40" y="40" width="8" height="4" fill="white" />
-    <rect x="52" y="40" width="4" height="4" fill="white" />
-    <rect x="34" y="46" width="8" height="4" fill="white" />
-    <rect x="46" y="46" width="4" height="4" fill="white" />
-    <rect x="54" y="46" width="4" height="4" fill="white" />
-    <rect x="60" y="46" width="6" height="4" fill="white" />
-    <rect x="34" y="52" width="4" height="4" fill="white" />
-    <rect x="42" y="52" width="4" height="4" fill="white" />
-    <rect x="50" y="52" width="4" height="4" fill="white" />
-    <rect x="58" y="52" width="8" height="4" fill="white" />
-    <rect x="34" y="58" width="8" height="8" fill="white" />
-    <rect x="46" y="58" width="4" height="8" fill="white" />
-    <rect x="54" y="58" width="12" height="8" fill="white" />
-    <text x="36" y="71" fontFamily="Arial" fontSize="5" fill="white" textAnchor="middle">DATA FISCAL</text>
-  </svg>
+  <a href="http://qr.afip.gob.ar/?qr=2G75YUZmDPaF0gYrntoB7w,," target="_F960AFIPInfo" rel="noopener noreferrer">
+    <img src="/data-fiscal.jpg" border="0" alt="Data Fiscal AFIP" style={{ width: '72px', height: 'auto' }} />
+  </a>
 );

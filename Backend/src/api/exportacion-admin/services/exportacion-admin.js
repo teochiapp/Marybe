@@ -4,9 +4,80 @@ const ExcelJS = require('exceljs');
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const UID_PRODUCTO = 'api::producto.producto';
-const PAGE_SIZE    = 100; // Cuántos productos traer por request a Strapi
+const PAGE_SIZE    = 100;
 
-// ─── Paleta de colores (idéntica a generar-plantilla.js) ─────────────────────
+// ─── Taxonomía completa (Categorias de la pagina.xlsx) ────────────────────────
+// Estructura: { Categoría: { Subcategoría: [Tipo, ...], ... }, ... }
+const TAXONOMY = {
+  'Ofertas': {
+    'Fragancias': [],
+    'Maquillaje': [],
+    'Dermocosmetica': [],
+    'Cuidado Personal': [],
+    'Bebés y niños': [],
+    'Limpieza del hogar': [],
+  },
+  'Dermocosmetica': {
+    'Cuidado facial':   ['Limpieza facial', 'Exfoliantes y Mascarillas', 'Tónicos', 'Cremas Faciales', 'Serums', 'Contornos de ojos y labios', 'Accesorios'],
+    'Cuidado Corporal': ['Cremas Corporales', 'Cremas de manos', 'Cremas para masajes', 'Exfoliantes', 'Accesorios'],
+    'Solares':          ['Faciales', 'Corporales', 'Autobronceantes', 'Post Solares', 'Accesorios'],
+  },
+  'Fragancias': {
+    'Femeninas':    ['Premium', 'Sets', 'Semi selectivos', 'Nacionales', 'Body Splash y Colonias'],
+    'Masculinos':   ['Premium', 'Sets', 'Semi selectivos', 'Nacionales', 'Body Splash y Colonias'],
+    'Bebés y niños': ['Premium', 'Sets', 'Nacionales', 'Body Splash y Colonias'],
+  },
+  'Maquillaje': {
+    'Labios':     ['Labiales Liquidos', 'Labiales en Barra', 'Bálsamos Labiales', 'Brillos Labiales', 'Delineadores'],
+    'Ojos':       ['Mascaras de pestañas', 'Sombras', 'Delineadores en Lapiz', 'Delineadores Liquidos', 'Cejas'],
+    'Rostro':     ['Bases de Maquillaje', 'Correctores de Ojeras', 'Polvos', 'Bronzer', 'Iluminadores', 'Rubores', 'Fijadores', 'Primer'],
+    'Uñas':       ['Esmaltes', 'Quita esmaltes', 'Tratamientos'],
+    'Accesorios': ['Brochas y Pinceles', 'Esponjas'],
+  },
+  'Cuidado Personal': {
+    'Cuidado Capilar':  ['Shampoo', 'Acondicionadores', 'Tratamientos Capilares', 'Coloración', 'Gel y Fijadores', 'Cepillos y Peines'],
+    'Higiene Corporal': ['Desodorantes', 'Depilacion', 'Afeitado', 'Jabones de Tocador', 'Algodones e hisopos', 'Talcos'],
+    'Higiene Oral':     ['Pastas Dentales', 'Cepillos de dientes', 'Hilos dentales', 'Enjuagues bucales'],
+    'Cuidado Intimo':   ['Toallitas', 'Protectores diarios', 'Salud intima', 'Incontinencia'],
+    'Accesorios':       [],
+  },
+  'Niños y Bebés': {
+    'Pañales':                   [],
+    'Higiene del Bebe':          ['Toallas humedas', 'Oleos y algodón', 'Talcos y Aceites'],
+    'Jabones':                   [],
+    'Colonias':                  [],
+    'Fragancias':                [],
+    'Desodorantes':              [],
+    'Cuidado materno':           ['Protectores Mamarios', 'Cuidado de piel'],
+    'Cremas y cepillos dentales': [],
+    'Solares':                   [],
+    'Capilares':                 ['Shampoo', 'Acondicionadores', 'Tratamientos'],
+  },
+  'Limpieza del hogar': {
+    'Cocina':                  ['Detergentes', 'Lava Vajillas', 'Limpieza de Superficies'],
+    'Baño':                    ['Desinfectantes', 'Pastillas de inodoro'],
+    'Pisos y Muebles':         ['Lavandina', 'Desinfectantes', 'Aromatizantes', 'Lustramuebles', 'Ceras y Autobrillos'],
+    'Insecticida y Repelentes': ['Aerosoles', 'Repelentes', 'Aparatos y cebos'],
+    'Ropa':                    ['Jabones Liquidos', 'Suavizantes'],
+    'Calzado':                 ['Brillos Limpiadores', 'Pomadas'],
+    'Desodorante de Ambiente': ['Aromatizantes', 'Desinfectantes'],
+    'Papeles':                 ['Pañuelos', 'Papel Higienico', 'Rollos de Cocina', 'Servilletas'],
+    'Accesorios de Limpieza':  ['Mopas', 'Escobas', 'Esponjas', 'Guantes', 'Palas y Cabos', 'Trapos de Piso y Paños Multiuso'],
+  },
+  'Electro belleza': {
+    'Maquinas de Corte Cabello y Barba': [],
+    'Planchas y Rizadores':              [],
+    'Secadores de Pelo':                 [],
+    'Depilación':                        [],
+    'Masajeadores':                      [],
+    'Cabinas y Tornos de Uñas':          [],
+  },
+  'Lanzamientos': {},
+};
+
+const SECCIONES = ['Perfumería', 'Hogar'];
+
+// ─── Paleta de colores ────────────────────────────────────────────────────────
 const C = {
   violeta:       'FF7C6AF7',
   violetaClaro:  'FFEDE9FE',
@@ -30,7 +101,7 @@ const C = {
   naranjaClaro:  'FFFFF3E0',
 };
 
-// ─── Helpers de estilo (idénticos a generar-plantilla.js) ────────────────────
+// ─── Helpers de estilo ────────────────────────────────────────────────────────
 function headerStyle(bgColor, textColor = C.blanco) {
   return {
     fill:      { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } },
@@ -98,16 +169,126 @@ function safeNum(val) {
   return isNaN(n) ? null : n;
 }
 
-/**
- * Calcula el % de descuento dado precio normal y precio oferta.
- * Si ya hay un campo `descuento` en el producto, lo usa directamente.
- */
 function calcPct(precio, precioOferta, descuentoExplicito) {
   if (descuentoExplicito && descuentoExplicito > 0) return descuentoExplicito;
   if (precio && precioOferta && precio > 0 && precioOferta < precio) {
     return Math.round(((precio - precioOferta) / precio) * 100);
   }
   return 0;
+}
+
+// ─── Helpers para Named Ranges ────────────────────────────────────────────────
+/**
+ * Convierte índice de columna (1-based) a letra(s) Excel (A, B, ... Z, AA...)
+ */
+function colLetter(n) {
+  let r = '';
+  while (n > 0) {
+    n--;
+    r = String.fromCharCode(65 + (n % 26)) + r;
+    n = Math.floor(n / 26);
+  }
+  return r;
+}
+
+/**
+ * Normaliza un string para usarlo como nombre de rango Excel.
+ * Solo reemplaza espacios por _ y elimina chars no permitidos.
+ * Mantiene letras acentuadas (ñ, é, etc.) que Excel soporta en nombres.
+ */
+function toRangeName(str) {
+  return str.trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-zA-Z0-9\u00C0-\u024F_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+/**
+ * Crea la hoja oculta "Listas" con todas las listas de selección
+ * y define los named ranges correspondientes en el workbook.
+ *
+ * Estructura de columnas en la hoja Listas:
+ *   Col 1: Secciones          → named range: SECCIONES
+ *   Col 2: Categorías         → named range: CATEGORIAS
+ *   Col 3+: Subcats por cat   → named range: toRangeName(catName)
+ *   Col N+: Tipos por subcat  → named range: toRangeName(catName + "_" + subName)
+ */
+function construirHojaListas(wb) {
+  const wsL = wb.addWorksheet('Listas', { state: 'veryHidden' });
+  let col = 1;
+
+  // ── 1. Secciones ─────────────────────────────────────────────────────────
+  wsL.getCell(1, col).value = '_SECCIONES';
+  SECCIONES.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
+  const secLtr = colLetter(col);
+  wb.definedNames.add(`Listas!$${secLtr}$2:$${secLtr}$${SECCIONES.length + 1}`, 'SECCIONES');
+  col++;
+
+  // ── 2. Categorías ─────────────────────────────────────────────────────────
+  const categorias = Object.keys(TAXONOMY);
+  wsL.getCell(1, col).value = '_CATEGORIAS';
+  categorias.forEach((c, i) => { wsL.getCell(i + 2, col).value = c; });
+  const catLtr = colLetter(col);
+  wb.definedNames.add(`Listas!$${catLtr}$2:$${catLtr}$${categorias.length + 1}`, 'CATEGORIAS');
+  col++;
+
+  // ── 3. Subcategorías por cada Categoría ───────────────────────────────────
+  for (const [catName, subcats] of Object.entries(TAXONOMY)) {
+    const subcatList = Object.keys(subcats);
+    if (subcatList.length === 0) continue;
+
+    wsL.getCell(1, col).value = `_${catName}`;
+    subcatList.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
+
+    const ltr = colLetter(col);
+    const rn  = toRangeName(catName);
+    wb.definedNames.add(`Listas!$${ltr}$2:$${ltr}$${subcatList.length + 1}`, rn);
+    col++;
+  }
+
+  // ── 4. Tipos por cada (Categoría + Subcategoría) ──────────────────────────
+  for (const [catName, subcats] of Object.entries(TAXONOMY)) {
+    for (const [subName, tipos] of Object.entries(subcats)) {
+      if (!tipos || tipos.length === 0) continue;
+
+      const key = `${catName}_${subName}`;
+      wsL.getCell(1, col).value = `_${key}`;
+      tipos.forEach((t, i) => { wsL.getCell(i + 2, col).value = t; });
+
+      const ltr = colLetter(col);
+      const rn  = toRangeName(key);
+      wb.definedNames.add(`Listas!$${ltr}$2:$${ltr}$${tipos.length + 1}`, rn);
+      col++;
+    }
+  }
+}
+
+/**
+ * Aplica validación en cascada a una fila de la hoja Productos.
+ * E(5)=Sección, F(6)=Categoría, G(7)=Subcategoría, H(8)=Tipo
+ */
+function aplicarValidacionFila(wsP, rowIdx) {
+  // E: Sección (lista fija: Perfumería / Hogar)
+  wsP.getCell(rowIdx, 5).dataValidation = {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: ['SECCIONES'],
+  };
+  // F: Categoría
+  wsP.getCell(rowIdx, 6).dataValidation = {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: ['CATEGORIAS'],
+  };
+  // G: Subcategoría — depende de F (Categoría)
+  wsP.getCell(rowIdx, 7).dataValidation = {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [`INDIRECT(SUBSTITUTE($F${rowIdx}," ","_"))`],
+  };
+  // H: Tipo — depende de F (Categoría) + G (Subcategoría)
+  wsP.getCell(rowIdx, 8).dataValidation = {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [`INDIRECT(SUBSTITUTE($F${rowIdx}&"_"&$G${rowIdx}," ","_"))`],
+  };
 }
 
 // ─── Traer TODOS los productos de Strapi con paginación ──────────────────────
@@ -126,7 +307,7 @@ async function fetchAllProductos(strapi) {
     if (!resultado || resultado.length === 0) break;
     todos.push(...resultado);
 
-    if (resultado.length < PAGE_SIZE) break; // última página
+    if (resultado.length < PAGE_SIZE) break;
     page++;
   }
 
@@ -135,18 +316,19 @@ async function fetchAllProductos(strapi) {
 
 // ─── Generador principal del Excel ───────────────────────────────────────────
 async function generarExcel(strapi) {
-  // 1. Obtener todos los productos actuales (incluyendo los editados desde el panel)
   strapi.log.info('[ExportAdmin] Obteniendo productos de Strapi...');
   const productos = await fetchAllProductos(strapi);
   strapi.log.info(`[ExportAdmin] ${productos.length} productos obtenidos`);
 
-  // 2. Construir workbook
   const wb   = new ExcelJS.Workbook();
   wb.creator = 'Marybe';
   wb.created = new Date();
 
+  // ── Hoja oculta de listas para validaciones ───────────────────────────────
+  construirHojaListas(wb);
+
   // ══════════════════════════════════════════════════════════════════════════
-  // HOJA 1: PRODUCTOS (columnas A–R, igual que importacion-admin)
+  // HOJA 1: PRODUCTOS (A–R)
   // ══════════════════════════════════════════════════════════════════════════
   const wsP = wb.addWorksheet('📦 Productos', {
     properties: { tabColor: { argb: C.violeta } },
@@ -166,30 +348,30 @@ async function generarExcel(strapi) {
   // Fila 2 — Instrucción
   wsP.mergeCells('A2:R2');
   const instrP     = wsP.getCell('A2');
-  instrP.value     = `⚠ Exportación generada el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos exportados. Compatible con la Plantilla de Importación Marybe.`;
+  instrP.value     = `⚠ Exportación generada el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Las columnas Sección, Categoría, Subcategoría y Tipo tienen listas desplegables en cascada.`;
   applyStyle(instrP, noteStyle());
   wsP.getRow(2).height = 28;
 
-  // Columnas con anchos (idéntico a generar-plantilla.js)
+  // Columnas con anchos
   const colDefsP = [
     { header: 'ID Original *',    width: 14, group: 'base',   note: 'ID único del producto' },
     { header: 'SKU / EAN',        width: 18, group: 'base',   note: 'Código de barras o código interno' },
     { header: 'Nombre *',         width: 40, group: 'base',   note: 'Nombre completo del producto' },
     { header: 'Marca',            width: 16, group: 'base',   note: 'Marca comercial' },
-    { header: 'Sección *',        width: 16, group: 'cat',    note: 'Nivel 1: Perfumería o Hogar' },
-    { header: 'Categoría',        width: 22, group: 'cat',    note: 'Nivel 2' },
-    { header: 'Subcategoría',     width: 22, group: 'cat',    note: 'Nivel 3' },
-    { header: 'Tipo',             width: 22, group: 'cat',    note: 'Nivel 4' },
+    { header: 'Sección *',        width: 16, group: 'cat',    note: 'Perfumería o Hogar' },
+    { header: 'Categoría',        width: 22, group: 'cat',    note: '↓ Lista desplegable' },
+    { header: 'Subcategoría',     width: 22, group: 'cat',    note: '↓ Depende de Categoría' },
+    { header: 'Tipo',             width: 22, group: 'cat',    note: '↓ Depende de Subcategoría' },
     { header: 'Descripción',      width: 60, group: 'extra',  note: 'Descripción del producto' },
     { header: 'Especificaciones', width: 50, group: 'extra',  note: 'Especificaciones técnicas' },
     { header: 'Proveedor',        width: 28, group: 'extra',  note: 'Nombre del proveedor' },
     { header: 'Publicado',        width: 12, group: 'extra',  note: 'TRUE = visible | FALSE = oculto' },
     { header: 'Destacado',        width: 12, group: 'extra',  note: 'TRUE = destacado | FALSE = normal' },
-    { header: 'Moneda',           width: 10, group: 'extra',  note: 'ARS, USD, EUR' },
+    { header: 'Stock',            width: 12, group: 'extra',  note: 'Stock disponible (solo para productos sin variantes)' },
     { header: 'Características',  width: 40, group: 'extra',  note: 'Separadas por |' },
-    { header: 'Precio *',         width: 16, group: 'precio', note: 'Precio de lista' },
-    { header: '% Descuento',      width: 14, group: 'precio', note: 'Porcentaje de descuento (0-100)' },
-    { header: 'Precio Oferta 🔒', width: 16, group: 'precio', note: 'Calculado automáticamente' },
+    { header: 'Precio *',         width: 16, group: 'precio', note: 'Precio de lista (sin descuento)' },
+    { header: 'Precio Oferta',     width: 16, group: 'precio', note: 'Precio con descuento (editable)' },
+    { header: '% Descuento 🔒',  width: 14, group: 'precio', note: 'Calculado a partir del Precio Oferta' },
   ];
 
   wsP.columns = colDefsP.map(h => ({ width: h.width }));
@@ -199,7 +381,7 @@ async function generarExcel(strapi) {
   colDefsP.forEach((h, i) => {
     const cell = rowHeaderP.getCell(i + 1);
     cell.value = h.header;
-    const color = h.group === 'base' ? C.violeta
+    const color = h.group === 'base'   ? C.violeta
       : h.group === 'cat'   ? C.azul
       : h.group === 'precio' ? C.verde
       : C.grisOscuro;
@@ -209,7 +391,7 @@ async function generarExcel(strapi) {
   rowHeaderP.height = 30;
 
   // ─ Filas de datos ─
-  let rowIdxP  = 3;
+  let rowIdxP    = 3;
   let totalVariantes = 0;
 
   for (const prod of productos) {
@@ -217,7 +399,6 @@ async function generarExcel(strapi) {
     const isEven  = rowIdxP % 2 === 0;
     const bgColor = isEven ? C.blanco : C.grisClaro;
 
-    // Calcular % descuento del producto principal
     const precioNum       = safeNum(prod.precio);
     const precioOfertaNum = safeNum(prod.precio_oferta);
     const pctDesc         = calcPct(precioNum, precioOfertaNum, prod.descuento);
@@ -228,7 +409,7 @@ async function generarExcel(strapi) {
       prod.nombre         || '',                      // C: Nombre
       prod.marca          || '',                      // D: Marca
       prod.seccion        || '',                      // E: Sección
-      prod.categoria?.nombre || '',                   // F: Categoría (relación)
+      prod.categoria?.nombre || '',                   // F: Categoría
       prod.subcategoria   || '',                      // G: Subcategoría
       prod.tipo           || '',                      // H: Tipo
       prod.descripcion    || '',                      // I: Descripción
@@ -236,7 +417,7 @@ async function generarExcel(strapi) {
       prod.proveedor      || '',                      // K: Proveedor
       boolStr(prod.publicado),                        // L: Publicado
       boolStr(prod.destacado),                        // M: Destacado
-      prod.moneda         || 'ARS',                   // N: Moneda
+      prod.stock          ?? 0,                       // N: Stock
       prod.caracteristicas || '',                     // O: Características
       // P, Q, R: con estilos especiales (abajo)
     ];
@@ -244,7 +425,7 @@ async function generarExcel(strapi) {
     const r = wsP.getRow(rowIdxP);
     r.height = 20;
 
-    // Columnas A–O
+    // Columnas A–O (índices 0-14)
     valores.forEach((val, ci) => {
       const cell = r.getCell(ci + 1);
       cell.value = val;
@@ -261,34 +442,56 @@ async function generarExcel(strapi) {
       }
     });
 
-    // P: Precio
+    // Stock (N, col 14) — override estilo: centrado
+    const cellStock = r.getCell(14);
+    cellStock.font      = { bold: false, color: { argb: C.grisOscuro }, size: 10, name: 'Calibri' };
+    cellStock.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // P (col 16): Precio — editable
     const cP = r.getCell(16);
     if (precioNum !== null) cP.value = precioNum;
     applyStyle(cP, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
     cP.font      = { bold: true, color: { argb: '065F46' }, size: 10, name: 'Calibri' };
     cP.alignment = { vertical: 'middle', horizontal: 'right' };
 
-    // Q: % Descuento
+    // Q (col 17): Precio Oferta — EDITABLE (usuario lo ingresa)
     const cQ = r.getCell(17);
-    cQ.value = pctDesc;
+    if (precioOfertaNum !== null) cQ.value = precioOfertaNum;
     applyStyle(cQ, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
-    cQ.font      = { color: { argb: '065F46' }, size: 10, name: 'Calibri' };
-    cQ.alignment = { vertical: 'middle', horizontal: 'center' };
+    cQ.font      = { bold: true, color: { argb: '065F46' }, size: 10, name: 'Calibri' };
+    cQ.alignment = { vertical: 'middle', horizontal: 'right' };
 
-    // R: Precio Oferta (fórmula igual que en importación)
+    // R (col 18): % Descuento — CALCULADO a partir de P y Q
     const cR = r.getCell(18);
-    cR.value = { formula: `IF(Q${rowIdxP}>0,ROUND(P${rowIdxP}*(1-Q${rowIdxP}/100),2),"")` };
-    // Si ya hay precio_oferta guardado, también lo ponemos como valor de caché
-    if (precioOfertaNum !== null) cR.value = precioOfertaNum;
+    // Fórmula: si hay precio y precio oferta, calcula el porcentaje
+    cR.value = { formula: `IF(AND(P${rowIdxP}>0,Q${rowIdxP}>0),ROUND((1-Q${rowIdxP}/P${rowIdxP})*100,0),0)` };
+    // Cache value para cuando abre el archivo sin recalcular
+    if (precioNum && precioOfertaNum && precioNum > 0) {
+      cR.value = Math.round((1 - precioOfertaNum / precioNum) * 100);
+    } else if (pctDesc > 0) {
+      cR.value = pctDesc;
+    } else {
+      cR.value = 0;
+    }
     applyStyle(cR, readonlyStyle());
-    cR.font = { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri', italic: true };
+    cR.font      = { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri', italic: true };
+    cR.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // ── Validaciones en cascada para esta fila ──────────────────────────────
+    aplicarValidacionFila(wsP, rowIdxP);
 
     r.commit();
     totalVariantes += (prod.variantes || []).length;
   }
 
+  // ── Validaciones para filas vacías extra (por si agregan productos) ───────
+  const EXTRA_ROWS = 300;
+  for (let extra = 1; extra <= EXTRA_ROWS; extra++) {
+    aplicarValidacionFila(wsP, rowIdxP + extra);
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
-  // HOJA 2: VARIANTES (columnas A–M, igual que importacion-admin)
+  // HOJA 2: VARIANTES (A–L)
   // ══════════════════════════════════════════════════════════════════════════
   const wsV = wb.addWorksheet('🔗 Variantes', {
     properties: { tabColor: { argb: C.coral } },
@@ -297,7 +500,7 @@ async function generarExcel(strapi) {
   });
 
   // Fila 1 — Título
-  wsV.mergeCells('A1:M1');
+  wsV.mergeCells('A1:L1');
   const titleV     = wsV.getCell('A1');
   titleV.value     = '🔗 MARYBE — Variantes exportadas';
   titleV.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7C3AED' } };
@@ -306,26 +509,25 @@ async function generarExcel(strapi) {
   wsV.getRow(1).height = 36;
 
   // Fila 2 — Instrucción
-  wsV.mergeCells('A2:M2');
+  wsV.mergeCells('A2:L2');
   const instrV     = wsV.getCell('A2');
   instrV.value     = '⚠ Una fila por variante. "producto_padre_id" debe coincidir con el "ID Original" de la hoja Productos. Columnas C e I son calculadas automáticamente.';
   applyStyle(instrV, noteStyle());
   wsV.getRow(2).height = 28;
 
-  // Columnas (idéntico a generar-plantilla.js)
+  // Columnas
   const colDefsV = [
-    { header: 'ID Variante *',            width: 16, color: C.coral,     note: 'ID único de esta variante' },
-    { header: 'ID Producto Padre *',      width: 18, color: C.coral,     note: 'Debe coincidir con ID Original de Productos' },
-    { header: 'Nombre Producto Padre 🔒', width: 32, color: C.verde,     note: 'Calculado automáticamente con BUSCARV' },
+    { header: 'ID Variante *',            width: 16, color: C.coral,      note: 'ID único de esta variante' },
+    { header: 'ID Producto Padre *',      width: 18, color: C.coral,      note: 'Debe coincidir con ID Original de Productos' },
+    { header: 'Nombre Producto Padre 🔒', width: 32, color: C.verde,      note: 'Calculado automáticamente con BUSCARV' },
     { header: 'SKU / EAN',               width: 18, color: C.grisOscuro, note: 'Código de barras único de esta variante' },
     { header: 'Volumen / Tamaño',         width: 16, color: C.grisOscuro, note: 'Ej: 30 ml, 50 ml, 100 ml' },
     { header: 'Stock',                    width: 10, color: C.grisOscuro, note: 'Cantidad disponible' },
-    { header: 'Precio *',                 width: 14, color: C.coral,     note: 'Precio de venta normal' },
-    { header: '% Descuento',              width: 14, color: C.grisOscuro, note: 'Porcentaje de descuento (0-100)' },
-    { header: 'Precio Oferta 🔒',         width: 16, color: C.verde,     note: 'Calculado automáticamente' },
+    { header: 'Precio *',                 width: 14, color: C.coral,      note: 'Precio de venta normal (sin descuento)' },
+    { header: 'Precio Oferta',             width: 16, color: C.grisOscuro, note: 'Precio con descuento (editable)' },
+    { header: '% Descuento 🔒',          width: 14, color: C.verde,      note: 'Calculado a partir del Precio Oferta' },
     { header: 'Publicado',                width: 12, color: C.grisOscuro, note: 'TRUE = visible | FALSE = oculto' },
     { header: 'Envío',                    width: 10, color: C.grisOscuro, note: '1 = tiene envío | 0 = sin envío' },
-    { header: 'Moneda',                   width: 10, color: C.grisOscuro, note: 'ARS, USD, EUR' },
     { header: '🎨 Color',                width: 20, color: C.naranja,    note: 'Nombre del color' },
   ];
 
@@ -348,10 +550,8 @@ async function generarExcel(strapi) {
     const padreIdOriginal = prod.id_original || String(prod.id || '');
     const variantes       = prod.variantes   || [];
 
-    // Si el producto no tiene variantes, exportar igual con una fila "vacía" de variante
-    // para que sea re-importable (la importación necesita al menos una variante)
     const filasVariantes = variantes.length > 0 ? variantes : [{
-      id_original:  `${padreIdOriginal}-v1`,
+      id_original:   `${padreIdOriginal}-v1`,
       sku_ean:      prod.sku  || '',
       volumen:      '',
       stock:        0,
@@ -359,7 +559,6 @@ async function generarExcel(strapi) {
       precio_oferta: prod.precio_oferta || null,
       publicado:    prod.publicado !== false,
       envio:        '1',
-      moneda:       prod.moneda || 'ARS',
       color_nombre: null,
     }];
 
@@ -406,26 +605,32 @@ async function generarExcel(strapi) {
       applyStyle(cF, dataStyle(bgColor));
       cF.alignment = { vertical: 'middle', horizontal: 'center' };
 
-      // G: Precio
+      // G: Precio — editable
       const cG = r.getCell(7);
       if (precioV !== null) cG.value = precioV;
       applyStyle(cG, dataStyle(bgColor));
       cG.font = { bold: true, color: { argb: C.grisOscuro }, size: 10, name: 'Calibri' };
 
-      // H: % Descuento
+      // H: Precio Oferta — EDITABLE (usuario lo ingresa)
       const cH = r.getCell(8);
-      cH.value = pctDescV;
+      if (precioOfertaV !== null) cH.value = precioOfertaV;
       applyStyle(cH, dataStyle(bgColor));
-      if (pctDescV > 0) cH.font = { bold: true, color: { argb: '7C3AED' }, size: 10 };
+      cH.font      = { bold: true, color: { argb: C.grisOscuro }, size: 10, name: 'Calibri' };
+      cH.alignment = { vertical: 'middle', horizontal: 'right' };
 
-      // I: Precio Oferta (valor real si existe, si no fórmula)
+      // I: % Descuento — CALCULADO a partir de G y H
       const cI = r.getCell(9);
-      if (precioOfertaV !== null) {
-        cI.value = precioOfertaV;
+      // Cache value
+      if (precioV && precioOfertaV && precioV > 0) {
+        cI.value = Math.round((1 - precioOfertaV / precioV) * 100);
+      } else if (pctDescV > 0) {
+        cI.value = pctDescV;
       } else {
-        cI.value = { formula: `IF(H${rowIdxV}>0,ROUND(G${rowIdxV}*(1-H${rowIdxV}/100),2),"")` };
+        cI.value = 0;
       }
       applyStyle(cI, readonlyStyle());
+      cI.font      = { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri', italic: true };
+      cI.alignment = { vertical: 'middle', horizontal: 'center' };
 
       // J: Publicado
       const cJ = r.getCell(10);
@@ -440,13 +645,8 @@ async function generarExcel(strapi) {
       applyStyle(cK, dataStyle(bgColor));
       cK.alignment = { vertical: 'middle', horizontal: 'center' };
 
-      // L: Moneda
-      const cL = r.getCell(12);
-      cL.value = v.moneda || 'ARS';
-      applyStyle(cL, dataStyle(bgColor));
-
-      // M: Color
-      const cM = r.getCell(13);
+      // L: Color
+      const cM = r.getCell(12);
       cM.value = v.color_nombre || '';
       applyStyle(cM, dataStyle(bgColor));
 
@@ -454,7 +654,6 @@ async function generarExcel(strapi) {
     }
   }
 
-  // 3. Serializar a buffer en memoria (sin escribir a disco)
   const buffer = await wb.xlsx.writeBuffer();
 
   return {

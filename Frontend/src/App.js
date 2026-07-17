@@ -57,6 +57,7 @@ const MetodoEnvio = lazyWithRetry(() => import('./pages/metodo-envio/MetodoEnvio
 // Panel de Administración (Muy pesados, ideal para lazy)
 const ImportacionAdmin = lazyWithRetry(() => import('./pages/admin/ImportacionAdmin'), 'ImportacionAdmin');
 const ExportacionAdmin = lazyWithRetry(() => import('./pages/admin/ExportacionAdmin'), 'ExportacionAdmin');
+const ComparacionAdmin = lazyWithRetry(() => import('./pages/admin/ComparacionAdmin'), 'ComparacionAdmin');
 const PedidosAdmin = lazyWithRetry(() => import('./pages/admin/PedidosAdmin'), 'PedidosAdmin');
 
 // Página de Gift Card
@@ -117,6 +118,7 @@ function App() {
             {/* Panel de Administración */}
             <Route path="/importacion-admin" element={<ImportacionAdmin />} />
             <Route path="/exportacion-admin" element={<ExportacionAdmin />} />
+            <Route path="/comparacion-admin" element={<ComparacionAdmin />} />
             <Route path="/pedidos-admin" element={<PedidosAdmin />} />
 
             {/* Ruta de Gift Card */}
