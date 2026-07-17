@@ -178,17 +178,38 @@ function aplicarValidacionFila(ws, rowIndex) {
   };
 
   // G (col 7): Subcategoría (cascada basada en F)
+  // Usamos la columna oculta AA (27)
   ws.getCell(`G${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: [`INDIRECT(VLOOKUP(F${rowIndex}, MAPEO_RANGOS, 2, FALSE))`]
+    formulae: [`INDIRECT($AA${rowIndex})`]
   };
 
   // H (col 8): Tipo (cascada basada en G)
+  // Usamos la columna oculta AB (28)
   ws.getCell(`H${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: [`INDIRECT(VLOOKUP(F${rowIndex}&"_"&G${rowIndex}, MAPEO_RANGOS, 2, FALSE))`]
+    formulae: [`INDIRECT($AB${rowIndex})`]
+  };
+
+  // Columnas ocultas AA y AB para calcular los nombres de los rangos usando VLOOKUP contra la tabla de mapeo
+  const valF = ws.getCell(`F${rowIndex}`).value || '';
+  const valG = ws.getCell(`G${rowIndex}`).value || '';
+  
+  // Proveer un "result" válido inicial evita que Excel/Sheets desactive el INDIRECT al abrir el archivo si la celda original está vacía
+  const resAA = valF ? toRangeName(valF) : 'Dermocosmetica';
+  const resAB = valF && valG ? toRangeName(`${valF}_${valG}`) : 'Dermocosmetica_Cuidado_facial';
+  
+  const cAA = ws.getCell(`AA${rowIndex}`);
+  cAA.value = { 
+    formula: `IF(F${rowIndex}="", "Dermocosmetica", VLOOKUP(F${rowIndex}, MAPEO_RANGOS, 2, FALSE))`, 
+    result: resAA 
+  };
+  const cAB = ws.getCell(`AB${rowIndex}`);
+  cAB.value = { 
+    formula: `IF(G${rowIndex}="", "Dermocosmetica_Cuidado_facial", VLOOKUP(F${rowIndex}&"_"&G${rowIndex}, MAPEO_RANGOS, 2, FALSE))`, 
+    result: resAB 
   };
 
   // L (col 12): Publicado
