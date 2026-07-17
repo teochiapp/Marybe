@@ -51,37 +51,28 @@ function colLetter(n) {
 }
 
 /**
- * Normaliza un string para usarlo como nombre de rango Excel.
- * Solo reemplaza espacios por _ y elimina chars no permitidos.
- * Mantiene letras acentuadas (ñ, é, etc.) que Excel soporta en nombres.
- */
-function toRangeName(str) {
-  return str.trim()
-    .replace(/\s+/g, '_')
-    .replace(/[^a-zA-Z0-9\u00C0-\u024F_]/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_+|_+$/g, '');
-}
-
-/**
- * Crea la hoja oculta "Listas" con todas las listas de selección
- * y define los named ranges correspondientes en el workbook.
+ * Crea la hoja "Listas" con todas las listas de selección.
+ * En vez de depender de named ranges (que ExcelJS no resuelve bien en
+ * data-validation), devuelve un objeto `refs` con las referencias
+ * directas a celdas que se usan en las fórmulas de validación.
  *
- * Estructura de columnas en la hoja Listas:
- *   Col 1: Secciones          → named range: SECCIONES
- *   Col 2: Categorías         → named range: CATEGORIAS
- *   Col 3+: Subcats por cat   → named range: toRangeName(catName)
- *   Col N+: Tipos por subcat  → named range: toRangeName(catName + "_" + subName)
+ * Retorna: { secciones, categorias, booleanos, colores, mapeoRangos }
+ *   donde cada valor es un string como "Listas!$A$2:$A$3"
  */
 function construirHojaListas(wb) {
   const wsL = wb.addWorksheet('Listas');
   let col = 1;
 
+  // Mapa de rangos directos para la cascada (KEY → rango explícito)
+  const rangoDirecto = {};
+  // Rango dummy para combos sin opciones
+  let sinOpcionesRef = '';
+
   // ── 1. Secciones ─────────────────────────────────────────────────────────
   wsL.getCell(1, col).value = '_SECCIONES';
   SECCIONES.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
   const secLtr = colLetter(col);
-  wb.definedNames.add(`Listas!$${secLtr}$2:$${secLtr}$${SECCIONES.length + 1}`, 'SECCIONES');
+  const seccionesRef = `Listas!$${secLtr}$2:$${secLtr}$${SECCIONES.length + 1}`;
   col++;
 
   // ── 2. Categorías ─────────────────────────────────────────────────────────
@@ -89,7 +80,7 @@ function construirHojaListas(wb) {
   wsL.getCell(1, col).value = '_CATEGORIAS';
   categorias.forEach((c, i) => { wsL.getCell(i + 2, col).value = c; });
   const catLtr = colLetter(col);
-  wb.definedNames.add(`Listas!$${catLtr}$2:$${catLtr}$${categorias.length + 1}`, 'CATEGORIAS');
+  const categoriasRef = `Listas!$${catLtr}$2:$${catLtr}$${categorias.length + 1}`;
   col++;
 
   // ── 3. Subcategorías por cada Categoría ───────────────────────────────────
@@ -101,8 +92,8 @@ function construirHojaListas(wb) {
     subcatList.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
 
     const ltr = colLetter(col);
-    const rn  = toRangeName(catName);
-    wb.definedNames.add(`Listas!$${ltr}$2:$${ltr}$${subcatList.length + 1}`, rn);
+    // Guardar referencia directa: KEY = catName → rango de subcategorías
+    rangoDirecto[catName] = `Listas!$${ltr}$2:$${ltr}$${subcatList.length + 1}`;
     col++;
   }
 
@@ -115,8 +106,8 @@ function construirHojaListas(wb) {
       tipos.forEach((t, i) => { wsL.getCell(i + 2, col).value = t; });
 
       const ltr = colLetter(col);
-      const rn  = toRangeName(`${catName}_${subName}`);
-      wb.definedNames.add(`Listas!$${ltr}$2:$${ltr}$${tipos.length + 1}`, rn);
+      // Guardar referencia directa: KEY = catName_subName → rango de tipos
+      rangoDirecto[`${catName}_${subName}`] = `Listas!$${ltr}$2:$${ltr}$${tipos.length + 1}`;
       col++;
     }
   }
@@ -124,45 +115,47 @@ function construirHojaListas(wb) {
   // ── 5. Colores ─────────────────────────────────────────────────────────
   wsL.getCell(1, col).value = '_COLORES';
   COLORES.forEach((c, i) => { wsL.getCell(i + 2, col).value = c; });
-  const colLtr = colLetter(col);
-  wb.definedNames.add(`Listas!$${colLtr}$2:$${colLtr}$${COLORES.length + 1}`, 'COLORES');
+  const coloresLtr = colLetter(col);
+  const coloresRef = `Listas!$${coloresLtr}$2:$${coloresLtr}$${COLORES.length + 1}`;
   col++;
 
-  // ── (nuevo) rango dummy para combos sin opciones ──────────
+  // ── (dummy) rango para combos sin opciones ──────────
   wsL.getCell(1, col).value = '_SIN_OPCIONES';
   wsL.getCell(2, col).value = '';
   const noOptLtr = colLetter(col);
-  wb.definedNames.add(`Listas!$${noOptLtr}$2:$${noOptLtr}$2`, 'SIN_OPCIONES');
+  sinOpcionesRef = `Listas!$${noOptLtr}$2:$${noOptLtr}$2`;
   col++;
 
-  // ── 6. Mapping para VLOOKUP (Columnas dinámicas, no hardcodeadas) ──────────
+  // ── 6. Tabla de mapeo para VLOOKUP ────────────────────────────────────────
+  // KEY = nombre de categoría o "catName_subName"
+  // VALUE = referencia directa a celdas (ej: Listas!$C$2:$C$5)
+  // INDIRECT resuelve estas referencias directamente, sin named ranges.
   const mapColKey = col;
   const mapColVal = col + 1;
   let mapRow = 1;
   wsL.getCell(mapRow, mapColKey).value = 'KEY';
-  wsL.getCell(mapRow, mapColVal).value = 'NAMED_RANGE';
+  wsL.getCell(mapRow, mapColVal).value = 'RANGO_DIRECTO';
   mapRow++;
 
   for (const [catName, subcats] of Object.entries(TAXONOMY)) {
-    const subcatList = Object.keys(subcats);
-
-    // Para categoría
+    // Para categoría → rango de subcategorías
     wsL.getCell(mapRow, mapColKey).value = catName;
-    wsL.getCell(mapRow, mapColVal).value = subcatList.length > 0 ? toRangeName(catName) : 'SIN_OPCIONES';
+    wsL.getCell(mapRow, mapColVal).value = rangoDirecto[catName] || sinOpcionesRef;
     mapRow++;
 
-    // Para subcategorías (catName_subName)
-    for (const [subName, tipos] of Object.entries(subcats)) {
-      wsL.getCell(mapRow, mapColKey).value = `${catName}_${subName}`;
-      wsL.getCell(mapRow, mapColVal).value = (tipos && tipos.length > 0) ? toRangeName(`${catName}_${subName}`) : 'SIN_OPCIONES';
+    // Para subcategorías → rango de tipos
+    for (const [subName] of Object.entries(subcats)) {
+      const key = `${catName}_${subName}`;
+      wsL.getCell(mapRow, mapColKey).value = key;
+      wsL.getCell(mapRow, mapColVal).value = rangoDirecto[key] || sinOpcionesRef;
       mapRow++;
     }
   }
 
-  // Definir nombre de rango para la tabla de mapeo
+  // Referencia directa a la tabla de mapeo (para VLOOKUP)
   const keyLtr = colLetter(mapColKey);
   const valLtr = colLetter(mapColVal);
-  wb.definedNames.add(`Listas!$${keyLtr}:$${valLtr}`, 'MAPEO_RANGOS');
+  const mapeoRef = `Listas!$${keyLtr}$2:$${valLtr}$${mapRow - 1}`;
   col += 2;
 
   // ── 7. Opciones Booleanas (SI / NO) ─────────────────────────────────────
@@ -170,33 +163,54 @@ function construirHojaListas(wb) {
   wsL.getCell(2, col).value = 'SI';
   wsL.getCell(3, col).value = 'NO';
   const boolLtr = colLetter(col);
-  wb.definedNames.add(`Listas!$${boolLtr}$2:$${boolLtr}$3`, 'BOOLEANOS');
+  const booleanosRef = `Listas!$${boolLtr}$2:$${boolLtr}$3`;
   col++;
+
+  // Retornar todas las referencias directas
+  return {
+    secciones:    seccionesRef,
+    categorias:   categoriasRef,
+    booleanos:    booleanosRef,
+    colores:      coloresRef,
+    mapeoRangos:  mapeoRef,
+    sinOpciones:  sinOpcionesRef,
+    // Para los defaults de INDIRECT
+    defaultSubcat: rangoDirecto['Dermocosmetica'] || sinOpcionesRef,
+    defaultTipo:   rangoDirecto['Dermocosmetica_Cuidado_facial'] || sinOpcionesRef,
+    // Mapa completo por si se necesita
+    rangos:       rangoDirecto,
+  };
 }
 
 /**
  * Aplica validación en cascada a una fila de la hoja Productos.
  * E(5)=Sección, F(6)=Categoría, G(7)=Subcategoría, H(8)=Tipo
+ *
+ * @param {Worksheet} ws  Hoja de productos
+ * @param {number} rowIndex  Índice de fila (1-based)
+ * @param {object} refs  Referencias directas retornadas por construirHojaListas
  */
-function aplicarValidacionFila(ws, rowIndex) {
+function aplicarValidacionFila(ws, rowIndex, refs) {
   // E: Sección (lista fija: Perfumería / Hogar)
   ws.getCell(`E${rowIndex}`).dataValidation = {
     type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: ['SECCIONES'],
+    formulae: [refs.secciones],
   };
-  // F (col 6): Categoría
+  // F (col 6): Categoría — referencia directa a la columna de categorías
   ws.getCell(`F${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: ['CATEGORIAS']
+    showErrorMessage: false,
+    formulae: [refs.categorias],
   };
 
   // G (col 7): Subcategoría (cascada basada en F)
-  // Usamos la columna oculta AA (27)
+  // Usamos la columna oculta AA (27) que devuelve una referencia directa a celdas
   ws.getCell(`G${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: [`INDIRECT($AA${rowIndex})`]
+    showErrorMessage: false,
+    formulae: [`INDIRECT($AA${rowIndex})`],
   };
 
   // H (col 8): Tipo (cascada basada en G)
@@ -204,59 +218,68 @@ function aplicarValidacionFila(ws, rowIndex) {
   ws.getCell(`H${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: [`INDIRECT($AB${rowIndex})`]
+    showErrorMessage: false,
+    formulae: [`INDIRECT($AB${rowIndex})`],
   };
 
-  // Columnas ocultas AA y AB para calcular los nombres de los rangos usando VLOOKUP contra la tabla de mapeo
+  // ── Columnas ocultas AA y AB ──────────────────────────────────────────────
+  // VLOOKUP busca la categoría/subcategoría en la tabla de mapeo y devuelve
+  // la referencia directa a celdas (ej: "Listas!$C$2:$C$5").
+  // INDIRECT resuelve esa referencia como rango de celdas.
   const valF = ws.getCell(`F${rowIndex}`).value || '';
   const valG = ws.getCell(`G${rowIndex}`).value || '';
-  
-  // Proveer un "result" válido inicial evita que Excel/Sheets desactive el INDIRECT al abrir el archivo si la celda original está vacía
-  const resAA = valF ? toRangeName(valF) : 'Dermocosmetica';
-  const resAB = valF && valG ? toRangeName(`${valF}_${valG}`) : 'Dermocosmetica_Cuidado_facial';
-  
+
+  // Result cacheado: referencia directa (no nombre de rango)
+  const resAA = (valF && refs.rangos[valF]) ? refs.rangos[valF] : refs.defaultSubcat;
+  const keyAB = valF && valG ? `${valF}_${valG}` : '';
+  const resAB = (keyAB && refs.rangos[keyAB]) ? refs.rangos[keyAB] : refs.defaultTipo;
+
   const cAA = ws.getCell(`AA${rowIndex}`);
-  cAA.value = { 
-    formula: `IF(F${rowIndex}="", "Dermocosmetica", VLOOKUP(F${rowIndex}, MAPEO_RANGOS, 2, FALSE))`, 
-    result: resAA 
+  cAA.value = {
+    formula: `IF(F${rowIndex}="","${refs.defaultSubcat}",VLOOKUP(F${rowIndex},${refs.mapeoRangos},2,FALSE))`,
+    result: resAA,
   };
   const cAB = ws.getCell(`AB${rowIndex}`);
-  cAB.value = { 
-    formula: `IF(G${rowIndex}="", "Dermocosmetica_Cuidado_facial", VLOOKUP(F${rowIndex}&"_"&G${rowIndex}, MAPEO_RANGOS, 2, FALSE))`, 
-    result: resAB 
+  cAB.value = {
+    formula: `IF(G${rowIndex}="","${refs.defaultTipo}",VLOOKUP(F${rowIndex}&"_"&G${rowIndex},${refs.mapeoRangos},2,FALSE))`,
+    result: resAB,
   };
 
   // L (col 12): Publicado
   ws.getCell(`L${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: ['BOOLEANOS']
+    showErrorMessage: false,
+    formulae: [refs.booleanos],
   };
 
   // M (col 13): Destacado
   ws.getCell(`M${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: ['BOOLEANOS']
+    showErrorMessage: false,
+    formulae: [refs.booleanos],
   };
 }
 
 /**
  * Aplica validación a una fila de la hoja Variantes.
  */
-function aplicarValidacionVariante(ws, rowIndex) {
+function aplicarValidacionVariante(ws, rowIndex, refs) {
   // J (col 10): Publicado
   ws.getCell(`J${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: ['BOOLEANOS']
+    showErrorMessage: false,
+    formulae: [refs.booleanos],
   };
 
   // L (col 12): Color
   ws.getCell(`L${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: ['COLORES']
+    showErrorMessage: false,
+    formulae: [refs.colores],
   };
 }
 
@@ -301,6 +324,9 @@ async function generarExcel(strapi) {
   const wb   = new ExcelJS.Workbook();
   wb.creator = 'Marybe';
   wb.created = new Date();
+
+  // ── Crear hoja de Listas PRIMERO (para obtener las refs de validación) ────
+  const refs = construirHojaListas(wb);
 
   // ══════════════════════════════════════════════════════════════════════════
   // HOJA 1: PRODUCTOS (A–R)
@@ -484,7 +510,7 @@ async function generarExcel(strapi) {
     cR.alignment = { vertical: 'middle', horizontal: 'center' };
 
     // ── Validaciones en cascada para esta fila ──────────────────────────────
-    aplicarValidacionFila(wsP, rowIdxP);
+    aplicarValidacionFila(wsP, rowIdxP, refs);
 
     r.commit();
     totalVariantes += (prod.variantes || []).length;
@@ -493,7 +519,7 @@ async function generarExcel(strapi) {
   // ── Validaciones para filas vacías extra (por si agregan productos) ───────
   const EXTRA_ROWS = 300;
   for (let extra = 1; extra <= EXTRA_ROWS; extra++) {
-    aplicarValidacionFila(wsP, rowIdxP + extra);
+    aplicarValidacionFila(wsP, rowIdxP + extra, refs);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -652,7 +678,7 @@ async function generarExcel(strapi) {
       cM.value = v.color_nombre || '';
       applyStyle(cM, dataStyle(bgColor));
 
-      aplicarValidacionVariante(wsV, rowIdxV);
+      aplicarValidacionVariante(wsV, rowIdxV, refs);
 
       r.commit();
     }
@@ -660,12 +686,10 @@ async function generarExcel(strapi) {
 
   // ── Validaciones para filas vacías extra de Variantes ───────
   for (let extra = 1; extra <= EXTRA_ROWS; extra++) {
-    aplicarValidacionVariante(wsV, rowIdxV + extra);
+    aplicarValidacionVariante(wsV, rowIdxV + extra, refs);
   }
   
-  // ── Hoja visible de listas para validaciones ──────────────────────────────
-  // Generada al final para que aparezca como última pestaña en Excel
-  construirHojaListas(wb);
+  // La hoja de Listas ya fue creada al inicio por construirHojaListas(wb)
 
   const buffer = await wb.xlsx.writeBuffer();
 
