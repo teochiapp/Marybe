@@ -275,16 +275,6 @@ export default function ComparacionAdmin() {
               <svg className="ia-resultado-icon ia-resultado-icon--ok" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
               <h2 className="ia-resultado-title">¡Comparación generada!</h2>
             </div>
-            <div className="ia-stats-grid">
-              <div className="ia-stat ia-stat--success">
-                <span className="ia-stat-value">{exportOk.totalProductos}</span>
-                <span className="ia-stat-label">📦 Productos</span>
-              </div>
-              <div className="ia-stat ia-stat--info">
-                <span className="ia-stat-value">{exportOk.totalVariantes}</span>
-                <span className="ia-stat-label">🔗 Variantes</span>
-              </div>
-            </div>
             <p className="ia-resultado-time">
               Archivo descargado: <strong>{exportOk.filename}</strong>
             </p>

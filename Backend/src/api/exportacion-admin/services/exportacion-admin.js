@@ -6,158 +6,17 @@ const ExcelJS = require('exceljs');
 const UID_PRODUCTO = 'api::producto.producto';
 const PAGE_SIZE    = 100;
 
-// ─── Taxonomía completa (Categorias de la pagina.xlsx) ────────────────────────
-// Estructura: { Categoría: { Subcategoría: [Tipo, ...], ... }, ... }
-const TAXONOMY = {
-  'Ofertas': {
-    'Fragancias': [],
-    'Maquillaje': [],
-    'Dermocosmetica': [],
-    'Cuidado Personal': [],
-    'Bebés y niños': [],
-    'Limpieza del hogar': [],
-  },
-  'Dermocosmetica': {
-    'Cuidado facial':   ['Limpieza facial', 'Exfoliantes y Mascarillas', 'Tónicos', 'Cremas Faciales', 'Serums', 'Contornos de ojos y labios', 'Accesorios'],
-    'Cuidado Corporal': ['Cremas Corporales', 'Cremas de manos', 'Cremas para masajes', 'Exfoliantes', 'Accesorios'],
-    'Solares':          ['Faciales', 'Corporales', 'Autobronceantes', 'Post Solares', 'Accesorios'],
-  },
-  'Fragancias': {
-    'Femeninas':    ['Premium', 'Sets', 'Semi selectivos', 'Nacionales', 'Body Splash y Colonias'],
-    'Masculinos':   ['Premium', 'Sets', 'Semi selectivos', 'Nacionales', 'Body Splash y Colonias'],
-    'Bebés y niños': ['Premium', 'Sets', 'Nacionales', 'Body Splash y Colonias'],
-  },
-  'Maquillaje': {
-    'Labios':     ['Labiales Liquidos', 'Labiales en Barra', 'Bálsamos Labiales', 'Brillos Labiales', 'Delineadores'],
-    'Ojos':       ['Mascaras de pestañas', 'Sombras', 'Delineadores en Lapiz', 'Delineadores Liquidos', 'Cejas'],
-    'Rostro':     ['Bases de Maquillaje', 'Correctores de Ojeras', 'Polvos', 'Bronzer', 'Iluminadores', 'Rubores', 'Fijadores', 'Primer'],
-    'Uñas':       ['Esmaltes', 'Quita esmaltes', 'Tratamientos'],
-    'Accesorios': ['Brochas y Pinceles', 'Esponjas'],
-  },
-  'Cuidado Personal': {
-    'Cuidado Capilar':  ['Shampoo', 'Acondicionadores', 'Tratamientos Capilares', 'Coloración', 'Gel y Fijadores', 'Cepillos y Peines'],
-    'Higiene Corporal': ['Desodorantes', 'Depilacion', 'Afeitado', 'Jabones de Tocador', 'Algodones e hisopos', 'Talcos'],
-    'Higiene Oral':     ['Pastas Dentales', 'Cepillos de dientes', 'Hilos dentales', 'Enjuagues bucales'],
-    'Cuidado Intimo':   ['Toallitas', 'Protectores diarios', 'Salud intima', 'Incontinencia'],
-    'Accesorios':       [],
-  },
-  'Niños y Bebés': {
-    'Pañales':                   [],
-    'Higiene del Bebe':          ['Toallas humedas', 'Oleos y algodón', 'Talcos y Aceites'],
-    'Jabones':                   [],
-    'Colonias':                  [],
-    'Fragancias':                [],
-    'Desodorantes':              [],
-    'Cuidado materno':           ['Protectores Mamarios', 'Cuidado de piel'],
-    'Cremas y cepillos dentales': [],
-    'Solares':                   [],
-    'Capilares':                 ['Shampoo', 'Acondicionadores', 'Tratamientos'],
-  },
-  'Limpieza del hogar': {
-    'Cocina':                  ['Detergentes', 'Lava Vajillas', 'Limpieza de Superficies'],
-    'Baño':                    ['Desinfectantes', 'Pastillas de inodoro'],
-    'Pisos y Muebles':         ['Lavandina', 'Desinfectantes', 'Aromatizantes', 'Lustramuebles', 'Ceras y Autobrillos'],
-    'Insecticida y Repelentes': ['Aerosoles', 'Repelentes', 'Aparatos y cebos'],
-    'Ropa':                    ['Jabones Liquidos', 'Suavizantes'],
-    'Calzado':                 ['Brillos Limpiadores', 'Pomadas'],
-    'Desodorante de Ambiente': ['Aromatizantes', 'Desinfectantes'],
-    'Papeles':                 ['Pañuelos', 'Papel Higienico', 'Rollos de Cocina', 'Servilletas'],
-    'Accesorios de Limpieza':  ['Mopas', 'Escobas', 'Esponjas', 'Guantes', 'Palas y Cabos', 'Trapos de Piso y Paños Multiuso'],
-  },
-  'Electro belleza': {
-    'Maquinas de Corte Cabello y Barba': [],
-    'Planchas y Rizadores':              [],
-    'Secadores de Pelo':                 [],
-    'Depilación':                        [],
-    'Masajeadores':                      [],
-    'Cabinas y Tornos de Uñas':          [],
-  },
-  'Lanzamientos': {},
-};
-
-const SECCIONES = ['Perfumería', 'Hogar'];
-
-// ─── Paleta de colores ────────────────────────────────────────────────────────
-const C = {
-  violeta:       'FF7C6AF7',
-  violetaClaro:  'FFEDE9FE',
-  coral:         'FFF77C6A',
-  coralClaro:    'FFFCE7E4',
-  verde:         'FF22C55E',
-  verdeClaro:    'FFD1FAE5',
-  amarillo:      'FFFBBF24',
-  amarilloClaro: 'FFFEF3C7',
-  azul:          'FF3B82F6',
-  azulClaro:     'FFDBEAFE',
-  grisOscuro:    'FF1E1B4B',
-  grisClaro:     'FFF8F7FF',
-  grisMedio:     'FFE0DEFF',
-  blanco:        'FFFFFFFF',
-  rojo:          'FFEF4444',
-  rojoClaro:     'FFFEE2E2',
-  texto:         'FF1E1B4B',
-  textomuted:    'FF6B7280',
-  naranja:       'FFFFA500',
-  naranjaClaro:  'FFFFF3E0',
-};
-
-// ─── Helpers de estilo ────────────────────────────────────────────────────────
-function headerStyle(bgColor, textColor = C.blanco) {
-  return {
-    fill:      { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } },
-    font:      { bold: true, color: { argb: textColor }, size: 10, name: 'Calibri' },
-    alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
-    border: {
-      top:    { style: 'thin', color: { argb: 'FFD4D4D4' } },
-      bottom: { style: 'thin', color: { argb: 'FFD4D4D4' } },
-      left:   { style: 'thin', color: { argb: 'FFD4D4D4' } },
-      right:  { style: 'thin', color: { argb: 'FFD4D4D4' } },
-    },
-  };
-}
-
-function dataStyle(bgColor = C.blanco, textColor = C.texto) {
-  return {
-    fill:      { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } },
-    font:      { color: { argb: textColor }, size: 10, name: 'Calibri' },
-    alignment: { vertical: 'middle', wrapText: true },
-    border: {
-      top:    { style: 'hair', color: { argb: 'FFE5E7EB' } },
-      bottom: { style: 'hair', color: { argb: 'FFE5E7EB' } },
-      left:   { style: 'hair', color: { argb: 'FFE5E7EB' } },
-      right:  { style: 'hair', color: { argb: 'FFE5E7EB' } },
-    },
-  };
-}
-
-function noteStyle() {
-  return {
-    fill:      { type: 'pattern', pattern: 'solid', fgColor: { argb: C.amarilloClaro } },
-    font:      { color: { argb: 'FF92400E' }, size: 9, italic: true, name: 'Calibri' },
-    alignment: { vertical: 'middle', wrapText: true },
-  };
-}
-
-function readonlyStyle() {
-  return {
-    fill:      { type: 'pattern', pattern: 'solid', fgColor: { argb: C.verdeClaro } },
-    font:      { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri' },
-    alignment: { vertical: 'middle', horizontal: 'center' },
-    border: {
-      top:    { style: 'hair', color: { argb: 'FFE5E7EB' } },
-      bottom: { style: 'hair', color: { argb: 'FFE5E7EB' } },
-      left:   { style: 'hair', color: { argb: 'FFE5E7EB' } },
-      right:  { style: 'hair', color: { argb: 'FFE5E7EB' } },
-    },
-  };
-}
-
-function applyStyle(cell, style) {
-  if (style.fill)      cell.fill      = style.fill;
-  if (style.font)      cell.font      = style.font;
-  if (style.alignment) cell.alignment = style.alignment;
-  if (style.border)    cell.border    = style.border;
-}
+const {
+  TAXONOMY,
+  SECCIONES,
+  COLORES,
+  C,
+  headerStyle,
+  dataStyle,
+  noteStyle,
+  readonlyStyle,
+  applyStyle,
+} = require('../../../utils/excel-utils');
 
 // ─── Helpers de datos ─────────────────────────────────────────────────────────
 function boolStr(val) {
@@ -252,42 +111,75 @@ function construirHojaListas(wb) {
     for (const [subName, tipos] of Object.entries(subcats)) {
       if (!tipos || tipos.length === 0) continue;
 
-      const key = `${catName}_${subName}`;
-      wsL.getCell(1, col).value = `_${key}`;
+      wsL.getCell(1, col).value = `_${catName}_${subName}`;
       tipos.forEach((t, i) => { wsL.getCell(i + 2, col).value = t; });
 
       const ltr = colLetter(col);
-      const rn  = toRangeName(key);
+      const rn  = toRangeName(`${catName}_${subName}`);
       wb.definedNames.add(`Listas!$${ltr}$2:$${ltr}$${tipos.length + 1}`, rn);
       col++;
     }
   }
+
+  // ── 5. Colores ─────────────────────────────────────────────────────────
+  wsL.getCell(1, col).value = '_COLORES';
+  COLORES.forEach((c, i) => { wsL.getCell(i + 2, col).value = c; });
+  const colLtr = colLetter(col);
+  wb.definedNames.add(`Listas!$${colLtr}$2:$${colLtr}$${COLORES.length + 1}`, 'COLORES');
+  col++;
 }
 
 /**
  * Aplica validación en cascada a una fila de la hoja Productos.
  * E(5)=Sección, F(6)=Categoría, G(7)=Subcategoría, H(8)=Tipo
  */
-function aplicarValidacionFila(wsP, rowIdx) {
+function aplicarValidacionFila(ws, rowIndex) {
   // E: Sección (lista fija: Perfumería / Hogar)
-  wsP.getCell(rowIdx, 5).dataValidation = {
+  ws.getCell(`E${rowIndex}`).dataValidation = {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: ['SECCIONES'],
   };
-  // F: Categoría
-  wsP.getCell(rowIdx, 6).dataValidation = {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: ['CATEGORIAS'],
+  // F (col 6): Categoría
+  ws.getCell(`F${rowIndex}`).dataValidation = {
+    type: 'list',
+    allowBlank: true,
+    formulae: ['CATEGORIAS']
   };
-  // G: Subcategoría — depende de F (Categoría)
-  wsP.getCell(rowIdx, 7).dataValidation = {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [`INDIRECT(SUBSTITUTE($F${rowIdx}," ","_"))`],
+
+  // G (col 7): Subcategoría (cascada basada en F)
+  // Usamos la columna oculta AA (27) que tiene el nombre del rango ya calculado
+  ws.getCell(`G${rowIndex}`).dataValidation = {
+    type: 'list',
+    allowBlank: true,
+    formulae: [`INDIRECT($AA${rowIndex})`]
   };
-  // H: Tipo — depende de F (Categoría) + G (Subcategoría)
-  wsP.getCell(rowIdx, 8).dataValidation = {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [`INDIRECT(SUBSTITUTE($F${rowIdx}&"_"&$G${rowIdx}," ","_"))`],
+
+  // H (col 8): Tipo (cascada basada en G)
+  // Usamos la columna oculta AB (28)
+  ws.getCell(`H${rowIndex}`).dataValidation = {
+    type: 'list',
+    allowBlank: true,
+    formulae: [`INDIRECT($AB${rowIndex})`]
+  };
+
+  // Columnas ocultas AA y AB para calcular los nombres de los rangos sin romper por el locale de Excel (coma vs punto y coma)
+  const cAA = ws.getCell(`AA${rowIndex}`);
+  cAA.value = { formula: `SUBSTITUTE(F${rowIndex}, " ", "_")` };
+  const cAB = ws.getCell(`AB${rowIndex}`);
+  cAB.value = { formula: `SUBSTITUTE(F${rowIndex}&"_"&G${rowIndex}, " ", "_")` };
+
+  // L (col 12): Publicado
+  ws.getCell(`L${rowIndex}`).dataValidation = {
+    type: 'list',
+    allowBlank: true,
+    formulae: ['"TRUE,FALSE"']
+  };
+
+  // M (col 13): Destacado
+  ws.getCell(`M${rowIndex}`).dataValidation = {
+    type: 'list',
+    allowBlank: true,
+    formulae: ['"TRUE,FALSE"']
   };
 }
 
@@ -375,6 +267,9 @@ async function generarExcel(strapi) {
   ];
 
   wsP.columns = colDefsP.map(h => ({ width: h.width }));
+  // Ocultar las columnas AA (27) y AB (28)
+  wsP.getColumn(27).hidden = true;
+  wsP.getColumn(28).hidden = true;
 
   // Fila 3 — Headers con colores por grupo
   const rowHeaderP = wsP.getRow(3);
@@ -438,6 +333,7 @@ async function generarExcel(strapi) {
       }
       // Publicado/Destacado en verde/rojo (L,M = índices 11,12)
       if (ci === 11 || ci === 12) {
+        cell.dataValidation = { type: 'list', allowBlank: true, formulae: ['"TRUE,FALSE"'] };
         cell.font = { bold: true, color: { argb: val === 'TRUE' ? '16A34A' : 'EF4444' }, size: 10 };
       }
     });
@@ -463,16 +359,16 @@ async function generarExcel(strapi) {
 
     // R (col 18): % Descuento — CALCULADO a partir de P y Q
     const cR = r.getCell(18);
-    // Fórmula: si hay precio y precio oferta, calcula el porcentaje
-    cR.value = { formula: `IF(AND(P${rowIdxP}>0,Q${rowIdxP}>0),ROUND((1-Q${rowIdxP}/P${rowIdxP})*100,0),0)` };
-    // Cache value para cuando abre el archivo sin recalcular
+    let calculatedResult = 0;
     if (precioNum && precioOfertaNum && precioNum > 0) {
-      cR.value = Math.round((1 - precioOfertaNum / precioNum) * 100);
+      calculatedResult = Math.round((1 - precioOfertaNum / precioNum) * 100);
     } else if (pctDesc > 0) {
-      cR.value = pctDesc;
-    } else {
-      cR.value = 0;
+      calculatedResult = pctDesc;
     }
+    cR.value = {
+      formula: `IF(AND(P${rowIdxP}>0,Q${rowIdxP}>0),ROUND((1-Q${rowIdxP}/P${rowIdxP})*100,0),0)`,
+      result: calculatedResult
+    };
     applyStyle(cR, readonlyStyle());
     cR.font      = { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri', italic: true };
     cR.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -618,16 +514,12 @@ async function generarExcel(strapi) {
       cH.font      = { bold: true, color: { argb: C.grisOscuro }, size: 10, name: 'Calibri' };
       cH.alignment = { vertical: 'middle', horizontal: 'right' };
 
-      // I: % Descuento — CALCULADO a partir de G y H
+      // I: % Descuento Variante
       const cI = r.getCell(9);
-      // Cache value
-      if (precioV && precioOfertaV && precioV > 0) {
-        cI.value = Math.round((1 - precioOfertaV / precioV) * 100);
-      } else if (pctDescV > 0) {
-        cI.value = pctDescV;
-      } else {
-        cI.value = 0;
-      }
+      cI.value = {
+        formula: `IF(AND(G${rowIdxV}>0,H${rowIdxV}>0),ROUND((1-H${rowIdxV}/G${rowIdxV})*100,0),0)`,
+        result: pctDescV
+      };
       applyStyle(cI, readonlyStyle());
       cI.font      = { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri', italic: true };
       cI.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -635,7 +527,8 @@ async function generarExcel(strapi) {
       // J: Publicado
       const cJ = r.getCell(10);
       cJ.value = boolStr(v.publicado);
-      cJ.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+      applyStyle(cJ, dataStyle(bgColor));
+      cJ.dataValidation = { type: 'list', allowBlank: true, formulae: ['"TRUE,FALSE"'] };
       cJ.font  = { bold: true, color: { argb: cJ.value === 'TRUE' ? '16A34A' : 'EF4444' }, size: 10 };
       cJ.alignment = { vertical: 'middle' };
 

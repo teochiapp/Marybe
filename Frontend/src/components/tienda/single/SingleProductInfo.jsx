@@ -506,9 +506,9 @@ export default function SingleProductInfo({ producto }) {
     }
   }
 
-  const price = activeVariant.precio || producto.precio || 0;
-  let offerPrice = activeVariant.precio_oferta || producto.precio_oferta || null;
-  const stock = activeVariant.stock || 0;
+  const price = activeVariant.precio ?? producto.precio ?? 0;
+  let offerPrice = activeVariant.precio_oferta ?? producto.precio_oferta ?? null;
+  const stock = activeVariant.stock ?? producto.stock ?? 0;
 
   // Si no hay precio de oferta pero hay un descuento global, lo calculamos
   if (!offerPrice && descuento > 0 && price > 0) {

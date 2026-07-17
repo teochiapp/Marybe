@@ -788,7 +788,6 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     marca: Schema.Attribute.String;
-    moneda: Schema.Attribute.String & Schema.Attribute.DefaultTo<'ARS'>;
     nombre: Schema.Attribute.String & Schema.Attribute.Required;
     portada: Schema.Attribute.Media<'images'>;
     precio: Schema.Attribute.Decimal;
