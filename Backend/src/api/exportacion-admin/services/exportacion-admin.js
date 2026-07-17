@@ -151,7 +151,7 @@ function aplicarValidacionFila(ws, rowIndex) {
   ws.getCell(`G${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: [`INDIRECT($AA${rowIndex})`]
+    formulae: [`INDIRECTO($AA${rowIndex})`]
   };
 
   // H (col 8): Tipo (cascada basada en G)
@@ -159,14 +159,21 @@ function aplicarValidacionFila(ws, rowIndex) {
   ws.getCell(`H${rowIndex}`).dataValidation = {
     type: 'list',
     allowBlank: true,
-    formulae: [`INDIRECT($AB${rowIndex})`]
+    formulae: [`INDIRECTO($AB${rowIndex})`]
   };
 
   // Columnas ocultas AA y AB para calcular los nombres de los rangos sin romper por el locale de Excel (coma vs punto y coma)
+  const valF = ws.getCell(`F${rowIndex}`).value || '';
+  const valG = ws.getCell(`G${rowIndex}`).value || '';
+  
+  // Proveer un "result" válido inicial evita que Excel desactive el INDIRECT al abrir el archivo si la celda original está vacía
+  const resAA = valF ? valF.replace(/\s+/g, '_') : 'Dermocosmetica';
+  const resAB = valF && valG ? `${valF}_${valG}`.replace(/\s+/g, '_') : 'Dermocosmetica_Cuidado_facial';
+  
   const cAA = ws.getCell(`AA${rowIndex}`);
-  cAA.value = { formula: `SUBSTITUTE(F${rowIndex}, " ", "_")` };
+  cAA.value = { formula: `SUBSTITUTE(F${rowIndex}, " ", "_")`, result: resAA };
   const cAB = ws.getCell(`AB${rowIndex}`);
-  cAB.value = { formula: `SUBSTITUTE(F${rowIndex}&"_"&G${rowIndex}, " ", "_")` };
+  cAB.value = { formula: `SUBSTITUTE(F${rowIndex}&"_"&G${rowIndex}, " ", "_")`, result: resAB };
 
   // L (col 12): Publicado
   ws.getCell(`L${rowIndex}`).dataValidation = {
@@ -180,6 +187,25 @@ function aplicarValidacionFila(ws, rowIndex) {
     type: 'list',
     allowBlank: true,
     formulae: ['"TRUE,FALSE"']
+  };
+}
+
+/**
+ * Aplica validación a una fila de la hoja Variantes.
+ */
+function aplicarValidacionVariante(ws, rowIndex) {
+  // J (col 10): Publicado
+  ws.getCell(`J${rowIndex}`).dataValidation = {
+    type: 'list',
+    allowBlank: true,
+    formulae: ['"TRUE,FALSE"']
+  };
+
+  // L (col 12): Color
+  ws.getCell(`L${rowIndex}`).dataValidation = {
+    type: 'list',
+    allowBlank: true,
+    formulae: ['COLORES']
   };
 }
 
@@ -528,7 +554,6 @@ async function generarExcel(strapi) {
       const cJ = r.getCell(10);
       cJ.value = boolStr(v.publicado);
       applyStyle(cJ, dataStyle(bgColor));
-      cJ.dataValidation = { type: 'list', allowBlank: true, formulae: ['"TRUE,FALSE"'] };
       cJ.font  = { bold: true, color: { argb: cJ.value === 'TRUE' ? '16A34A' : 'EF4444' }, size: 10 };
       cJ.alignment = { vertical: 'middle' };
 
@@ -543,8 +568,15 @@ async function generarExcel(strapi) {
       cM.value = v.color_nombre || '';
       applyStyle(cM, dataStyle(bgColor));
 
+      aplicarValidacionVariante(wsV, rowIdxV);
+
       r.commit();
     }
+  }
+
+  // ── Validaciones para filas vacías extra de Variantes ───────
+  for (let extra = 1; extra <= EXTRA_ROWS; extra++) {
+    aplicarValidacionVariante(wsV, rowIdxV + extra);
   }
 
   const buffer = await wb.xlsx.writeBuffer();
