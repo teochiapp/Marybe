@@ -319,7 +319,7 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
     }
   }
 
-  const stock = activeVariant?.stock ?? producto?.stock ?? 0;
+  const stock = activeVariant?.stock ?? attrs?.stock ?? 0;
   const price = activeVariant?.precio_oferta || activeVariant?.precio || attrs.precio_oferta || attrs.precio || 0;
 
   // Get image URL
