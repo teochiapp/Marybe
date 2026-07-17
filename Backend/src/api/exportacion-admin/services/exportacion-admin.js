@@ -267,7 +267,16 @@ async function fetchAllProductos(strapi) {
 
   while (true) {
     const resultado = await strapi.documents(UID_PRODUCTO).findMany({
-      populate: ['variantes', 'categoria'],
+      populate: {
+        variantes: true,
+        categoria: {
+          populate: {
+            subcategorias: {
+              populate: { tipos: true }
+            }
+          }
+        }
+      },
       limit:  PAGE_SIZE,
       start:  (page - 1) * PAGE_SIZE,
       status: 'published',
@@ -372,15 +381,42 @@ async function generarExcel(strapi) {
     const precioOfertaNum = safeNum(prod.precio_oferta);
     const pctDesc         = calcPct(precioNum, precioOfertaNum, prod.descuento);
 
+    // ── Resolver Categoría / Subcategoría / Tipo ────────────────────────────
+    // Fuente primaria: campos string planos del producto.
+    // Fallback: relación categoria → subcategorias → tipos (deep populate).
+    const catRelacion    = prod.categoria || null;
+    const categoriaNombre = catRelacion?.nombre || '';
+
+    // Sección: campo del producto, fallback de la categoría
+    const seccionVal = prod.seccion || catRelacion?.seccion || '';
+
+    // Subcategoría: campo string del producto, fallback primera subcat de la relación
+    let subcategoriaVal = (prod.subcategoria || '').trim();
+    if (!subcategoriaVal && catRelacion?.subcategorias?.length > 0) {
+      subcategoriaVal = catRelacion.subcategorias[0]?.nombre || '';
+    }
+
+    // Tipo: campo string del producto, fallback primer tipo de la primera subcat
+    let tipoVal = (prod.tipo || '').trim();
+    if (!tipoVal && catRelacion?.subcategorias?.length > 0) {
+      // Buscar en la subcategoría que coincida, o en la primera
+      const subcatMatch = subcategoriaVal
+        ? catRelacion.subcategorias.find(s => s.nombre === subcategoriaVal)
+        : catRelacion.subcategorias[0];
+      if (subcatMatch?.tipos?.length > 0) {
+        tipoVal = subcatMatch.tipos[0]?.nombre || '';
+      }
+    }
+
     const valores = [
       prod.id_original   || String(prod.id || ''),  // A: ID Original
       prod.sku            || '',                      // B: SKU/EAN
       prod.nombre         || '',                      // C: Nombre
       prod.marca          || '',                      // D: Marca
-      prod.seccion        || '',                      // E: Sección
-      prod.categoria?.nombre || '',                   // F: Categoría
-      prod.subcategoria   || '',                      // G: Subcategoría
-      prod.tipo           || '',                      // H: Tipo
+      seccionVal,                                     // E: Sección
+      categoriaNombre,                                // F: Categoría
+      subcategoriaVal,                                // G: Subcategoría
+      tipoVal,                                        // H: Tipo
       prod.descripcion    || '',                      // I: Descripción
       prod.especificaciones || '',                    // J: Especificaciones
       prod.proveedor      || '',                      // K: Proveedor
