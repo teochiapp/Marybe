@@ -332,8 +332,10 @@ async function generarExcel(strapi) {
     // Columnas A–O (índices 0-14)
     valores.forEach((val, ci) => {
       const cell = r.getCell(ci + 1);
-      cell.value = val;
+      // Forzar que el ID Original se guarde como texto para evitar problemas con VLOOKUP
+      cell.value = ci === 0 ? String(val) : val;
       applyStyle(cell, dataStyle(bgColor));
+      if (ci === 0) cell.numFmt = '@';
 
       // Categorías en azul (E,F,G,H = índices 4-7)
       if (ci >= 4 && ci <= 7) {
@@ -502,23 +504,27 @@ async function generarExcel(strapi) {
 
       // A: ID Variante
       const cA = r.getCell(1);
-      cA.value = v.id_original || '';
+      cA.value = String(v.id_original || '');
       applyStyle(cA, dataStyle(bgColor));
+      cA.numFmt = '@';
 
       // B: ID Producto Padre
       const cB = r.getCell(2);
-      cB.value = padreIdOriginal;
+      cB.value = String(padreIdOriginal);
       applyStyle(cB, dataStyle(bgColor));
+      cB.numFmt = '@';
 
       // C: Nombre Padre (fórmula VLOOKUP)
       const cC = r.getCell(3);
-      cC.value = { formula: `IF(B${rowIdxV}<>"",IFERROR(VLOOKUP(B${rowIdxV},'📦 Productos'!A:C,3,FALSE),""),"")` };
+      // Intenta coincidencia exacta, luego como texto, luego como número
+      cC.value = { formula: `IF(B${rowIdxV}<>"",IFERROR(VLOOKUP(B${rowIdxV},'📦 Productos'!A:C,3,FALSE),IFERROR(VLOOKUP(B${rowIdxV}&"",'📦 Productos'!A:C,3,FALSE),IFERROR(VLOOKUP(VALUE(B${rowIdxV}),'📦 Productos'!A:C,3,FALSE),""))),"")` };
       applyStyle(cC, readonlyStyle());
 
       // D: SKU/EAN
       const cD = r.getCell(4);
       cD.value = v.sku_ean || '';
       applyStyle(cD, dataStyle(bgColor));
+      cD.numFmt = '@';
 
       // E: Volumen
       const cE = r.getCell(5);
