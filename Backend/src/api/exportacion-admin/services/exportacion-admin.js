@@ -483,12 +483,22 @@ async function generarExcel(strapi) {
     // eso generaba un ciclo vicioso (export→-v1→import→-v1 en BD→export→-v1...).
     // El importador crea variante automática desde el precio del producto cuando
     // no encuentra filas de variante para ese producto en la hoja Variantes.
-    if (variantes.length === 0) {
+    //
+    // Además, filtrar variantes sintéticas heredadas de importaciones anteriores:
+    // una variante es sintética si su id_original = `${padreIdOriginal}-v1` y
+    // es la única variante del producto (fue creada por el exportador viejo).
+    const variantesLimpias = variantes.filter(v => {
+      const idV = (v.id_original || '').trim();
+      const esSintetica = idV === `${padreIdOriginal}-v1` && variantes.length === 1;
+      return !esSintetica;
+    });
+
+    if (variantesLimpias.length === 0) {
       productosSinVariante++;
       continue; // no escribir ninguna fila de variante para este producto
     }
 
-    const filasVariantes = variantes;
+    const filasVariantes = variantesLimpias;
 
     for (const v of filasVariantes) {
       rowIdxV++;

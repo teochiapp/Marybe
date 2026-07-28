@@ -397,21 +397,45 @@ export default function ImportacionAdmin() {
                 <span className="ia-stat-value">{resultado.datos?.errores ?? '—'}</span>
                 <span className="ia-stat-label">❌ Con error</span>
               </div>
+              {(resultado.datos?.productosSinId > 0) && (
+                <div className="ia-stat ia-stat--warning">
+                  <span className="ia-stat-value">{resultado.datos.productosSinId}</span>
+                  <span className="ia-stat-label">⚠️ Prod. sin ID</span>
+                </div>
+              )}
+              {(resultado.datos?.variantesOmitidasSinPadre > 0 || resultado.datos?.variantesOmitidasSinId > 0) && (
+                <div className="ia-stat ia-stat--warning">
+                  <span className="ia-stat-value">{(resultado.datos.variantesOmitidasSinPadre || 0) + (resultado.datos.variantesOmitidasSinId || 0)}</span>
+                  <span className="ia-stat-label">⚠️ Var. ignoradas</span>
+                </div>
+              )}
             </div>
 
             <p className="ia-resultado-time">
               Tiempo total: <strong>{resultado.datos?.tiempoSegundos}s</strong>
             </p>
 
-            {resultado.datos?.erroresList?.length > 0 && (
-              <details className="ia-errores">
-                <summary className="ia-errores-summary">Ver errores ({resultado.datos.erroresList.length})</summary>
-                <ul className="ia-errores-list">
-                  {resultado.datos.erroresList.map((e, i) => (
-                    <li key={i}>{e}</li>
-                  ))}
-                </ul>
-              </details>
+            {resultado.datos?.log?.length > 0 && (
+              <div className="ia-console-wrap">
+                <div className="ia-console-header">
+                  <span className="ia-console-dot"></span>
+                  <span className="ia-console-dot"></span>
+                  <span className="ia-console-dot"></span>
+                  <span className="ia-console-title">Diagnóstico de importación</span>
+                </div>
+                <div className="ia-console">
+                  {resultado.datos.log.map((line, i) => {
+                    const isError = line.includes('❌');
+                    const isWarning = line.includes('⚠️') || line.includes('🟡') || line.includes('IGNORAD');
+                    const isSuccess = line.includes('✅');
+                    return (
+                      <div key={i} className={`ia-console-line ${isError ? 'ia-line-error' : ''} ${isWarning ? 'ia-line-warn' : ''} ${isSuccess ? 'ia-line-success' : ''}`}>
+                        {line}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
         )}

@@ -708,6 +708,72 @@
 
 .ia-errores-list li:last-child { border-bottom: none; }
 
+.ia-stat--warning .ia-stat-value { color: #fde047; }
+
+/* ─── Consola de Diagnóstico ─────────────────────────────────────────────────── */
+.ia-console-wrap {
+  margin-top: 1.5rem;
+  background: #0f0505;
+  border: 1px solid rgba(124, 4, 5, 0.4);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ia-console-header {
+  background: #1a0a0a;
+  padding: 0.5rem 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-bottom: 1px solid rgba(124, 4, 5, 0.4);
+}
+
+.ia-console-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #444;
+}
+
+.ia-console-dot:nth-child(1) { background: #ef4444; }
+.ia-console-dot:nth-child(2) { background: #eab308; }
+.ia-console-dot:nth-child(3) { background: #22c55e; }
+
+.ia-console-title {
+  margin-left: 0.5rem;
+  color: #a3a3a3;
+  font-size: 0.75rem;
+  font-family: monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.ia-console {
+  padding: 1rem;
+  max-height: 250px;
+  overflow-y: auto;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #d4d4d8;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ia-console-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ia-line-error { color: #fca5a5; }
+.ia-line-warn { color: #fde047; }
+.ia-line-success { color: #86efac; }
+
 /* ─── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .ia-login-card,

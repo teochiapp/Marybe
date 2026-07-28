@@ -92,12 +92,16 @@ module.exports = {
         ok: true,
         mensaje: `Importación completada en ${resultado.tiempoSegundos}s`,
         datos: {
-          totalProductos: resultado.totalProductos,
-          creados:        resultado.creados,
-          actualizados:   resultado.actualizados,
-          errores:        resultado.errores,
-          erroresList:    resultado.erroresList,
-          tiempoSegundos: resultado.tiempoSegundos,
+          totalProductos:          resultado.totalProductos,
+          productosSinId:          resultado.productosSinId,
+          variantesOmitidasSinPadre: resultado.variantesOmitidasSinPadre,
+          variantesOmitidasSinId:  resultado.variantesOmitidasSinId,
+          creados:                 resultado.creados,
+          actualizados:            resultado.actualizados,
+          errores:                 resultado.errores,
+          erroresList:             resultado.erroresList,
+          tiempoSegundos:          resultado.tiempoSegundos,
+          log:                     resultado.log,
         },
       });
     } catch (err) {
