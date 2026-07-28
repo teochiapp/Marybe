@@ -115,10 +115,6 @@ module.exports = {
     }
   },
 
-  /**
-   * GET /api/importacion-admin/status
-   * Devuelve el resultado de la última importación realizada en esta sesión.
-   */
   async status(ctx) {
     if (!verificarAdminImportacion(ctx)) {
       return ctx.unauthorized('No autenticado.');
@@ -132,5 +128,25 @@ module.exports = {
     }
 
     return ctx.send({ ok: true, datos: ultima });
+  },
+
+  /**
+   * GET /api/importacion-admin/verificar-precios
+   * Revisa la integridad de precios de todos los productos y comprueba
+   * que se exportarán correctamente sin discrepancias.
+   */
+  async verificarPrecios(ctx) {
+    if (!verificarAdminImportacion(ctx)) {
+      return ctx.unauthorized('No autenticado.');
+    }
+    
+    try {
+      const servicio = strapi.service('api::importacion-admin.importacion-admin');
+      const resultado = await servicio.verificarPreciosIntegridad(strapi);
+      return ctx.send({ ok: true, ...resultado });
+    } catch (err) {
+      strapi.log.error(`[ImportAdmin] Error verificando precios: ${err.message}`);
+      return ctx.internalServerError(`Error al verificar: ${err.message}`);
+    }
   },
 };

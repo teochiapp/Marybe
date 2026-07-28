@@ -24,6 +24,10 @@ export default function ImportacionAdmin() {
   const [uploadError, setUploadError] = useState('');
   const [progreso, setProgreso]       = useState(0);
 
+  // Verificación state
+  const [verificando, setVerificando] = useState(false);
+  const [verificacionRes, setVerificacionRes] = useState(null);
+
   const fileInputRef = useRef(null);
 
   // ─── Autenticación ───────────────────────────────────────────────────────────
@@ -59,6 +63,7 @@ export default function ImportacionAdmin() {
     setArchivo(null);
     setResultado(null);
     setUploadError('');
+    setVerificacionRes(null);
   };
 
   // ─── Drag & Drop ─────────────────────────────────────────────────────────────
@@ -139,6 +144,27 @@ export default function ImportacionAdmin() {
       }
     } finally {
       setUploading(false);
+    }
+  };
+
+  // ─── Verificación de Precios ─────────────────────────────────────────────────
+  const handleVerificarPrecios = async () => {
+    setVerificando(true);
+    setVerificacionRes(null);
+    try {
+      const res = await axios.get(`${API_URL}/api/importacion-admin/verificar-precios`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setVerificacionRes(res.data);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        handleLogout();
+        setAuthError('Sesión expirada. Iniciá sesión nuevamente.');
+      } else {
+        alert('Error al verificar precios: ' + (err.response?.data?.error?.message || err.message));
+      }
+    } finally {
+      setVerificando(false);
     }
   };
 
@@ -456,6 +482,56 @@ export default function ImportacionAdmin() {
               </>
           }
         </button>
+
+        {/* Botón secundario para verificación */}
+        <button
+          type="button"
+          className="ia-btn ia-btn--ghost ia-btn--full"
+          style={{ marginTop: '0.75rem', border: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}
+          onClick={handleVerificarPrecios}
+          disabled={verificando || uploading}
+        >
+          {verificando ? 'Verificando Integridad de la Web...' : 'Verificar Integridad de Precios Web vs Excel'}
+        </button>
+
+        {/* Modal/Resultado de Verificación */}
+        {verificacionRes && (
+          <div className="ia-resultado" style={{ marginTop: '1rem', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
+            <h3 style={{ marginTop: 0, color: '#0369A1' }}>Resultado de Verificación</h3>
+            <p>Se revisaron <strong>{verificacionRes.totalRevisados}</strong> productos con variantes.</p>
+            
+            {verificacionRes.erroresCriticos === 0 ? (
+              <div className="ia-stat ia-stat--success" style={{ margin: '1rem 0' }}>
+                <span className="ia-stat-label">✅ Base de datos 100% íntegra. Todo se exportará al Excel perfectamente.</span>
+              </div>
+            ) : (
+              <div className="ia-stat ia-stat--danger" style={{ margin: '1rem 0' }}>
+                <span className="ia-stat-value">{verificacionRes.erroresCriticos}</span>
+                <span className="ia-stat-label">❌ Errores Críticos (Desincronizados)</span>
+              </div>
+            )}
+
+            {verificacionRes.variacionesDiferentes > 0 && (
+              <p style={{ fontSize: '0.875rem', color: '#64748B' }}>
+                Hay {verificacionRes.variacionesDiferentes} variantes que tienen precios distintos, pero son válidas (ej. porque tienen distinto volumen o color).
+              </p>
+            )}
+
+            {verificacionRes.detalles?.length > 0 && (
+              <div className="ia-console">
+                {verificacionRes.detalles.map((d, i) => (
+                  <div key={i} className="ia-console-line ia-line-error">
+                    <strong>[ID: {d.id_original}] {d.nombre}</strong><br/>
+                    Precio Prod: {d.precio_producto} | Precio Variante: {d.precio_variante}
+                  </div>
+                ))}
+              </div>
+            )}
+            <button className="ia-btn ia-btn--ghost" onClick={() => setVerificacionRes(null)} style={{ marginTop: '1rem' }}>
+              Cerrar Reporte
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

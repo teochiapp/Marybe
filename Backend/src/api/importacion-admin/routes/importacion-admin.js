@@ -36,5 +36,15 @@ module.exports = {
         tags: ['Admin'],
       },
     },
+    {
+      method: 'GET',
+      path: '/importacion-admin/verificar-precios',
+      handler: 'importacion-admin.verificarPrecios',
+      config: {
+        auth: false,
+        description: 'Verifica la integridad de los precios entre web y exportación',
+        tags: ['Admin'],
+      },
+    },
   ],
 };

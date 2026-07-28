@@ -49,8 +49,14 @@ function parseBoolean(val) {
 }
 
 function parseDecimal(val) {
-  if (!val || val.toString().trim() === '') return null;
-  const num = parseFloat(val.toString().replace(/\./g, '').replace(',', '.'));
+  if (val === null || val === undefined || val.toString().trim() === '') return null;
+  if (typeof val === 'number') return val;
+  let str = val.toString().trim();
+  if (str.includes(',')) {
+    // Formato español: 1.000,50 -> 1000.50
+    str = str.replace(/\./g, '').replace(',', '.');
+  }
+  const num = parseFloat(str);
   return isNaN(num) ? null : num;
 }
 
@@ -520,8 +526,60 @@ function obtenerUltimaImportacion() {
   return ultimaImportacion;
 }
 
+// ─── Verificación de Integridad de Precios ──────────────────────────────────────
+async function verificarPreciosIntegridad(strapi) {
+  const productos = await strapi.documents(UID_PRODUCTO).findMany({
+    populate: ['variantes'],
+    where: { publicado: true },
+    limit: 10000
+  });
+
+  const discrepancias = [];
+  let totalRevisados = 0;
+
+  for (const p of productos) {
+    if (!p.variantes || p.variantes.length === 0) continue;
+    totalRevisados++;
+
+    for (const v of p.variantes) {
+      // Chequear si hay discrepancia numérica
+      if (Number(v.precio) !== Number(p.precio) || Number(v.precio_oferta) !== Number(p.precio_oferta)) {
+        
+        // Si es una variante sintética genérica, es 100% un error de integridad
+        const esUnica = p.variantes.length === 1;
+        const sinAtributos = !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
+        const esSintetica = esUnica && sinAtributos;
+
+        discrepancias.push({
+          id_original: p.id_original || String(p.id),
+          nombre: p.nombre,
+          precio_producto: p.precio,
+          precio_oferta_producto: p.precio_oferta,
+          precio_variante: v.precio,
+          precio_oferta_variante: v.precio_oferta,
+          volumen: v.volumen || '',
+          color: v.color_nombre || '',
+          esErrorCritico: esSintetica // Si es sintética, es crítico porque nunca debería diferir
+        });
+      }
+    }
+  }
+
+  const erroresCriticos = discrepancias.filter(d => d.esErrorCritico);
+  const variacionesValidas = discrepancias.filter(d => !d.esErrorCritico);
+
+  return {
+    totalProductos: productos.length,
+    totalRevisados,
+    erroresCriticos: erroresCriticos.length,
+    variacionesDiferentes: variacionesValidas.length,
+    detalles: erroresCriticos.slice(0, 100) // Devolver hasta 100 errores para mostrar en el front
+  };
+}
+
 module.exports = () => ({
   procesarImportacion,
   guardarArchivo,
   obtenerUltimaImportacion,
+  verificarPreciosIntegridad
 });
