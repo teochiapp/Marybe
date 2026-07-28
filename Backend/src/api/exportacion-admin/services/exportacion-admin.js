@@ -479,11 +479,18 @@ async function generarExcel(strapi) {
     const variantes       = prod.variantes   || [];
 
     // Solo exportar variantes REALES de la BD.
-    // Ocultamos la variante sintética (la que el importador genera automáticamente 
-    // cuando un producto no tiene variantes, ej. un Combo).
-    // Sabemos que es sintética porque el importador le pone el sufijo '-v1'.
+    // Ocultamos las variantes que son solo "placeholders" para Combos/Ítems simples.
+    // Un Combo se identifica porque:
+    // 1. Tiene el precio definido en el Padre (p.precio > 0)
+    // 2. Tiene una única variante sin atributos (volumen/color) o la variante termina en -v1.
+    const precioPadreValido = safeNum(prod.precio) > 0;
+    
     const variantesLimpias = variantes.filter(v => {
-      const esSintetica = v.id_original === `${padreIdOriginal}-v1`;
+      const esUnica = variantes.length === 1;
+      const sinAtributos = !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
+      const esGenerica = esUnica && sinAtributos;
+      
+      const esSintetica = v.id_original === `${padreIdOriginal}-v1` || (esGenerica && precioPadreValido);
       return !esSintetica;
     });
 

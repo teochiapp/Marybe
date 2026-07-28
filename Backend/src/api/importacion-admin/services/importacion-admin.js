@@ -547,9 +547,15 @@ async function verificarPreciosIntegridad(strapi) {
         
         // Si es una variante sintética genérica (generada por el sistema para Combos/items únicos), 
         // es 100% un error de integridad que el precio difiera del padre.
-        // Las variantes generadas automáticamente tienen el sufijo '-v1'
+        // Identificamos un Combo si:
+        // 1. La variante se autogeneró (-v1)
+        // 2. O si es única, sin atributos, y el producto padre tiene precio (combo manual).
         const padreId = p.id_original || String(p.id);
-        const esSintetica = v.id_original === `${padreId}-v1`;
+        const esUnica = p.variantes.length === 1;
+        const sinAtributos = !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
+        const precioPadreValido = Number(p.precio) > 0;
+        
+        const esSintetica = v.id_original === `${padreId}-v1` || (esUnica && sinAtributos && precioPadreValido);
 
         discrepancias.push({
           id_original: p.id_original || String(p.id),
