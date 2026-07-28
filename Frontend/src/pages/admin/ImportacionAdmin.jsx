@@ -530,8 +530,10 @@ export default function ImportacionAdmin() {
             <p>Se revisaron <strong>{verificacionRes.totalRevisados}</strong> productos con variantes.</p>
             
             {verificacionRes.erroresCriticos === 0 ? (
-              <div className="ia-stat ia-stat--success" style={{ margin: '1rem 0' }}>
-                <span className="ia-stat-label">✅ Base de datos 100% íntegra. Todo se exportará al Excel perfectamente.</span>
+              <div className="ia-stat ia-stat--success" style={{ margin: '1rem 0', backgroundColor: '#000000', border: '1px solid #16A34A', padding: '1.25rem' }}>
+                <span className="ia-stat-label" style={{ fontSize: '0.9rem', color: '#86efac' }}>
+                  ✅ Base de datos 100% íntegra. Todo se exportará al Excel perfectamente.
+                </span>
               </div>
             ) : (
               <div className="ia-stat ia-stat--danger" style={{ margin: '1rem 0' }}>
