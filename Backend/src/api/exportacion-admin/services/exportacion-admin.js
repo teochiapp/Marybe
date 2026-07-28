@@ -479,18 +479,11 @@ async function generarExcel(strapi) {
     const variantes       = prod.variantes   || [];
 
     // Solo exportar variantes REALES de la BD.
-    // Si el producto no tiene variantes, NO crear una -v1 sintética:
-    // eso generaba un ciclo vicioso (export→-v1→import→-v1 en BD→export→-v1...).
-    // El importador crea variante automática desde el precio del producto cuando
-    // no encuentra filas de variante para ese producto en la hoja Variantes.
-    //
-    // Además, filtrar variantes sintéticas heredadas de importaciones anteriores,
-    // o variantes "sucias" que quedaron con el ID de la BD pero no tienen atributos.
-    // Una variante es sintética si es la única variante del producto y no tiene volumen ni color.
+    // Ocultamos la variante sintética (la que el importador genera automáticamente 
+    // cuando un producto no tiene variantes, ej. un Combo).
+    // Sabemos que es sintética porque el importador le pone el sufijo '-v1'.
     const variantesLimpias = variantes.filter(v => {
-      const esUnica = variantes.length === 1;
-      const sinAtributos = !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
-      const esSintetica = esUnica && sinAtributos;
+      const esSintetica = v.id_original === `${padreIdOriginal}-v1`;
       return !esSintetica;
     });
 

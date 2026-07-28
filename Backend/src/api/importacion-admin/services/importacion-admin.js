@@ -545,10 +545,11 @@ async function verificarPreciosIntegridad(strapi) {
       // Chequear si hay discrepancia numérica
       if (Number(v.precio) !== Number(p.precio) || Number(v.precio_oferta) !== Number(p.precio_oferta)) {
         
-        // Si es una variante sintética genérica, es 100% un error de integridad
-        const esUnica = p.variantes.length === 1;
-        const sinAtributos = !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
-        const esSintetica = esUnica && sinAtributos;
+        // Si es una variante sintética genérica (generada por el sistema para Combos/items únicos), 
+        // es 100% un error de integridad que el precio difiera del padre.
+        // Las variantes generadas automáticamente tienen el sufijo '-v1'
+        const padreId = p.id_original || String(p.id);
+        const esSintetica = v.id_original === `${padreId}-v1`;
 
         discrepancias.push({
           id_original: p.id_original || String(p.id),

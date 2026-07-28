@@ -486,12 +486,41 @@ export default function ImportacionAdmin() {
         {/* Botón secundario para verificación */}
         <button
           type="button"
-          className="ia-btn ia-btn--ghost ia-btn--full"
-          style={{ marginTop: '0.75rem', border: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}
+          className="ia-btn ia-btn--full"
+          style={{ 
+            marginTop: '1rem', 
+            border: '2px solid #3B82F6', 
+            backgroundColor: '#EFF6FF', 
+            color: '#1D4ED8',
+            fontWeight: '600',
+            boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06)'
+          }}
+          onMouseEnter={(e) => {
+            if (!verificando && !uploading) {
+              e.currentTarget.style.backgroundColor = '#DBEAFE';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!verificando && !uploading) {
+              e.currentTarget.style.backgroundColor = '#EFF6FF';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }
+          }}
           onClick={handleVerificarPrecios}
           disabled={verificando || uploading}
         >
-          {verificando ? 'Verificando Integridad de la Web...' : 'Verificar Integridad de Precios Web vs Excel'}
+          {verificando ? (
+            <><span className="ia-spinner" aria-hidden="true"/> Verificando Integridad de la Web...</>
+          ) : (
+            <>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              Auditar Precios Web vs Excel
+            </>
+          )}
         </button>
 
         {/* Modal/Resultado de Verificación */}
@@ -518,16 +547,24 @@ export default function ImportacionAdmin() {
             )}
 
             {verificacionRes.detalles?.length > 0 && (
-              <div className="ia-console">
-                {verificacionRes.detalles.map((d, i) => (
-                  <div key={i} className="ia-console-line ia-line-error">
-                    <strong>[ID: {d.id_original}] {d.nombre}</strong><br/>
-                    Precio Prod: {d.precio_producto} | Precio Variante: {d.precio_variante}
-                  </div>
-                ))}
+              <div className="ia-console-wrap" style={{ marginTop: '1rem' }}>
+                <div className="ia-console-header">
+                  <span className="ia-console-dot"></span>
+                  <span className="ia-console-dot"></span>
+                  <span className="ia-console-dot"></span>
+                  <span className="ia-console-title">Detalle de Discrepancias Críticas</span>
+                </div>
+                <div className="ia-console">
+                  {verificacionRes.detalles.map((d, i) => (
+                    <div key={i} className="ia-console-line ia-line-error">
+                      <strong>[ID: {d.id_original}] {d.nombre}</strong><br/>
+                      Precio Prod: {d.precio_producto || 'Vacío (null)'} | Precio Variante: {d.precio_variante}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-            <button className="ia-btn ia-btn--ghost" onClick={() => setVerificacionRes(null)} style={{ marginTop: '1rem' }}>
+            <button className="ia-btn ia-btn--ghost" onClick={() => setVerificacionRes(null)} style={{ marginTop: '1rem', color: '#0369A1', borderColor: '#BAE6FD' }}>
               Cerrar Reporte
             </button>
           </div>
