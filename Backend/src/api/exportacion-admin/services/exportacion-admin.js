@@ -484,12 +484,13 @@ async function generarExcel(strapi) {
     // El importador crea variante automática desde el precio del producto cuando
     // no encuentra filas de variante para ese producto en la hoja Variantes.
     //
-    // Además, filtrar variantes sintéticas heredadas de importaciones anteriores:
-    // una variante es sintética si su id_original = `${padreIdOriginal}-v1` y
-    // es la única variante del producto (fue creada por el exportador viejo).
+    // Además, filtrar variantes sintéticas heredadas de importaciones anteriores,
+    // o variantes "sucias" que quedaron con el ID de la BD pero no tienen atributos.
+    // Una variante es sintética si es la única variante del producto y no tiene volumen ni color.
     const variantesLimpias = variantes.filter(v => {
-      const idV = (v.id_original || '').trim();
-      const esSintetica = idV === `${padreIdOriginal}-v1` && variantes.length === 1;
+      const esUnica = variantes.length === 1;
+      const sinAtributos = !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
+      const esSintetica = esUnica && sinAtributos;
       return !esSintetica;
     });
 
