@@ -339,7 +339,24 @@ async function procesarImportacion(strapi, rutaExcel) {
       const hijos           = variantesIndex.get(idOriginal) || [];
       const categoriaDocId  = categoriaIdPorNombre.get(nombreCategoria) || null;
 
-      const variantesData = hijos.map(v => ({
+      // Si el producto no tiene variantes en el Excel, crear variante canónica
+      // automáticamente desde los datos del producto. El exportador ya NO genera -v1
+      // sintéticas, así que si no hay variante en el Excel significa que el producto
+      // en la BD no tiene ninguna — hay que crearla para que el sistema funcione.
+      const hijosEfectivos = hijos.length > 0 ? hijos : [{
+        id_original:   `${idOriginal}-v1`,
+        sku_ean:       (p.sku || '').trim(),
+        volumen:       '',
+        stock:         (p.stock || '0'),
+        precio:        p.precio,
+        precio_oferta: p.precio_oferta || '',
+        pct_descuento: p.pct_descuento || '',
+        publicado:     p.publicado,
+        envio:         '1',
+        color_nombre:  '',
+      }];
+
+      const variantesData = hijosEfectivos.map(v => ({
         id_original:   (v.id_original || '').trim(),
         sku_ean:       (v.sku_ean || '').trim(),
         volumen:       (v.volumen || '').trim(),
@@ -360,8 +377,9 @@ async function procesarImportacion(strapi, rutaExcel) {
         color_nombre: (v.color_nombre || '').trim() || null,
       }));
 
-      // maxDescuento: calculado desde precio_oferta de las variantes
-      const maxDescuento = hijos.reduce((max, v) => {
+
+      // maxDescuento: calculado desde precio_oferta de las variantes (incluye la auto-creada)
+      const maxDescuento = hijosEfectivos.reduce((max, v) => {
         const precioV  = parseDecimal(v.precio);
         const ofertaV  = parseDecimal(v.precio_oferta);
         const pct = ofertaV && precioV && precioV > 0

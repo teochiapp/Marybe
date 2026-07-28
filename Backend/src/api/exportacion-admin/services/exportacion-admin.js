@@ -472,22 +472,23 @@ async function generarExcel(strapi) {
 
   // ─ Filas de variantes ─
   let rowIdxV = 3;
+  let productosSinVariante = 0;
 
   for (const prod of productos) {
     const padreIdOriginal = prod.id_original || String(prod.id || '');
     const variantes       = prod.variantes   || [];
 
-    const filasVariantes = variantes.length > 0 ? variantes : [{
-      id_original:   `${padreIdOriginal}-v1`,
-      sku_ean:      prod.sku  || '',
-      volumen:      '',
-      stock:        0,
-      precio:       prod.precio || 0,
-      precio_oferta: prod.precio_oferta || null,
-      publicado:    prod.publicado !== false,
-      envio:        '1',
-      color_nombre: null,
-    }];
+    // Solo exportar variantes REALES de la BD.
+    // Si el producto no tiene variantes, NO crear una -v1 sintética:
+    // eso generaba un ciclo vicioso (export→-v1→import→-v1 en BD→export→-v1...).
+    // El importador crea variante automática desde el precio del producto cuando
+    // no encuentra filas de variante para ese producto en la hoja Variantes.
+    if (variantes.length === 0) {
+      productosSinVariante++;
+      continue; // no escribir ninguna fila de variante para este producto
+    }
+
+    const filasVariantes = variantes;
 
     for (const v of filasVariantes) {
       rowIdxV++;
@@ -600,6 +601,7 @@ async function generarExcel(strapi) {
     buffer,
     totalProductos: productos.length,
     totalVariantes,
+    productosSinVariante,
   };
 }
 
