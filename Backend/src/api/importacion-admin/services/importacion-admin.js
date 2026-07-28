@@ -23,6 +23,15 @@ function cellVal(row, colIndex) {
       ? String(cell.value.result).trim()
       : '';
   }
+  // Fórmula guardada SIN result (ej: Excel re-guardado por LibreOffice):
+  // el objeto tiene { formula: '...' } pero no 'result'. Devolvemos ''.
+  if (cell.value && typeof cell.value === 'object' && 'formula' in cell.value) {
+    return '';
+  }
+  // Cualquier otro objeto inesperado (evita "[object Object]" en el log)
+  if (cell.value && typeof cell.value === 'object') {
+    return '';
+  }
   if (cell.value && cell.value.richText) {
     return cell.value.richText.map(rt => rt.text).join('').trim();
   }
@@ -127,6 +136,91 @@ async function leerExcel(rutaArchivo) {
   return { productos, variantes };
 }
 
+// ─── Validación y diagnóstico pre-importación ──────────────────────────────────────
+function validarYDiagnosticar(productos, variantes, addLog) {
+  addLog('─────────────────────────────────────────────');
+  addLog('🔎 DIAGNÓSTICO PRE-IMPORTACIÓN');
+  addLog('─────────────────────────────────────────────');
+
+  const productosFiltrados = [];
+  const productosSinId = [];
+
+  // 1. Filtrar productos sin ID
+  for (const p of productos) {
+    const id = (p.id_original || '').trim();
+    if (!id) {
+      productosSinId.push(p.nombre || '(sin nombre)');
+    } else {
+      productosFiltrados.push(p);
+    }
+  }
+
+  if (productosSinId.length > 0) {
+    addLog(`⚠️  ${productosSinId.length} producto(s) IGNORADOS por no tener ID Original:`);
+    productosSinId.slice(0, 10).forEach(n => addLog(`     └ "${n}"`))
+    if (productosSinId.length > 10) addLog(`     ... y ${productosSinId.length - 10} más`);
+  }
+
+  // 2. Construir set de IDs válidos
+  const idsProductos = new Set(productosFiltrados.map(p => (p.id_original || '').trim()));
+
+  // 3. Clasificar variantes
+  const variantesFiltradas = [];
+  const variantesSinPadre  = [];
+  const variantesSinId     = [];
+
+  for (const v of variantes) {
+    const id      = (v.id_original       || '').trim();
+    const padreId = (v.producto_padre_id || '').trim();
+
+    if (!id) {
+      variantesSinId.push(`padre="${padreId}"`);
+      continue;
+    }
+    if (!padreId || !idsProductos.has(padreId)) {
+      variantesSinPadre.push({ id, padreId, nombre_col3: v.nombre_col3 || '' });
+      continue;
+    }
+    variantesFiltradas.push(v);
+  }
+
+  // 4. Productos sin variantes asociadas
+  const idsConVariante = new Set(variantesFiltradas.map(v => (v.producto_padre_id || '').trim()));
+  const productosSinVariante = productosFiltrados.filter(p => !idsConVariante.has((p.id_original || '').trim()));
+
+  // 5. Imprimir diagnóstico
+  addLog(`📦 Productos con ID válido: ${productosFiltrados.length}`);
+  addLog(`🔗 Variantes válidas (con padre en Productos): ${variantesFiltradas.length}`);
+
+  if (variantesSinId.length > 0) {
+    addLog(`⚠️  ${variantesSinId.length} variante(s) IGNORADAS por no tener ID propio:`);
+    variantesSinId.slice(0, 5).forEach(v => addLog(`     └ ${v}`));
+    if (variantesSinId.length > 5) addLog(`     ... y ${variantesSinId.length - 5} más`);
+  }
+
+  if (variantesSinPadre.length > 0) {
+    addLog(`⚠️  ${variantesSinPadre.length} variante(s) IGNORADAS porque su ID Producto Padre NO existe en la hoja Productos:`);
+    addLog(`   Estos productos fueron escritos en la hoja Variantes en lugar de Productos.`);
+    addLog(`   Agreguélos primero a la hoja Productos y vuelva a importar.`);
+    variantesSinPadre.slice(0, 15).forEach(v =>
+      addLog(`     └ Variante ID="${v.id}" | PadreID="${v.padreId}" (no existe en Productos)`)
+    );
+    if (variantesSinPadre.length > 15) addLog(`     ... y ${variantesSinPadre.length - 15} más`);
+  }
+
+  if (productosSinVariante.length > 0) {
+    addLog(`🟡 ${productosSinVariante.length} producto(s) sin variantes en el Excel (se importarán con variante automática):`);
+    productosSinVariante.slice(0, 5).forEach(p =>
+      addLog(`     └ "${(p.nombre || '').substring(0, 50)}" (ID: ${p.id_original})`)
+    );
+    if (productosSinVariante.length > 5) addLog(`     ... y ${productosSinVariante.length - 5} más`);
+  }
+
+  addLog('─────────────────────────────────────────────');
+
+  return { productosFiltrados, variantesFiltradas, variantesSinPadre, variantesSinId, productosSinId };
+}
+
 // ─── Upsert de categoría ───────────────────────────────────────────────────────
 async function upsertCategoria(strapi, { nombre, seccion, subcategorias }) {
   const nombreTrim = (nombre || '').trim();
@@ -170,10 +264,23 @@ async function procesarImportacion(strapi, rutaExcel) {
   };
 
   addLog(`📂 Leyendo archivo: ${path.basename(rutaExcel)}`);
-  const { productos, variantes } = await leerExcel(rutaExcel);
+  const { productos: productosRaw, variantes: variantesRaw } = await leerExcel(rutaExcel);
 
-  addLog(`📦 ${productos.length} productos encontrados en el Excel`);
-  addLog(`🔗 ${variantes.length} variantes encontradas en el Excel`);
+  addLog(`📦 ${productosRaw.length} productos encontrados en el Excel (hoja Productos)`);
+  addLog(`🔗 ${variantesRaw.length} variantes encontradas en el Excel (hoja Variantes)`);
+
+  // ── Validación y diagnóstico ───────────────────────────────────────────────────────
+  const validacion = validarYDiagnosticar(productosRaw, variantesRaw, addLog);
+  const productos  = validacion.productosFiltrados;
+  const variantes  = validacion.variantesFiltradas;
+
+  addLog(`✅ Se procesarán: ${productos.length} productos | ${variantes.length} variantes`);
+  if (validacion.productosSinId.length > 0) {
+    addLog(`⏩ Productos omitidos (sin ID): ${validacion.productosSinId.length}`);
+  }
+  if (validacion.variantesSinPadre.length > 0) {
+    addLog(`⏩ Variantes omitidas (padre inexistente): ${validacion.variantesSinPadre.length}`);
+  }
 
   // ── Paso 1: Construir categorías únicas ──────────────────────────────────────
   const categoriasMap = new Map();
@@ -338,7 +445,10 @@ async function procesarImportacion(strapi, rutaExcel) {
   const elapsed = ((Date.now() - inicio) / 1000).toFixed(1);
   const resumen = {
     ok: true,
-    totalProductos: productos.length,
+    totalProductos:          productos.length,
+    productosSinId:          validacion.productosSinId.length,
+    variantesOmitidasSinPadre: validacion.variantesSinPadre.length,
+    variantesOmitidasSinId:  validacion.variantesSinId.length,
     creados,
     actualizados,
     errores,
@@ -347,7 +457,18 @@ async function procesarImportacion(strapi, rutaExcel) {
     log,
   };
 
+  addLog('─────────────────────────────────────────────');
   addLog(`✅ Importación completada en ${elapsed}s`);
+  addLog(`   └ ✅ Creados:       ${creados}`);
+  addLog(`   └ 🔄 Actualizados:  ${actualizados}`);
+  addLog(`   └ ❌ Errores:       ${errores}`);
+  if (validacion.productosSinId.length > 0)
+    addLog(`   └ ⏩ Omitidos sin ID:         ${validacion.productosSinId.length}`);
+  if (validacion.variantesSinPadre.length > 0)
+    addLog(`   └ ⏩ Variantes sin padre:     ${validacion.variantesSinPadre.length} (padre no estaba en hoja Productos)`);
+  if (validacion.variantesSinId.length > 0)
+    addLog(`   └ ⏩ Variantes sin ID propio: ${validacion.variantesSinId.length}`);
+  addLog('─────────────────────────────────────────────');
 
   // Guardar estado en memoria
   ultimaImportacion = {

@@ -90,6 +90,15 @@ async function generarExcelComparacion(strapi) {
   const productos = await fetchAllProductos(strapi);
   strapi.log.info(`[ComparacionAdmin] ${productos.length} productos obtenidos`);
 
+  // ── Ordenar por Proveedor (A → Z) para facilitar la actualización de precios ──
+  productos.sort((a, b) => {
+    const pa = (a.proveedor || '').toLowerCase().trim();
+    const pb = (b.proveedor || '').toLowerCase().trim();
+    if (pa < pb) return -1;
+    if (pa > pb) return  1;
+    return 0;
+  });
+
   const wb   = new ExcelJS.Workbook();
   wb.creator = 'Marybe';
   wb.created = new Date();

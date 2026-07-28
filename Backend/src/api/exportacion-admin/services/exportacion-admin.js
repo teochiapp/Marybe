@@ -367,7 +367,9 @@ async function generarExcel(strapi) {
     cQ.font      = { bold: true, color: { argb: '065F46' }, size: 10, name: 'Calibri' };
     cQ.alignment = { vertical: 'middle', horizontal: 'right' };
 
-    // R (col 18): % Descuento — CALCULADO a partir de P y Q
+    // R (col 18): % Descuento — valor numérico calculado en el servidor
+    // NO usar fórmula Excel: cuando el cliente re-guarda el archivo, ExcelJS
+    // serializa { formula, result } como "[object Object]" al reimportar.
     const cR = r.getCell(18);
     let calculatedResult = 0;
     if (precioNum && precioOfertaNum && precioNum > 0) {
@@ -375,10 +377,7 @@ async function generarExcel(strapi) {
     } else if (pctDesc > 0) {
       calculatedResult = pctDesc;
     }
-    cR.value = {
-      formula: `IF(AND(P${rowIdxP}>0,Q${rowIdxP}>0),ROUND((1-Q${rowIdxP}/P${rowIdxP})*100,0),0)`,
-      result: calculatedResult
-    };
+    cR.value = calculatedResult;  // número puro, sin fórmula
     applyStyle(cR, readonlyStyle());
     cR.font      = { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri', italic: true };
     cR.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -550,12 +549,10 @@ async function generarExcel(strapi) {
       cH.font      = { bold: true, color: { argb: C.grisOscuro }, size: 10, name: 'Calibri' };
       cH.alignment = { vertical: 'middle', horizontal: 'right' };
 
-      // I: % Descuento Variante
+      // I: % Descuento Variante — valor numérico calculado en el servidor
+      // NO usar fórmula Excel: evita el bug [object Object] al reimportar.
       const cI = r.getCell(9);
-      cI.value = {
-        formula: `IF(AND(G${rowIdxV}>0,H${rowIdxV}>0),ROUND((1-H${rowIdxV}/G${rowIdxV})*100,0),0)`,
-        result: pctDescV
-      };
+      cI.value = pctDescV;  // número puro, sin fórmula
       applyStyle(cI, readonlyStyle());
       cI.font      = { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri', italic: true };
       cI.alignment = { vertical: 'middle', horizontal: 'center' };
