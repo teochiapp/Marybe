@@ -500,7 +500,7 @@ export default function SingleSimilares({ producto, title = 'Similares', query, 
               <PriceRow>
                 {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
                 <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
-                {descuento > 0 && <DiscountBadge>{descuento}% OFF</DiscountBadge>}
+                {descuentoCalc > 0 && <DiscountBadge>{descuentoCalc}% OFF</DiscountBadge>}
               </PriceRow>
 
               <Installments>

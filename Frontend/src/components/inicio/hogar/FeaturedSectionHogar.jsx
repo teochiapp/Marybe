@@ -6,7 +6,6 @@ import { generateProductUrl } from '../../../utils/productUrl';
 import { getProductPrice } from '../../../utils/productPrice';
 import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
-import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-hogar);

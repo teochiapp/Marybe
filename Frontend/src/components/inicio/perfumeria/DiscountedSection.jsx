@@ -658,7 +658,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
             const nombre = attrs.nombre;
             const marca = attrs.marca;
 
-            const { price, offerPrice, tieneOferta, calcDescuento: descuentoCalc } = getProductPrice(attrs);
+            const { price, offerPrice, calcDescuento: descuentoCalc } = getProductPrice(attrs);
 
             let imgUrl = null;
             const getFullUrl = (url) => url?.startsWith('http') ? url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${url}`;

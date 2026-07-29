@@ -1,4 +1,4 @@
-﻿/**
+/**
  * productPrice.js
  * Helper centralizado para obtener el precio correcto de un producto.
  *
