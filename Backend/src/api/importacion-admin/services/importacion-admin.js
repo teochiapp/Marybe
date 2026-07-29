@@ -539,19 +539,26 @@ async function verificarPreciosIntegridad(strapi) {
     totalRevisados++;
 
     for (const v of p.variantes) {
-      // Solo analizar si hay discrepancia numérica entre variante y producto padre
-      if (Number(v.precio) !== Number(p.precio) || Number(v.precio_oferta) !== Number(p.precio_oferta)) {
+      const padreId = p.id_original || String(p.id);
+      const sinAtributos = !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
+      const esSintetica = v.id_original === `${padreId}-v1` || sinAtributos;
 
-        const padreId           = p.id_original || String(p.id);
-        const esUnica           = p.variantes.length === 1;
-        const sinAtributos      = !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
-        const precioPadreValido = Number(p.precio) > 0;
+      const precioPadreNum = Number(p.precio) || 0;
+      
+      // Si el padre no tiene precio (es null o 0) y esta es una variante real (no fantasma),
+      // es el comportamiento esperado: el precio vive en las variantes. No es discrepancia.
+      if (precioPadreNum === 0 && !esSintetica) {
+        continue;
+      }
+
+      // Analizar si hay discrepancia numérica entre variante y producto padre
+      if (Number(v.precio) !== precioPadreNum || Number(v.precio_oferta) !== Number(p.precio_oferta)) {
 
         // Consistente con el nuevo exportador: toda variante sin atributos (sin volumen
         // ni color) es considerada sintética/fantasma.
-        // Si estamos dentro de este 'if', significa que el precio difiere del padre.
-        // Por lo tanto, si es sintética y su precio difiere, es un Error Crítico.
-        const esSintetica = v.id_original === `${padreId}-v1` || sinAtributos;
+        // Si estamos dentro de este 'if', significa que hay una discrepancia (ej. la
+        // variante fantasma tiene un precio distinto al padre, o el padre no tiene precio).
+        // Por lo tanto, si es sintética, es un Error Crítico.
 
         discrepancias.push({
           id_original:            p.id_original || String(p.id),
