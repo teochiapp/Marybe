@@ -215,22 +215,11 @@ function validarYDiagnosticar(productos, variantes, addLog) {
   }
 
   if (productosSinVariante.length > 0) {
-    const conPrecio = productosSinVariante.filter(p => parseDecimal(p.precio) > 0);
-    const sinPrecio = productosSinVariante.filter(p => !(parseDecimal(p.precio) > 0));
-    if (conPrecio.length > 0) {
-      addLog(`🟡 ${conPrecio.length} producto(s) sin variantes pero CON precio (se creará variante auto -v1):`);
-      conPrecio.slice(0, 5).forEach(p =>
-        addLog(`     └ "${(p.nombre || '').substring(0, 50)}" (ID: ${p.id_original}) | Precio: ${p.precio}`)
-      );
-      if (conPrecio.length > 5) addLog(`     ... y ${conPrecio.length - 5} más`);
-    }
-    if (sinPrecio.length > 0) {
-      addLog(`🔵 ${sinPrecio.length} producto(s) sin variantes en Excel y SIN precio (sus variantes en BD NO serán tocadas):`);
-      sinPrecio.slice(0, 5).forEach(p =>
-        addLog(`     └ "${(p.nombre || '').substring(0, 50)}" (ID: ${p.id_original})`)
-      );
-      if (sinPrecio.length > 5) addLog(`     ... y ${sinPrecio.length - 5} más`);
-    }
+    addLog(`🔵 ${productosSinVariante.length} producto(s) sin variantes en el Excel (sus variantes en BD NO serán tocadas — el precio del producto es suficiente):`);
+    productosSinVariante.slice(0, 5).forEach(p =>
+      addLog(`     └ "${(p.nombre || '').substring(0, 50)}" (ID: ${p.id_original}) | Precio: ${p.precio || '(sin precio)'}`)
+    );
+    if (productosSinVariante.length > 5) addLog(`     ... y ${productosSinVariante.length - 5} más`);
   }
 
   addLog('─────────────────────────────────────────────');
@@ -356,32 +345,14 @@ async function procesarImportacion(strapi, rutaExcel) {
       const hijos           = variantesIndex.get(idOriginal) || [];
       const categoriaDocId  = categoriaIdPorNombre.get(nombreCategoria) || null;
 
-      // Determinar si corresponde crear una variante automática o no:
-      //   - Si hay variantes en el Excel    → usarlas (caso normal)
-      //   - Si NO hay variantes Y precio > 0 → crear variante auto -v1 (Combo / producto simple)
-      //   - Si NO hay variantes Y precio = 0 → el producto maneja precios vía variantes reales
-      //     en la BD; NO crear -v1 ni tocar las variantes existentes.
-      const precioProdNum = parseDecimal(p.precio);
-      const tieneVariantesEnExcel = hijos.length > 0;
-      const crearAutoVariante = !tieneVariantesEnExcel && precioProdNum > 0;
-
-      // null = no hay variantes para importar → no incluir la key en productoData
-      const hijosEfectivos = tieneVariantesEnExcel
-        ? hijos
-        : crearAutoVariante
-          ? [{
-              id_original:   `${idOriginal}-v1`,
-              sku_ean:       (p.sku || '').trim(),
-              volumen:       '',
-              stock:         (p.stock || '0'),
-              precio:        p.precio,
-              precio_oferta: p.precio_oferta || '',
-              pct_descuento: p.pct_descuento || '',
-              publicado:     p.publicado,
-              envio:         '1',
-              color_nombre:  '',
-            }]
-          : null; // precio=0 y sin variantes en Excel → no tocar variantes de la BD
+      // Política de variantes:
+      //   - Si hay variantes en el Excel → importarlas y pisarlas en la BD (caso normal).
+      //   - Si NO hay variantes en el Excel → NO crear ninguna variante automática
+      //     y NO tocar las que ya existan en la BD.
+      //     El producto tiene su propio campo `precio` que la tienda puede usar directamente.
+      //     Crear variantes sintéticas con precio incorrecto rompe la visualización en la tienda.
+      const hijosEfectivos = hijos.length > 0 ? hijos : null;
+      // null → variantesData será undefined → la key "variantes" no se envía a Strapi
 
       // undefined = Strapi no recibirá la key, por lo que no modificará variantes existentes
       const variantesData = hijosEfectivos
@@ -576,15 +547,11 @@ async function verificarPreciosIntegridad(strapi) {
         const sinAtributos      = !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
         const precioPadreValido = Number(p.precio) > 0;
 
-        // Consistente con el exportador: una variante es "sintética" solo si
-        // su id termina en -v1, O si es única + sin atributos + precio padre > 0
-        // Y su precio coincide con el padre (redundante → no debería diferir).
-        // Una variante única sin atributos con precio DISTINTO al padre es legítima.
-        const precioVariante = Number(v.precio);
-        const precioCoincide = precioVariante === Number(p.precio);
-
-        const esSintetica = v.id_original === `${padreId}-v1`
-          || (esUnica && sinAtributos && precioPadreValido && precioCoincide);
+        // Consistente con el nuevo exportador: toda variante sin atributos (sin volumen
+        // ni color) es considerada sintética/fantasma.
+        // Si estamos dentro de este 'if', significa que el precio difiere del padre.
+        // Por lo tanto, si es sintética y su precio difiere, es un Error Crítico.
+        const esSintetica = v.id_original === `${padreId}-v1` || sinAtributos;
 
         discrepancias.push({
           id_original:            p.id_original || String(p.id),

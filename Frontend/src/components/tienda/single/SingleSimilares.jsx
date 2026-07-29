@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
+import { getProductPrice } from '../../../utils/productPrice';
 import AddToCartModal from '../../carrito/AddToCartModal';
 
 const SectionWrapper = styled.section`
@@ -463,12 +464,7 @@ export default function SingleSimilares({ producto, title = 'Similares', query, 
 
           const nombre = attrs.nombre;
           const marca = attrs.marca;
-          const descuento = attrs.descuento || 0;
-
-          const variantes = attrs.variantes || [];
-          const mainVariant = variantes[0] || {};
-          const price = mainVariant.precio || attrs.precio || 0;
-          const offerPrice = mainVariant.precio_oferta || attrs.precio_oferta || null;
+          const { price, offerPrice, calcDescuento: descuentoCalc } = getProductPrice(attrs);
 
           let imgUrl = null;
           if (attrs.portada?.data?.attributes?.url) {
@@ -477,12 +473,12 @@ export default function SingleSimilares({ producto, title = 'Similares', query, 
             imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
           }
 
-          const stampVal = descuento > 0 ? getStampValue(descuento) : null;
+          const stampVal = descuentoCalc > 0 ? getStampValue(descuentoCalc) : null;
 
           return (
             <ProductCard key={id}>
               <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
-                {descuento > 0 && stampVal && (
+                {descuentoCalc > 0 && stampVal && (
                   <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
                 )}
 

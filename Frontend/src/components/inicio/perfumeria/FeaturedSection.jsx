@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
+import { getProductPrice } from '../../../utils/productPrice';
 import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
 import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
@@ -653,15 +654,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
 
             const nombre = attrs.nombre;
             const marca = attrs.marca;
-            const descuento = attrs.descuento || 0;
-            const variantes = attrs.variantes || [];
-            const mainVariant = variantes[0] || {};
-            const price = mainVariant.precio || attrs.precio || 0;
-            let offerPrice = mainVariant.precio_oferta || null;
-
-            if (!offerPrice && descuento > 0 && price > 0) {
-              offerPrice = price - (price * (descuento / 100));
-            }
+            const { price, offerPrice, calcDescuento: descuentoCalc } = getProductPrice(attrs);
 
             let imgUrl = null;
             const getFullUrl = (url) => url?.startsWith('http') ? url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${url}`;
@@ -690,7 +683,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
                 <PriceRow>
                   {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
                   <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
-                  {descuento > 0 && <DiscountBadge>{descuento}% OFF</DiscountBadge>}
+                  {descuentoCalc > 0 && <DiscountBadge>{descuentoCalc}% OFF</DiscountBadge>}
                 </PriceRow>
 
                 <Installments>

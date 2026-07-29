@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
+import { getProductPrice } from '../../../utils/productPrice';
 import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
 import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
@@ -511,16 +512,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
 
           const nombre = attrs.nombre;
           const marca = attrs.marca;
-          const descuento = attrs.descuento || 0;
-
-          const variantes = attrs.variantes || [];
-          const mainVariant = variantes[0] || {};
-          const price = mainVariant.precio || attrs.precio || 0;
-          let offerPrice = mainVariant.precio_oferta || null;
-
-          if (!offerPrice && descuento > 0 && price > 0) {
-            offerPrice = price - (price * (descuento / 100));
-          }
+          const { price, offerPrice, calcDescuento: descuentoCalc } = getProductPrice(attrs);
 
           let imgUrl = null;
           if (attrs.portada?.data?.attributes?.url) {
@@ -529,12 +521,12 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
             imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
           }
 
-          const stampVal = descuento > 0 ? getStampValue(descuento) : null;
+          const stampVal = descuentoCalc > 0 ? getStampValue(descuentoCalc) : null;
 
           return (
             <ProductCard key={id} variants={staggerItemLeftVariants}>
               <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
-                {descuento > 0 && stampVal && (
+                {descuentoCalc > 0 && stampVal && (
                   <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
                 )}
 
@@ -554,7 +546,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
               <PriceRow>
                 {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
                 <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
-                {descuento > 0 && <DiscountBadge>{descuento}% OFF</DiscountBadge>}
+                {descuentoCalc > 0 && <DiscountBadge>{descuentoCalc}% OFF</DiscountBadge>}
               </PriceRow>
 
               <Installments>

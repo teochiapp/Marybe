@@ -293,11 +293,21 @@ export default function CatalogoProductCard({ product, strapiUrl }) {
   const marca = attrs.marca;
   const descuento = attrs.descuento || 0;
 
-  // Variante principal con stock
+  // Variante principal con stock.
+  // Ignoramos variantes "vacías" (sin volumen ni color): son variantes sintéticas
+  // creadas por imports anteriores que no deben afectar el precio mostrado.
   const variantes = attrs.variantes || [];
-  const mainVariant = variantes.find((v) => v.publicado !== false && v.stock > 0) || variantes[0] || {};
-  const price = mainVariant.precio || attrs.precio || 0;
-  const offerPrice = mainVariant.precio_oferta || attrs.precio_oferta || null;
+  const variantesReales = variantes.filter(v =>
+    (v.volumen || '').trim() !== '' || (v.color_nombre || '').trim() !== ''
+  );
+  const usarVariantes = variantesReales.length > 0;
+
+  const mainVariant = usarVariantes
+    ? (variantesReales.find((v) => v.publicado !== false && v.stock > 0) || variantesReales[0] || {})
+    : {};
+
+  const price = (usarVariantes ? mainVariant.precio : null) || attrs.precio || 0;
+  const offerPrice = (usarVariantes ? mainVariant.precio_oferta : null) || attrs.precio_oferta || null;
 
   const tieneOferta = offerPrice && offerPrice > 0 && offerPrice < price;
   const currentPriceVal = tieneOferta ? offerPrice : price;

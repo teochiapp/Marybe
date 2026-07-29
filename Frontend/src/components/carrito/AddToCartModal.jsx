@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { variantesReales } from '../../utils/productPrice';
 
 // Styled Components
 const Overlay = styled.div`
@@ -312,9 +313,9 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
 
     if (!activeVariant) {
       if (tieneColores && selectedColor) {
-        activeVariant = colorMap.get(selectedColor) || variantes[0] || {};
+        activeVariant = colorMap.get(selectedColor) || variantesReales(variantes)[0] || {};
       } else {
-        activeVariant = variantes.find(v => (v.volumen || 'Único') === currentSize) || variantes[0] || {};
+        activeVariant = variantes.find(v => (v.volumen || 'Único') === currentSize) || variantesReales(variantes)[0] || {};
       }
     }
   }
