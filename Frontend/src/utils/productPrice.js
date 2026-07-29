@@ -50,8 +50,17 @@ export function getProductPrice(attrs = {}) {
   var usarVariante = result.usarVariante;
   var descuento = attrs.descuento || 0;
 
-  var price = (usarVariante ? variant.precio : null) || attrs.precio || 0;
+  var price = (usarVariante ? variant.precio : null) || attrs.precio;
   var offerPrice = (usarVariante ? variant.precio_oferta : null) || attrs.precio_oferta || null;
+
+  // Fallback extremo: si no hay variantes reales ni precio en el padre,
+  // pero SÍ hay variantes (fantasma), usamos la primera para no romper la tienda (mostrar $0).
+  if (!price && variantes.length > 0) {
+    price = variantes[0].precio;
+    if (!offerPrice) offerPrice = variantes[0].precio_oferta || null;
+  }
+  
+  price = price || 0;
 
   // Fallback: calcular precio oferta desde % descuento del producto padre
   if (!offerPrice && descuento > 0 && price > 0) {

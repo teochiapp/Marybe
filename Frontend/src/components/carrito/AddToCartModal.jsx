@@ -313,9 +313,9 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
 
     if (!activeVariant) {
       if (tieneColores && selectedColor) {
-        activeVariant = colorMap.get(selectedColor) || variantesReales(variantes)[0] || {};
+        activeVariant = colorMap.get(selectedColor) || variantesReales(variantes)[0] || variantes[0] || {};
       } else {
-        activeVariant = variantes.find(v => (v.volumen || 'Único') === currentSize) || variantesReales(variantes)[0] || {};
+        activeVariant = variantes.find(v => (v.volumen || 'Único') === currentSize) || variantesReales(variantes)[0] || variantes[0] || {};
       }
     }
   }

@@ -276,8 +276,26 @@ async function generarExcel(strapi) {
     const isEven  = rowIdxP % 2 === 0;
     const bgColor = isEven ? C.blanco : C.grisClaro;
 
-    const precioNum       = safeNum(prod.precio);
-    const precioOfertaNum = safeNum(prod.precio_oferta);
+    let precioNum       = safeNum(prod.precio);
+    let precioOfertaNum = safeNum(prod.precio_oferta);
+
+    // Rescatar el precio de la variante fantasma si el padre no tiene precio
+    if (precioNum === null && prod.variantes && prod.variantes.length > 0) {
+      const padreIdStr = prod.id_original || String(prod.id || '');
+      const v1 = prod.variantes.find(v => v.id_original === `${padreIdStr}-v1`);
+      
+      if (v1) {
+        precioNum = safeNum(v1.precio);
+        if (precioOfertaNum === null) precioOfertaNum = safeNum(v1.precio_oferta);
+      } else if (prod.variantes.length === 1) {
+        const vUnica = prod.variantes[0];
+        const sinAtributos = !(vUnica.volumen || '').trim() && !(vUnica.color_nombre || '').trim();
+        if (sinAtributos) {
+          precioNum = safeNum(vUnica.precio);
+          if (precioOfertaNum === null) precioOfertaNum = safeNum(vUnica.precio_oferta);
+        }
+      }
+    }
     const pctDesc         = calcPct(precioNum, precioOfertaNum, prod.descuento);
 
     // ── Resolver Categoría / Subcategoría / Tipo ────────────────────────────
@@ -478,13 +496,13 @@ async function generarExcel(strapi) {
     const padreIdOriginal = prod.id_original || String(prod.id || '');
     const variantes       = prod.variantes   || [];
 
-    // Solo exportar variantes REALES de la BD.
-    // Ocultamos las variantes fantasma (creadas por imports antiguos).
-    // Toda variante sin atributos (sin volumen ni color) es considerada sintética.
+    // Solo exportar variantes de la BD, ocultando las variantes fantasma (-v1) o
+    // únicas vacías. Si hay MÚLTIPLES variantes sin atributos, SE EXPORTAN para 
+    // que el usuario pueda corregirlas en el Excel.
     const variantesLimpias = variantes.filter(v => {
-      const sinAtributos = !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
-      const esSintetica = v.id_original === `${padreIdOriginal}-v1` || sinAtributos;
-      return !esSintetica;
+      const esV1 = v.id_original === `${padreIdOriginal}-v1`;
+      const esUnicaYVacia = variantes.length === 1 && !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
+      return !(esV1 || esUnicaYVacia);
     });
 
     if (variantesLimpias.length === 0) {

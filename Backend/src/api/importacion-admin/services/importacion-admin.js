@@ -556,9 +556,10 @@ async function verificarPreciosIntegridad(strapi) {
 
         // Consistente con el nuevo exportador: toda variante sin atributos (sin volumen
         // ni color) es considerada sintética/fantasma.
-        // Si estamos dentro de este 'if', significa que hay una discrepancia (ej. la
-        // variante fantasma tiene un precio distinto al padre, o el padre no tiene precio).
-        // Por lo tanto, si es sintética, es un Error Crítico.
+        // Si el padre no tiene precio, y la variante fantasma SÍ, la perdonamos porque
+        // ya agregamos un fallback en el frontend para que la tienda funcione con esta data.
+        // Solo es Error Crítico si el padre SÍ tiene precio y la variante fantasma lo contradice.
+        const esErrorCritico = esSintetica && precioPadreNum > 0;
 
         discrepancias.push({
           id_original:            p.id_original || String(p.id),
@@ -569,7 +570,7 @@ async function verificarPreciosIntegridad(strapi) {
           precio_oferta_variante: v.precio_oferta,
           volumen:                v.volumen || '',
           color:                  v.color_nombre || '',
-          esErrorCritico:         esSintetica,
+          esErrorCritico:         esErrorCritico,
         });
       }
     }
