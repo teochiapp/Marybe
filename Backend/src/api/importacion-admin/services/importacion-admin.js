@@ -138,12 +138,13 @@ async function leerExcel(rutaArchivo) {
       color_nombre:      cellVal(row, 12),
     });
   });
-
-  return { productos, variantes };
+  const hasVariantesSheet = !!wb.getWorksheet('🔗 Variantes');
+  
+  return { productos, variantes, hasVariantesSheet };
 }
 
 // ─── Validación y diagnóstico pre-importación ──────────────────────────────────────
-function validarYDiagnosticar(productos, variantes, addLog) {
+function validarYDiagnosticar(productos, variantes, hasVariantesSheet, addLog) {
   addLog('─────────────────────────────────────────────');
   addLog('🔎 DIAGNÓSTICO PRE-IMPORTACIÓN');
   addLog('─────────────────────────────────────────────');
@@ -270,7 +271,7 @@ async function procesarImportacion(strapi, rutaExcel) {
   };
 
   addLog(`📂 Leyendo archivo: ${path.basename(rutaExcel)}`);
-  const { productos: productosRaw, variantes: variantesRaw } = await leerExcel(rutaExcel);
+  const { productos: productosRaw, variantes: variantesRaw, hasVariantesSheet } = await leerExcel(rutaExcel);
 
   addLog(`📦 ${productosRaw.length} productos encontrados en el Excel (hoja Productos)`);
   addLog(`🔗 ${variantesRaw.length} variantes encontradas en el Excel (hoja Variantes)`);
@@ -354,7 +355,9 @@ async function procesarImportacion(strapi, rutaExcel) {
       const hijosEfectivos = hijos.length > 0 ? hijos : null;
       // null → variantesData será undefined → la key "variantes" no se envía a Strapi
 
-      // undefined = Strapi no recibirá la key, por lo que no modificará variantes existentes
+      // Si el Excel no declara variantes para este producto (hijosEfectivos nulo),
+      // enviamos explícitamente [] para que Strapi ELIMINE / DESVINCULE cualquier
+      // variante previa en la base de datos (ej. las variantes fantasma -v1 antiguas).
       const variantesData = hijosEfectivos
         ? hijosEfectivos.map(v => ({
             id_original:   (v.id_original || '').trim(),
@@ -376,7 +379,7 @@ async function procesarImportacion(strapi, rutaExcel) {
             envio:        (v.envio  || '').trim(),
             color_nombre: (v.color_nombre || '').trim() || null,
           }))
-        : undefined;
+        : (hasVariantesSheet ? [] : undefined);
 
 
       // maxDescuento: calculado desde precio_oferta de las variantes (incluye la auto-creada)
@@ -422,7 +425,7 @@ async function procesarImportacion(strapi, rutaExcel) {
         descuento:       maxDescuento || pctDescProd,
         precio:          precioProd,
         precio_oferta:   precioOfertaProd,
-        // Solo incluir variantes si hay datos reales (undefined = no tocar las de la BD)
+        // Enviamos las variantes. Si no hay en el Excel, se enviará [] y Strapi limpiará las existentes.
         ...(variantesData !== undefined ? { variantes: variantesData } : {}),
         caracteristicas: (p.caracteristicas || '').trim() || null,
         ...(categoriaDocId ? { categoria: { documentId: categoriaDocId } } : {}),
