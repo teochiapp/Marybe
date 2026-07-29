@@ -488,6 +488,7 @@ export default function ImportacionAdmin() {
           type="button"
           className="ia-btn ia-btn--full"
           style={{
+            display: 'none',
             marginTop: '1rem',
             border: '2px solid #3B82F6',
             backgroundColor: '#EFF6FF',
