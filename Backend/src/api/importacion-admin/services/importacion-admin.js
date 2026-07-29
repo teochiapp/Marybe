@@ -277,7 +277,7 @@ async function procesarImportacion(strapi, rutaExcel) {
   addLog(`🔗 ${variantesRaw.length} variantes encontradas en el Excel (hoja Variantes)`);
 
   // ── Validación y diagnóstico ───────────────────────────────────────────────────────
-  const validacion = validarYDiagnosticar(productosRaw, variantesRaw, addLog);
+  const validacion = validarYDiagnosticar(productosRaw, variantesRaw, hasVariantesSheet, addLog);
   const productos  = validacion.productosFiltrados;
   const variantes  = validacion.variantesFiltradas;
 
