@@ -63,12 +63,16 @@ const InfoRow = styled.span`
   }
 `;
 
-export default function SucursalCard({ direccion, telefono, telefonoFijo, mapa }) {
+export default function SucursalCard({ provincia, direccion, telefono, telefonoFijo, mapa }) {
+  // Construimos una URL de búsqueda para el iframe ya que los enlaces cortos de Google 
+  // (https://maps.app.goo.gl/...) bloquean la incrustación mediante X-Frame-Options.
+  const mapQuery = encodeURIComponent(`${direccion}, ${provincia || ''}, Argentina`);
+  const embedUrl = `https://maps.google.com/maps?q=${mapQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
   return (
     <Card>
       <MapWrap>
         <MapFrame
-          src={mapa}
+          src={embedUrl}
           title={`Mapa de ${direccion}`}
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"

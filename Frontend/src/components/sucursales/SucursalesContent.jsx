@@ -102,6 +102,7 @@ export default function SucursalesContent() {
                 {provincia.locales.map((local, index) => (
                   <SucursalCard
                     key={`${provincia.provincia}-${index}`}
+                    provincia={provincia.provincia}
                     direccion={local.direccion}
                     telefono={local.telefono}
                     telefonoFijo={local.telefonoFijo}
