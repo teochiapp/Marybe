@@ -489,8 +489,20 @@ async function generarExcel(strapi) {
       const esUnica = variantes.length === 1;
       const sinAtributos = !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
       const esGenerica = esUnica && sinAtributos;
-      
-      const esSintetica = v.id_original === `${padreIdOriginal}-v1` || (esGenerica && precioPadreValido);
+
+      // Una variante es sintética (redundante, no exportar) solo si:
+      // 1. Fue auto-generada por el sistema (id termina en -v1), O
+      // 2. Es única, sin atributos, Y su precio COINCIDE con el del padre
+      //    (precio distinto al padre = variante real aunque sea única y sin atributos)
+      const precioVariante   = safeNum(v.precio);
+      const precioPadreNum   = safeNum(prod.precio);
+      const precioCoincide   = precioVariante !== null
+        && precioPadreNum !== null
+        && precioVariante === precioPadreNum;
+
+      const esSintetica = v.id_original === `${padreIdOriginal}-v1`
+        || (esGenerica && precioPadreValido && precioCoincide);
+
       return !esSintetica;
     });
 
