@@ -432,16 +432,29 @@ async function procesarImportacion(strapi, rutaExcel) {
       };
 
       try {
-        // Buscar si ya existe por id_original
-        const existentes = await strapi.documents(UID_PRODUCTO).findMany({
-          filters: { id_original: { $eq: idOriginal } },
-          limit: 1,
+        // Buscar si ya existe por id_original (usamos db.query para encontrar drafts y publicados)
+        const existente = await strapi.db.query(UID_PRODUCTO).findOne({
+          where: { id_original: idOriginal }
         });
 
-        if (existentes.length > 0) {
+        if (existente) {
+          // Si el Excel no declara variantes (variantesData = []), eliminarlas
+          // explícitamente a nivel de BD antes del update. El Documents API de
+          // Strapi a veces solo desvincula pero no borra físicamente los componentes,
+          // dejando variantes fantasma visibles en el admin y en la tienda.
+          if (Array.isArray(variantesData) && variantesData.length === 0) {
+            try {
+              await strapi.db.query(UID_PRODUCTO).update({
+                where: { id: existente.id },
+                data: { variantes: [] },
+              });
+            } catch (cleanErr) {
+              addLog(`⚠️  No se pudo limpiar variantes de "${idOriginal}": ${cleanErr.message}`);
+            }
+          }
           // Actualizar el existente
           await strapi.documents(UID_PRODUCTO).update({
-            documentId: existentes[0].documentId,
+            documentId: existente.documentId,
             data: productoData,
             status: 'published',
           });

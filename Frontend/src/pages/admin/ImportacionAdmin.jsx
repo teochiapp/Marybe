@@ -7,22 +7,22 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
 // ─── Componente principal ──────────────────────────────────────────────────────
 export default function ImportacionAdmin() {
   // Auth state
-  const [token, setToken]       = useState(() => localStorage.getItem('admin_jwt') || '');
+  const [token, setToken] = useState(() => localStorage.getItem('admin_jwt') || '');
   const [authError, setAuthError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
   // Login form
-  const [email, setEmail]       = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
 
   // Upload state
-  const [archivo, setArchivo]         = useState(null);
-  const [dragging, setDragging]       = useState(false);
-  const [uploading, setUploading]     = useState(false);
-  const [resultado, setResultado]     = useState(null);
+  const [archivo, setArchivo] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [resultado, setResultado] = useState(null);
   const [uploadError, setUploadError] = useState('');
-  const [progreso, setProgreso]       = useState(0);
+  const [progreso, setProgreso] = useState(0);
 
   // Verificación state
   const [verificando, setVerificando] = useState(false);
@@ -183,9 +183,9 @@ export default function ImportacionAdmin() {
           <div className="ia-login-brand">
             <div className="ia-brand-icon">
               <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-                <path d="M24 4L44 14V34L24 44L4 34V14L24 4Z" stroke="currentColor" strokeWidth="2" fill="none"/>
-                <path d="M24 12L36 18V30L24 36L12 30V18L24 12Z" fill="currentColor" opacity="0.2"/>
-                <path d="M24 20L30 23V29L24 32L18 29V23L24 20Z" fill="currentColor"/>
+                <path d="M24 4L44 14V34L24 44L4 34V14L24 4Z" stroke="currentColor" strokeWidth="2" fill="none" />
+                <path d="M24 12L36 18V30L24 36L12 30V18L24 12Z" fill="currentColor" opacity="0.2" />
+                <path d="M24 20L30 23V29L24 32L18 29V23L24 20Z" fill="currentColor" />
               </svg>
             </div>
             <h1 className="ia-brand-title">Marybe</h1>
@@ -197,7 +197,7 @@ export default function ImportacionAdmin() {
               <label htmlFor="admin-email" className="ia-label">Email administrador</label>
               <div className="ia-input-wrap">
                 <span className="ia-input-icon" aria-hidden="true">
-                  <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+                  <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg>
                 </span>
                 <input
                   id="admin-email"
@@ -216,7 +216,7 @@ export default function ImportacionAdmin() {
               <label htmlFor="admin-password" className="ia-label">Contraseña</label>
               <div className="ia-input-wrap">
                 <span className="ia-input-icon" aria-hidden="true">
-                  <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a7 7 0 0114 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/></svg>
+                  <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a7 7 0 0114 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
                 </span>
                 <input
                   id="admin-password"
@@ -235,8 +235,8 @@ export default function ImportacionAdmin() {
                   aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
                   {showPass
-                    ? <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/></svg>
-                    : <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd"/><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/></svg>
+                    ? <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" /></svg>
+                    : <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" /><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z" /></svg>
                   }
                 </button>
               </div>
@@ -244,7 +244,7 @@ export default function ImportacionAdmin() {
 
             {authError && (
               <div className="ia-alert ia-alert--error" role="alert">
-                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
                 {authError}
               </div>
             )}
@@ -256,7 +256,7 @@ export default function ImportacionAdmin() {
               disabled={loginLoading || !email || !password}
             >
               {loginLoading
-                ? <><span className="ia-spinner" aria-hidden="true"/> Iniciando sesión...</>
+                ? <><span className="ia-spinner" aria-hidden="true" /> Iniciando sesión...</>
                 : 'Iniciar sesión'}
             </button>
           </form>
@@ -284,8 +284,8 @@ export default function ImportacionAdmin() {
           <div className="ia-panel-brand">
             <div className="ia-brand-icon ia-brand-icon--sm">
               <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-                <path d="M24 4L44 14V34L24 44L4 34V14L24 4Z" stroke="currentColor" strokeWidth="2" fill="none"/>
-                <path d="M24 20L30 23V29L24 32L18 29V23L24 20Z" fill="currentColor"/>
+                <path d="M24 4L44 14V34L24 44L4 34V14L24 4Z" stroke="currentColor" strokeWidth="2" fill="none" />
+                <path d="M24 20L30 23V29L24 32L18 29V23L24 20Z" fill="currentColor" />
               </svg>
             </div>
             <div>
@@ -298,7 +298,7 @@ export default function ImportacionAdmin() {
             className="ia-btn ia-btn--ghost"
             onClick={handleLogout}
           >
-            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd"/></svg>
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" /></svg>
             Cerrar sesión
           </button>
         </header>
@@ -306,7 +306,7 @@ export default function ImportacionAdmin() {
         {/* Info card */}
         <div className="ia-info-card">
           <div className="ia-info-icon" aria-hidden="true">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/></svg>
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
           </div>
           <div className="ia-info-text">
             <strong>¿Cómo funciona?</strong>
@@ -341,10 +341,10 @@ export default function ImportacionAdmin() {
             <div className="ia-file-preview">
               <div className="ia-file-icon" aria-hidden="true">
                 <svg viewBox="0 0 48 48" fill="none">
-                  <rect x="8" y="4" width="32" height="40" rx="4" fill="currentColor" opacity="0.15"/>
-                  <rect x="8" y="4" width="32" height="40" rx="4" stroke="currentColor" strokeWidth="2"/>
-                  <path d="M16 16h8M16 22h16M16 28h12M16 34h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  <path d="M30 4v10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <rect x="8" y="4" width="32" height="40" rx="4" fill="currentColor" opacity="0.15" />
+                  <rect x="8" y="4" width="32" height="40" rx="4" stroke="currentColor" strokeWidth="2" />
+                  <path d="M16 16h8M16 22h16M16 28h12M16 34h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M30 4v10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </div>
               <div className="ia-file-info">
@@ -358,15 +358,15 @@ export default function ImportacionAdmin() {
                 onClick={(e) => { e.stopPropagation(); setArchivo(null); setUploadError(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
                 aria-label="Quitar archivo"
               >
-                <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/></svg>
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
               </button>
             </div>
           ) : (
             <div className="ia-dropzone-prompt">
               <div className="ia-drop-icon" aria-hidden="true">
                 <svg viewBox="0 0 64 64" fill="none">
-                  <path d="M32 8v32M20 28l12-20 12 20" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M12 44v8a4 4 0 004 4h32a4 4 0 004-4v-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                  <path d="M32 8v32M20 28l12-20 12 20" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M12 44v8a4 4 0 004 4h32a4 4 0 004-4v-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
                 </svg>
               </div>
               <p className="ia-drop-title">
@@ -393,7 +393,7 @@ export default function ImportacionAdmin() {
         {/* Error de upload */}
         {uploadError && (
           <div className="ia-alert ia-alert--error" role="alert">
-            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
             {uploadError}
           </div>
         )}
@@ -402,7 +402,7 @@ export default function ImportacionAdmin() {
         {resultado && (
           <div className="ia-resultado" role="status">
             <div className="ia-resultado-header">
-              <svg className="ia-resultado-icon ia-resultado-icon--ok" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+              <svg className="ia-resultado-icon ia-resultado-icon--ok" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
               <h2 className="ia-resultado-title">¡Importación exitosa!</h2>
             </div>
 
@@ -475,11 +475,11 @@ export default function ImportacionAdmin() {
           disabled={!archivo || uploading}
         >
           {uploading
-            ? <><span className="ia-spinner" aria-hidden="true"/> Importando productos...</>
+            ? <><span className="ia-spinner" aria-hidden="true" /> Importando productos...</>
             : <>
-                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
-                Importar Productos al Catálogo
-              </>
+              <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+              Importar Productos al Catálogo
+            </>
           }
         </button>
 
@@ -487,10 +487,10 @@ export default function ImportacionAdmin() {
         <button
           type="button"
           className="ia-btn ia-btn--full"
-          style={{ 
-            marginTop: '1rem', 
-            border: '2px solid #3B82F6', 
-            backgroundColor: '#EFF6FF', 
+          style={{
+            marginTop: '1rem',
+            border: '2px solid #3B82F6',
+            backgroundColor: '#EFF6FF',
             color: '#1D4ED8',
             fontWeight: '600',
             boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06)'
@@ -511,7 +511,7 @@ export default function ImportacionAdmin() {
           disabled={verificando || uploading}
         >
           {verificando ? (
-            <><span className="ia-spinner" aria-hidden="true"/> Verificando Integridad de la Web...</>
+            <><span className="ia-spinner" aria-hidden="true" /> Verificando Integridad de la Web...</>
           ) : (
             <>
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
@@ -528,7 +528,7 @@ export default function ImportacionAdmin() {
           <div className="ia-resultado" style={{ marginTop: '1rem', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
             <h3 style={{ marginTop: 0, color: '#0369A1' }}>Resultado de Verificación</h3>
             <p>Se revisaron <strong>{verificacionRes.totalRevisados}</strong> productos con variantes.</p>
-            
+
             {verificacionRes.erroresCriticos === 0 ? (
               <div className="ia-stat ia-stat--success" style={{ margin: '1rem 0', backgroundColor: '#000000', border: '1px solid #16A34A', padding: '1.25rem' }}>
                 <span className="ia-stat-label" style={{ fontSize: '0.9rem', color: '#86efac' }}>
@@ -559,7 +559,7 @@ export default function ImportacionAdmin() {
                 <div className="ia-console">
                   {verificacionRes.detalles.map((d, i) => (
                     <div key={i} className="ia-console-line ia-line-error">
-                      <strong>[ID: {d.id_original}] {d.nombre}</strong><br/>
+                      <strong>[ID: {d.id_original}] {d.nombre}</strong><br />
                       Precio Prod: {d.precio_producto || 'Vacío (null)'} | Precio Variante: {d.precio_variante}
                     </div>
                   ))}

@@ -151,7 +151,7 @@ async function main() {
 
   wsP.mergeCells('A2:R2');
   const instrP = wsP.getCell('A2');
-  instrP.value = `⚠ Generado automáticamente desde CSV Puig Selectivo — ${grupos.size} productos | ${[...grupos.values()].reduce((s,g)=>s+g.variantes.length,0)} variantes. Productos con múltiples tamaños NO tienen precio (el precio está en cada variante).`;
+  instrP.value = `⚠ Generado automáticamente desde CSV Puig Selectivo — ${grupos.size} productos | ${[...grupos.values()].reduce((s,g)=>s+g.variantes.length,0)} variantes. El precio del padre queda vacío cuando hay variantes (1+); el precio vive en cada variante.`;
   applyStyle(instrP, noteStyle());
   wsP.getRow(2).height = 28;
 
@@ -196,10 +196,12 @@ async function main() {
     baseToId.set(base, prodId);
     const isEven = rowIdxP % 2 === 0;
     const bgColor = isEven ? C.blanco : C.grisClaro;
-    const unica = grupo.variantes.length === 1;
-    const precioPadre       = unica ? grupo.variantes[0].publico : null;
-    const precioOfertaPadre = unica ? grupo.variantes[0].oferta  : null;
-    const pctDescPadre      = unica ? calcDesc(precioPadre, precioOfertaPadre) : 0;
+    // El precio se pone en el padre SOLO si no tiene variantes (0 variantes).
+    // Si tiene 1 o más variantes, el precio vive en la fila de variante.
+    const sinVariantes      = grupo.variantes.length === 0;
+    const precioPadre       = sinVariantes ? grupo.variantes[0]?.publico ?? null : null;
+    const precioOfertaPadre = sinVariantes ? grupo.variantes[0]?.oferta  ?? null : null;
+    const pctDescPadre      = sinVariantes ? calcDesc(precioPadre, precioOfertaPadre) : 0;
     const skuPadre = grupo.variantes[0]?.codigo || '';
 
     const valores = [
@@ -283,7 +285,8 @@ async function main() {
   let rowIdxV = 3;
   for (const [base, grupo] of grupos) {
     const prodId = baseToId.get(base);
-    if (grupo.variantes.length <= 1) continue;
+    // Solo saltear si el producto NO tiene variantes (0). Con 1+ variantes se escribe en Variantes.
+    if (grupo.variantes.length === 0) continue;
     for (const v of grupo.variantes) {
       rowIdxV++;
       const varId = nextVarId++;
