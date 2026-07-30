@@ -208,11 +208,7 @@ const TAXONOMY = {
 
 const SECCIONES = ['Perfumería', 'Hogar'];
 
-const COLORES = [
-  'Blanco', 'Negro', 'Gris', 'Rojo', 'Rosa', 'Fucsia', 'Nude', 'Beige',
-  'Marrón', 'Azul', 'Celeste', 'Verde', 'Amarillo', 'Naranja', 'Violeta',
-  'Lila', 'Dorado', 'Plateado', 'Cobre', 'Transparente'
-];
+const COLORES = ["Negro","Negro Azulado","Castaño Oscuro","Castaño Natural","Castaño Claro","Castaño Ceniza","Castaño Dorado","Chocolate","Caoba","Avellana","Rubio Oscuro","Rubio Natural","Rubio Claro","Rubio Dorado","Rubio Ceniza","Rubio Platinado","Miel","Rojo","Rojo Intenso","Bordo","Bordo Oscuro","Cobre","Rojizo","Rosa Claro","Rosa","Rosa Oscuro","Fucsia","Coral","Durazno","Nude","Beige","Arena","Marfil","Porcelana","Blanco","Blanco Perla","Dorado","Plateado","Bronce","Lavanda","Lila","Violeta","Morado","Azul","Turquesa","Verde","Verde Oliva","Gris Claro","Gris","Gris Oscuro","Transparente","Incoloro","Negro Intenso","Negro Profundo","Ebano","Castano Oscuro","Castano Claro Dorado","Castano Claro","Castano Ceniza Caoba","Castano Rojizo","Castano","Rubio Ultra Claro","Rubio Muy Claro","Rubio Claro Cenizo","Rubio Claro Dorado","Rubio Cenizo","Rubio Rojizo","Rubio","Rojo Cobrizo","Cobrizo Rubi","Cobrizo","Chocolate Caoba","Chocolate Puro","Borgonya","Borgoña","Caramelo","Ceniza","Dorado Cobrizo","Arandano","Grosella","Tamarindo","Cafe","Capuccino","Espresso","Champana","Almendra","Jazmin","Margarita","Nectar","Trigo","Centeno","Ambar","Azahar","Maracuya"];
 
 // ─── Paleta de colores ────────────────────────────────────────────────────────
 const C = {
