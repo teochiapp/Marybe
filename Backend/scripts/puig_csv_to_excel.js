@@ -121,19 +121,13 @@ async function main() {
   }
   console.log(`${grupos.size} productos padre | ${[...grupos.values()].reduce((s,g)=>s+g.variantes.length,0)} variantes`);
 
-  let maxProdId = 0, maxVarId = 0;
-  try {
-    const wbTpl = new ExcelJS.Workbook();
-    await wbTpl.xlsx.readFile(TEMPLATE_PATH);
-    const wsPTpl = wbTpl.getWorksheet('📦 Productos');
-    const wsVTpl = wbTpl.getWorksheet('🔗 Variantes');
-    if (wsPTpl) wsPTpl.eachRow((row, rowNum) => { if (rowNum < 4) return; const n = parseInt(row.getCell(1).value); if (!isNaN(n)) maxProdId = Math.max(maxProdId, n); });
-    if (wsVTpl) wsVTpl.eachRow((row, rowNum) => { if (rowNum < 4) return; const n = parseInt(row.getCell(1).value); if (!isNaN(n)) maxVarId = Math.max(maxVarId, n); });
-  } catch(e) { console.warn('No se pudo leer plantilla, IDs desde 1000:', e.message); maxProdId = 999; }
-
-  let nextProdId = Math.max(maxProdId, 5999) + 1;
-  let nextVarId  = Math.max(maxVarId, 14999) + 1;
-  console.log(`Próximo ID Producto: ${nextProdId} | Próximo ID Variante: ${nextVarId}`);
+  // IDs fijos para Puig: cada re-ejecución produce el mismo archivo (idempotente).
+  // Rango reservado: Productos 6000–6999 | Variantes 15000–15999
+  const PUIG_BASE_PROD = 6000;
+  const PUIG_BASE_VAR  = 15000;
+  let nextProdId = PUIG_BASE_PROD;
+  let nextVarId  = PUIG_BASE_VAR;
+  console.log(`IDs Producto desde: ${nextProdId} | IDs Variante desde: ${nextVarId}`);
 
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Marybe — Script Puig'; wb.created = new Date();
@@ -196,18 +190,23 @@ async function main() {
     baseToId.set(base, prodId);
     const isEven = rowIdxP % 2 === 0;
     const bgColor = isEven ? C.blanco : C.grisClaro;
-    // El precio se pone en el padre SOLO si no tiene variantes (0 variantes).
-    // Si tiene 1 o más variantes, el precio vive en la fila de variante.
-    const sinVariantes      = grupo.variantes.length === 0;
+    // El precio se pone en el padre SOLO si la variante es única (no hay para elegir).
+    // Si tiene 2+ variantes, el precio vive en cada fila de variante.
+    const sinVariantes      = grupo.variantes.length === 1;
     const precioPadre       = sinVariantes ? grupo.variantes[0]?.publico ?? null : null;
     const precioOfertaPadre = sinVariantes ? grupo.variantes[0]?.oferta  ?? null : null;
     const pctDescPadre      = sinVariantes ? calcDesc(precioPadre, precioOfertaPadre) : 0;
     const skuPadre = grupo.variantes[0]?.codigo || '';
 
+    // Para variante única, guardamos el tamaño/combo en Especificaciones para no perderlo.
+    const volUnico = sinVariantes ? (grupo.variantes[0]?.vol || '') : '';
+    // Características: convertimos separador '+' a '|' (formato Marybe)
+    const volCaracteristicas = volUnico ? volUnico.replace(/\s*\+\s*/g, ' | ') : '';
+
     const valores = [
       String(prodId), skuPadre, base, grupo.marca,
       grupo.seccion, grupo.categoria, grupo.subcategoria, 'Premium',
-      '', '', grupo.proveedor, 'SI', 'NO', 0, '',
+      '', volUnico, grupo.proveedor, 'SI', 'NO', 0, volCaracteristicas,
     ];
     const r = wsP.getRow(rowIdxP);
     r.height = 20;
@@ -285,8 +284,8 @@ async function main() {
   let rowIdxV = 3;
   for (const [base, grupo] of grupos) {
     const prodId = baseToId.get(base);
-    // Solo saltear si el producto NO tiene variantes (0). Con 1+ variantes se escribe en Variantes.
-    if (grupo.variantes.length === 0) continue;
+    // Solo exportar a Variantes si hay 2+ opciones. Con variante única el precio ya vive en el padre.
+    if (grupo.variantes.length <= 1) continue;
     for (const v of grupo.variantes) {
       rowIdxV++;
       const varId = nextVarId++;

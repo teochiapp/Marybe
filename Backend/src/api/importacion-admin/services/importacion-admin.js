@@ -235,12 +235,38 @@ async function upsertCategoria(strapi, { nombre, seccion, subcategorias }) {
 
   const encontrados = await strapi.documents(UID_CAT).findMany({
     filters: { nombre: { $eq: nombreTrim } },
+    populate: ['subcategorias'],
     limit: 1,
   });
 
   if (encontrados.length > 0) {
-    // Ya existe: devolver su documentId (sin modificar subcategorías existentes)
-    return encontrados[0].documentId;
+    const catExistente = encontrados[0];
+    const subcatsExistentes = catExistente.subcategorias || [];
+    const nombresExistentes = new Set(subcatsExistentes.map(s => s.nombre.trim()));
+
+    const nuevasSubcats = subcategorias
+      .filter(s => s && s.trim() && !nombresExistentes.has(s.trim()))
+      .map(s => ({ nombre: s.trim() }));
+
+    if (nuevasSubcats.length > 0 || (seccion && catExistente.seccion !== seccion)) {
+      const dataUpdate = {};
+      // Si la sección nueva no está vacía y difiere de la actual, la actualizamos
+      if (seccion && catExistente.seccion !== seccion) {
+        dataUpdate.seccion = seccion;
+      }
+      if (nuevasSubcats.length > 0) {
+        // Enviar array completo de subcategorías existentes + nuevas para mantener componentes
+        dataUpdate.subcategorias = [...subcatsExistentes, ...nuevasSubcats];
+      }
+
+      await strapi.documents(UID_CAT).update({
+        documentId: catExistente.documentId,
+        data: dataUpdate,
+        status: 'published'
+      });
+    }
+
+    return catExistente.documentId;
   }
 
   // Crear nueva categoría con sus subcategorías
@@ -428,7 +454,7 @@ async function procesarImportacion(strapi, rutaExcel) {
         // Enviamos las variantes. Si no hay en el Excel, se enviará [] y Strapi limpiará las existentes.
         ...(variantesData !== undefined ? { variantes: variantesData } : {}),
         caracteristicas: (p.caracteristicas || '').trim() || null,
-        ...(categoriaDocId ? { categoria: { documentId: categoriaDocId } } : {}),
+        categoria: categoriaDocId ? categoriaDocId : null,
       };
 
       try {
