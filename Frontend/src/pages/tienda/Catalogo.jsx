@@ -282,36 +282,53 @@ export default function Catalogo() {
   useEffect(() => {
     async function fetchFilterMetadata() {
       try {
-        const res = await fetch(`${STRAPI_URL}/api/productos?pagination[pageSize]=100&populate=*`);
-        if (!res.ok) throw new Error('Error al cargar metadatos de filtros');
-        const json = await res.json();
-
         const brands = new Set();
         const categories = new Set();
         const sizes = new Set();
         let globalMin = Infinity;
         let globalMax = -Infinity;
 
-        json.data.forEach((p) => {
-          const attrs = p.attributes || p;
-          if (attrs.marca) brands.add(attrs.marca);
-          if (attrs.categoria?.nombre) categories.add(attrs.categoria.nombre);
-          if (attrs.variantes && attrs.variantes.length > 0) {
-            attrs.variantes.forEach((v) => {
-              if (v.volumen) sizes.add(v.volumen);
-              if (v.precio) {
-                const effectivePrice = v.precio_oferta || v.precio;
-                if (effectivePrice < globalMin) globalMin = effectivePrice;
-                if (effectivePrice > globalMax) globalMax = effectivePrice;
-              }
-            });
-          } else if (attrs.precio) {
-            // Producto sin variantes: usar precio del producto
-            const effectivePrice = attrs.precio_oferta || attrs.precio;
-            if (effectivePrice < globalMin) globalMin = effectivePrice;
-            if (effectivePrice > globalMax) globalMax = effectivePrice;
+        let page = 1;
+        let hasMore = true;
+
+        while (hasMore) {
+          const res = await fetch(`${STRAPI_URL}/api/productos?pagination[page]=${page}&pagination[pageSize]=100&populate=*`);
+          if (!res.ok) throw new Error('Error al cargar metadatos de filtros');
+          const json = await res.json();
+
+          if (!json.data || json.data.length === 0) {
+            hasMore = false;
+            break;
           }
-        });
+
+          json.data.forEach((p) => {
+            const attrs = p.attributes || p;
+            if (attrs.marca) brands.add(attrs.marca);
+            if (attrs.categoria?.nombre) categories.add(attrs.categoria.nombre);
+            if (attrs.variantes && attrs.variantes.length > 0) {
+              attrs.variantes.forEach((v) => {
+                if (v.volumen) sizes.add(v.volumen);
+                if (v.precio) {
+                  const effectivePrice = v.precio_oferta || v.precio;
+                  if (effectivePrice < globalMin) globalMin = effectivePrice;
+                  if (effectivePrice > globalMax) globalMax = effectivePrice;
+                }
+              });
+            } else if (attrs.precio) {
+              // Producto sin variantes: usar precio del producto
+              const effectivePrice = attrs.precio_oferta || attrs.precio;
+              if (effectivePrice < globalMin) globalMin = effectivePrice;
+              if (effectivePrice > globalMax) globalMax = effectivePrice;
+            }
+          });
+
+          const pageCount = json.meta?.pagination?.pageCount || 1;
+          if (page >= pageCount) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        }
 
         setAvailableBrands([...brands].sort());
         setAvailableCategories([...categories].sort());
