@@ -212,6 +212,7 @@ const ColorsContainer = styled.div`
   display: flex;
   gap: 20px;
   margin-bottom: 15px;
+  flex-wrap: wrap;
 `;
 
 const ColorBtn = styled.button`
