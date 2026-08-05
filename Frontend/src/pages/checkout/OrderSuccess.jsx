@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
-import { CartContext } from '../../context/CartContext';
-
 // ─── Styled Components (sin cambios) ────────────────────────────────────────
 
 const PageContainer = styled.div`

@@ -301,26 +301,26 @@ export default function Catalogo() {
             break;
           }
 
-          json.data.forEach((p) => {
+          for (const p of json.data) {
             const attrs = p.attributes || p;
             if (attrs.marca) brands.add(attrs.marca);
             if (attrs.categoria?.nombre) categories.add(attrs.categoria.nombre);
             if (attrs.variantes && attrs.variantes.length > 0) {
-              attrs.variantes.forEach((v) => {
+              for (const v of attrs.variantes) {
                 if (v.volumen) sizes.add(v.volumen);
                 if (v.precio) {
                   const effectivePrice = v.precio_oferta || v.precio;
                   if (effectivePrice < globalMin) globalMin = effectivePrice;
                   if (effectivePrice > globalMax) globalMax = effectivePrice;
                 }
-              });
+              }
             } else if (attrs.precio) {
               // Producto sin variantes: usar precio del producto
               const effectivePrice = attrs.precio_oferta || attrs.precio;
               if (effectivePrice < globalMin) globalMin = effectivePrice;
               if (effectivePrice > globalMax) globalMax = effectivePrice;
             }
-          });
+          }
 
           const pageCount = json.meta?.pagination?.pageCount || 1;
           if (page >= pageCount) {

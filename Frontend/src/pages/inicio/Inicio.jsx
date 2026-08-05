@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FadeIn, FadeInLeft, FadeInUp } from '../../components/animations/ScrollAnimations';
