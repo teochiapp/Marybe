@@ -98,6 +98,7 @@ module.exports = {
           variantesOmitidasSinId:  resultado.variantesOmitidasSinId,
           creados:                 resultado.creados,
           actualizados:            resultado.actualizados,
+          sinCambios:              resultado.sinCambios || 0,
           errores:                 resultado.errores,
           erroresList:             resultado.erroresList,
           tiempoSegundos:          resultado.tiempoSegundos,

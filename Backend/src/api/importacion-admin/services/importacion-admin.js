@@ -60,87 +60,193 @@ function parseDecimal(val) {
   return isNaN(num) ? null : num;
 }
 
+function dataHasChanges(newData, oldData) {
+  if (!oldData) return true;
+  for (const key of Object.keys(newData)) {
+    if (key === 'variantes') continue;
+    const newVal = newData[key];
+    const oldVal = oldData[key];
+    
+    // Comparación laxa para tratar null, undefined y '' como equivalentes
+    if (newVal != oldVal) {
+      const isNewEmpty = newVal === null || newVal === undefined || newVal === '';
+      const isOldEmpty = oldVal === null || oldVal === undefined || oldVal === '';
+      if (!isNewEmpty || !isOldEmpty) {
+        return true;
+      }
+    }
+  }
+
+  if (newData.variantes) {
+    if (!oldData.variantes) return true;
+    if (newData.variantes.length !== oldData.variantes.length) return true;
+
+    const oldVars = new Map();
+    for (const ov of oldData.variantes) {
+      if (ov.id_original) oldVars.set(ov.id_original, ov);
+    }
+
+    for (const nv of newData.variantes) {
+      const ov = oldVars.get(nv.id_original);
+      if (!ov) return true; // Variante nueva o ID cambiado
+
+      for (const key of Object.keys(nv)) {
+        if (key === 'id') continue;
+        const newVal = nv[key];
+        const oldVal = ov[key];
+
+        if (newVal != oldVal) {
+          const isNewEmpty = newVal === null || newVal === undefined || newVal === '';
+          const isOldEmpty = oldVal === null || oldVal === undefined || oldVal === '';
+          if (!isNewEmpty || !isOldEmpty) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
 // ─── Leer el Excel y extraer filas de productos y variantes ──────────────────
 async function leerExcel(rutaArchivo) {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(rutaArchivo);
 
-  // Hoja 1: Productos (busca por nombre; omite hoja oculta 'Listas')
-  const wsP = wb.getWorksheet('📦 Productos')
-    || wb.worksheets.find(ws => ws.name !== 'Listas');
-  if (!wsP) throw new Error('No se encontró la hoja de Productos en el Excel.');
+  const wsProveedor = wb.getWorksheet('💲 Precios por Proveedor');
+  const wsProductos = wb.getWorksheet('📦 Productos') || (!wsProveedor && wb.worksheets.find(ws => ws.name !== 'Listas'));
 
   const productos = [];
-  wsP.eachRow((row, rowNum) => {
-    if (rowNum <= HEADER_ROW) return;
-    if (isSeparatorOrEmpty(row)) return;
-    const id_original = cellVal(row, 1);
-    if (!id_original) return;
-
-    productos.push({
-      id_original,
-      sku:             cellVal(row, 2),
-      nombre:          cellVal(row, 3),
-      marca:           cellVal(row, 4),
-      seccion:         cellVal(row, 5),
-      categoria:       cellVal(row, 6),
-      subcategoria:    cellVal(row, 7),
-      tipo:            cellVal(row, 8),
-      descripcion:     cellVal(row, 9),
-      especificaciones: cellVal(row, 10),
-      proveedor:       cellVal(row, 11),
-      publicado:       cellVal(row, 12),
-      destacado:       cellVal(row, 13) || 'FALSE',
-      stock:           cellVal(row, 14) || '0',
-      caracteristicas: cellVal(row, 15),
-      precio:          cellVal(row, 16),
-      precio_oferta:   cellVal(row, 17),   // Col Q — ahora el usuario ingresa el precio oferta
-      pct_descuento:   cellVal(row, 18),   // Col R — calculado en Excel (lectura de respaldo)
-    });
-  });
-
-  // Hoja 2: Variantes
-  const wsV = wb.getWorksheet('🔗 Variantes')
-    || wb.worksheets.find(ws => ws.name !== 'Listas' && ws !== wsP);
-  if (!wsV) throw new Error('No se encontró la hoja de Variantes en el Excel.');
-
   const variantes = [];
-  wsV.eachRow((row, rowNum) => {
-    if (rowNum <= HEADER_ROW) return;
-    if (isSeparatorOrEmpty(row)) return;
-    const id_original = cellVal(row, 1);
-    if (!id_original) return;
+  let hasVariantesSheet = false;
+  let isPartialUpdate = false;
 
-    const precio           = parseFloat(cellVal(row, 7)) || 0;
-    const precio_oferta_raw = cellVal(row, 8); // Col H — ahora el usuario ingresa el precio oferta
-    const pct_descuento_raw = cellVal(row, 9); // Col I — calculado en Excel (lectura de respaldo)
+  // ─── LECTURA MODO PROVEEDOR (1 hoja, actualización rápida) ───
+  if (wsProveedor) {
+    isPartialUpdate = true;
+    let currentPadreId = null;
 
-    // Precio oferta: primario desde col 8 (usuario), fallback calculado desde col 9 (% desc)
-    let precio_oferta = null;
-    if (precio_oferta_raw && parseFloat(precio_oferta_raw) > 0) {
-      precio_oferta = parseFloat(precio_oferta_raw);
-    }
-    const pct_descuento = precio_oferta && precio > 0
-      ? Math.round((1 - precio_oferta / precio) * 100)
-      : parseFloat(pct_descuento_raw) || 0;
+    wsProveedor.eachRow((row, rowNum) => {
+      if (rowNum <= HEADER_ROW) return;
+      if (isSeparatorOrEmpty(row)) return;
 
-    variantes.push({
-      id_original,
-      producto_padre_id: cellVal(row, 2),
-      sku_ean:           cellVal(row, 4),
-      volumen:           cellVal(row, 5),
-      stock:             cellVal(row, 6) || '0',
-      precio:            String(precio),
-      pct_descuento:     String(pct_descuento || ''),
-      precio_oferta:     precio_oferta ? String(precio_oferta) : '',
-      publicado:         cellVal(row, 10) || 'TRUE',
-      envio:             cellVal(row, 11) || '1',
-      color_nombre:      cellVal(row, 12),
+      const rawId = cellVal(row, 1);
+      if (!rawId) return;
+
+      const isVariante = rawId.startsWith('↳') || rawId.trim().startsWith('↳');
+      const cleanId = rawId.replace('↳', '').trim();
+
+      const stock         = cellVal(row, 6) || '0';
+      const precio        = cellVal(row, 7);
+      const precio_oferta = cellVal(row, 8);
+      const pct_desc_raw  = cellVal(row, 9);
+
+      let p_oferta_final = null;
+      if (precio_oferta && parseFloat(precio_oferta) > 0) p_oferta_final = parseFloat(precio_oferta);
+      
+      const p_num = parseFloat(precio) || 0;
+      const pct_descuento = p_oferta_final && p_num > 0
+        ? Math.round((1 - p_oferta_final / p_num) * 100)
+        : parseFloat(pct_desc_raw) || 0;
+
+      if (!isVariante) {
+        currentPadreId = cleanId;
+        productos.push({
+          id_original:   cleanId,
+          stock:         stock,
+          precio:        precio,
+          precio_oferta: p_oferta_final ? String(p_oferta_final) : '',
+          pct_descuento: String(pct_descuento || ''),
+          // Los demás campos (nombre, categoría, etc.) no se parsean porque este modo es solo para update
+        });
+      } else {
+        if (!currentPadreId) return; // Variante huérfana
+        variantes.push({
+          id_original:       cleanId,
+          producto_padre_id: currentPadreId,
+          stock:             stock,
+          precio:            precio,
+          precio_oferta:     p_oferta_final ? String(p_oferta_final) : '',
+          pct_descuento:     String(pct_descuento || ''),
+        });
+      }
     });
-  });
-  const hasVariantesSheet = !!wb.getWorksheet('🔗 Variantes');
+
+    // En formato proveedor simulamos que existe hoja de variantes para que no borre las existentes.
+    hasVariantesSheet = true; 
+  } 
+  // ─── LECTURA CLÁSICA (2 hojas completas) ───
+  else if (wsProductos) {
+    wsProductos.eachRow((row, rowNum) => {
+      if (rowNum <= HEADER_ROW) return;
+      if (isSeparatorOrEmpty(row)) return;
+      const id_original = cellVal(row, 1);
+      if (!id_original) return;
+
+      productos.push({
+        id_original,
+        sku:             cellVal(row, 2),
+        nombre:          cellVal(row, 3),
+        marca:           cellVal(row, 4),
+        seccion:         cellVal(row, 5),
+        categoria:       cellVal(row, 6),
+        subcategoria:    cellVal(row, 7),
+        tipo:            cellVal(row, 8),
+        descripcion:     cellVal(row, 9),
+        especificaciones: cellVal(row, 10),
+        proveedor:       cellVal(row, 11),
+        publicado:       cellVal(row, 12),
+        destacado:       cellVal(row, 13) || 'FALSE',
+        stock:           cellVal(row, 14) || '0',
+        caracteristicas: cellVal(row, 15),
+        precio:          cellVal(row, 16),
+        precio_oferta:   cellVal(row, 17),
+        pct_descuento:   cellVal(row, 18),
+      });
+    });
+
+    const wsV = wb.getWorksheet('🔗 Variantes') || wb.worksheets.find(ws => ws.name !== 'Listas' && ws !== wsProductos);
+    if (!wsV) throw new Error('No se encontró la hoja de Variantes en el Excel.');
+
+    wsV.eachRow((row, rowNum) => {
+      if (rowNum <= HEADER_ROW) return;
+      if (isSeparatorOrEmpty(row)) return;
+      const id_original = cellVal(row, 1);
+      if (!id_original) return;
+
+      const precio           = parseFloat(cellVal(row, 7)) || 0;
+      const precio_oferta_raw = cellVal(row, 8);
+      const pct_descuento_raw = cellVal(row, 9);
+
+      let precio_oferta = null;
+      if (precio_oferta_raw && parseFloat(precio_oferta_raw) > 0) {
+        precio_oferta = parseFloat(precio_oferta_raw);
+      }
+      const pct_descuento = precio_oferta && precio > 0
+        ? Math.round((1 - precio_oferta / precio) * 100)
+        : parseFloat(pct_descuento_raw) || 0;
+
+      variantes.push({
+        id_original,
+        producto_padre_id: cellVal(row, 2),
+        sku_ean:           cellVal(row, 4),
+        volumen:           cellVal(row, 5),
+        stock:             cellVal(row, 6) || '0',
+        precio:            String(precio),
+        pct_descuento:     String(pct_descuento || ''),
+        precio_oferta:     precio_oferta ? String(precio_oferta) : '',
+        publicado:         cellVal(row, 10) || 'TRUE',
+        envio:             cellVal(row, 11) || '1',
+        color_nombre:      cellVal(row, 12),
+      });
+    });
+    hasVariantesSheet = true;
+  } else {
+    throw new Error('Formato de Excel no reconocido. Faltan hojas de Productos o Precios por Proveedor.');
+  }
   
-  return { productos, variantes, hasVariantesSheet };
+  return { productos, variantes, hasVariantesSheet, isPartialUpdate };
 }
 
 // ─── Validación y diagnóstico pre-importación ──────────────────────────────────────
@@ -191,11 +297,9 @@ function validarYDiagnosticar(productos, variantes, hasVariantesSheet, addLog) {
     variantesFiltradas.push(v);
   }
 
-  // 4. Productos sin variantes asociadas
   const idsConVariante = new Set(variantesFiltradas.map(v => (v.producto_padre_id || '').trim()));
   const productosSinVariante = productosFiltrados.filter(p => !idsConVariante.has((p.id_original || '').trim()));
 
-  // 5. Imprimir diagnóstico
   addLog(`📦 Productos con ID válido: ${productosFiltrados.length}`);
   addLog(`🔗 Variantes válidas (con padre en Productos): ${variantesFiltradas.length}`);
 
@@ -250,12 +354,10 @@ async function upsertCategoria(strapi, { nombre, seccion, subcategorias }) {
 
     if (nuevasSubcats.length > 0 || (seccion && catExistente.seccion !== seccion)) {
       const dataUpdate = {};
-      // Si la sección nueva no está vacía y difiere de la actual, la actualizamos
       if (seccion && catExistente.seccion !== seccion) {
         dataUpdate.seccion = seccion;
       }
       if (nuevasSubcats.length > 0) {
-        // Enviar array completo de subcategorías existentes + nuevas para mantener componentes
         dataUpdate.subcategorias = [...subcatsExistentes, ...nuevasSubcats];
       }
 
@@ -269,7 +371,6 @@ async function upsertCategoria(strapi, { nombre, seccion, subcategorias }) {
     return catExistente.documentId;
   }
 
-  // Crear nueva categoría con sus subcategorías
   const subcatData = subcategorias
     .filter(s => s && s.trim())
     .map(s => ({ nombre: s.trim() }));
@@ -286,7 +387,7 @@ async function upsertCategoria(strapi, { nombre, seccion, subcategorias }) {
   return nueva.documentId;
 }
 
-// ─── Función principal de importación (UPSERT) ────────────────────────────────
+// ─── Función principal de importación (wrapper para el Controller) ─────────────
 async function procesarImportacion(strapi, rutaExcel) {
   const inicio = Date.now();
   const log = [];
@@ -297,12 +398,18 @@ async function procesarImportacion(strapi, rutaExcel) {
   };
 
   addLog(`📂 Leyendo archivo: ${path.basename(rutaExcel)}`);
-  const { productos: productosRaw, variantes: variantesRaw, hasVariantesSheet } = await leerExcel(rutaExcel);
+  
+  // 1. Leer el Excel
+  const { productos: productosRaw, variantes: variantesRaw, hasVariantesSheet, isPartialUpdate } = await leerExcel(rutaExcel);
 
   addLog(`📦 ${productosRaw.length} productos encontrados en el Excel (hoja Productos)`);
   addLog(`🔗 ${variantesRaw.length} variantes encontradas en el Excel (hoja Variantes)`);
 
-  // ── Validación y diagnóstico ───────────────────────────────────────────────────────
+  if (isPartialUpdate) {
+    addLog('🟢 MODO PROVEEDOR DETECTADO: Actualización parcial (solo stock y precios).');
+  }
+
+  // 2. Validación y diagnóstico
   const validacion = validarYDiagnosticar(productosRaw, variantesRaw, hasVariantesSheet, addLog);
   const productos  = validacion.productosFiltrados;
   const variantes  = validacion.variantesFiltradas;
@@ -315,40 +422,48 @@ async function procesarImportacion(strapi, rutaExcel) {
     addLog(`⏩ Variantes omitidas (padre inexistente): ${validacion.variantesSinPadre.length}`);
   }
 
-  // ── Paso 1: Construir categorías únicas ──────────────────────────────────────
-  const categoriasMap = new Map();
-  for (const p of productos) {
-    const cat    = (p.categoria    || '').trim();
-    const seccion = (p.seccion     || '').trim();
-    const subcat  = (p.subcategoria || '').trim();
-    if (!cat) continue;
+  // 3. Ejecutar Upsert
+  return await ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, isPartialUpdate, validacion, addLog, log, inicio);
+}
 
-    if (!categoriasMap.has(cat)) {
-      categoriasMap.set(cat, { seccion, subcategorias: new Set() });
-    }
-    if (subcat) {
-      categoriasMap.get(cat).subcategorias.add(subcat);
+// ─── Proceso principal de BD (Categorías y Productos) ──────────────────────────
+async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, isPartialUpdate, validacion, addLog, log, inicio) {
+
+  const categoriasMap = new Map();
+  if (!isPartialUpdate) {
+    for (const p of productos) {
+      const cat    = (p.categoria    || '').trim();
+      const seccion = (p.seccion     || '').trim();
+      const subcat  = (p.subcategoria || '').trim();
+      if (!cat) continue;
+
+      if (!categoriasMap.has(cat)) {
+        categoriasMap.set(cat, { seccion, subcategorias: new Set() });
+      }
+      if (subcat) {
+        categoriasMap.get(cat).subcategorias.add(subcat);
+      }
     }
   }
 
-  // ── Paso 2: Upsert categorías ─────────────────────────────────────────────────
   addLog(`🗂 Procesando ${categoriasMap.size} categorías...`);
   const categoriaIdPorNombre = new Map();
 
-  for (const [nombre, { seccion, subcategorias }] of categoriasMap) {
-    try {
-      const docId = await upsertCategoria(strapi, {
-        nombre,
-        seccion,
-        subcategorias: [...subcategorias],
-      });
-      categoriaIdPorNombre.set(nombre, docId);
-    } catch (e) {
-      addLog(`❌ Error en categoría "${nombre}": ${e.message}`);
+  if (!isPartialUpdate) {
+    for (const [nombre, { seccion, subcategorias }] of categoriasMap) {
+      try {
+        const docId = await upsertCategoria(strapi, {
+          nombre,
+          seccion,
+          subcategorias: [...subcategorias],
+        });
+        categoriaIdPorNombre.set(nombre, docId);
+      } catch (e) {
+        addLog(`❌ Error en categoría "${nombre}": ${e.message}`);
+      }
     }
   }
 
-  // ── Paso 3: Indexar variantes por producto_padre_id ───────────────────────────
   const variantesIndex = new Map();
   for (const v of variantes) {
     const padreId = (v.producto_padre_id || '').trim();
@@ -357,9 +472,18 @@ async function procesarImportacion(strapi, rutaExcel) {
     variantesIndex.set(padreId, lista);
   }
 
-  // ── Paso 4: Upsert de productos ───────────────────────────────────────────────
+  function dataHasChanges(newData, oldData) {
+    const keys = Object.keys(newData);
+    for (const key of keys) {
+      if (key === 'variantes') continue;
+      if (String(newData[key] ?? '') !== String(oldData[key] ?? '')) return true;
+    }
+    return false;
+  }
+
   let creados   = 0;
   let actualizados = 0;
+  let sinCambios = 0;
   let errores   = 0;
   const erroresList = [];
 
@@ -368,22 +492,9 @@ async function procesarImportacion(strapi, rutaExcel) {
 
     for (const p of batch) {
       const idOriginal      = (p.id_original || '').trim();
-      const nombreCategoria = (p.categoria  || '').trim();
       const hijos           = variantesIndex.get(idOriginal) || [];
-      const categoriaDocId  = categoriaIdPorNombre.get(nombreCategoria) || null;
-
-      // Política de variantes:
-      //   - Si hay variantes en el Excel → importarlas y pisarlas en la BD (caso normal).
-      //   - Si NO hay variantes en el Excel → NO crear ninguna variante automática
-      //     y NO tocar las que ya existan en la BD.
-      //     El producto tiene su propio campo `precio` que la tienda puede usar directamente.
-      //     Crear variantes sintéticas con precio incorrecto rompe la visualización en la tienda.
       const hijosEfectivos = hijos.length > 0 ? hijos : null;
-      // null → variantesData será undefined → la key "variantes" no se envía a Strapi
 
-      // Si el Excel no declara variantes para este producto (hijosEfectivos nulo),
-      // enviamos explícitamente [] para que Strapi ELIMINE / DESVINCULE cualquier
-      // variante previa en la base de datos (ej. las variantes fantasma -v1 antiguas).
       const variantesData = hijosEfectivos
         ? hijosEfectivos.map(v => ({
             id_original:   (v.id_original || '').trim(),
@@ -391,11 +502,9 @@ async function procesarImportacion(strapi, rutaExcel) {
             volumen:       (v.volumen || '').trim(),
             stock:         parseInt(v.stock) || 0,
             precio:        parseDecimal(v.precio) || 0,
-            // precio_oferta es primario (col 8, usuario lo ingresa)
             precio_oferta: (() => {
               const oferta = parseDecimal(v.precio_oferta);
               if (oferta && oferta > 0) return oferta;
-              // fallback: calcular desde % descuento (col 9)
               const pct    = parseDecimal(v.pct_descuento);
               const precio = parseDecimal(v.precio);
               if (pct && precio) return Math.round(precio * (1 - pct / 100) * 100) / 100;
@@ -408,8 +517,6 @@ async function procesarImportacion(strapi, rutaExcel) {
         : (hasVariantesSheet ? [] : undefined);
 
 
-      // maxDescuento: calculado desde precio_oferta de las variantes (incluye la auto-creada)
-      // Si hijosEfectivos es null (no hay variantes que importar), maxDescuento = 0
       const maxDescuento = (hijosEfectivos || []).reduce((max, v) => {
         const precioV  = parseDecimal(v.precio);
         const ofertaV  = parseDecimal(v.precio_oferta);
@@ -420,73 +527,96 @@ async function procesarImportacion(strapi, rutaExcel) {
       }, 0);
 
       const precioProd       = parseDecimal(p.precio);
-      // precio_oferta es primario (col Q, usuario lo ingresa)
       const precioOfertaProd = (() => {
         const raw = parseDecimal(p.precio_oferta);
         if (raw && raw > 0) return raw;
-        // fallback: calcular desde % descuento (col R, calculado en Excel)
         const pct = parseDecimal(p.pct_descuento);
         if (pct && precioProd) return Math.round(precioProd * (1 - pct / 100) * 100) / 100;
         return null;
       })();
-      // Calcular % descuento para Strapi desde precio y precio_oferta
       const pctDescProd = precioOfertaProd && precioProd && precioProd > 0
         ? Math.round((1 - precioOfertaProd / precioProd) * 100)
         : Math.round(parseDecimal(p.pct_descuento) || 0);
 
-      const productoData = {
-        id_original:     idOriginal,
-        sku:             (p.sku || '').trim(),
-        nombre:          (p.nombre || '').trim(),
-        marca:           (p.marca || '').trim(),
-        seccion:         (p.seccion || '').trim(),
-        subcategoria:    (p.subcategoria || '').trim(),
-        tipo:            (p.tipo || '').trim(),
-        descripcion:     (p.descripcion || '').trim(),
-        especificaciones: (p.especificaciones || '').trim(),
-        proveedor:       (p.proveedor || '').trim(),
-        publicado:       parseBoolean(p.publicado),
-        destacado:       parseBoolean(p.destacado),
+      let productoData = {
         stock:           parseInt(p.stock) || 0,
         descuento:       maxDescuento || pctDescProd,
         precio:          precioProd,
         precio_oferta:   precioOfertaProd,
-        // Enviamos las variantes. Si no hay en el Excel, se enviará [] y Strapi limpiará las existentes.
-        ...(variantesData !== undefined ? { variantes: variantesData } : {}),
-        caracteristicas: (p.caracteristicas || '').trim() || null,
-        categoria: categoriaDocId ? categoriaDocId : null,
       };
 
+      if (!isPartialUpdate) {
+        const nombreCategoria = (p.categoria  || '').trim();
+        const categoriaDocId  = categoriaIdPorNombre.get(nombreCategoria) || null;
+
+        productoData = {
+          ...productoData,
+          id_original:     idOriginal,
+          sku:             (p.sku || '').trim(),
+          nombre:          (p.nombre || '').trim(),
+          marca:           (p.marca || '').trim(),
+          seccion:         (p.seccion || '').trim(),
+          subcategoria:    (p.subcategoria || '').trim(),
+          tipo:            (p.tipo || '').trim(),
+          descripcion:     (p.descripcion || '').trim(),
+          especificaciones: (p.especificaciones || '').trim(),
+          proveedor:       (p.proveedor || '').trim(),
+          publicado:       parseBoolean(p.publicado),
+          destacado:       parseBoolean(p.destacado),
+          caracteristicas: (p.caracteristicas || '').trim() || null,
+          categoria:       categoriaDocId ? categoriaDocId : null,
+        };
+      }
+
+      if (variantesData !== undefined) {
+        productoData.variantes = variantesData;
+      }
+
       try {
-        // Buscar si ya existe por id_original (usamos db.query para encontrar drafts y publicados)
         const existente = await strapi.db.query(UID_PRODUCTO).findOne({
-          where: { id_original: idOriginal }
+          where: { id_original: idOriginal },
+          populate: ['variantes']
         });
 
         if (existente) {
-          // Si el Excel no declara variantes (variantesData = []), eliminarlas
-          // explícitamente a nivel de BD antes del update. El Documents API de
-          // Strapi a veces solo desvincula pero no borra físicamente los componentes,
-          // dejando variantes fantasma visibles en el admin y en la tienda.
-          if (Array.isArray(variantesData) && variantesData.length === 0) {
-            try {
-              await strapi.db.query(UID_PRODUCTO).update({
-                where: { id: existente.id },
-                data: { variantes: [] },
-              });
-            } catch (cleanErr) {
-              addLog(`⚠️  No se pudo limpiar variantes de "${idOriginal}": ${cleanErr.message}`);
+          if (!dataHasChanges(productoData, existente)) {
+            sinCambios++;
+          } else {
+            if (!isPartialUpdate && Array.isArray(variantesData) && variantesData.length === 0) {
+              try {
+                await strapi.db.query(UID_PRODUCTO).update({
+                  where: { id: existente.id },
+                  data: { variantes: [] },
+                });
+              } catch (cleanErr) {
+                addLog(`⚠️  No se pudo limpiar variantes de "${idOriginal}": ${cleanErr.message}`);
+              }
             }
+
+            if (isPartialUpdate && productoData.variantes && existente.variantes) {
+              productoData.variantes = productoData.variantes.map(vExcel => {
+                const vExistente = existente.variantes.find(ve => ve.id_original === vExcel.id_original);
+                if (vExistente) {
+                  return {
+                    id: vExistente.id,
+                    ...vExistente,
+                    stock: vExcel.stock,
+                    precio: vExcel.precio,
+                    precio_oferta: vExcel.precio_oferta
+                  };
+                }
+                return vExcel;
+              });
+            }
+
+            await strapi.documents(UID_PRODUCTO).update({
+              documentId: existente.documentId,
+              data: productoData,
+              status: 'published',
+            });
+            actualizados++;
           }
-          // Actualizar el existente
-          await strapi.documents(UID_PRODUCTO).update({
-            documentId: existente.documentId,
-            data: productoData,
-            status: 'published',
-          });
-          actualizados++;
         } else {
-          // Crear nuevo
           await strapi.documents(UID_PRODUCTO).create({
             data: productoData,
             status: 'published',
@@ -502,7 +632,7 @@ async function procesarImportacion(strapi, rutaExcel) {
     }
 
     const procesados = Math.min(i + BATCH_SIZE, productos.length);
-    addLog(`Progreso: ${procesados}/${productos.length} — ✅ Creados: ${creados} | 🔄 Actualizados: ${actualizados} | ❌ Errores: ${errores}`);
+    addLog(`Progreso: ${procesados}/${productos.length} — ✅ Creados: ${creados} | 🔄 Actualizados: ${actualizados} | ⏩ Sin cambios: ${sinCambios} | ❌ Errores: ${errores}`);
   }
 
   const elapsed = ((Date.now() - inicio) / 1000).toFixed(1);

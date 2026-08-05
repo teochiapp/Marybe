@@ -419,6 +419,12 @@ export default function ImportacionAdmin() {
                 <span className="ia-stat-value">{resultado.datos?.actualizados ?? '—'}</span>
                 <span className="ia-stat-label">🔄 Actualizados</span>
               </div>
+              {resultado.datos?.sinCambios !== undefined && (
+                <div className="ia-stat" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+                  <span className="ia-stat-value">{resultado.datos.sinCambios}</span>
+                  <span className="ia-stat-label">⏩ Sin cambios</span>
+                </div>
+              )}
               <div className="ia-stat ia-stat--danger">
                 <span className="ia-stat-value">{resultado.datos?.errores ?? '—'}</span>
                 <span className="ia-stat-label">❌ Con error</span>
