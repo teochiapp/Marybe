@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
+  padding-right: 10px;
   
   @media (max-width: 1024px) {
     padding: 30px 40px;
@@ -117,6 +118,10 @@ const CarouselContainer = styled(motion.div)`
     overflow: visible;
     padding-bottom: 10px;
   }
+
+  @media (max-width: 420px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const CategoryCard = styled(motion.div)`
@@ -157,11 +162,10 @@ const CategoryCard = styled(motion.div)`
 
   @media (max-width: 768px) {
     height: 200px;
+    width: 100%;
   }
 
   @media (max-width: 600px) {
-    /* Mobile (<= 600px): 1.5 tarjetas */
-    width: 240px;
     padding: 12px;
   }
 
@@ -397,60 +401,60 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
       <SectionTitle>Categorías</SectionTitle>
 
       <CarouselWrapper>
-      <NavArrowBtn $side="left" $visible={canScroll.left} type="button" aria-label="Anterior" onClick={() => scrollByDir(-1)}>
-        <ChevronLeftNav />
-      </NavArrowBtn>
-      <CarouselContainer
-        ref={scrollRef}
-        onMouseDown={handleMouseDown}
-        onMouseLeave={handleMouseLeave}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-        variants={staggerContainerVariants}
-        initial="hidden"
-        animate={renderItems.length > 0 ? 'show' : 'hidden'}
-      >
-        {itemsToShow.map((item) => {
-          const id = item.id || item.documentId || Math.random();
-          const attrs = item.attributes || item;
-          const nombre = attrs.nombre || 'Categoría';
+        <NavArrowBtn $side="left" $visible={canScroll.left} type="button" aria-label="Anterior" onClick={() => scrollByDir(-1)}>
+          <ChevronLeftNav />
+        </NavArrowBtn>
+        <CarouselContainer
+          ref={scrollRef}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          variants={staggerContainerVariants}
+          initial="hidden"
+          animate={renderItems.length > 0 ? 'show' : 'hidden'}
+        >
+          {itemsToShow.map((item) => {
+            const id = item.id || item.documentId || Math.random();
+            const attrs = item.attributes || item;
+            const nombre = attrs.nombre || 'Categoría';
 
-          let imgUrl = null;
-          const getFullUrl = (url) => url?.startsWith('http') ? url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${url}`;
-          if (attrs.portada?.data?.attributes?.url) {
-            imgUrl = getFullUrl(attrs.portada.data.attributes.url);
-          } else if (attrs.portada?.url) {
-            imgUrl = getFullUrl(attrs.portada.url);
-          }
+            let imgUrl = null;
+            const getFullUrl = (url) => url?.startsWith('http') ? url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${url}`;
+            if (attrs.portada?.data?.attributes?.url) {
+              imgUrl = getFullUrl(attrs.portada.data.attributes.url);
+            } else if (attrs.portada?.url) {
+              imgUrl = getFullUrl(attrs.portada.url);
+            }
 
-          return (
-            <CategoryCard 
-              key={id} 
-              $compact={compact}
-              onClick={() => handleCategoryClick(nombre)}
-              variants={staggerItemFadeVariants}
-            >
-              {imgUrl ? (
-                <img src={imgUrl} alt={nombre} draggable="false" />
-              ) : (
-                <ImagePlaceholder />
-              )}
-              <CategoryLabel>
-                <LabelText>{nombre}</LabelText>
-                <ArrowRightIcon />
-              </CategoryLabel>
-            </CategoryCard>
-          );
-        })}
-      </CarouselContainer>
-      <NavArrowBtn $side="right" $visible={canScroll.right} type="button" aria-label="Siguiente" onClick={() => scrollByDir(1)}>
-        <ChevronRightNav />
-      </NavArrowBtn>
+            return (
+              <CategoryCard
+                key={id}
+                $compact={compact}
+                onClick={() => handleCategoryClick(nombre)}
+                variants={staggerItemFadeVariants}
+              >
+                {imgUrl ? (
+                  <img src={imgUrl} alt={nombre} draggable="false" />
+                ) : (
+                  <ImagePlaceholder />
+                )}
+                <CategoryLabel>
+                  <LabelText>{nombre}</LabelText>
+                  <ArrowRightIcon />
+                </CategoryLabel>
+              </CategoryCard>
+            );
+          })}
+        </CarouselContainer>
+        <NavArrowBtn $side="right" $visible={canScroll.right} type="button" aria-label="Siguiente" onClick={() => scrollByDir(1)}>
+          <ChevronRightNav />
+        </NavArrowBtn>
       </CarouselWrapper>
 
       {isMobile && renderItems.length > 0 && (
-        <ViewMoreContainer 
-          $isOpen={showAllMobile} 
+        <ViewMoreContainer
+          $isOpen={showAllMobile}
           onClick={() => setShowAllMobile(!showAllMobile)}
         >
           {showAllMobile ? 'Ver menos' : 'Ver más categorías'}

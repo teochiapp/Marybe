@@ -19,7 +19,7 @@ const ToggleContainer = styled.div`
       ? `translateX(-50%) translateY(${$visible ? '0' : '-200px'})`
       : 'none'};
   margin: ${({ $sticky }) => ($sticky ? '0' : '0 auto -3vh auto')};
-  z-index: ${({ $sticky }) => ($sticky ? 1000 : 10)};
+  z-index: ${({ $sticky }) => ($sticky ? 400 : 10)};
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: ${({ $sticky }) =>
     $sticky ? '0 6px 24px rgba(0, 0, 0, 0.14)' : '0 4px 16px rgba(0, 0, 0, 0.08)'};
