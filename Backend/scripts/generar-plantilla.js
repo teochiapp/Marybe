@@ -645,7 +645,7 @@ async function main() {
 
   const CATEGORIAS_L = [
     'Ofertas', 'Dermocosmetica', 'Fragancias', 'Maquillaje',
-    'Cuidado Personal', 'Niños y Bebés', 'Limpieza del hogar',
+    'Cuidado Personal', 'Niños y bebés', 'Limpieza del hogar',
     'Electro belleza', 'Lanzamientos',
   ];
 

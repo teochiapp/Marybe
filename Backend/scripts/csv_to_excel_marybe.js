@@ -177,7 +177,7 @@ function mapCategoria(rubro) {
   if (r === 'DERMO' || r === 'DERMOCOSMETICA' || r.includes('DERMOCOSMETICA')) return 'Dermocosmetica';
   if (r === 'CUIDADO PERSONAL' || r === 'CUIDADO P') return 'Cuidado Personal';
   if (r === 'OFERTAS' || r === 'OFERTA') return 'Ofertas';
-  if (r.includes('BEBE') || r.includes('BEBÉ') || r.includes('NIÑO')) return 'Niños y Bebés';
+  if (r.includes('BEBE') || r.includes('BEBÉ') || r.includes('NIÑO')) return 'Niños y bebés';
   if (r.includes('LIMPIEZA') || r.includes('HOGAR')) return 'Limpieza del hogar';
   if (r.includes('ELECTRO')) return 'Electro belleza';
   if (r.includes('LANZAMIENTO')) return 'Lanzamientos';
@@ -789,7 +789,7 @@ wsL.columns = [
 
 const CATEGORIAS_L = [
   'Ofertas', 'Dermocosmetica', 'Fragancias', 'Maquillaje',
-  'Cuidado Personal', 'Niños y Bebés', 'Limpieza del hogar',
+  'Cuidado Personal', 'Niños y bebés', 'Limpieza del hogar',
   'Electro belleza', 'Lanzamientos',
 ];
 

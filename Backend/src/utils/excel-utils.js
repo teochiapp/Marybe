@@ -123,7 +123,7 @@ const TAXONOMY = {
     ],
     "Accesorios": []
   },
-  "Niños y BebÉs": {
+  "Niños y bebés": {
     "Pañales": [],
     "Higiene del Bebe": [
       "Toallas humedas",
