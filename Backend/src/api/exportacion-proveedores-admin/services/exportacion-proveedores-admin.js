@@ -2,81 +2,101 @@
 
 const ExcelJS = require('exceljs');
 
-// ─── Constantes ───────────────────────────────────────────────────────────────
+// ─── Estilos y taxonomía compartidos con el exportador principal ─────────────────
+const {
+  TAXONOMY,
+  SECCIONES,
+  C,
+  headerStyle,
+  dataStyle,
+  noteStyle,
+  readonlyStyle,
+  applyStyle,
+} = require('../../../utils/excel-utils');
+
 const UID_PRODUCTO = 'api::producto.producto';
 const PAGE_SIZE    = 100;
 
-// ─── Paleta (igual a comparacion-admin) ──────────────────────────────────────
-const C = {
-  violeta:      'FF7C6AF7',
-  violetaClaro: 'FFEDE9FE',
-  verde:        'FF22C55E',
-  verdeClaro:   'FFD1FAE5',
-  azul:         'FF3B82F6',
-  azulClaro:    'FFDBEAFE',
-  amarilloClaro:'FFFEF3C7',
-  grisOscuro:   'FF1E1B4B',
-  grisClaro:    'FFF8F7FF',
-  blanco:       'FFFFFFFF',
-  texto:        'FF1E1B4B',
-  coral:        'FFF77C6A',
-};
+// ─── Helpers para dropdowns (igual que en exportacion-admin) ─────────────────────
+function colLetter(n) {
+  let r = '';
+  while (n > 0) {
+    n--;
+    r = String.fromCharCode(65 + (n % 26)) + r;
+    n = Math.floor(n / 26);
+  }
+  return r;
+}
 
-function headerStyle(bgColor, textColor = C.blanco) {
+function calcularRefs() {
+  let col = 1;
+
+  const secLtr   = colLetter(col);
+  const secciones = `Listas!$${secLtr}$2:$${secLtr}$${SECCIONES.length + 1}`;
+  col++;
+
+  const categorias_list = Object.keys(TAXONOMY);
+  const catLtr  = colLetter(col);
+  const categorias = `Listas!$${catLtr}$2:$${catLtr}$${categorias_list.length + 1}`;
+  col++;
+
+  const subcatLtr = colLetter(col);
+  const subcategoriasSet = new Set();
+  for (const subcats of Object.values(TAXONOMY)) {
+    for (const subcat of Object.keys(subcats)) subcategoriasSet.add(subcat);
+  }
+  const subcategoriasArr = Array.from(subcategoriasSet);
+  const subcategorias = `Listas!$${subcatLtr}$2:$${subcatLtr}$${subcategoriasArr.length + 1}`;
+  col++;
+
+  const tipoLtr = colLetter(col);
+  const tiposSet = new Set();
+  for (const subcats of Object.values(TAXONOMY)) {
+    for (const tipos of Object.values(subcats)) {
+      for (const tipo of tipos) tiposSet.add(tipo);
+    }
+  }
+  const tiposArr = Array.from(tiposSet);
+  const tipos = `Listas!$${tipoLtr}$2:$${tipoLtr}$${tiposArr.length + 1}`;
+  col++;
+
+  const boolLtr  = colLetter(col);
+  const booleanos = `Listas!$${boolLtr}$2:$${boolLtr}$3`;
+
   return {
-    fill:      { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } },
-    font:      { bold: true, color: { argb: textColor }, size: 10, name: 'Calibri' },
-    alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
-    border: {
-      top:    { style: 'thin', color: { argb: 'FFD4D4D4' } },
-      bottom: { style: 'thin', color: { argb: 'FFD4D4D4' } },
-      left:   { style: 'thin', color: { argb: 'FFD4D4D4' } },
-      right:  { style: 'thin', color: { argb: 'FFD4D4D4' } },
-    },
+    secciones,
+    categorias,
+    subcategorias,
+    tipos,
+    booleanos,
+    data: { categorias: categorias_list, subcategorias: subcategoriasArr, tipos: tiposArr },
   };
 }
 
-function dataStyle(bgColor = C.blanco, textColor = C.texto) {
-  return {
-    fill:      { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } },
-    font:      { color: { argb: textColor }, size: 10, name: 'Calibri' },
-    alignment: { vertical: 'middle', wrapText: true },
-    border: {
-      top:    { style: 'hair', color: { argb: 'FFE5E7EB' } },
-      bottom: { style: 'hair', color: { argb: 'FFE5E7EB' } },
-      left:   { style: 'hair', color: { argb: 'FFE5E7EB' } },
-      right:  { style: 'hair', color: { argb: 'FFE5E7EB' } },
-    },
-  };
-}
+function construirHojaListas(wb, refs) {
+  const wsL = wb.addWorksheet('Listas');
+  let col = 1;
 
-function noteStyle() {
-  return {
-    fill:      { type: 'pattern', pattern: 'solid', fgColor: { argb: C.amarilloClaro } },
-    font:      { color: { argb: 'FF92400E' }, size: 9, italic: true, name: 'Calibri' },
-    alignment: { vertical: 'middle', wrapText: true },
-  };
-}
+  wsL.getCell(1, col).value = '_SECCIONES';
+  SECCIONES.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
+  col++;
 
-function readonlyStyle() {
-  return {
-    fill:      { type: 'pattern', pattern: 'solid', fgColor: { argb: C.verdeClaro } },
-    font:      { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri' },
-    alignment: { vertical: 'middle', horizontal: 'center' },
-    border: {
-      top:    { style: 'hair', color: { argb: 'FFE5E7EB' } },
-      bottom: { style: 'hair', color: { argb: 'FFE5E7EB' } },
-      left:   { style: 'hair', color: { argb: 'FFE5E7EB' } },
-      right:  { style: 'hair', color: { argb: 'FFE5E7EB' } },
-    },
-  };
-}
+  wsL.getCell(1, col).value = '_CATEGORIAS';
+  refs.data.categorias.forEach((c, i) => { wsL.getCell(i + 2, col).value = c; });
+  col++;
 
-function applyStyle(cell, style) {
-  if (style.fill)      cell.fill      = style.fill;
-  if (style.font)      cell.font      = style.font;
-  if (style.alignment) cell.alignment = style.alignment;
-  if (style.border)    cell.border    = style.border;
+  wsL.getCell(1, col).value = '_SUBCATEGORIAS';
+  refs.data.subcategorias.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
+  col++;
+
+  wsL.getCell(1, col).value = '_TIPOS';
+  refs.data.tipos.forEach((t, i) => { wsL.getCell(i + 2, col).value = t; });
+  col++;
+
+  wsL.getCell(1, col).value = '_BOOLEANOS';
+  wsL.getCell(2, col).value = 'SI';
+  wsL.getCell(3, col).value = 'NO';
+  wsL.state = 'hidden';
 }
 
 function safeNum(val) {
@@ -124,7 +144,16 @@ async function fetchProductosPorProveedor(strapi, proveedores) {
   while (true) {
     const resultado = await strapi.documents(UID_PRODUCTO).findMany({
       filters:  { proveedor: { $in: proveedores } },
-      populate: { variantes: true },
+      populate: {
+        variantes: true,
+        categoria: {
+          populate: {
+            subcategorias: {
+              populate: { tipos: true }
+            }
+          }
+        }
+      },
       limit:    PAGE_SIZE,
       start:    (page - 1) * PAGE_SIZE,
       status:   'published',
@@ -159,11 +188,17 @@ async function fetchProductosPorProveedor(strapi, proveedores) {
 //   B: SKU / EAN
 //   C: Proveedor
 //   D: Nombre
-//   E: Tamaño / Variante
-//   F: Stock
-//   G: Precio
-//   H: Precio Oferta
-//   I: % Descuento
+//   E: Sección
+//   F: Categoría
+//   G: Subcategoría
+//   H: Tipo
+//   I: Publicado
+//   J: Destacado
+//   K: Tamaño / Variante
+//   L: Stock
+//   M: Precio
+//   N: Precio Oferta
+//   O: % Descuento
 async function generarExcelProveedor(strapi, proveedores) {
   strapi.log.info(`[ExportacionProveedoresAdmin] Obteniendo productos para: ${proveedores.join(', ')}...`);
   const productos = await fetchProductosPorProveedor(strapi, proveedores);
@@ -172,6 +207,9 @@ async function generarExcelProveedor(strapi, proveedores) {
   const wb   = new ExcelJS.Workbook();
   wb.creator = 'Marybe';
   wb.created = new Date();
+
+  // Pre-calcular referencias para los dropdowns (la hoja Listas se crea al final)
+  const refs = calcularRefs();
 
   const provNombres = proveedores.length <= 3
     ? proveedores.join(', ')
@@ -183,23 +221,29 @@ async function generarExcelProveedor(strapi, proveedores) {
     views:      [{ state: 'frozen', xSplit: 0, ySplit: 3 }],
   });
 
-  // ── Columnas (A–I) ────────────────────────────────────────────────────────
+  // ── Columnas (A–O) ────────────────────────────────────────────────────────
   const colDefs = [
-    { header: 'ID / ID Variante',             width: 24,  group: 'id'     }, // A
-    { header: 'SKU / EAN',                    width: 22,  group: 'base'   }, // B
-    { header: 'Proveedor',                    width: 26,  group: 'prov'   }, // C
-    { header: 'Nombre',                       width: 52,  group: 'base'   }, // D
-    { header: 'Tamaño / Variante',            width: 20,  group: 'base'   }, // E
-    { header: 'Stock',                        width: 10,  group: 'base'   }, // F
-    { header: 'Precio',                       width: 14,  group: 'precio' }, // G
-    { header: 'Precio Oferta',                width: 14,  group: 'precio' }, // H
-    { header: '% Desc.',                      width: 10,  group: 'precio' }, // I
+    { header: 'ID / ID Variante',             width: 24,  group: 'id'     }, // A  (1)
+    { header: 'SKU / EAN',                    width: 22,  group: 'base'   }, // B  (2)
+    { header: 'Proveedor',                    width: 26,  group: 'prov'   }, // C  (3)
+    { header: 'Nombre',                       width: 52,  group: 'base'   }, // D  (4)
+    { header: 'Sección',                      width: 16,  group: 'cat'    }, // E  (5)
+    { header: 'Categoría',                    width: 22,  group: 'cat'    }, // F  (6)
+    { header: 'Subcategoría',                 width: 22,  group: 'cat'    }, // G  (7)
+    { header: 'Tipo',                         width: 22,  group: 'cat'    }, // H  (8)
+    { header: 'Publicado',                    width: 12,  group: 'bool'   }, // I  (9)
+    { header: 'Destacado',                    width: 12,  group: 'bool'   }, // J  (10)
+    { header: 'Tamaño / Variante',            width: 20,  group: 'base'   }, // K  (11)
+    { header: 'Stock',                        width: 10,  group: 'base'   }, // L  (12)
+    { header: 'Precio',                       width: 14,  group: 'precio' }, // M  (13)
+    { header: 'Precio Oferta',                width: 14,  group: 'precio' }, // N  (14)
+    { header: '% Desc.',                      width: 10,  group: 'precio' }, // O  (15)
   ];
 
   ws.columns = colDefs.map(c => ({ width: c.width }));
 
   // ── Fila 1: Título ────────────────────────────────────────────────────────
-  ws.mergeCells('A1:I1');
+  ws.mergeCells('A1:O1');
   const title     = ws.getCell('A1');
   title.value     = `💲 MARYBE — Precios por Proveedor: ${provNombres} (${new Date().toLocaleDateString('es-AR')})`;
   title.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.grisOscuro } };
@@ -208,9 +252,9 @@ async function generarExcelProveedor(strapi, proveedores) {
   ws.getRow(1).height = 36;
 
   // ── Fila 2: Instrucción ───────────────────────────────────────────────────
-  ws.mergeCells('A2:I2');
+  ws.mergeCells('A2:O2');
   const instr = ws.getCell('A2');
-  instr.value = `⚠ Generado el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Las variantes aparecen indentadas (↳) debajo de su producto padre. Columnas en verde: Precio / Precio Oferta.`;
+  instr.value = `⚠ Generado el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Las variantes aparecen indentadas (↳) debajo de su producto padre. Columnas E–J tienen listas desplegables. Columnas en verde: Precio / Precio Oferta.`;
   applyStyle(instr, noteStyle());
   ws.getRow(2).height = 28;
 
@@ -222,6 +266,8 @@ async function generarExcelProveedor(strapi, proveedores) {
     const color = c.group === 'id'     ? C.grisOscuro
       : c.group === 'prov'   ? C.violeta
       : c.group === 'precio' ? C.verde
+      : c.group === 'cat'    ? C.azul
+      : c.group === 'bool'   ? 'FF059669'
       : C.azul;
     applyStyle(cell, headerStyle(color));
   });
@@ -294,40 +340,95 @@ async function generarExcelProveedor(strapi, proveedores) {
     applyStyle(cD, dataStyle(bgProd));
     cD.font   = { bold: true, color: { argb: C.grisOscuro }, size: 10, name: 'Calibri' };
 
-    // E: Tamaño (vacío en padre)
+    // Resolver Categoría / Subcategoría / Tipo desde la relación (igual que exportacion-admin)
+    const catRelacion     = prod.categoria || null;
+    const categoriaNombre = catRelacion?.nombre || '';
+    const seccionVal      = prod.seccion || catRelacion?.seccion || '';
+    let subcategoriaVal   = (prod.subcategoria || '').trim();
+    if (!subcategoriaVal && catRelacion?.subcategorias?.length > 0) {
+      subcategoriaVal = catRelacion.subcategorias[0]?.nombre || '';
+    }
+    let tipoVal = (prod.tipo || '').trim();
+    if (!tipoVal && catRelacion?.subcategorias?.length > 0) {
+      const subcatMatch = subcategoriaVal
+        ? catRelacion.subcategorias.find(s => s.nombre === subcategoriaVal)
+        : catRelacion.subcategorias[0];
+      if (subcatMatch?.tipos?.length > 0) tipoVal = subcatMatch.tipos[0]?.nombre || '';
+    }
+    const boolStr = val => (val === true || val === 1 || String(val).toLowerCase() === 'true' || String(val).toLowerCase() === 'si') ? 'SI' : 'NO';
+
+    // E: Sección
     const cE = rProd.getCell(5);
-    cE.value  = '';
-    applyStyle(cE, dataStyle(bgProd));
+    cE.value  = seccionVal;
+    applyStyle(cE, dataStyle(isEven ? C.azulClaro : 'FFBFDBFE'));
+    cE.font   = { color: { argb: '1E3A5F' }, size: 10, name: 'Calibri' };
 
-    // F: Stock (solo si no tiene variantes reales)
+    // F: Categoría
     const cF = rProd.getCell(6);
-    cF.value     = variantesLimpias.length === 0 ? (prod.stock ?? '') : '';
-    applyStyle(cF, dataStyle(bgProd));
-    cF.alignment = { vertical: 'middle', horizontal: 'center' };
+    cF.value  = categoriaNombre;
+    applyStyle(cF, dataStyle(isEven ? C.azulClaro : 'FFBFDBFE'));
+    cF.font   = { color: { argb: '1E3A5F' }, size: 10, name: 'Calibri' };
 
-    // G: Precio
-    const cG = rProd.getCell(7);
-    if (precioNum !== null) cG.value = precioNum;
-    applyStyle(cG, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
-    cG.font      = { bold: true, color: { argb: '065F46' }, size: 10, name: 'Calibri' };
-    cG.alignment = { vertical: 'middle', horizontal: 'right' };
+    // G: Subcategoría
+    const cG2 = rProd.getCell(7);
+    cG2.value  = subcategoriaVal;
+    applyStyle(cG2, dataStyle(isEven ? C.azulClaro : 'FFBFDBFE'));
+    cG2.font   = { color: { argb: '1E3A5F' }, size: 10, name: 'Calibri' };
 
-    // H: Precio Oferta
-    const cH = rProd.getCell(8);
-    if (precioOfertaNum !== null) cH.value = precioOfertaNum;
-    applyStyle(cH, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
-    cH.font      = { bold: true, color: { argb: '065F46' }, size: 10, name: 'Calibri' };
-    cH.alignment = { vertical: 'middle', horizontal: 'right' };
+    // H: Tipo
+    const cH2 = rProd.getCell(8);
+    cH2.value  = tipoVal;
+    applyStyle(cH2, dataStyle(isEven ? C.azulClaro : 'FFBFDBFE'));
+    cH2.font   = { color: { argb: '1E3A5F' }, size: 10, name: 'Calibri' };
 
-    // I: % Descuento
-    const cI = rProd.getCell(9);
-    cI.value = {
-      formula: `IF(G${rowIdx}>0, IF(AND(H${rowIdx}<>"", H${rowIdx}<G${rowIdx}), 1 - H${rowIdx}/G${rowIdx}, 0), 0)`
+    // I: Publicado
+    const cI2 = rProd.getCell(9);
+    cI2.value = boolStr(prod.publicado);
+    applyStyle(cI2, dataStyle(bgProd));
+    cI2.font  = { bold: true, color: { argb: cI2.value === 'SI' ? 'FF16A34A' : 'FFEF4444' }, size: 10, name: 'Calibri' };
+    cI2.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // J: Destacado
+    const cJ = rProd.getCell(10);
+    cJ.value = boolStr(prod.destacado);
+    applyStyle(cJ, dataStyle(bgProd));
+    cJ.font  = { bold: true, color: { argb: cJ.value === 'SI' ? 'FF16A34A' : 'FFEF4444' }, size: 10, name: 'Calibri' };
+    cJ.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // K: Tamaño (vacío en padre)
+    const cK = rProd.getCell(11);
+    cK.value  = '';
+    applyStyle(cK, dataStyle(bgProd));
+
+    // L: Stock (solo si no tiene variantes reales)
+    const cL = rProd.getCell(12);
+    cL.value     = variantesLimpias.length === 0 ? (prod.stock ?? '') : '';
+    applyStyle(cL, dataStyle(bgProd));
+    cL.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // M: Precio
+    const cM = rProd.getCell(13);
+    if (precioNum !== null) cM.value = precioNum;
+    applyStyle(cM, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
+    cM.font      = { bold: true, color: { argb: '065F46' }, size: 10, name: 'Calibri' };
+    cM.alignment = { vertical: 'middle', horizontal: 'right' };
+
+    // N: Precio Oferta
+    const cN = rProd.getCell(14);
+    if (precioOfertaNum !== null) cN.value = precioOfertaNum;
+    applyStyle(cN, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
+    cN.font      = { bold: true, color: { argb: '065F46' }, size: 10, name: 'Calibri' };
+    cN.alignment = { vertical: 'middle', horizontal: 'right' };
+
+    // O: % Descuento
+    const cO = rProd.getCell(15);
+    cO.value = {
+      formula: `IF(M${rowIdx}>0, IF(AND(N${rowIdx}<>"", N${rowIdx}<M${rowIdx}), 1 - N${rowIdx}/M${rowIdx}, 0), 0)`
     };
-    applyStyle(cI, readonlyStyle());
-    cI.font      = { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri', italic: true };
-    cI.alignment = { vertical: 'middle', horizontal: 'center' };
-    cI.numFmt    = '0%';
+    applyStyle(cO, readonlyStyle());
+    cO.font      = { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri', italic: true };
+    cO.alignment = { vertical: 'middle', horizontal: 'center' };
+    cO.numFmt    = '0%';
 
     rProd.commit();
 
@@ -372,46 +473,98 @@ async function generarExcelProveedor(strapi, proveedores) {
       applyStyle(vD, dataStyle(bgVar));
       vD.font   = { color: { argb: '1E40AF' }, size: 9, name: 'Calibri', italic: true };
 
-      // E: Tamaño / Variante
-      const vE = rVar.getCell(5);
-      vE.value  = tamanio || '';
-      applyStyle(vE, dataStyle(bgVar));
-      vE.font   = { bold: !!tamanio, color: { argb: '1E40AF' }, size: 9, name: 'Calibri' };
+      // E–H: Categoría (heredada del padre, solo referencia visual — no editable en variante)
+      const catBg = isEven ? 'FFD1D5DB' : 'FFE5E7EB'; // gris claro para indicar que no es editable
+      [5, 6, 7, 8].forEach(col => {
+        const vc = rVar.getCell(col);
+        vc.value = '';
+        applyStyle(vc, dataStyle(catBg));
+      });
 
-      // F: Stock variante
-      const vF = rVar.getCell(6);
-      vF.value     = v.stock !== undefined && v.stock !== null ? Number(v.stock) : '';
-      applyStyle(vF, dataStyle(bgVar));
-      vF.alignment = { vertical: 'middle', horizontal: 'center' };
-      vF.font      = { color: { argb: '1E40AF' }, size: 9, name: 'Calibri' };
+      // I: Publicado (de la variante)
+      const vI2 = rVar.getCell(9);
+      vI2.value = boolStr(v.publicado);
+      applyStyle(vI2, dataStyle(bgVar));
+      vI2.font  = { bold: true, color: { argb: vI2.value === 'SI' ? 'FF16A34A' : 'FFEF4444' }, size: 9, name: 'Calibri' };
+      vI2.alignment = { vertical: 'middle', horizontal: 'center' };
 
-      // G: Precio variante
-      const vG = rVar.getCell(7);
-      if (precioV !== null) vG.value = precioV;
-      applyStyle(vG, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
-      vG.font      = { bold: true, color: { argb: '065F46' }, size: 9, name: 'Calibri' };
-      vG.alignment = { vertical: 'middle', horizontal: 'right' };
+      // J: Destacado (vacío en variante)
+      const vJ = rVar.getCell(10);
+      vJ.value = '';
+      applyStyle(vJ, dataStyle(bgVar));
 
-      // H: Precio Oferta variante
-      const vH = rVar.getCell(8);
-      if (precioOfertaV !== null) vH.value = precioOfertaV;
-      applyStyle(vH, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
-      vH.font      = { bold: true, color: { argb: '065F46' }, size: 9, name: 'Calibri' };
-      vH.alignment = { vertical: 'middle', horizontal: 'right' };
+      // K: Tamaño / Variante
+      const vK = rVar.getCell(11);
+      vK.value  = tamanio || '';
+      applyStyle(vK, dataStyle(bgVar));
+      vK.font   = { bold: !!tamanio, color: { argb: '1E40AF' }, size: 9, name: 'Calibri' };
 
-      // I: % Descuento variante
-      const vI = rVar.getCell(9);
-      vI.value = {
-        formula: `IF(G${rowIdx}>0, IF(AND(H${rowIdx}<>"", H${rowIdx}<G${rowIdx}), 1 - H${rowIdx}/G${rowIdx}, 0), 0)`
+      // L: Stock variante
+      const vL = rVar.getCell(12);
+      vL.value     = v.stock !== undefined && v.stock !== null ? Number(v.stock) : '';
+      applyStyle(vL, dataStyle(bgVar));
+      vL.alignment = { vertical: 'middle', horizontal: 'center' };
+      vL.font      = { color: { argb: '1E40AF' }, size: 9, name: 'Calibri' };
+
+      // M: Precio variante
+      const vM = rVar.getCell(13);
+      if (precioV !== null) vM.value = precioV;
+      applyStyle(vM, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
+      vM.font      = { bold: true, color: { argb: '065F46' }, size: 9, name: 'Calibri' };
+      vM.alignment = { vertical: 'middle', horizontal: 'right' };
+
+      // N: Precio Oferta variante
+      const vN = rVar.getCell(14);
+      if (precioOfertaV !== null) vN.value = precioOfertaV;
+      applyStyle(vN, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
+      vN.font      = { bold: true, color: { argb: '065F46' }, size: 9, name: 'Calibri' };
+      vN.alignment = { vertical: 'middle', horizontal: 'right' };
+
+      // O: % Descuento variante
+      const vO = rVar.getCell(15);
+      vO.value = {
+        formula: `IF(M${rowIdx}>0, IF(AND(N${rowIdx}<>"", N${rowIdx}<M${rowIdx}), 1 - N${rowIdx}/M${rowIdx}, 0), 0)`
       };
-      applyStyle(vI, readonlyStyle());
-      vI.font      = { color: { argb: 'FF065F46' }, size: 9, name: 'Calibri', italic: true };
-      vI.alignment = { vertical: 'middle', horizontal: 'center' };
-      vI.numFmt    = '0%';
+      applyStyle(vO, readonlyStyle());
+      vO.font      = { color: { argb: 'FF065F46' }, size: 9, name: 'Calibri', italic: true };
+      vO.alignment = { vertical: 'middle', horizontal: 'center' };
+      vO.numFmt    = '0%';
 
       rVar.commit();
     }
   }
+
+  // ── Validaciones en bloque (dropdowns) ─────────────────────────────────────
+  const EXTRA_ROWS = 300;
+  const lastRow    = rowIdx + EXTRA_ROWS;
+
+  ws.dataValidations.add(`E4:E${lastRow}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.secciones],
+  });
+  ws.dataValidations.add(`F4:F${lastRow}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.categorias],
+  });
+  ws.dataValidations.add(`G4:G${lastRow}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.subcategorias],
+  });
+  ws.dataValidations.add(`H4:H${lastRow}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.tipos],
+  });
+  ws.dataValidations.add(`I4:I${lastRow}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.booleanos],
+  });
+  ws.dataValidations.add(`J4:J${lastRow}`, {
+    type: 'list', allowBlank: true, showErrorMessage: false,
+    formulae: [refs.booleanos],
+  });
+
+  // Crear la hoja Listas al final (igual que en exportacion-admin)
+  construirHojaListas(wb, refs);
 
   const buffer = await wb.xlsx.writeBuffer();
 

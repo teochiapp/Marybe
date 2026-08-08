@@ -121,6 +121,16 @@ async function leerExcel(rutaArchivo) {
   const variantes = [];
   let hasVariantesSheet = false;
   let isPartialUpdate = false;
+  let isModoAlta = false; // Marcador de plantilla vacía MODO_ALTA
+
+  // ─── Detectar marcador MODO_ALTA en celda AA1 (columna 27) de la hoja Productos ───
+  if (wsProductos) {
+    const cellMarcador = wsProductos.getCell(1, 27);
+    const valMarcador  = cellMarcador && cellMarcador.value ? String(cellMarcador.value).trim() : '';
+    if (valMarcador === 'MODO_ALTA') {
+      isModoAlta = true;
+    }
+  }
 
   // ─── LECTURA MODO PROVEEDOR (1 hoja, actualización rápida) ───
   if (wsProveedor) {
@@ -137,10 +147,21 @@ async function leerExcel(rutaArchivo) {
       const isVariante = rawId.startsWith('↳') || rawId.trim().startsWith('↳');
       const cleanId = rawId.replace('↳', '').trim();
 
-      const stock         = cellVal(row, 6) || '0';
-      const precio        = cellVal(row, 7);
-      const precio_oferta = cellVal(row, 8);
-      const pct_desc_raw  = cellVal(row, 9);
+      // Nuevos índices de columna con el formato A–O (15 columnas):
+      //   A(1) ID  B(2) SKU  C(3) Proveedor  D(4) Nombre
+      //   E(5) Sección  F(6) Categoría  G(7) Subcategoría  H(8) Tipo
+      //   I(9) Publicado  J(10) Destacado  K(11) Tamaño  L(12) Stock
+      //   M(13) Precio  N(14) Precio Oferta  O(15) % Desc.
+      const seccion       = cellVal(row, 5);
+      const categoria     = cellVal(row, 6);
+      const subcategoria  = cellVal(row, 7);
+      const tipo          = cellVal(row, 8);
+      const publicado_raw = cellVal(row, 9);
+      const destacado_raw = cellVal(row, 10);
+      const stock         = cellVal(row, 12) || '0';
+      const precio        = cellVal(row, 13);
+      const precio_oferta = cellVal(row, 14);
+      const pct_desc_raw  = cellVal(row, 15);
 
       let p_oferta_final = null;
       if (precio_oferta && parseFloat(precio_oferta) > 0) p_oferta_final = parseFloat(precio_oferta);
@@ -154,17 +175,25 @@ async function leerExcel(rutaArchivo) {
         currentPadreId = cleanId;
         productos.push({
           id_original:   cleanId,
+          seccion:       seccion,
+          categoria:     categoria,
+          subcategoria:  subcategoria,
+          tipo:          tipo,
+          publicado:     publicado_raw,
+          destacado:     destacado_raw,
           stock:         stock,
           precio:        precio,
           precio_oferta: p_oferta_final ? String(p_oferta_final) : '',
           pct_descuento: String(pct_descuento || ''),
-          // Los demás campos (nombre, categoría, etc.) no se parsean porque este modo es solo para update
         });
       } else {
         if (!currentPadreId) return; // Variante huérfana
+        const volumen_raw = cellVal(row, 11); // K: Tamaño / Variante
         variantes.push({
           id_original:       cleanId,
           producto_padre_id: currentPadreId,
+          publicado:         publicado_raw,
+          volumen:           volumen_raw,
           stock:             stock,
           precio:            precio,
           precio_oferta:     p_oferta_final ? String(p_oferta_final) : '',
@@ -246,7 +275,7 @@ async function leerExcel(rutaArchivo) {
     throw new Error('Formato de Excel no reconocido. Faltan hojas de Productos o Precios por Proveedor.');
   }
   
-  return { productos, variantes, hasVariantesSheet, isPartialUpdate };
+  return { productos, variantes, hasVariantesSheet, isPartialUpdate, isModoAlta };
 }
 
 // ─── Validación y diagnóstico pre-importación ──────────────────────────────────────
@@ -257,12 +286,16 @@ function validarYDiagnosticar(productos, variantes, hasVariantesSheet, addLog) {
 
   const productosFiltrados = [];
   const productosSinId = [];
+  const productosEjemplo = [];
 
-  // 1. Filtrar productos sin ID
+  // 1. Filtrar productos sin ID y productos de ejemplo (EJEMPLO-*)
   for (const p of productos) {
     const id = (p.id_original || '').trim();
     if (!id) {
       productosSinId.push(p.nombre || '(sin nombre)');
+    } else if (id.toUpperCase().startsWith('EJEMPLO-')) {
+      // Fila de plantilla de ejemplo — se ignora automáticamente
+      productosEjemplo.push(id);
     } else {
       productosFiltrados.push(p);
     }
@@ -272,6 +305,12 @@ function validarYDiagnosticar(productos, variantes, hasVariantesSheet, addLog) {
     addLog(`⚠️  ${productosSinId.length} producto(s) IGNORADOS por no tener ID Original:`);
     productosSinId.slice(0, 10).forEach(n => addLog(`     └ "${n}"`))
     if (productosSinId.length > 10) addLog(`     ... y ${productosSinId.length - 10} más`);
+  }
+
+  // 1b. Loguear filas de ejemplo omitidas
+  if (productosEjemplo.length > 0) {
+    addLog(`🗑️  ${productosEjemplo.length} fila(s) de EJEMPLO omitidas automáticamente (ID comienza con "EJEMPLO-"):`);
+    productosEjemplo.forEach(id => addLog(`     └ ID: "${id}"`));
   }
 
   // 2. Construir set de IDs válidos
@@ -288,6 +327,10 @@ function validarYDiagnosticar(productos, variantes, hasVariantesSheet, addLog) {
 
     if (!id) {
       variantesSinId.push(`padre="${padreId}"`);
+      continue;
+    }
+    // Ignorar variantes de ejemplo automáticamente
+    if (id.toUpperCase().startsWith('EJEMPLO-') || padreId.toUpperCase().startsWith('EJEMPLO-')) {
       continue;
     }
     if (!padreId || !idsProductos.has(padreId)) {
@@ -333,32 +376,62 @@ function validarYDiagnosticar(productos, variantes, hasVariantesSheet, addLog) {
 }
 
 // ─── Upsert de categoría ───────────────────────────────────────────────────────
-async function upsertCategoria(strapi, { nombre, seccion, subcategorias }) {
+async function upsertCategoria(strapi, { nombre, seccion, subcategoriasMap }) {
   const nombreTrim = (nombre || '').trim();
   if (!nombreTrim) return null;
 
   const encontrados = await strapi.documents(UID_CAT).findMany({
     filters: { nombre: { $eq: nombreTrim } },
-    populate: ['subcategorias'],
+    populate: {
+      subcategorias: {
+        populate: ['tipos']
+      }
+    },
     limit: 1,
   });
 
   if (encontrados.length > 0) {
     const catExistente = encontrados[0];
     const subcatsExistentes = catExistente.subcategorias || [];
-    const nombresExistentes = new Set(subcatsExistentes.map(s => s.nombre.trim()));
+    let modificado = false;
 
-    const nuevasSubcats = subcategorias
-      .filter(s => s && s.trim() && !nombresExistentes.has(s.trim()))
-      .map(s => ({ nombre: s.trim() }));
+    const nuevasSubcatsParaMerge = [];
 
-    if (nuevasSubcats.length > 0 || (seccion && catExistente.seccion !== seccion)) {
+    for (const [subName, tiposSet] of subcategoriasMap.entries()) {
+      const subExistente = subcatsExistentes.find(s => s.nombre.trim() === subName);
+      if (subExistente) {
+        // Merge de tipos en subcategoría existente
+        const tiposExistentes = subExistente.tipos || [];
+        const nombresTiposExistentes = new Set(tiposExistentes.map(t => t.nombre.trim()));
+        let tiposModificados = false;
+        
+        for (const tipoName of tiposSet) {
+          if (!nombresTiposExistentes.has(tipoName)) {
+            tiposExistentes.push({ nombre: tipoName });
+            tiposModificados = true;
+          }
+        }
+        if (tiposModificados) {
+          subExistente.tipos = tiposExistentes;
+          modificado = true;
+        }
+      } else {
+        // Nueva subcategoría con sus tipos
+        nuevasSubcatsParaMerge.push({
+          nombre: subName,
+          tipos: Array.from(tiposSet).map(t => ({ nombre: t }))
+        });
+      }
+    }
+
+    if (nuevasSubcatsParaMerge.length > 0 || (seccion && catExistente.seccion !== seccion) || modificado) {
       const dataUpdate = {};
       if (seccion && catExistente.seccion !== seccion) {
         dataUpdate.seccion = seccion;
       }
-      if (nuevasSubcats.length > 0) {
-        dataUpdate.subcategorias = [...subcatsExistentes, ...nuevasSubcats];
+      if (nuevasSubcatsParaMerge.length > 0 || modificado) {
+        // Se preservan los IDs de subcatsExistentes para que Strapi actualice en lugar de recrear
+        dataUpdate.subcategorias = [...subcatsExistentes, ...nuevasSubcatsParaMerge];
       }
 
       await strapi.documents(UID_CAT).update({
@@ -371,9 +444,14 @@ async function upsertCategoria(strapi, { nombre, seccion, subcategorias }) {
     return catExistente.documentId;
   }
 
-  const subcatData = subcategorias
-    .filter(s => s && s.trim())
-    .map(s => ({ nombre: s.trim() }));
+  // Si la categoría no existe, creamos todo desde cero
+  const subcatData = [];
+  for (const [subName, tiposSet] of subcategoriasMap.entries()) {
+    subcatData.push({
+      nombre: subName,
+      tipos: Array.from(tiposSet).map(t => ({ nombre: t }))
+    });
+  }
 
   const nueva = await strapi.documents(UID_CAT).create({
     data: {
@@ -400,13 +478,16 @@ async function procesarImportacion(strapi, rutaExcel) {
   addLog(`📂 Leyendo archivo: ${path.basename(rutaExcel)}`);
   
   // 1. Leer el Excel
-  const { productos: productosRaw, variantes: variantesRaw, hasVariantesSheet, isPartialUpdate } = await leerExcel(rutaExcel);
+  const { productos: productosRaw, variantes: variantesRaw, hasVariantesSheet, isPartialUpdate, isModoAlta } = await leerExcel(rutaExcel);
 
   addLog(`📦 ${productosRaw.length} productos encontrados en el Excel (hoja Productos)`);
   addLog(`🔗 ${variantesRaw.length} variantes encontradas en el Excel (hoja Variantes)`);
 
   if (isPartialUpdate) {
     addLog('🟢 MODO PROVEEDOR DETECTADO: Actualización parcial (solo stock y precios).');
+  }
+  if (isModoAlta) {
+    addLog('🟡 MODO ALTA DETECTADO: Solo se crearán productos NUEVOS. Si algún ID ya existe en la BD se cancelará la importación.');
   }
 
   // 2. Validación y diagnóstico
@@ -423,44 +504,98 @@ async function procesarImportacion(strapi, rutaExcel) {
   }
 
   // 3. Ejecutar Upsert
-  return await ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, isPartialUpdate, validacion, addLog, log, inicio);
+  return await ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, isPartialUpdate, isModoAlta, validacion, addLog, log, inicio);
 }
 
-// ─── Proceso principal de BD (Categorías y Productos) ──────────────────────────
-async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, isPartialUpdate, validacion, addLog, log, inicio) {
+// ─── Proceso principal de BD (Categorías y Productos) ────────────────────────────────────
+async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, isPartialUpdate, isModoAlta, validacion, addLog, log, inicio) {
+
+  // ─── MODO ALTA: Validar que ningún ID del Excel ya exista en la BD ────────────────
+  if (isModoAlta && productos.length > 0) {
+    addLog('🔍 MODO ALTA: Verificando que los IDs no existan en la BD...');
+    const idsAVerificar = productos.map(p => (p.id_original || '').trim()).filter(Boolean);
+    const duplicados    = [];
+
+    // Verificar en batches de 50 para no sobrecargar la BD
+    for (let i = 0; i < idsAVerificar.length; i += 50) {
+      const batch = idsAVerificar.slice(i, i + 50);
+      for (const id of batch) {
+        const existe = await strapi.db.query(UID_PRODUCTO).findOne({
+          where: { id_original: id },
+          select: ['id', 'id_original', 'nombre'],
+        });
+        if (existe) {
+          duplicados.push({
+            id_original: id,
+            nombre: existe.nombre || '',
+          });
+        }
+      }
+    }
+
+    if (duplicados.length > 0) {
+      const idsStr = duplicados.map(d => `"${d.id_original}"`).join(', ');
+      addLog(`❌ MODO ALTA cancelado: ${duplicados.length} ID(s) ya existen en la BD: ${idsStr}`);
+      addLog('⚠️  Correccón: Cambiá los IDs por valores únicos que no existan en el catálogo.');
+      addLog('─────────────────────────────────────────────');
+
+      ultimaImportacion = {
+        ok:             false,
+        fecha:          new Date().toISOString(),
+        errorModoAlta:  true,
+        duplicados,
+        log,
+      };
+
+      return {
+        ok:            false,
+        errorModoAlta: true,
+        duplicados,
+        log,
+      };
+    }
+
+    addLog(`✅ Todos los IDs son únicos. Procediendo con la importación...`);
+  }
 
   const categoriasMap = new Map();
-  if (!isPartialUpdate) {
-    for (const p of productos) {
-      const cat    = (p.categoria    || '').trim();
-      const seccion = (p.seccion     || '').trim();
-      const subcat  = (p.subcategoria || '').trim();
-      if (!cat) continue;
+  // Procesar categorías en AMBOS modos (completo y proveedor)
+  for (const p of productos) {
+    const cat    = (p.categoria    || '').trim();
+    const seccion = (p.seccion     || '').trim();
+    const subcat  = (p.subcategoria || '').trim();
+    const tipo    = (p.tipo         || '').trim();
+    if (!cat) continue;
 
-      if (!categoriasMap.has(cat)) {
-        categoriasMap.set(cat, { seccion, subcategorias: new Set() });
+    if (!categoriasMap.has(cat)) {
+      categoriasMap.set(cat, { seccion, subcategoriasMap: new Map() });
+    }
+    if (subcat) {
+      const subcatsMap = categoriasMap.get(cat).subcategoriasMap;
+      if (!subcatsMap.has(subcat)) {
+        subcatsMap.set(subcat, new Set());
       }
-      if (subcat) {
-        categoriasMap.get(cat).subcategorias.add(subcat);
+      if (tipo) {
+        subcatsMap.get(subcat).add(tipo);
       }
     }
   }
 
-  addLog(`🗂 Procesando ${categoriasMap.size} categorías...`);
+  if (categoriasMap.size > 0) {
+    addLog(`🗂 Procesando ${categoriasMap.size} categorías...`);
+  }
   const categoriaIdPorNombre = new Map();
 
-  if (!isPartialUpdate) {
-    for (const [nombre, { seccion, subcategorias }] of categoriasMap) {
-      try {
-        const docId = await upsertCategoria(strapi, {
-          nombre,
-          seccion,
-          subcategorias: [...subcategorias],
-        });
-        categoriaIdPorNombre.set(nombre, docId);
-      } catch (e) {
-        addLog(`❌ Error en categoría "${nombre}": ${e.message}`);
-      }
+  for (const [nombre, { seccion, subcategoriasMap }] of categoriasMap) {
+    try {
+      const docId = await upsertCategoria(strapi, {
+        nombre,
+        seccion,
+        subcategoriasMap,
+      });
+      categoriaIdPorNombre.set(nombre, docId);
+    } catch (e) {
+      addLog(`❌ Error en categoría "${nombre}": ${e.message}`);
     }
   }
 
@@ -545,6 +680,26 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
         precio_oferta:   precioOfertaProd,
       };
 
+      // En MODO PROVEEDOR, también actualizamos los campos de categoría y visibilidad
+      // si el usuario los completó en el Excel (celdas no vacías).
+      if (isPartialUpdate) {
+        if ((p.seccion      || '').trim()) productoData.seccion      = (p.seccion      || '').trim();
+        if ((p.subcategoria || '').trim()) productoData.subcategoria = (p.subcategoria || '').trim();
+        if ((p.tipo         || '').trim()) productoData.tipo         = (p.tipo         || '').trim();
+        // Categoría: vincular la relación si la celda tiene un nombre válido
+        const nombreCatProv = (p.categoria || '').trim();
+        if (nombreCatProv) {
+          const catDocId = categoriaIdPorNombre.get(nombreCatProv) || null;
+          if (catDocId) productoData.categoria = catDocId;
+        }
+        // Publicado y Destacado: solo actualizar si la celda tiene un valor explícito SI/NO
+        const pubVal = (p.publicado || '').trim().toUpperCase();
+        if (pubVal === 'SI' || pubVal === 'NO') productoData.publicado = pubVal === 'SI';
+        const destVal = (p.destacado || '').trim().toUpperCase();
+        if (destVal === 'SI' || destVal === 'NO') productoData.destacado = destVal === 'SI';
+      }
+
+
       if (!isPartialUpdate) {
         const nombreCategoria = (p.categoria  || '').trim();
         const categoriaDocId  = categoriaIdPorNombre.get(nombreCategoria) || null;
@@ -597,13 +752,18 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
               productoData.variantes = productoData.variantes.map(vExcel => {
                 const vExistente = existente.variantes.find(ve => ve.id_original === vExcel.id_original);
                 if (vExistente) {
-                  return {
+                  const merged = {
                     id: vExistente.id,
                     ...vExistente,
-                    stock: vExcel.stock,
-                    precio: vExcel.precio,
-                    precio_oferta: vExcel.precio_oferta
+                    stock:         vExcel.stock,
+                    precio:        vExcel.precio,
+                    precio_oferta: vExcel.precio_oferta,
                   };
+                  // Volumen: solo sobreescribir si viene con valor (es string)
+                  if (vExcel.volumen && String(vExcel.volumen).trim()) merged.volumen = String(vExcel.volumen).trim();
+                  // Publicado: ya es boolean (convertido por parseBoolean en variantesData) — asignar directamente
+                  if (vExcel.publicado !== null && vExcel.publicado !== undefined) merged.publicado = vExcel.publicado;
+                  return merged;
                 }
                 return vExcel;
               });

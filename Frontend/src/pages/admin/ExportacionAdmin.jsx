@@ -21,6 +21,11 @@ export default function ExportacionAdmin() {
   const [exportError, setExportError] = useState('');
   const [exportOk, setExportOk]     = useState(null); // { totalProductos, totalVariantes, filename }
 
+  // Plantilla vacía state
+  const [exportingPlantilla, setExportingPlantilla]   = useState(false);
+  const [exportPlantillaError, setExportPlantillaError] = useState('');
+  const [exportPlantillaOk, setExportPlantillaOk]     = useState(false);
+
   // ─── Autenticación ───────────────────────────────────────────────────────────
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -98,6 +103,46 @@ export default function ExportacionAdmin() {
       }
     } finally {
       setExporting(false);
+    }
+  };
+
+  // ─── Exportar Plantilla Vacía ─────────────────────────────────────────────
+  const handleExportarPlantillaVacia = async () => {
+    setExportingPlantilla(true);
+    setExportPlantillaError('');
+    setExportPlantillaOk(false);
+
+    try {
+      const res = await axios.get(`${API_URL}/api/exportacion-admin/exportar-plantilla-vacia`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      });
+
+      const disposition = res.headers['content-disposition'] || '';
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      const fecha = new Date().toISOString().slice(0, 10);
+      const filename = match ? match[1] : `Plantilla_Alta_Marybe_${fecha}.xlsx`;
+
+      const url  = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href  = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setExportPlantillaOk(true);
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        handleLogout();
+        setAuthError('Sesión expirada. Iniciá sesión nuevamente.');
+      } else {
+        const msg = err.response?.data?.error?.message || err.message || 'Error al generar plantilla';
+        setExportPlantillaError(msg);
+      }
+    } finally {
+      setExportingPlantilla(false);
     }
   };
 
@@ -235,7 +280,7 @@ export default function ExportacionAdmin() {
           </button>
         </header>
 
-        {/* Info card */}
+        {/* Info card — Exportación normal */}
         <div className="ia-info-card">
           <div className="ia-info-icon" aria-hidden="true">
             <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/></svg>
@@ -250,7 +295,31 @@ export default function ExportacionAdmin() {
           </div>
         </div>
 
-        {/* Estado de la exportación */}
+        {/* Card informativa — Plantilla Vacía (MODO ALTA) */}
+        <div className="ia-info-card" style={{ marginTop: '0' }}>
+          <div className="ia-info-icon" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 000-2h-3z" clipRule="evenodd"/></svg>
+          </div>
+          <div className="ia-info-text">
+            <strong>Alta de nuevos productos</strong>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+              <span style={{ display: 'flex', gap: '8px' }}>
+                <strong>1.</strong> 
+                <span>Descargá la <strong>Plantilla Vacía</strong></span>
+              </span>
+              <span style={{ display: 'flex', gap: '8px' }}>
+                <strong>2.</strong> 
+                <span>Completala con tus productos nuevos (IDs únicos)</span>
+              </span>
+              <span style={{ display: 'flex', gap: '8px' }}>
+                <strong>3.</strong> 
+                <span>Importala. Si algún ID ya existe en el catálogo, la importación se cancelará con un aviso. Luego podés exportar el catálogo completo con todos los productos unificados.</span>
+              </span>
+            </span>
+          </div>
+        </div>
+
+        {/* Estado de la exportación normal */}
         {exporting && (
           <div className="ia-progress-wrap" role="status" aria-label="Generando exportación">
             <div className="ia-progress-label">
@@ -263,7 +332,7 @@ export default function ExportacionAdmin() {
           </div>
         )}
 
-        {/* Error */}
+        {/* Error exportación normal */}
         {exportError && (
           <div className="ia-alert ia-alert--error" role="alert">
             <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
@@ -271,7 +340,7 @@ export default function ExportacionAdmin() {
           </div>
         )}
 
-        {/* Resultado */}
+        {/* Resultado exportación normal */}
         {exportOk && (
           <div className="ia-resultado" role="status">
             <div className="ia-resultado-header">
@@ -284,13 +353,13 @@ export default function ExportacionAdmin() {
           </div>
         )}
 
-        {/* Botón principal */}
+        {/* Botón principal — Exportar catálogo completo */}
         <button
           id="btn-exportar-excel"
           type="button"
           className="ia-btn ia-btn--primary ia-btn--full"
           onClick={handleExportar}
-          disabled={exporting}
+          disabled={exporting || exportingPlantilla}
         >
           {exporting
             ? <><span className="ia-spinner" aria-hidden="true"/> Generando exportación...</>
@@ -299,6 +368,85 @@ export default function ExportacionAdmin() {
                   <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd"/>
                 </svg>
                 Exportar Catálogo a Excel
+              </>
+          }
+        </button>
+
+        {/* Divisor visual */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          margin: '4px 0',
+          color: 'var(--ia-text-muted, #6b7280)',
+          fontSize: '12px',
+        }}>
+          <div style={{ flex: 1, height: '1px', background: 'var(--ia-border, #e5e7eb)' }} />
+          <span>o</span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--ia-border, #e5e7eb)' }} />
+        </div>
+
+        {/* Estado de plantilla vacía */}
+        {exportingPlantilla && (
+          <div className="ia-progress-wrap" role="status" aria-label="Generando plantilla vacía">
+            <div className="ia-progress-label">
+              <span>Generando plantilla vacía para alta de productos...</span>
+              <span className="ia-spinner" aria-hidden="true" style={{ display: 'inline-block' }} />
+            </div>
+            <div className="ia-progress-bar">
+              <div className="ia-progress-fill" style={{ width: '100%', animation: 'pulse 1.5s ease-in-out infinite', background: '#22c55e' }} />
+            </div>
+          </div>
+        )}
+
+        {/* Error plantilla vacía */}
+        {exportPlantillaError && (
+          <div className="ia-alert ia-alert--error" role="alert">
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+            {exportPlantillaError}
+          </div>
+        )}
+
+        {/* Éxito plantilla vacía */}
+        {exportPlantillaOk && (
+          <div className="ia-resultado" role="status" style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '1.5px solid #86efac' }}>
+            <div className="ia-resultado-header">
+              <svg className="ia-resultado-icon ia-resultado-icon--ok" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style={{ color: '#16a34a' }}><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+              <h2 className="ia-resultado-title" style={{ color: '#15803d' }}>¡Plantilla lista!</h2>
+            </div>
+            <p className="ia-resultado-time" style={{ color: '#166534' }}>
+              Completá la plantilla con los productos nuevos y luego importala desde el panel de Importación.
+            </p>
+          </div>
+        )}
+
+        {/* Botón secundario — Exportar Plantilla Vacía */}
+        <button
+          id="btn-exportar-plantilla-vacia"
+          type="button"
+          className="ia-btn ia-btn--full"
+          onClick={handleExportarPlantillaVacia}
+          disabled={exporting || exportingPlantilla}
+          style={{
+            background:    exportingPlantilla
+              ? 'linear-gradient(135deg, #15803d, #166534)'
+              : 'linear-gradient(135deg, #22c55e, #16a34a)',
+            color:         '#fff',
+            border:        'none',
+            boxShadow:     '0 4px 14px rgba(34,197,94,0.35)',
+            transition:    'all 0.2s',
+          }}
+          onMouseEnter={e => { if (!exporting && !exportingPlantilla) e.currentTarget.style.filter = 'brightness(1.08)'; }}
+          onMouseLeave={e => { e.currentTarget.style.filter = 'none'; }}
+        >
+          {exportingPlantilla
+            ? <><span className="ia-spinner" aria-hidden="true"/> Generando plantilla vacía...</>
+            : <>
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                  <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 000-2h-3z" clipRule="evenodd"/>
+                </svg>
+                Exportar Plantilla Vacía (Alta de Nuevos Productos)
               </>
           }
         </button>

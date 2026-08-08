@@ -74,4 +74,36 @@ module.exports = {
       return ctx.internalServerError(`Error al exportar: ${err.message}`);
     }
   },
+
+  /**
+   * GET /api/exportacion-admin/exportar-plantilla-vacia
+   * Genera y descarga un .xlsx vacío (solo headers) con marcador MODO_ALTA oculto.
+   * Compatible con la importación normal: al importarlo se activa la validación
+   * estricta que rechaza productos cuyos IDs ya existan en la BD.
+   */
+  async exportarPlantillaVacia(ctx) {
+    if (!verificarAdmin(ctx)) {
+      return ctx.unauthorized('No autenticado o sesión expirada. Iniciá sesión como administrador.');
+    }
+
+    try {
+      strapi.log.info('[ExportAdmin] Iniciando generación de plantilla vacía...');
+
+      const servicio = strapi.service('api::exportacion-admin.exportacion-admin');
+      const { buffer } = await servicio.generarExcelVacio(strapi);
+
+      const fecha    = new Date().toISOString().slice(0, 10);
+      const filename = `Plantilla_Alta_Marybe_${fecha}.xlsx`;
+
+      ctx.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      ctx.set('Content-Disposition', `attachment; filename="${filename}"`);
+
+      strapi.log.info(`[ExportAdmin] ✅ Plantilla vacía generada → ${filename}`);
+
+      ctx.body = buffer;
+    } catch (err) {
+      strapi.log.error(`[ExportAdmin] Error generando plantilla vacía: ${err.message}`);
+      return ctx.internalServerError(`Error al generar plantilla: ${err.message}`);
+    }
+  },
 };

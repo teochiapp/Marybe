@@ -88,6 +88,20 @@ module.exports = {
       const servicio = strapi.service('api::importacion-admin.importacion-admin');
       const resultado = await servicio.procesarImportacion(strapi, rutaTemporal);
 
+      // ── 4b. MODO ALTA: si hay IDs duplicados, devolver 409 Conflict ──────────
+      if (resultado.errorModoAlta) {
+        return ctx.send(
+          {
+            ok:            false,
+            errorModoAlta: true,
+            mensaje:       `MODO ALTA: ${resultado.duplicados.length} ID(s) ya existen en el catálogo. No se importó ningún producto.`,
+            duplicados:    resultado.duplicados, // [{ id_original, nombre }]
+            log:           resultado.log,
+          },
+          409
+        );
+      }
+
       return ctx.send({
         ok: true,
         mensaje: `Importación completada en ${resultado.tiempoSegundos}s`,
@@ -115,6 +129,7 @@ module.exports = {
       }
     }
   },
+
 
   async status(ctx) {
     if (!verificarAdminImportacion(ctx)) {

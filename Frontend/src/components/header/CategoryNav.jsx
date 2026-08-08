@@ -161,7 +161,9 @@ const MegaColumnTitle = styled.span`
 const MegaLink = styled.a`
   font-family: var(--font-family-secondary);
   font-size: 13px;
-  color: var(--color-marron-secundario);
+  color: ${({ $isVerTodo }) => $isVerTodo ? 'var(--color-bordo-secundario)' : 'var(--color-marron-secundario)'};
+  font-weight: ${({ $isVerTodo }) => $isVerTodo ? '600' : 'normal'};
+  margin-top: ${({ $isVerTodo }) => $isVerTodo ? '6px' : '0'};
   text-decoration: none;
   cursor: pointer;
   transition: color 0.15s;
@@ -169,6 +171,7 @@ const MegaLink = styled.a`
 
   &:hover {
     color: var(--color-bordo-secundario);
+    text-decoration: ${({ $isVerTodo }) => $isVerTodo ? 'underline' : 'none'};
   }
 `;
 
@@ -327,7 +330,9 @@ export default function CategoryNav() {
           }).filter(Boolean);
 
           if (catNames.length > 0) {
-            setDynamicCategories(catNames);
+            // Asegurar que Ofertas y Lanzamientos estén siempre al principio y no se dupliquen
+            const filteredCats = catNames.filter(c => c !== 'Ofertas' && c !== 'Lanzamientos');
+            setDynamicCategories(['Ofertas', 'Lanzamientos', ...filteredCats]);
           }
         }
       })
@@ -411,8 +416,11 @@ export default function CategoryNav() {
                     {col.items.map((item, idx) => {
                       const label = typeof item === 'object' ? item.label : item;
                       const href  = typeof item === 'object' ? item.href  : '#';
+                      const isVerTodo = typeof item === 'object' ? item.isVerTodo : false;
                       return (
-                        <MegaLink key={`${label}-${idx}`} href={href}>{label}</MegaLink>
+                        <MegaLink key={`${label}-${idx}`} href={href} $isVerTodo={isVerTodo}>
+                          {label}
+                        </MegaLink>
                       );
                     })}
                   </MegaColumn>

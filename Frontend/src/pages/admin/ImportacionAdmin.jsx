@@ -24,6 +24,9 @@ export default function ImportacionAdmin() {
   const [uploadError, setUploadError] = useState('');
   const [progreso, setProgreso] = useState(0);
 
+  // Modal de IDs duplicados (MODO ALTA)
+  const [modalDuplicados, setModalDuplicados] = useState(null); // null | { duplicados: [{id_original, nombre}] }
+
   // Verificación state
   const [verificando, setVerificando] = useState(false);
   const [verificacionRes, setVerificacionRes] = useState(null);
@@ -130,9 +133,10 @@ export default function ImportacionAdmin() {
       setArchivo(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
-      const msg = err.response?.data?.error?.message || err.message || 'Error al importar';
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        // Token vencido o sin permisos → cerrar sesión
+      // MODO ALTA: IDs duplicados (409 Conflict) → mostrar modal
+      if (err.response?.status === 409 && err.response?.data?.errorModoAlta) {
+        setModalDuplicados({ duplicados: err.response.data.duplicados || [] });
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
         handleLogout();
         setAuthError(
           err.response?.status === 403
@@ -140,6 +144,7 @@ export default function ImportacionAdmin() {
             : 'Sesión expirada. Iniciá sesión nuevamente.'
         );
       } else {
+        const msg = err.response?.data?.error?.message || err.message || 'Error al importar';
         setUploadError(msg);
       }
     } finally {
@@ -271,6 +276,7 @@ export default function ImportacionAdmin() {
 
   // ─── Render: Panel de Importación ────────────────────────────────────────────
   return (
+    <>
     <div className="ia-wrapper">
       <div className="ia-bg-particles">
         {[...Array(12)].map((_, i) => (
@@ -580,5 +586,150 @@ export default function ImportacionAdmin() {
         )}
       </div>
     </div>
+
+    {/* ─── Modal de IDs Duplicados (MODO ALTA) ─────────────────────────────── */}
+    {modalDuplicados && (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-duplicados-title"
+        style={{
+          position:   'fixed',
+          inset:      0,
+          zIndex:     1000,
+          display:    'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding:    '20px',
+          background: 'rgba(15, 10, 40, 0.75)',
+          backdropFilter: 'blur(6px)',
+          animation: 'fadeIn 0.2s ease',
+        }}
+        onClick={e => { if (e.target === e.currentTarget) setModalDuplicados(null); }}
+      >
+        <div style={{
+          background:   '#fff',
+          borderRadius: '20px',
+          boxShadow:    '0 24px 80px rgba(0,0,0,0.35)',
+          maxWidth:     '520px',
+          width:        '100%',
+          overflow:     'hidden',
+          animation:    'slideUp 0.25s ease',
+        }}>
+          {/* Header */}
+          <div style={{
+            padding:    '24px 28px 20px',
+            background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+            borderBottom: '1.5px solid #fecaca',
+            display:    'flex',
+            alignItems: 'center',
+            gap:        '14px',
+          }}>
+            <div style={{
+              width:        '44px',
+              height:       '44px',
+              borderRadius: '50%',
+              background:   '#dc2626',
+              display:      'flex',
+              alignItems:   'center',
+              justifyContent: 'center',
+              flexShrink:   0,
+            }}>
+              <svg width="22" height="22" viewBox="0 0 20 20" fill="#fff">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+              </svg>
+            </div>
+            <div>
+              <h2 id="modal-duplicados-title" style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#991b1b' }}>
+                IDs duplicados — Importación cancelada
+              </h2>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#b91c1c' }}>
+                MODO ALTA: Estos IDs ya existen en el catálogo
+              </p>
+            </div>
+          </div>
+
+          {/* Cuerpo */}
+          <div style={{ padding: '20px 28px' }}>
+            <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#374151', lineHeight: 1.6 }}>
+              No se importó ningún producto. Cambiá los IDs marcados abajo por valores únicos que no existan en el catálogo actual:
+            </p>
+
+            <div style={{
+              maxHeight:    '220px',
+              overflowY:    'auto',
+              border:       '1.5px solid #fecaca',
+              borderRadius: '10px',
+              background:   '#fef2f2',
+              padding:      '8px 0',
+            }}>
+              {modalDuplicados.duplicados.length === 0 ? (
+                <p style={{ padding: '12px 16px', margin: 0, color: '#9ca3af', fontSize: '13px' }}>
+                  (Sin detalles adicionales)
+                </p>
+              ) : (
+                modalDuplicados.duplicados.map((d, i) => (
+                  <div key={i} style={{
+                    display:    'flex',
+                    alignItems: 'center',
+                    gap:        '10px',
+                    padding:    '9px 16px',
+                    borderBottom: i < modalDuplicados.duplicados.length - 1 ? '1px solid #fee2e2' : 'none',
+                  }}>
+                    <span style={{
+                      fontFamily:   'monospace',
+                      fontSize:     '13px',
+                      fontWeight:   700,
+                      color:        '#dc2626',
+                      background:   '#fee2e2',
+                      padding:      '2px 8px',
+                      borderRadius: '6px',
+                      whiteSpace:   'nowrap',
+                    }}>
+                      {d.id_original}
+                    </span>
+                    {d.nombre && (
+                      <span style={{ fontSize: '13px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {d.nombre}
+                      </span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <p style={{ margin: '14px 0 0', fontSize: '12px', color: '#9ca3af' }}>
+              💡 Tip: El último ID en uso puede orientarte para elegir el siguiente número disponible.
+            </p>
+          </div>
+
+          {/* Footer */}
+          <div style={{ padding: '0 28px 24px', display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              id="btn-cerrar-modal-duplicados"
+              type="button"
+              onClick={() => setModalDuplicados(null)}
+              style={{
+                padding:      '10px 28px',
+                borderRadius: '10px',
+                border:       'none',
+                background:   'linear-gradient(135deg, #dc2626, #b91c1c)',
+                color:        '#fff',
+                fontWeight:   700,
+                fontSize:     '14px',
+                cursor:       'pointer',
+                boxShadow:    '0 4px 12px rgba(220,38,38,0.35)',
+                transition:   'filter 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.filter = 'none'; }}
+            >
+              Entendido, cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

@@ -26,5 +26,15 @@ module.exports = {
         tags: ['Admin'],
       },
     },
+    {
+      method: 'GET',
+      path: '/exportacion-admin/exportar-plantilla-vacia',
+      handler: 'exportacion-admin.exportarPlantillaVacia',
+      config: {
+        auth: false,
+        description: 'Genera una plantilla .xlsx vacía para dar de alta nuevos productos (MODO_ALTA)',
+        tags: ['Admin'],
+      },
+    },
   ],
 };

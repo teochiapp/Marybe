@@ -14,8 +14,13 @@ const STATIC_CATEGORIES = new Set(['Ofertas', 'Lanzamientos']);
  * Formato de Column:
  *   { title: string, items: Array<string | { label: string, href: string }> }
  *
- * Si Strapi no responde o la categoría no tiene datos, se devuelve
- * el fallback estático (MEGA_COLUMNS).
+ * Lógica de construcción de columnas:
+ *   - Subcategoría CON tipos → columna con título=subcategoría, ítems=tipos
+ *     + ítem "Ver todo [Subcategoría]" al final
+ *   - Subcategoría SIN tipos → columna con ítem único (link directo a subcategoría)
+ *
+ * Si Strapi no responde o la categoría no tiene subcategorías,
+ * se devuelve el fallback estático (MEGA_COLUMNS).
  *
  * API utilizada:
  *   GET /api/categorias?populate[subcategorias][populate][tipos]=*&publicationState=live
@@ -51,6 +56,7 @@ export function useMegaMenu() {
           if (!nombre || STATIC_CATEGORIES.has(nombre)) return;
 
           const subcats = attrs.subcategorias || [];
+          if (subcats.length === 0) return;
 
           // Cada subcategoría se convierte en una columna del megamenú
           const columns = subcats
@@ -59,22 +65,40 @@ export function useMegaMenu() {
               if (!subNombre) return null;
 
               const tipos = sub.tipos || sub.attributes?.tipos || [];
+              const hrefSubcat = `/tienda?categoria=${encodeURIComponent(nombre)}&subcategoria=${encodeURIComponent(subNombre)}`;
 
-              // Si hay tipos → cada uno es un ítem con href
-              // Si no hay tipos → columna vacía (el menú la omitirá)
-              const items = tipos.map((t) => {
-                const tipoNombre = t.nombre || t.attributes?.nombre;
-                return {
-                  label: tipoNombre,
-                  href: `/tienda?categoria=${encodeURIComponent(nombre)}&subcategoria=${encodeURIComponent(subNombre)}&tipo=${encodeURIComponent(tipoNombre)}`,
-                };
-              });
+              let items;
+
+              if (tipos.length > 0) {
+                // Subcategoría CON tipos: cada tipo es un ítem + "Ver todos" al final
+                items = [
+                  ...tipos.map((t) => {
+                    const tipoNombre = t.nombre || t.attributes?.nombre;
+                    return {
+                      label: tipoNombre,
+                      href: `${hrefSubcat}&tipo=${encodeURIComponent(tipoNombre)}`,
+                    };
+                  }),
+                  {
+                    label: `Ver todos`,
+                    href: hrefSubcat,
+                    isVerTodo: true,
+                  },
+                ];
+              } else {
+                // Subcategoría SIN tipos: ítem directo a la subcategoría
+                items = [
+                  {
+                    label: `Ver todos`,
+                    href: hrefSubcat,
+                    isVerTodo: true,
+                  },
+                ];
+              }
 
               return { title: subNombre, items };
             })
-            .filter(Boolean)
-            // Excluir columnas sin ítems para no mostrar columnas vacías
-            .filter((col) => col.items.length > 0);
+            .filter(Boolean);
 
           if (columns.length > 0) {
             map.set(nombre, columns);
