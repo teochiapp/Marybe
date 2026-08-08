@@ -319,7 +319,7 @@ export default function CategoryNav() {
   }, []);
 
   useEffect(() => {
-    fetch(`${STRAPI_URL}/api/ordenamiento-menu-header?populate=categorias`)
+    fetch(`${STRAPI_URL}/api/ordenamiento-menu-header?populate[categorias][filters][productos][id][$notNull]=true`)
       .then((res) => res.json())
       .then((json) => {
         const cats = json?.data?.attributes?.categorias?.data || json?.data?.categorias || [];

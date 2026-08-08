@@ -38,6 +38,7 @@ export function useMegaMenu() {
         const url =
           `${STRAPI_URL}/api/categorias` +
           `?populate[subcategorias][populate][tipos]=*` +
+          `&filters[productos][id][$notNull]=true` +
           `&pagination[pageSize]=100` +
           `&publicationState=live`;
 
