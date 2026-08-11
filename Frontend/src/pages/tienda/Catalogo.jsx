@@ -151,10 +151,12 @@ export default function Catalogo() {
     () => (searchParams.get('marca') ? searchParams.get('marca').split(',') : []),
     [searchParams]
   );
-  const activeCategories = useMemo(
-    () => (searchParams.get('categoria') ? searchParams.get('categoria').split(',') : []),
-    [searchParams]
-  );
+  const activeCategories = useMemo(() => {
+    const cats = searchParams.get('categoria') ? searchParams.get('categoria').split(',') : [];
+    const subcats = searchParams.get('subcategoria') ? searchParams.get('subcategoria').split(',') : [];
+    const tipos = searchParams.get('tipo') ? searchParams.get('tipo').split(',') : [];
+    return Array.from(new Set([...cats, ...subcats, ...tipos]));
+  }, [searchParams]);
   const activeSizes = useMemo(
     () => (searchParams.get('tamano') ? searchParams.get('tamano').split(',') : []),
     [searchParams]
@@ -359,9 +361,9 @@ export default function Catalogo() {
       params.set('populate', '*');
 
       if (activeSort === 'precio:asc') {
-        params.set('sort[0]', 'variantes.precio:asc');
+        params.set('sort[0]', 'precio:asc');
       } else if (activeSort === 'precio:desc') {
-        params.set('sort[0]', 'variantes.precio:desc');
+        params.set('sort[0]', 'precio:desc');
       } else {
         const [field, dir] = activeSort.split(':');
         params.set('sort[0]', `${field}:${dir}`);
@@ -388,17 +390,28 @@ export default function Catalogo() {
       }
 
       activeBrands.forEach((brand, idx) => params.set(`filters[marca][$in][${idx}]`, brand));
-      activeCategories.forEach((cat, idx) => params.set(`filters[categoria][nombre][$in][${idx}]`, cat));
       activeSizes.forEach((sz, idx) => params.set(`filters[variantes][volumen][$in][${idx}]`, sz));
+      
+      let andIndex = 0;
+
+      if (activeCategories.length > 0) {
+        activeCategories.forEach((cat, idx) => {
+          params.set(`filters[$and][${andIndex}][$or][${idx*3}][categoria][nombre][$eq]`, cat);
+          params.set(`filters[$and][${andIndex}][$or][${idx*3+1}][subcategoria][$eq]`, cat);
+          params.set(`filters[$and][${andIndex}][$or][${idx*3+2}][tipo][$eq]`, cat);
+        });
+        andIndex++;
+      }
 
       if (activePriceParam) {
         // Filtrar donde: (precio_oferta está en rango) O (precio_oferta es nulo Y precio normal está en rango)
-        params.set('filters[$or][0][variantes][precio_oferta][$gte]', activePrice[0]);
-        params.set('filters[$or][0][variantes][precio_oferta][$lte]', activePrice[1]);
+        params.set(`filters[$and][${andIndex}][$or][0][variantes][precio_oferta][$gte]`, activePrice[0]);
+        params.set(`filters[$and][${andIndex}][$or][0][variantes][precio_oferta][$lte]`, activePrice[1]);
         
-        params.set('filters[$or][1][$and][0][variantes][precio_oferta][$null]', true);
-        params.set('filters[$or][1][$and][1][variantes][precio][$gte]', activePrice[0]);
-        params.set('filters[$or][1][$and][2][variantes][precio][$lte]', activePrice[1]);
+        params.set(`filters[$and][${andIndex}][$or][1][$and][0][variantes][precio_oferta][$null]`, true);
+        params.set(`filters[$and][${andIndex}][$or][1][$and][1][variantes][precio][$gte]`, activePrice[0]);
+        params.set(`filters[$and][${andIndex}][$or][1][$and][2][variantes][precio][$lte]`, activePrice[1]);
+        andIndex++;
       }
 
       const res = await fetch(`${STRAPI_URL}/api/productos?${params.toString()}`);
@@ -455,7 +468,16 @@ export default function Catalogo() {
             activeBanner={activeBanner}
             activeDescuento={activeDescuentos}
             currentBannerTitle={currentBanner?.breadcrumbTitle || currentBanner?.title}
-            onGoToSeccion={() => updateUrlFilters({ banner: null })}
+            onGoToSeccion={() => updateUrlFilters({ banner: null, descuento: null, categoria: null, subcategoria: null, tipo: null, marca: null, tamano: null, precio: null })}
+            activeCategories={activeCategories}
+            onCategoryClick={(idx) => {
+              const nextCats = activeCategories.slice(0, idx + 1);
+              updateUrlFilters({ 
+                categoria: nextCats.length > 0 ? nextCats.join(',') : null, 
+                subcategoria: null, 
+                tipo: null 
+              });
+            }}
           />
         </FadeIn>
       )}

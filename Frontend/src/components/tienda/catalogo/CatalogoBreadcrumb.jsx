@@ -95,22 +95,26 @@ export default function CatalogoBreadcrumb({
   activeDescuento,
   currentBannerTitle,
   onGoToSeccion,
+  activeCategories = [],
+  onCategoryClick
 }) {
   const navigate = useNavigate();
-
-  // Tercer nivel: banner activo o filtro de descuento
-  let thirdLabel = null;
-  if (activeBanner && currentBannerTitle && currentBannerTitle !== activeSeccion) {
-    thirdLabel = currentBannerTitle;
-  } else if (activeDescuento && activeDescuento.length > 0) {
-    thirdLabel = activeDescuento.includes('todas') ? 'Todas las ofertas' : `${activeDescuento.join(', ')}% OFF`;
-  }
 
   const crumbs = [
     { label: 'Inicio', onClick: () => navigate('/inicio') },
     { label: activeSeccion || 'Tienda', onClick: onGoToSeccion },
-    ...(thirdLabel ? [{ label: thirdLabel }] : []),
   ];
+
+  if (activeBanner && currentBannerTitle && currentBannerTitle !== activeSeccion) {
+    crumbs.push({ label: currentBannerTitle });
+  } else if (activeDescuento && activeDescuento.length > 0) {
+    crumbs.push({ label: activeDescuento.includes('todas') ? 'Todas las ofertas' : `${activeDescuento.join(', ')}% OFF` });
+  } else if (activeCategories && activeCategories.length > 0) {
+    activeCategories.forEach((cat, idx) => crumbs.push({ 
+      label: cat, 
+      onClick: () => onCategoryClick?.(idx) 
+    }));
+  }
 
   return (
     <BreadcrumbNav aria-label="Breadcrumb de navegación">

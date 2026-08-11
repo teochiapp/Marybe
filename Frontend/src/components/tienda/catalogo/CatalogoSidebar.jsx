@@ -482,77 +482,74 @@ export default function CatalogoSidebar({
               </AccordionHeader>
               <AccordionContent $open={accordions.categoria}>
                 <NestedCategoryList>
-                  <CheckboxLabel>
-                    <input type="checkbox" checked={activeCategories.includes('Dermocosmética')} onChange={() => onCheckboxToggle(activeCategories, 'Dermocosmética', 'categoria')} />
-                    Dermocosmética
-                  </CheckboxLabel>
+                  {(() => {
+                    const { TAXONOMY } = require('../../../utils/taxonomy');
+                    const availableSet = new Set(availableCategories);
+                    const renderedSet = new Set();
 
-                  <CheckboxLabel>
-                    <input type="checkbox" checked={activeCategories.includes('Fragancias')} onChange={() => onCheckboxToggle(activeCategories, 'Fragancias', 'categoria')} />
-                    Fragancias
-                  </CheckboxLabel>
+                    const isNodeActive = (key, value) => {
+                      if (availableSet.has(key)) return true;
+                      if (Array.isArray(value)) {
+                        return value.some(tipo => availableSet.has(tipo));
+                      } else if (typeof value === 'object' && value !== null) {
+                        return Object.entries(value).some(([k, v]) => isNodeActive(k, v));
+                      }
+                      return false;
+                    };
 
-                  <div className="indent-1">
-                    <CheckboxLabel>
-                      <input type="checkbox" checked={activeCategories.includes('Femeninas')} onChange={() => onCheckboxToggle(activeCategories, 'Femeninas', 'categoria')} />
-                      Femeninas
-                    </CheckboxLabel>
+                    const renderNode = (key, value, level) => {
+                      if (!isNodeActive(key, value) && level === 0) return null; // Only prune at root if completely empty? Actually let's prune at all levels.
+                      
+                      // Wait, if a subcategory is not active, should we hide it? Yes.
+                      if (!isNodeActive(key, value)) return null;
 
-                    <div className="indent-2">
-                      <CheckboxLabel>
-                        <input type="checkbox" checked={activeCategories.includes('Premium Femenina')} onChange={() => onCheckboxToggle(activeCategories, 'Premium Femenina', 'categoria')} />
-                        Premium
-                      </CheckboxLabel>
-                      <CheckboxLabel>
-                        <input type="checkbox" checked={activeCategories.includes('Sets Femeninos')} onChange={() => onCheckboxToggle(activeCategories, 'Sets Femeninos', 'categoria')} />
-                        Sets
-                      </CheckboxLabel>
-                      <CheckboxLabel>
-                        <input type="checkbox" checked={activeCategories.includes('Nacionales Femeninas')} onChange={() => onCheckboxToggle(activeCategories, 'Nacionales Femeninas', 'categoria')} />
-                        Nacionales
-                      </CheckboxLabel>
-                      <CheckboxLabel>
-                        <input type="checkbox" checked={activeCategories.includes('Body splash Femeninas')} onChange={() => onCheckboxToggle(activeCategories, 'Body splash Femeninas', 'categoria')} />
-                        Body splash y colonias
-                      </CheckboxLabel>
-                    </div>
+                      renderedSet.add(key);
 
-                    <CheckboxLabel style={{ marginTop: '12px' }}>
-                      <input type="checkbox" checked={activeCategories.includes('Masculinas')} onChange={() => onCheckboxToggle(activeCategories, 'Masculinas', 'categoria')} />
-                      Masculinas
-                    </CheckboxLabel>
+                      let children = [];
+                      if (Array.isArray(value)) {
+                        children = value.map(tipo => renderNode(tipo, null, level + 1)).filter(Boolean);
+                      } else if (typeof value === 'object' && value !== null) {
+                        children = Object.entries(value).map(([k, v]) => renderNode(k, v, level + 1)).filter(Boolean);
+                      }
 
-                    <div className="indent-2">
-                      <CheckboxLabel>
-                        <input type="checkbox" checked={activeCategories.includes('Premium Masculina')} onChange={() => onCheckboxToggle(activeCategories, 'Premium Masculina', 'categoria')} />
-                        Premium
-                      </CheckboxLabel>
-                      <CheckboxLabel>
-                        <input type="checkbox" checked={activeCategories.includes('Sets Masculinos')} onChange={() => onCheckboxToggle(activeCategories, 'Sets Masculinos', 'categoria')} />
-                        Sets
-                      </CheckboxLabel>
-                      <CheckboxLabel>
-                        <input type="checkbox" checked={activeCategories.includes('Nacionales Masculinas')} onChange={() => onCheckboxToggle(activeCategories, 'Nacionales Masculinas', 'categoria')} />
-                        Nacionales
-                      </CheckboxLabel>
-                      <CheckboxLabel>
-                        <input type="checkbox" checked={activeCategories.includes('Body splash Masculinos')} onChange={() => onCheckboxToggle(activeCategories, 'Body splash Masculinos', 'categoria')} />
-                        Body splash y colonias
-                      </CheckboxLabel>
-                    </div>
-                  </div>
+                      return (
+                        <React.Fragment key={key}>
+                          <CheckboxLabel style={{ marginTop: level > 0 ? '12px' : '0' }}>
+                            <input
+                              type="checkbox"
+                              checked={activeCategories.includes(key)}
+                              onChange={() => onCheckboxToggle(activeCategories, key, 'categoria')}
+                            />
+                            {key}
+                          </CheckboxLabel>
+                          {children.length > 0 && (
+                            <div className={level === 0 ? "indent-1" : "indent-2"}>
+                              {children}
+                            </div>
+                          )}
+                        </React.Fragment>
+                      );
+                    };
 
-                  {/* Demás categorías */}
-                  {availableCategories.filter(c => !['Dermocosmética', 'Fragancias', 'Femeninas', 'Masculinas'].includes(c)).map((cat) => (
-                    <CheckboxLabel key={cat}>
-                      <input
-                        type="checkbox"
-                        checked={activeCategories.includes(cat)}
-                        onChange={() => onCheckboxToggle(activeCategories, cat, 'categoria')}
-                      />
-                      {cat}
-                    </CheckboxLabel>
-                  ))}
+                    const treeNodes = Object.entries(TAXONOMY).map(([k, v]) => renderNode(k, v, 0)).filter(Boolean);
+                    const remaining = availableCategories.filter(c => !renderedSet.has(c));
+
+                    return (
+                      <>
+                        {treeNodes}
+                        {remaining.length > 0 && remaining.map(cat => (
+                          <CheckboxLabel key={cat} style={{ marginTop: '12px' }}>
+                            <input
+                              type="checkbox"
+                              checked={activeCategories.includes(cat)}
+                              onChange={() => onCheckboxToggle(activeCategories, cat, 'categoria')}
+                            />
+                            {cat}
+                          </CheckboxLabel>
+                        ))}
+                      </>
+                    );
+                  })()}
                 </NestedCategoryList>
               </AccordionContent>
             </AccordionItem>

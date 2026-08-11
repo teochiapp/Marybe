@@ -661,14 +661,28 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
         return pct > max ? pct : max;
       }, 0);
 
-      const precioProd       = parseDecimal(p.precio);
-      const precioOfertaProd = (() => {
+      // Calculate minimum prices from variants for sorting fallback
+      const minPrecioVariantes = (hijosEfectivos || []).reduce((min, v) => {
+        const pv = parseDecimal(v.precio);
+        if (pv && pv > 0) return min === null ? pv : Math.min(min, pv);
+        return min;
+      }, null);
+
+      const minOfertaVariantes = (hijosEfectivos || []).reduce((min, v) => {
+        const po = parseDecimal(v.precio_oferta);
+        if (po && po > 0) return min === null ? po : Math.min(min, po);
+        return min;
+      }, null);
+
+      let precioProd       = parseDecimal(p.precio) || minPrecioVariantes;
+      let precioOfertaProd = (() => {
         const raw = parseDecimal(p.precio_oferta);
         if (raw && raw > 0) return raw;
         const pct = parseDecimal(p.pct_descuento);
         if (pct && precioProd) return Math.round(precioProd * (1 - pct / 100) * 100) / 100;
-        return null;
+        return minOfertaVariantes;
       })();
+      
       const pctDescProd = precioOfertaProd && precioProd && precioProd > 0
         ? Math.round((1 - precioOfertaProd / precioProd) * 100)
         : Math.round(parseDecimal(p.pct_descuento) || 0);
