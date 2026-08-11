@@ -363,8 +363,8 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
                       )}
                     </ProductThumb>
                     <ProductInfo>
-                      <ProductName>{attrs.nombre}</ProductName>
                       <ProductBrand>{attrs.marca || 'Marybe'}</ProductBrand>
+      <ProductName>{attrs.nombre}</ProductName>
                     </ProductInfo>
                   </ProductItem>
                 );

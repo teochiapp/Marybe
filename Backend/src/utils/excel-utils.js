@@ -109,11 +109,12 @@ const TAXONOMY = {
       "Algodones e hisopos",
       "Talcos"
     ],
-    "Higiene Oral": [
+    "Higiene bucal": [
       "Pastas Dentales",
       "Cepillos de dientes",
       "Hilos dentales",
-      "Enjuagues bucales"
+      "Enjuagues bucales",
+      "Adhesivo dental"
     ],
     "Cuidado Intimo": [
       "Toallitas",
@@ -202,6 +203,40 @@ const TAXONOMY = {
     "Depilación": [],
     "Masajeadores": [],
     "Cabinas y Tornos de Uñas": []
+  },
+  "Dermocosmética premium": {
+    "Limpieza facial": [],
+    "Exfoliantes y mascarillas": [],
+    "Tónicos": [],
+    "Cremas faciales": [],
+    "Serums": [],
+    "Contorno de ojos y labios": []
+  },
+  "Maquillaje premium": {
+    "Labios": [
+      "Labiales líquidos",
+      "Labiales en barra",
+      "Bálsamos labiales",
+      "Brillos labiales",
+      "Delineadores"
+    ],
+    "Ojos": [
+      "Máscaras de pestaña",
+      "Sombras",
+      "Delineadores en lápiz",
+      "Delineadores líquidos",
+      "Cejas"
+    ],
+    "Rostro": [
+      "Bases de maquillaje",
+      "Correctores de ojera",
+      "Polvos",
+      "Bronzer",
+      "Iluminadores",
+      "Rubores",
+      "Fijadores",
+      "Primer"
+    ]
   },
   "Lanzamientos": {}
 };

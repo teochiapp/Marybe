@@ -176,10 +176,10 @@ const ProductBrand = styled.div`
   color: var(--color-marron-secundario);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 15px;
+  margin-bottom: 4px;
 
   @media (max-width: 600px) {
-    margin-bottom: 10px;
+    margin-bottom: 4px;
   }
 `;
 
@@ -188,7 +188,7 @@ const ProductName = styled.h3`
   color: black;
   font-family: var(--font-family-secondary);
   font-weight: 400;
-  margin-bottom: 4px;
+  margin-bottom: 15px;
   line-height: 1.2;
   height: 2.4em;
   overflow: hidden;
@@ -510,8 +510,8 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria' }) {
                 </HeartContainer>
               </CardImageContainer>
 
-              <ProductName title={nombre} onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
               <ProductBrand>{marca}</ProductBrand>
+      <ProductName title={nombre} onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
 
               <PriceRow>
                 {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}

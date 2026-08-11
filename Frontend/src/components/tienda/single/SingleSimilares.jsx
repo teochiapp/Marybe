@@ -171,15 +171,15 @@ const HeartIcon = styled.button`
 `;
 
 const ProductBrand = styled.div`
-  font-size: 0.65rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-marron-secundario);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 15px;
+  margin-bottom: 4px;
 
   @media (max-width: 600px) {
-    margin-bottom: 10px;
+    margin-bottom: 4px;
   }
 `;
 
@@ -188,7 +188,7 @@ const ProductName = styled.h3`
   color: black;
   font-family: var(--font-family-secondary);
   font-weight: 400;
-  margin-bottom: 4px;
+  margin-bottom: 15px;
   line-height: 1.2;
   height: 2.4em;
   overflow: hidden;

@@ -144,16 +144,16 @@ const HeartContainer = styled.div`
 
 
 const ProductBrand = styled.div`
-  font-size: 0.65rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-marron-secundario);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   letter-spacing: 10%;
-  margin-bottom: 15px;
+  margin-bottom: 4px;
 
   @media (max-width: 600px) {
-    margin-bottom: 10px;
+    margin-bottom: 4px;
   }
 `;
 
@@ -162,7 +162,7 @@ const ProductName = styled.h3`
   color: black;
   font-family: var(--font-family-secondary);
   font-weight: 400;
-  margin-bottom: 4px;
+  margin-bottom: 15px;
   line-height: 1.2;
   letter-spacing: 0%;
   cursor: pointer;
@@ -359,8 +359,8 @@ export default function CatalogoProductCard({ product, strapiUrl }) {
         )}
       </CardImageContainer>
 
-      <ProductName title={nombre} onClick={handleNavigate}>{nombre}</ProductName>
       <ProductBrand>{marca || 'Marybe'}</ProductBrand>
+      <ProductName title={nombre} onClick={handleNavigate}>{nombre}</ProductName>
 
       <PriceRow>
         {tieneOferta && <OldPrice>{formatPrice(price)}</OldPrice>}
