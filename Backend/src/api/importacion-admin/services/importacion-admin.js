@@ -381,7 +381,10 @@ async function upsertCategoria(strapi, { nombre, seccion, subcategoriasMap }) {
   if (!nombreTrim) return null;
 
   const encontrados = await strapi.documents(UID_CAT).findMany({
-    filters: { nombre: { $eq: nombreTrim } },
+    filters: { 
+      nombre: { $eq: nombreTrim },
+      seccion: { $eq: seccion || '' }
+    },
     populate: {
       subcategorias: {
         populate: ['tipos']
@@ -567,11 +570,12 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
     const tipo    = (p.tipo         || '').trim();
     if (!cat) continue;
 
-    if (!categoriasMap.has(cat)) {
-      categoriasMap.set(cat, { seccion, subcategoriasMap: new Map() });
+    const keyCat = `${seccion}__${cat}`;
+    if (!categoriasMap.has(keyCat)) {
+      categoriasMap.set(keyCat, { nombre: cat, seccion, subcategoriasMap: new Map() });
     }
     if (subcat) {
-      const subcatsMap = categoriasMap.get(cat).subcategoriasMap;
+      const subcatsMap = categoriasMap.get(keyCat).subcategoriasMap;
       if (!subcatsMap.has(subcat)) {
         subcatsMap.set(subcat, new Set());
       }
@@ -586,14 +590,14 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
   }
   const categoriaIdPorNombre = new Map();
 
-  for (const [nombre, { seccion, subcategoriasMap }] of categoriasMap) {
+  for (const [keyCat, { nombre, seccion, subcategoriasMap }] of categoriasMap) {
     try {
       const docId = await upsertCategoria(strapi, {
         nombre,
         seccion,
         subcategoriasMap,
       });
-      categoriaIdPorNombre.set(nombre, docId);
+      categoriaIdPorNombre.set(keyCat, docId);
     } catch (e) {
       addLog(`❌ Error en categoría "${nombre}": ${e.message}`);
     }
@@ -702,8 +706,10 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
         if ((p.tipo         || '').trim()) productoData.tipo         = (p.tipo         || '').trim();
         // Categoría: vincular la relación si la celda tiene un nombre válido
         const nombreCatProv = (p.categoria || '').trim();
+        const seccionProv = (productoData.seccion || '').trim();
         if (nombreCatProv) {
-          const catDocId = categoriaIdPorNombre.get(nombreCatProv) || null;
+          const keyCat = `${seccionProv}__${nombreCatProv}`;
+          const catDocId = categoriaIdPorNombre.get(keyCat) || null;
           if (catDocId) productoData.categoria = catDocId;
         }
         // Publicado y Destacado: solo actualizar si la celda tiene un valor explícito SI/NO
@@ -716,7 +722,9 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
 
       if (!isPartialUpdate) {
         const nombreCategoria = (p.categoria  || '').trim();
-        const categoriaDocId  = categoriaIdPorNombre.get(nombreCategoria) || null;
+        const seccionProv = (p.seccion || '').trim();
+        const keyCat = `${seccionProv}__${nombreCategoria}`;
+        const categoriaDocId  = categoriaIdPorNombre.get(keyCat) || null;
 
         productoData = {
           ...productoData,
