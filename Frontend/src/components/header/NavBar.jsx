@@ -516,6 +516,36 @@ export default function NavBar() {
   const { itemCount } = useContext(CartContext);
   const { isAuthenticated, openAuthModal } = useContext(AuthContext);
 
+  // ─── Helper: navega al inicio y hace scroll suave a una sección por ID ───
+  const scrollToHomeSection = (sectionId) => {
+    closeDrawer();
+
+    const scrollToEl = () => {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return true;
+      }
+      return false;
+    };
+
+    if (location.pathname === '/inicio') {
+      // Esperar que el drawer termine de cerrar (~320ms) y luego buscar el elemento
+      let attempts = 0;
+      const retry = setInterval(() => {
+        attempts++;
+        if (scrollToEl() || attempts >= 20) clearInterval(retry);
+      }, 80);
+    } else {
+      navigate('/inicio');
+      let attempts = 0;
+      const retry = setInterval(() => {
+        attempts++;
+        if (scrollToEl() || attempts >= 30) clearInterval(retry);
+      }, 100);
+    }
+  };
+
   const goToAccount = () => {
     if (isAuthenticated) {
       navigate('/mi-cuenta');
@@ -755,9 +785,9 @@ export default function NavBar() {
               </DrawerItem>
 
               <OfertasSection>
-                <OfertaBtn onClick={() => { navigate('/eventos'); closeDrawer(); }}><CalendarIcon /> Próximos eventos</OfertaBtn>
-                <OfertaBtn onClick={() => { navigate('/canjear-gift-card'); closeDrawer(); }}><GiftIcon /> Gift cards</OfertaBtn>
-                <OfertaBtn onClick={() => { navigate('/lanzamientos'); closeDrawer(); }}><RocketIcon /> Lanzamientos</OfertaBtn>
+                <OfertaBtn onClick={() => scrollToHomeSection('seccion-eventos')}><CalendarIcon /> Próximos eventos</OfertaBtn>
+                <OfertaBtn onClick={() => scrollToHomeSection('seccion-gift-card')}><GiftIcon /> Gift cards</OfertaBtn>
+                <OfertaBtn onClick={() => scrollToHomeSection('seccion-destacados')}><RocketIcon /> Lanzamientos</OfertaBtn>
               </OfertasSection>
 
               <DrawerItem onClick={() => { navigate('/sucursales'); closeDrawer(); }}>Nuestros locales</DrawerItem>

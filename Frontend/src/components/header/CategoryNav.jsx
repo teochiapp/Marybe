@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 // ─── Datos (ver src/data/megamenu.js) ────────────────────────────────────────
 import {
@@ -300,6 +300,37 @@ export default function CategoryNav() {
   const [dynamicCategories, setDynamicCategories] = useState(DEFAULT_CATEGORIES);
   const [latestProducts, setLatestProducts] = useState(['Cargando...']);
   const navRef = useRef(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // ─── Helper: navega al inicio y hace scroll suave a una sección por ID ───
+  const scrollToHomeSection = (sectionId) => {
+    setActiveCategory(null);
+
+    const scrollToEl = () => {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return true;
+      }
+      return false;
+    };
+
+    if (location.pathname === '/inicio') {
+      let attempts = 0;
+      const retry = setInterval(() => {
+        attempts++;
+        if (scrollToEl() || attempts >= 20) clearInterval(retry);
+      }, 80);
+    } else {
+      navigate('/inicio');
+      let attempts = 0;
+      const retry = setInterval(() => {
+        attempts++;
+        if (scrollToEl() || attempts >= 30) clearInterval(retry);
+      }, 100);
+    }
+  };
 
   // Hook de megamenú dinámico (Strapi → Categoría → Subcategoría → Tipo)
   const { getColumnsForCategory } = useMegaMenu();
@@ -430,9 +461,27 @@ export default function CategoryNav() {
 
             {/* Panel 2: barra de acciones */}
             <BottomActionBar>
-              <MegaActionBtn to="/eventos"><CalendarIcon /> Próximos eventos</MegaActionBtn>
-              <MegaActionBtn to="/canjear-gift-card"><GiftIcon /> Gift cards</MegaActionBtn>
-              <MegaActionBtn to="/lanzamientos"><RocketIcon /> Lanzamientos</MegaActionBtn>
+              <MegaActionBtn
+                as="button"
+                style={{ cursor: 'pointer', fontFamily: 'var(--font-family-secondary)' }}
+                onClick={() => scrollToHomeSection('seccion-eventos')}
+              >
+                <CalendarIcon /> Próximos eventos
+              </MegaActionBtn>
+              <MegaActionBtn
+                as="button"
+                style={{ cursor: 'pointer', fontFamily: 'var(--font-family-secondary)' }}
+                onClick={() => scrollToHomeSection('seccion-gift-card')}
+              >
+                <GiftIcon /> Gift cards
+              </MegaActionBtn>
+              <MegaActionBtn
+                as="button"
+                style={{ cursor: 'pointer', fontFamily: 'var(--font-family-secondary)' }}
+                onClick={() => scrollToHomeSection('seccion-destacados')}
+              >
+                <RocketIcon /> Lanzamientos
+              </MegaActionBtn>
               <MegaTextLink to="/sucursales"><PinIconSmall /> Nuestros Locales</MegaTextLink>
               <MegaTextLink to="/nuestra-historia"><BuildingIcon /> Sobre Marybe</MegaTextLink>
               <MegaTextLink to="/contacto"><ChatIcon /> Contacto</MegaTextLink>

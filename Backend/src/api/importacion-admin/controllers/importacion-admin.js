@@ -165,4 +165,252 @@ module.exports = {
       return ctx.internalServerError(`Error al verificar: ${err.message}`);
     }
   },
+
+  /**
+   * GET /api/importacion-admin/taxonomia-vacia
+   * Detecta Categorías, Subcategorías y Tipos sin ningún producto asignado.
+   */
+  async taxonomiaVacia(ctx) {
+    if (!verificarAdminImportacion(ctx)) {
+      return ctx.unauthorized('No autenticado.');
+    }
+
+    try {
+      // 1. Cargar todas las categorías con sus subcategorías/tipos y el conteo de productos
+      const categorias = await strapi.entityService.findMany('api::categoria.categoria', {
+        populate: {
+          subcategorias: {
+            populate: { tipos: true },
+          },
+          productos: { fields: ['id', 'subcategoria', 'tipo'] },
+        },
+        pagination: { pageSize: 500 },
+      });
+
+      const categoriasVacias = [];
+      const subcategoriasVacias = [];
+      const tiposVacios = [];
+
+      for (const cat of categorias) {
+        const productos = cat.productos || [];
+        const totalProductos = productos.length;
+
+        // ── Categoría vacía ──────────────────────────────────────────────────────
+        if (totalProductos === 0) {
+          categoriasVacias.push({
+            id: cat.id,
+            nombre: cat.nombre,
+            seccion: cat.seccion || '—',
+          });
+          // Si la categoría está vacía no tiene sentido revisar sus subcats
+          continue;
+        }
+
+        // ── Subcategorías y tipos vacíos ─────────────────────────────────────────
+        const subcats = cat.subcategorias || [];
+        for (const sub of subcats) {
+          // Productos que referencian este nombre de subcategoría dentro de esta categoría
+          const prodsEnSubcat = productos.filter(
+            (p) => p.subcategoria === sub.nombre
+          );
+
+          if (prodsEnSubcat.length === 0) {
+            subcategoriasVacias.push({
+              id: sub.id,
+              nombre: sub.nombre,
+              categoriaId: cat.id,
+              categoriaNombre: cat.nombre,
+            });
+            // Si la subcategoría está vacía, sus tipos también lo están
+            continue;
+          }
+
+          // ── Tipos vacíos dentro de esta subcategoría ──────────────────────────
+          const tipos = sub.tipos || [];
+          for (const tipo of tipos) {
+            const prodsEnTipo = prodsEnSubcat.filter(
+              (p) => p.tipo === tipo.nombre
+            );
+            if (prodsEnTipo.length === 0) {
+              tiposVacios.push({
+                id: tipo.id,
+                nombre: tipo.nombre,
+                subcatId: sub.id,
+                subcatNombre: sub.nombre,
+                categoriaId: cat.id,
+                categoriaNombre: cat.nombre,
+              });
+            }
+          }
+        }
+      }
+
+      return ctx.send({
+        ok: true,
+        total: categoriasVacias.length + subcategoriasVacias.length + tiposVacios.length,
+        categorias: categoriasVacias,
+        subcategorias: subcategoriasVacias,
+        tipos: tiposVacios,
+      });
+    } catch (err) {
+      strapi.log.error(`[ImportAdmin] Error detectando taxonomía vacía: ${err.message}`);
+      return ctx.internalServerError(`Error al detectar taxonomía vacía: ${err.message}`);
+    }
+  },
+
+  /**
+   * DELETE /api/importacion-admin/categoria/:id
+   * Elimina una categoría que no tiene productos asignados.
+   */
+  async eliminarCategoria(ctx) {
+    if (!verificarAdminImportacion(ctx)) {
+      return ctx.unauthorized('No autenticado.');
+    }
+
+    const { id } = ctx.params;
+
+    try {
+      // Verificar que realmente no tiene productos antes de borrar
+      const cat = await strapi.entityService.findOne('api::categoria.categoria', id, {
+        populate: { productos: { fields: ['id'] } },
+      });
+
+      if (!cat) return ctx.notFound('Categoría no encontrada.');
+
+      if (cat.productos && cat.productos.length > 0) {
+        return ctx.badRequest(`La categoría "${cat.nombre}" tiene ${cat.productos.length} productos asignados y no puede eliminarse.`);
+      }
+
+      await strapi.entityService.delete('api::categoria.categoria', id);
+
+      strapi.log.info(`[ImportAdmin] Categoría eliminada: ID=${id}, nombre="${cat.nombre}"`);
+      return ctx.send({ ok: true, mensaje: `Categoría "${cat.nombre}" eliminada correctamente.` });
+    } catch (err) {
+      strapi.log.error(`[ImportAdmin] Error eliminando categoría ${id}: ${err.message}`);
+      return ctx.internalServerError(`Error al eliminar categoría: ${err.message}`);
+    }
+  },
+
+  /**
+   * DELETE /api/importacion-admin/subcategoria/:categoriaId/:subcatId
+   * Elimina una subcategoría (componente) de su categoría padre.
+   */
+  async eliminarSubcategoria(ctx) {
+    if (!verificarAdminImportacion(ctx)) {
+      return ctx.unauthorized('No autenticado.');
+    }
+
+    const { categoriaId, subcatId } = ctx.params;
+    const subcatIdNum = parseInt(subcatId, 10);
+
+    try {
+      const cat = await strapi.entityService.findOne('api::categoria.categoria', categoriaId, {
+        populate: {
+          subcategorias: { populate: { tipos: true } },
+          productos: { fields: ['id', 'subcategoria'] },
+        },
+      });
+
+      if (!cat) return ctx.notFound('Categoría no encontrada.');
+
+      const subcat = cat.subcategorias?.find((s) => s.id === subcatIdNum);
+      if (!subcat) return ctx.notFound('Subcategoría no encontrada.');
+
+      // Verificar que no tiene productos
+      const prods = (cat.productos || []).filter((p) => p.subcategoria === subcat.nombre);
+      if (prods.length > 0) {
+        return ctx.badRequest(
+          `La subcategoría "${subcat.nombre}" tiene ${prods.length} productos y no puede eliminarse.`
+        );
+      }
+
+      // Reconstruir subcategorías sin la eliminada
+      const nuevasSubcats = cat.subcategorias
+        .filter((s) => s.id !== subcatIdNum)
+        .map((s) => ({
+          id: s.id,
+          nombre: s.nombre,
+          tipos: (s.tipos || []).map((t) => ({ id: t.id, nombre: t.nombre })),
+        }));
+
+      await strapi.entityService.update('api::categoria.categoria', categoriaId, {
+        data: { subcategorias: nuevasSubcats },
+      });
+
+      strapi.log.info(`[ImportAdmin] Subcategoría eliminada: ID=${subcatId}, nombre="${subcat.nombre}" de categoría ID=${categoriaId}`);
+      return ctx.send({ ok: true, mensaje: `Subcategoría "${subcat.nombre}" eliminada correctamente.` });
+    } catch (err) {
+      strapi.log.error(`[ImportAdmin] Error eliminando subcategoría ${subcatId}: ${err.message}`);
+      return ctx.internalServerError(`Error al eliminar subcategoría: ${err.message}`);
+    }
+  },
+
+  /**
+   * DELETE /api/importacion-admin/tipo/:categoriaId/:subcatId/:tipoId
+   * Elimina un tipo (componente) de su subcategoría padre.
+   */
+  async eliminarTipo(ctx) {
+    if (!verificarAdminImportacion(ctx)) {
+      return ctx.unauthorized('No autenticado.');
+    }
+
+    const { categoriaId, subcatId, tipoId } = ctx.params;
+    const subcatIdNum = parseInt(subcatId, 10);
+    const tipoIdNum  = parseInt(tipoId, 10);
+
+    try {
+      const cat = await strapi.entityService.findOne('api::categoria.categoria', categoriaId, {
+        populate: {
+          subcategorias: { populate: { tipos: true } },
+          productos: { fields: ['id', 'subcategoria', 'tipo'] },
+        },
+      });
+
+      if (!cat) return ctx.notFound('Categoría no encontrada.');
+
+      const subcat = cat.subcategorias?.find((s) => s.id === subcatIdNum);
+      if (!subcat) return ctx.notFound('Subcategoría no encontrada.');
+
+      const tipo = subcat.tipos?.find((t) => t.id === tipoIdNum);
+      if (!tipo) return ctx.notFound('Tipo no encontrado.');
+
+      // Verificar que no tiene productos
+      const prods = (cat.productos || []).filter(
+        (p) => p.subcategoria === subcat.nombre && p.tipo === tipo.nombre
+      );
+      if (prods.length > 0) {
+        return ctx.badRequest(
+          `El tipo "${tipo.nombre}" tiene ${prods.length} productos y no puede eliminarse.`
+        );
+      }
+
+      // Reconstruir subcategorías conservando todo menos el tipo eliminado
+      const nuevasSubcats = cat.subcategorias.map((s) => {
+        if (s.id !== subcatIdNum) {
+          return {
+            id: s.id,
+            nombre: s.nombre,
+            tipos: (s.tipos || []).map((t) => ({ id: t.id, nombre: t.nombre })),
+          };
+        }
+        return {
+          id: s.id,
+          nombre: s.nombre,
+          tipos: (s.tipos || [])
+            .filter((t) => t.id !== tipoIdNum)
+            .map((t) => ({ id: t.id, nombre: t.nombre })),
+        };
+      });
+
+      await strapi.entityService.update('api::categoria.categoria', categoriaId, {
+        data: { subcategorias: nuevasSubcats },
+      });
+
+      strapi.log.info(`[ImportAdmin] Tipo eliminado: ID=${tipoId}, nombre="${tipo.nombre}" de subcategoría ID=${subcatId}`);
+      return ctx.send({ ok: true, mensaje: `Tipo "${tipo.nombre}" eliminado correctamente.` });
+    } catch (err) {
+      strapi.log.error(`[ImportAdmin] Error eliminando tipo ${tipoId}: ${err.message}`);
+      return ctx.internalServerError(`Error al eliminar tipo: ${err.message}`);
+    }
+  },
 };

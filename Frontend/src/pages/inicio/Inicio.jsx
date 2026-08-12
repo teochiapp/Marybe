@@ -38,6 +38,10 @@ const GiftCardWrapper = styled.div`
   cursor: pointer;
 `;
 
+const ScrollAnchor = styled.div`
+  scroll-margin-top: calc(var(--header-height, 120px) + 16px);
+`;
+
 /* Skeleton con altura fija: reserva el espacio antes de que cargue el componente lazy,
    evitando layout shifts (CLS). La animación de pulso da feedback visual al usuario. */
 const SectionSkeleton = styled.div`
@@ -75,7 +79,9 @@ export default function Inicio() {
         <>
           {/* Above the fold: carga inmediata sin animación FadeIn para optimizar LCP */}
           <PromoCarousel seccion={seccionActiva} />
-          <FeaturedSection seccion={seccionActiva} />
+          <ScrollAnchor id="seccion-destacados">
+            <FeaturedSection seccion={seccionActiva} />
+          </ScrollAnchor>
 
           {/* Below the fold: LazyViewport (IntersectionObserver) para eliminar Long Tasks */}
           <LazyViewport fallback={<SectionSkeleton $height="400px" />}>
@@ -108,18 +114,22 @@ export default function Inicio() {
               <TarjetasPromociones />
             </FadeIn>
           </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="280px" />}>
-            <FadeIn>
-              <GiftCardWrapper onClick={() => navigate('/gift-card')}>
-                <GiftCard seccion={seccionActiva} />
-              </GiftCardWrapper>
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="300px" />}>
-            <FadeInUp>
-              <ProximosEventos />
-            </FadeInUp>
-          </LazyViewport>
+          <ScrollAnchor id="seccion-gift-card">
+            <LazyViewport fallback={<SectionSkeleton $height="280px" />}>
+              <FadeIn>
+                <GiftCardWrapper onClick={() => navigate('/gift-card')}>
+                  <GiftCard seccion={seccionActiva} />
+                </GiftCardWrapper>
+              </FadeIn>
+            </LazyViewport>
+          </ScrollAnchor>
+          <ScrollAnchor id="seccion-eventos">
+            <LazyViewport fallback={<SectionSkeleton $height="300px" />}>
+              <FadeInUp>
+                <ProximosEventos />
+              </FadeInUp>
+            </LazyViewport>
+          </ScrollAnchor>
           <LazyViewport fallback={<SectionSkeleton $height="250px" />}>
             <FadeInLeft>
               <DescubriMas />
@@ -132,6 +142,7 @@ export default function Inicio() {
         <>
           {/* Above the fold: carga inmediata sin animación FadeIn para optimizar LCP */}
           <PromoCarousel seccion={seccionActiva} />
+          {/* id para scroll desde mega menu en sección hogar */}
 
           {/* Below the fold: LazyViewport */}
           <LazyViewport fallback={<SectionSkeleton $height="350px" />}>
@@ -169,18 +180,22 @@ export default function Inicio() {
               <TarjetasPromociones />
             </FadeIn>
           </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="280px" />}>
-            <FadeIn>
-              <GiftCardWrapper onClick={() => navigate('/gift-card')}>
-                <GiftCard seccion={seccionActiva} />
-              </GiftCardWrapper>
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="300px" />}>
-            <FadeInUp>
-              <ProximosEventos />
-            </FadeInUp>
-          </LazyViewport>
+          <ScrollAnchor id="seccion-gift-card-hogar">
+            <LazyViewport fallback={<SectionSkeleton $height="280px" />}>
+              <FadeIn>
+                <GiftCardWrapper onClick={() => navigate('/gift-card')}>
+                  <GiftCard seccion={seccionActiva} />
+                </GiftCardWrapper>
+              </FadeIn>
+            </LazyViewport>
+          </ScrollAnchor>
+          <ScrollAnchor id="seccion-eventos-hogar">
+            <LazyViewport fallback={<SectionSkeleton $height="300px" />}>
+              <FadeInUp>
+                <ProximosEventos />
+              </FadeInUp>
+            </LazyViewport>
+          </ScrollAnchor>
           <LazyViewport fallback={<SectionSkeleton $height="250px" />}>
             <FadeInLeft>
               <DescubriMas />

@@ -46,5 +46,45 @@ module.exports = {
         tags: ['Admin'],
       },
     },
+    {
+      method: 'GET',
+      path: '/importacion-admin/taxonomia-vacia',
+      handler: 'importacion-admin.taxonomiaVacia',
+      config: {
+        auth: false,
+        description: 'Devuelve categorías, subcategorías y tipos sin productos asignados',
+        tags: ['Admin'],
+      },
+    },
+    {
+      method: 'DELETE',
+      path: '/importacion-admin/categoria/:id',
+      handler: 'importacion-admin.eliminarCategoria',
+      config: {
+        auth: false,
+        description: 'Elimina una categoría vacía por ID',
+        tags: ['Admin'],
+      },
+    },
+    {
+      method: 'DELETE',
+      path: '/importacion-admin/subcategoria/:categoriaId/:subcatId',
+      handler: 'importacion-admin.eliminarSubcategoria',
+      config: {
+        auth: false,
+        description: 'Elimina una subcategoría vacía (componente) de su categoría padre',
+        tags: ['Admin'],
+      },
+    },
+    {
+      method: 'DELETE',
+      path: '/importacion-admin/tipo/:categoriaId/:subcatId/:tipoId',
+      handler: 'importacion-admin.eliminarTipo',
+      config: {
+        auth: false,
+        description: 'Elimina un tipo vacío (componente) de su subcategoría padre',
+        tags: ['Admin'],
+      },
+    },
   ],
 };

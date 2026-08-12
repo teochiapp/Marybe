@@ -27,6 +27,11 @@ export default function ImportacionAdmin() {
   // Modal de IDs duplicados (MODO ALTA)
   const [modalDuplicados, setModalDuplicados] = useState(null); // null | { duplicados: [{id_original, nombre}] }
 
+  // Modal de Taxonomía Vacía
+  const [modalTaxonomia, setModalTaxonomia] = useState(null); // null | { categorias, subcategorias, tipos }
+  const [cargandoTaxonomia, setCargandoTaxonomia] = useState(false);
+  const [eliminandoItem, setEliminandoItem] = useState(null); // id del ítem siendo eliminado
+
   // Verificación state
   const [verificando, setVerificando] = useState(false);
   const [verificacionRes, setVerificacionRes] = useState(null);
@@ -149,6 +154,67 @@ export default function ImportacionAdmin() {
       }
     } finally {
       setUploading(false);
+    }
+  };
+
+  // ─── Taxonomía Vacía ─────────────────────────────────────────────────────────
+  const handleAbrirTaxonomia = async () => {
+    setCargandoTaxonomia(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/importacion-admin/taxonomia-vacia`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setModalTaxonomia(res.data);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        handleLogout();
+        setAuthError('Sesión expirada. Iniciá sesión nuevamente.');
+      } else {
+        alert('Error al cargar taxonomía: ' + (err.response?.data?.error?.message || err.message));
+      }
+    } finally {
+      setCargandoTaxonomia(false);
+    }
+  };
+
+  const handleEliminarTaxonomia = async (tipo, item) => {
+    const itemId = `${tipo}-${item.id}`;
+    setEliminandoItem(itemId);
+    try {
+      let url;
+      if (tipo === 'categoria') {
+        url = `${API_URL}/api/importacion-admin/categoria/${item.id}`;
+      } else if (tipo === 'subcategoria') {
+        url = `${API_URL}/api/importacion-admin/subcategoria/${item.categoriaId}/${item.id}`;
+      } else if (tipo === 'tipo') {
+        url = `${API_URL}/api/importacion-admin/tipo/${item.categoriaId}/${item.subcatId}/${item.id}`;
+      }
+
+      await axios.delete(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Actualizar el estado local eliminando el ítem borrado
+      setModalTaxonomia((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          categorias: tipo === 'categoria'
+            ? prev.categorias.filter((c) => c.id !== item.id)
+            : prev.categorias,
+          subcategorias: tipo === 'subcategoria'
+            ? prev.subcategorias.filter((s) => s.id !== item.id)
+            : prev.subcategorias,
+          tipos: tipo === 'tipo'
+            ? prev.tipos.filter((t) => t.id !== item.id)
+            : prev.tipos,
+          total: (prev.total || 1) - 1,
+        };
+      });
+    } catch (err) {
+      alert('Error al eliminar: ' + (err.response?.data?.error?.message || err.message));
+    } finally {
+      setEliminandoItem(null);
     }
   };
 
@@ -495,6 +561,45 @@ export default function ImportacionAdmin() {
           }
         </button>
 
+        {/* Botón Limpiar Taxonomía */}
+        <button
+          id="btn-limpiar-taxonomia"
+          type="button"
+          className="ia-btn ia-btn--full"
+          style={{
+            marginTop: '0.75rem',
+            border: '2px solid #f59e0b',
+            backgroundColor: '#fffbeb',
+            color: '#92400e',
+            fontWeight: '600',
+            transition: 'all 0.18s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#fef3c7';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#fffbeb';
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+          onClick={handleAbrirTaxonomia}
+          disabled={cargandoTaxonomia || uploading}
+        >
+          {cargandoTaxonomia ? (
+            <><span className="ia-spinner" aria-hidden="true" /> Detectando elementos vacíos...</>
+          ) : (
+            <>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14H6L5 6" />
+                <path d="M10 11v6M14 11v6" />
+                <path d="M9 6V4h6v2" />
+              </svg>
+              Detectar y Limpiar Taxonomía Vacía
+            </>
+          )}
+        </button>
+
         {/* Botón secundario para verificación */}
         <button
           type="button"
@@ -730,6 +835,297 @@ export default function ImportacionAdmin() {
         </div>
       </div>
     )}
+
+    {/* ─── Modal de Taxonomía Vacía ────────────────────────────────────────────── */}
+    {modalTaxonomia && (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-taxonomia-title"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          background: 'rgba(15, 10, 40, 0.78)',
+          backdropFilter: 'blur(6px)',
+          animation: 'fadeIn 0.2s ease',
+        }}
+        onClick={e => { if (e.target === e.currentTarget) setModalTaxonomia(null); }}
+      >
+        <div style={{
+          background: '#fff',
+          borderRadius: '20px',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.35)',
+          maxWidth: '600px',
+          width: '100%',
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          animation: 'slideUp 0.25s ease',
+        }}>
+
+          {/* Header */}
+          <div style={{
+            padding: '22px 28px 18px',
+            background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+            borderBottom: '1.5px solid #fde68a',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            flexShrink: 0,
+          }}>
+            <div style={{
+              width: '44px', height: '44px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14H6L5 6" />
+                <path d="M10 11v6M14 11v6" />
+                <path d="M9 6V4h6v2" />
+              </svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <h2 id="modal-taxonomia-title" style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#92400e' }}>
+                Taxonomía Vacía
+              </h2>
+              <p style={{ margin: '3px 0 0', fontSize: '13px', color: '#b45309' }}>
+                {modalTaxonomia.total === 0
+                  ? '✅ No se encontraron elementos sin productos'
+                  : `${modalTaxonomia.total} elemento${modalTaxonomia.total !== 1 ? 's' : ''} sin productos asignados`
+                }
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setModalTaxonomia(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400e', padding: '4px', borderRadius: '6px' }}
+              aria-label="Cerrar"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Cuerpo scrolleable */}
+          <div style={{ overflowY: 'auto', padding: '20px 28px', flex: 1 }}>
+
+            {modalTaxonomia.total === 0 ? (
+              <div style={{
+                textAlign: 'center', padding: '40px 20px',
+                color: '#6b7280', fontSize: '14px',
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎉</div>
+                <p style={{ margin: 0, fontWeight: 600 }}>¡Todo en orden!</p>
+                <p style={{ margin: '6px 0 0' }}>No hay categorías, subcategorías ni tipos sin productos.</p>
+              </div>
+            ) : (
+              <>
+                <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#6b7280', lineHeight: 1.6 }}>
+                  Estos elementos aparecen vacíos en el menú del header. Podés eliminarlos uno a uno — <strong>solo se borran si realmente tienen 0 productos</strong>, el backend lo verifica antes de eliminar.
+                </p>
+
+                {/* ── Categorías vacías ── */}
+                {modalTaxonomia.categorias?.length > 0 && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      marginBottom: '10px',
+                    }}>
+                      <span style={{
+                        background: '#fef3c7', color: '#92400e',
+                        borderRadius: '20px', padding: '2px 10px',
+                        fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+                      }}>Categorías</span>
+                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>{modalTaxonomia.categorias.length} sin productos</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {modalTaxonomia.categorias.map((cat) => (
+                        <TaxonomiaItem
+                          key={`cat-${cat.id}`}
+                          nombre={cat.nombre}
+                          detalle={cat.seccion !== '—' ? `Sección: ${cat.seccion}` : 'Sin sección'}
+                          colorBg="#fef2f2"
+                          colorBorder="#fecaca"
+                          colorText="#991b1b"
+                          onEliminar={() => handleEliminarTaxonomia('categoria', cat)}
+                          cargando={eliminandoItem === `categoria-${cat.id}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Subcategorías vacías ── */}
+                {modalTaxonomia.subcategorias?.length > 0 && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      marginBottom: '10px',
+                    }}>
+                      <span style={{
+                        background: '#ede9fe', color: '#5b21b6',
+                        borderRadius: '20px', padding: '2px 10px',
+                        fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+                      }}>Subcategorías</span>
+                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>{modalTaxonomia.subcategorias.length} sin productos</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {modalTaxonomia.subcategorias.map((sub) => (
+                        <TaxonomiaItem
+                          key={`sub-${sub.id}`}
+                          nombre={sub.nombre}
+                          detalle={`en ${sub.categoriaNombre}`}
+                          colorBg="#f5f3ff"
+                          colorBorder="#ddd6fe"
+                          colorText="#5b21b6"
+                          onEliminar={() => handleEliminarTaxonomia('subcategoria', sub)}
+                          cargando={eliminandoItem === `subcategoria-${sub.id}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Tipos vacíos ── */}
+                {modalTaxonomia.tipos?.length > 0 && (
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      marginBottom: '10px',
+                    }}>
+                      <span style={{
+                        background: '#ecfdf5', color: '#065f46',
+                        borderRadius: '20px', padding: '2px 10px',
+                        fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+                      }}>Tipos</span>
+                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>{modalTaxonomia.tipos.length} sin productos</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {modalTaxonomia.tipos.map((tipo) => (
+                        <TaxonomiaItem
+                          key={`tipo-${tipo.id}`}
+                          nombre={tipo.nombre}
+                          detalle={`${tipo.subcatNombre} → ${tipo.categoriaNombre}`}
+                          colorBg="#f0fdf4"
+                          colorBorder="#bbf7d0"
+                          colorText="#065f46"
+                          onEliminar={() => handleEliminarTaxonomia('tipo', tipo)}
+                          cargando={eliminandoItem === `tipo-${tipo.id}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div style={{
+            padding: '16px 28px 20px',
+            borderTop: '1px solid #f3f4f6',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}>
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>
+              🔒 El backend verifica 0 productos antes de borrar
+            </span>
+            <button
+              id="btn-cerrar-modal-taxonomia"
+              type="button"
+              onClick={() => setModalTaxonomia(null)}
+              style={{
+                padding: '9px 24px',
+                borderRadius: '10px',
+                border: '2px solid #e5e7eb',
+                background: '#fff',
+                color: '#374151',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#f9fafb'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
+  );
+}
+
+// ─── Subcomponente: fila de item de taxonomía ─────────────────────────────────
+function TaxonomiaItem({ nombre, detalle, colorBg, colorBorder, colorText, onEliminar, cargando }) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: '12px',
+      padding: '10px 14px',
+      borderRadius: '10px',
+      background: colorBg,
+      border: `1.5px solid ${colorBorder}`,
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+        <span style={{ fontWeight: 600, fontSize: '13px', color: colorText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {nombre}
+        </span>
+        <span style={{ fontSize: '11px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {detalle}
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={onEliminar}
+        disabled={cargando}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '5px',
+          padding: '6px 14px',
+          borderRadius: '8px',
+          border: 'none',
+          background: cargando ? '#e5e7eb' : '#dc2626',
+          color: cargando ? '#9ca3af' : '#fff',
+          fontSize: '12px',
+          fontWeight: 600,
+          cursor: cargando ? 'not-allowed' : 'pointer',
+          flexShrink: 0,
+          transition: 'background 0.15s',
+          whiteSpace: 'nowrap',
+        }}
+        onMouseEnter={e => { if (!cargando) e.currentTarget.style.background = '#b91c1c'; }}
+        onMouseLeave={e => { if (!cargando) e.currentTarget.style.background = '#dc2626'; }}
+      >
+        {cargando ? (
+          <span style={{
+            width: '12px', height: '12px', borderRadius: '50%',
+            border: '2px solid #d1d5db', borderTopColor: '#6b7280',
+            display: 'inline-block', animation: 'spin 0.7s linear infinite',
+          }} />
+        ) : (
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14H6L5 6" />
+            <path d="M9 6V4h6v2" />
+          </svg>
+        )}
+        Eliminar
+      </button>
+    </div>
   );
 }
