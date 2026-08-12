@@ -382,6 +382,15 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  padding: 0.25rem;
+  border-radius: 8px;
+  transition: background-color 0.2s, border 0.2s;
+  border: 1px dashed transparent;
+}
+
+.ea-img-cell--dragover {
+  background-color: rgba(242, 220, 143, 0.1);
+  border-color: rgba(242, 220, 143, 0.6);
 }
 
 .ea-img-thumb {
@@ -447,6 +456,15 @@
   gap: 0.3rem;
   flex-wrap: wrap;
   max-width: 220px;
+  padding: 0.25rem;
+  border-radius: 8px;
+  transition: background-color 0.2s, border 0.2s;
+  border: 1px dashed transparent;
+}
+
+.ea-galeria-cell--dragover {
+  background-color: rgba(242, 220, 143, 0.1);
+  border-color: rgba(242, 220, 143, 0.6);
 }
 
 .ea-galeria-thumb-wrap {

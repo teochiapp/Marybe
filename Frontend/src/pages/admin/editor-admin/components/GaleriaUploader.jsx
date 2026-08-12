@@ -106,18 +106,33 @@ export default function GaleriaUploader({ productoDocumentId, galeriaActual, tok
     }
   }, [galeriaActual, onGaleriaChange, productoDocumentId, token]);
 
-  // ── Drag & Drop de archivos sobre el dropzone ─────────────────────────────
-  const handleDropFiles = (e) => {
-    e.preventDefault();
+  // ── Drag & Drop de archivos sobre el contenedor ─────────────────────────────
+  const handleDropContainer = (e) => {
     setDraggingOver(false);
-    handleFiles(e.dataTransfer.files);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      e.preventDefault();
+      handleFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleDragOverContainer = (e) => {
+    // Only accept drag if it has files (external drag)
+    if (e.dataTransfer.types && e.dataTransfer.types.includes('Files')) {
+      e.preventDefault();
+      setDraggingOver(true);
+    }
   };
 
   const resolveUrl = (url) =>
     url ? (url.startsWith('http') ? url : `${API_URL}${url}`) : null;
 
   return (
-    <div className="ea-galeria-cell">
+    <div 
+      className={`ea-galeria-cell ${draggingOver ? 'ea-galeria-cell--dragover' : ''}`}
+      onDragOver={handleDragOverContainer}
+      onDragLeave={() => setDraggingOver(false)}
+      onDrop={handleDropContainer}
+    >
       {/* Thumbnails existentes con drag para reordenar */}
       {galeriaActual.map((img, idx) => {
         const url = resolveUrl(img.url);
@@ -153,11 +168,8 @@ export default function GaleriaUploader({ productoDocumentId, galeriaActual, tok
 
       {/* Dropzone / botón para agregar */}
       <div
-        className={`ea-dropzone${draggingOver ? ' ea-dropzone--active' : ''}`}
+        className="ea-dropzone"
         onClick={() => inputRef.current?.click()}
-        onDragOver={e => { e.preventDefault(); setDraggingOver(true); }}
-        onDragLeave={() => setDraggingOver(false)}
-        onDrop={handleDropFiles}
         title="Agregar imágenes a la galería"
       >
         {uploading

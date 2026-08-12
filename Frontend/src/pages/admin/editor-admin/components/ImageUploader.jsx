@@ -13,6 +13,7 @@ export default function ImageUploader({ productoDocumentId, portadaActual, token
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError]         = useState('');
+  const [draggingOver, setDraggingOver] = useState(false);
 
   const handleFile = async (file) => {
     setError('');
@@ -49,6 +50,13 @@ export default function ImageUploader({ productoDocumentId, portadaActual, token
     }
   };
 
+  const handleDropFile = (e) => {
+    e.preventDefault();
+    setDraggingOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleFile(f);
+  };
+
   const imgUrl = portadaActual?.url
     ? portadaActual.url.startsWith('http')
       ? portadaActual.url
@@ -56,7 +64,13 @@ export default function ImageUploader({ productoDocumentId, portadaActual, token
     : null;
 
   return (
-    <div className="ea-img-cell" title={error || ''}>
+    <div 
+      className={`ea-img-cell ${draggingOver ? 'ea-img-cell--dragover' : ''}`}
+      title={error || 'Arrastrá una imagen o hacé clic para cambiar la portada'}
+      onDragOver={e => { e.preventDefault(); setDraggingOver(true); }}
+      onDragLeave={() => setDraggingOver(false)}
+      onDrop={handleDropFile}
+    >
       {/* Thumbnail */}
       {imgUrl ? (
         <img
