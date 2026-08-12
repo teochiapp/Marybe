@@ -60,6 +60,7 @@ const ExportacionAdmin = lazyWithRetry(() => import('./pages/admin/ExportacionAd
 const ComparacionAdmin = lazyWithRetry(() => import('./pages/admin/ComparacionAdmin'), 'ComparacionAdmin');
 const ExportarProveedorAdmin = lazyWithRetry(() => import('./pages/admin/ExportacionProveedoresAdmin'), 'ExportacionProveedoresAdmin');
 const PedidosAdmin = lazyWithRetry(() => import('./pages/admin/PedidosAdmin'), 'PedidosAdmin');
+const EditorAdmin  = lazyWithRetry(() => import('./pages/admin/editor-admin/EditorAdmin'), 'EditorAdmin');
 
 // Página de Gift Card
 const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'), 'GiftCardPage');
@@ -122,6 +123,7 @@ function App() {
             <Route path="/comparacion-admin" element={<ComparacionAdmin />} />
             <Route path="/exportacion-proveedores-admin" element={<ExportarProveedorAdmin />} />
             <Route path="/pedidos-admin" element={<PedidosAdmin />} />
+            <Route path="/editor-admin" element={<EditorAdmin />} />
 
             {/* Ruta de Gift Card */}
             <Route path="/gift-card" element={<GiftCardPage />} />
