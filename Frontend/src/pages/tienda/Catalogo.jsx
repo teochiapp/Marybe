@@ -151,12 +151,18 @@ export default function Catalogo() {
     () => (searchParams.get('marca') ? searchParams.get('marca').split(',') : []),
     [searchParams]
   );
+  // Lectura separada por nivel jerárquico para filtrado correcto
+  const activeCatParam      = searchParams.get('categoria')    || '';
+  const activeSubcatParam   = searchParams.get('subcategoria') || '';
+  const activeTipoParam     = searchParams.get('tipo')         || '';
+
+  // activeCategories sigue siendo usado por Sidebar/Breadcrumb para UI (array combinado)
   const activeCategories = useMemo(() => {
-    const cats = searchParams.get('categoria') ? searchParams.get('categoria').split(',') : [];
-    const subcats = searchParams.get('subcategoria') ? searchParams.get('subcategoria').split(',') : [];
-    const tipos = searchParams.get('tipo') ? searchParams.get('tipo').split(',') : [];
+    const cats   = activeCatParam    ? activeCatParam.split(',')    : [];
+    const subcats = activeSubcatParam ? activeSubcatParam.split(',') : [];
+    const tipos   = activeTipoParam   ? activeTipoParam.split(',')   : [];
     return Array.from(new Set([...cats, ...subcats, ...tipos]));
-  }, [searchParams]);
+  }, [activeCatParam, activeSubcatParam, activeTipoParam]);
   const activeSizes = useMemo(
     () => (searchParams.get('tamano') ? searchParams.get('tamano').split(',') : []),
     [searchParams]
@@ -184,15 +190,26 @@ export default function Catalogo() {
     currentBanner.bgColor = 'var(--color-hogar)';
   }
 
-  if (!activeBanner && activeCategories.length === 1) {
-    const catName = activeCategories[0];
-    currentBanner = {
-      ...currentBanner,
-      title: catName,
-      subtitle: `Descubrí nuestra selección exclusiva de ${catName.toLowerCase()} con las mejores ofertas y lanzamientos.`,
-      pills: ['Más relevantes', 'Novedades'],
-      image: dynamicBannerImg || currentBanner.image,
-    };
+  // Título del banner: jerarquía Tipo > Subcategoría > Categoría
+  if (!activeBanner) {
+    const bannerLabel = activeTipoParam
+      ? activeTipoParam.split(',')[0]
+      : activeSubcatParam
+        ? activeSubcatParam.split(',')[0]
+        : activeCatParam
+          ? activeCatParam.split(',')[0]
+          : null;
+
+    if (bannerLabel) {
+      currentBanner = {
+        ...currentBanner,
+        title: bannerLabel,
+        breadcrumbTitle: bannerLabel,
+        subtitle: `Descubrí nuestra selección exclusiva de ${bannerLabel.toLowerCase()} con las mejores ofertas y lanzamientos.`,
+        pills: ['Más relevantes', 'Novedades'],
+        image: dynamicBannerImg || currentBanner.image,
+      };
+    }
   }
 
   // Fetch imagen de categoría dinámica
@@ -263,17 +280,33 @@ export default function Catalogo() {
     setActivePage(1);
   };
 
-  // ── SEO ───────────────────────────────────────────────────────────────────
+  // ── SEO: título dinámico según categoría/subcategoría/tipo activo ─────────
   useEffect(() => {
-    document.title = 'Marybe - Tienda Oficial & Catálogo';
+    // Determinar el nivel más específico activo para el título
+    const activeLabel = activeTipoParam
+      ? activeTipoParam.split(',')[0]
+      : activeSubcatParam
+        ? activeSubcatParam.split(',')[0]
+        : activeCatParam
+          ? activeCatParam.split(',')[0]
+          : activeBusqueda
+            ? activeBusqueda
+            : null;
+
+    document.title = activeLabel
+      ? `Marybe - ${activeLabel}`
+      : 'Marybe - Tienda Oficial & Catálogo';
+
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
       metaDesc.setAttribute(
         'content',
-        'Explorá nuestro catálogo de perfumes, maquillaje, coloración y más. Descuentos exclusivos y cuotas sin interés en Marybe.'
+        activeLabel
+          ? `Explorá ${activeLabel.toLowerCase()} en Marybe. Descuentos exclusivos y cuotas sin interés.`
+          : 'Explorá nuestro catálogo de perfumes, maquillaje, coloración y más. Descuentos exclusivos y cuotas sin interés en Marybe.'
       );
     }
-  }, []);
+  }, [activeCatParam, activeSubcatParam, activeTipoParam, activeBusqueda]);
 
   // Scroll top al cambiar sección o aplicar filtros
   useEffect(() => {
@@ -349,6 +382,8 @@ export default function Catalogo() {
   const fetchProductos = useCallback(async () => {
     if (activePage === 1) {
       setLoading(true);
+      // Limpiar productos al cambiar filtros para no mostrar resultados anteriores
+      setProductos([]);
     } else {
       setLoadingMore(true);
     }
@@ -377,37 +412,62 @@ export default function Catalogo() {
 
       if (activeDescuentos.length > 0) {
         if (activeDescuentos.includes('todas')) {
-          // Cualquier producto con descuento mayor a 0
           params.set('filters[descuento][$gt]', 0);
         } else {
-          // Tomamos el valor más alto seleccionado como tope máximo.
-          // Así "Hasta 20%" devuelve productos con descuento ≤ 20
-          // (incluye 10%, 15%, 18%, 20%, etc.)
           const maxDescuento = Math.max(...activeDescuentos.map(Number));
-          params.set('filters[descuento][$gt]', 0);          // solo con algún descuento
-          params.set('filters[descuento][$lte]', maxDescuento); // hasta el tope elegido
+          params.set('filters[descuento][$gt]', 0);
+          params.set('filters[descuento][$lte]', maxDescuento);
         }
       }
 
       activeBrands.forEach((brand, idx) => params.set(`filters[marca][$in][${idx}]`, brand));
       activeSizes.forEach((sz, idx) => params.set(`filters[variantes][volumen][$in][${idx}]`, sz));
-      
+
       let andIndex = 0;
 
-      if (activeCategories.length > 0) {
-        activeCategories.forEach((cat, idx) => {
-          params.set(`filters[$and][${andIndex}][$or][${idx*3}][categoria][nombre][$eq]`, cat);
-          params.set(`filters[$and][${andIndex}][$or][${idx*3+1}][subcategoria][$eq]`, cat);
-          params.set(`filters[$and][${andIndex}][$or][${idx*3+2}][tipo][$eq]`, cat);
+      // ── Filtro jerárquico por categoría / subcategoría / tipo ──────────────
+      // Jerarquía: Categoría > Subcategoría > Tipo
+      //
+      // Si hay ?tipo=X        → filtrar SOLO productos con tipo = X
+      // Si hay ?subcategoria=Y (sin tipo) → filtrar productos con subcategoria = Y
+      //                                     O con tipo que pertenece a esa subcategoría
+      //                                     (Strapi: campo tipo puede existir como sub-nivel)
+      // Si hay ?categoria=Z (sin subcat ni tipo) → filtrar productos con categoría = Z
+      //                                            (incluye todos sus niveles inferiores)
+      //
+      // El campo real en Strapi para productos puede ser:
+      //   - categoria (relación o string)
+      //   - subcategoria (string)
+      //   - tipo (string)
+
+      if (activeTipoParam) {
+        // NIVEL 3 — Solo filtrar por tipo exacto
+        const tipos = activeTipoParam.split(',');
+        tipos.forEach((tipo, idx) => {
+          params.set(`filters[$and][${andIndex}][$or][${idx}][tipo][$eq]`, tipo);
+        });
+        andIndex++;
+      } else if (activeSubcatParam) {
+        // NIVEL 2 — Filtrar por subcategoría (también incluye los tipos de esa subcategoría)
+        // Traer productos donde subcategoria = Y, lo cual implica que los tipos también
+        // están dentro de esa subcategoría. El filtro en Strapi es sobre el campo subcategoria.
+        const subcats = activeSubcatParam.split(',');
+        subcats.forEach((subcat, idx) => {
+          params.set(`filters[$and][${andIndex}][$or][${idx}][subcategoria][$eq]`, subcat);
+        });
+        andIndex++;
+      } else if (activeCatParam) {
+        // NIVEL 1 — Filtrar por categoría principal (trae subcategorías y tipos)
+        const cats = activeCatParam.split(',');
+        cats.forEach((cat, idx) => {
+          params.set(`filters[$and][${andIndex}][$or][${idx}][categoria][nombre][$eq]`, cat);
         });
         andIndex++;
       }
 
       if (activePriceParam) {
-        // Filtrar donde: (precio_oferta está en rango) O (precio_oferta es nulo Y precio normal está en rango)
         params.set(`filters[$and][${andIndex}][$or][0][variantes][precio_oferta][$gte]`, activePrice[0]);
         params.set(`filters[$and][${andIndex}][$or][0][variantes][precio_oferta][$lte]`, activePrice[1]);
-        
         params.set(`filters[$and][${andIndex}][$or][1][$and][0][variantes][precio_oferta][$null]`, true);
         params.set(`filters[$and][${andIndex}][$or][1][$and][1][variantes][precio][$gte]`, activePrice[0]);
         params.set(`filters[$and][${andIndex}][$or][1][$and][2][variantes][precio][$lte]`, activePrice[1]);
@@ -439,7 +499,7 @@ export default function Catalogo() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [activePage, activeSort, activeBusqueda, activeDescuentos, activeSeccion, activeBrands, activeCategories, activeSizes, activePrice, activePriceParam]);
+  }, [activePage, activeSort, activeBusqueda, activeDescuentos, activeSeccion, activeBrands, activeSizes, activePrice, activePriceParam, activeCatParam, activeSubcatParam, activeTipoParam]);
 
   useEffect(() => {
     fetchProductos();

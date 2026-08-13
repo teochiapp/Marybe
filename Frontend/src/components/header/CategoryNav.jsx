@@ -440,22 +440,41 @@ export default function CategoryNav() {
                 <MegaTitleText>{activeCategory}</MegaTitleText>
               </MegaTitle>
 
-              <MegaGrid>
-                {getMegaColumnsForCategory(activeCategory).map((col) => (
-                  <MegaColumn key={col.title}>
-                    <MegaColumnTitle>{col.title}</MegaColumnTitle>
-                    {col.items.map((item, idx) => {
-                      const label = typeof item === 'object' ? item.label : item;
-                      const href  = typeof item === 'object' ? item.href  : '#';
-                      const isVerTodo = typeof item === 'object' ? item.isVerTodo : false;
-                      return (
-                        <MegaLink key={`${label}-${idx}`} href={href} $isVerTodo={isVerTodo}>
-                          {label}
-                        </MegaLink>
-                      );
-                    })}
-                  </MegaColumn>
-                ))}
+             <MegaGrid>
+                {getMegaColumnsForCategory(activeCategory).map((col) => {
+                  // Detectar si la columna tiene un href de subcategoría (en el ítem "Ver todos")
+                  const verTodoItem = col.items?.find(i => typeof i === 'object' && i.isVerTodo);
+                  const colHref = verTodoItem?.href || null;
+                  return (
+                    <MegaColumn key={col.title}>
+                      <MegaColumnTitle
+                        onClick={colHref ? () => { setActiveCategory(null); navigate(colHref); } : undefined}
+                        style={colHref ? { cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: '3px' } : {}}
+                      >
+                        {col.title}
+                      </MegaColumnTitle>
+                      {col.items.map((item, idx) => {
+                        const label = typeof item === 'object' ? item.label : item;
+                        const href  = typeof item === 'object' ? item.href  : '#';
+                        const isVerTodo = typeof item === 'object' ? item.isVerTodo : false;
+                        return (
+                          <MegaLink
+                            key={`${label}-${idx}`}
+                            $isVerTodo={isVerTodo}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setActiveCategory(null);
+                              navigate(href);
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {label}
+                          </MegaLink>
+                        );
+                      })}
+                    </MegaColumn>
+                  );
+                })}
               </MegaGrid>
             </MegaMenuWrapper>
 
