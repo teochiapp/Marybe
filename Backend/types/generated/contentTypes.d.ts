@@ -690,7 +690,15 @@ export interface ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader
     draftAndPublish: false;
   };
   attributes: {
-    categorias: Schema.Attribute.Relation<
+    categoriasGeneral: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::categoria.categoria'
+    >;
+    categoriasHogar: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::categoria.categoria'
+    >;
+    categoriasPerfumeria: Schema.Attribute.Relation<
       'oneToMany',
       'api::categoria.categoria'
     >;
@@ -791,6 +799,8 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     nombre: Schema.Attribute.String & Schema.Attribute.Required;
     portada: Schema.Attribute.Media<'images'>;
     precio: Schema.Attribute.Decimal;
+    precio_maximo_calculado: Schema.Attribute.Decimal;
+    precio_minimo_calculado: Schema.Attribute.Decimal;
     precio_oferta: Schema.Attribute.Decimal;
     proveedor: Schema.Attribute.String;
     publicado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;

@@ -94,6 +94,12 @@
     "stock": {
       "type": "integer",
       "default": 0
+    },
+    "precio_minimo_calculado": {
+      "type": "decimal"
+    },
+    "precio_maximo_calculado": {
+      "type": "decimal"
     }
   }
 }

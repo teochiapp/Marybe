@@ -4,7 +4,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 // ─── Datos (ver src/data/megamenu.js) ────────────────────────────────────────
 import {
-  DEFAULT_CATEGORIES,
   MOBILE_FEATURED,
   STRAPI_URL,
   MEGA_COLUMNS,
@@ -12,6 +11,7 @@ import {
   OFERTAS_HOGAR,
 } from '../../data/megamenu';
 import { useMegaMenu } from '../../hooks/useMegaMenu';
+import { useMegaMenuContext } from '../../hooks/useMegaMenuContext';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -297,11 +297,19 @@ const MobilePill = styled.a`
 
 export default function CategoryNav() {
   const [activeCategory, setActiveCategory] = useState(null);
-  const [dynamicCategories, setDynamicCategories] = useState(DEFAULT_CATEGORIES);
   const [latestProducts, setLatestProducts] = useState(['Cargando...']);
   const navRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Hook de contexto: provee el contexto actual Y la lista de categorias sincronizada
+  // (ambos vienen de la misma instancia de useMegaMenu -> sin stacking al cambiar seccion)
+  const { context, getCategoriesForContext } = useMegaMenuContext();
+
+  // Hook de megamenu solo para las columnas del dropdown (columnas/subcategorias)
+  const { getColumnsForCategory } = useMegaMenu();
+
+  const dynamicCategories = getCategoriesForContext(context);
 
   // ─── Helper: navega al inicio y hace scroll suave a una sección por ID ───
   const scrollToHomeSection = (sectionId) => {
@@ -332,9 +340,6 @@ export default function CategoryNav() {
     }
   };
 
-  // Hook de megamenú dinámico (Strapi → Categoría → Subcategoría → Tipo)
-  const { getColumnsForCategory } = useMegaMenu();
-
   const handleCategoryClick = (cat) => {
     setActiveCategory((prev) => (prev === cat ? null : cat));
   };
@@ -350,27 +355,6 @@ export default function CategoryNav() {
   }, []);
 
   useEffect(() => {
-    fetch(`${STRAPI_URL}/api/ordenamiento-menu-header?populate[categorias][filters][productos][id][$notNull]=true`)
-      .then((res) => res.json())
-      .then((json) => {
-        const cats = json?.data?.attributes?.categorias?.data || json?.data?.categorias || [];
-        if (cats && cats.length > 0) {
-          const catNames = cats.map(c => {
-            const attrs = c.attributes || c;
-            return attrs.nombre;
-          }).filter(Boolean);
-
-          if (catNames.length > 0) {
-            // Asegurar que Ofertas y Lanzamientos estén siempre al principio y no se dupliquen
-            const filteredCats = catNames.filter(c => c !== 'Ofertas' && c !== 'Lanzamientos');
-            setDynamicCategories(['Ofertas', 'Lanzamientos', ...filteredCats]);
-          }
-        }
-      })
-      .catch((err) => {
-        console.error('Error fetching dynamic categories for header:', err);
-      });
-
     // Cargar los últimos productos para la pestaña Lanzamientos
     fetch(`${STRAPI_URL}/api/productos?sort=createdAt:desc&pagination[limit]=5`)
       .then((res) => res.json())
@@ -440,7 +424,7 @@ export default function CategoryNav() {
                 <MegaTitleText>{activeCategory}</MegaTitleText>
               </MegaTitle>
 
-             <MegaGrid>
+              <MegaGrid>
                 {getMegaColumnsForCategory(activeCategory).map((col) => {
                   // Detectar si la columna tiene un href de subcategoría (en el ítem "Ver todos")
                   const verTodoItem = col.items?.find(i => typeof i === 'object' && i.isVerTodo);
@@ -455,7 +439,7 @@ export default function CategoryNav() {
                       </MegaColumnTitle>
                       {col.items.map((item, idx) => {
                         const label = typeof item === 'object' ? item.label : item;
-                        const href  = typeof item === 'object' ? item.href  : '#';
+                        const href = typeof item === 'object' ? item.href : '#';
                         const isVerTodo = typeof item === 'object' ? item.isVerTodo : false;
                         return (
                           <MegaLink

@@ -122,7 +122,7 @@ export default function Catalogo() {
   const [availableBrands, setAvailableBrands] = useState([]);
   const [availableCategories, setAvailableCategories] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
-  const [availablePriceRange, setAvailablePriceRange] = useState([0, 200000]);
+  const [availablePriceRange, setAvailablePriceRange] = useState([0, 5000000]);
 
 
   const [accordions, setAccordions] = useState({
@@ -144,7 +144,7 @@ export default function Catalogo() {
     () => (searchParams.get('descuento') ? searchParams.get('descuento').split(',') : []),
     [searchParams]
   );
-  const activeSeccion = searchParams.get('seccion') || 'Perfumería';
+  const activeSeccion = searchParams.get('seccion') || '';
   const activeBanner = searchParams.get('banner') || '';
 
   const activeBrands = useMemo(
@@ -342,18 +342,18 @@ export default function Catalogo() {
             if (attrs.categoria?.nombre) categories.add(attrs.categoria.nombre);
             if (attrs.variantes && attrs.variantes.length > 0) {
               for (const v of attrs.variantes) {
-                if (v.volumen) sizes.add(v.volumen);
+                if (v.volumen && /\d/.test(v.volumen)) sizes.add(v.volumen);
                 if (v.precio) {
                   const effectivePrice = v.precio_oferta || v.precio;
-                  if (effectivePrice < globalMin) globalMin = effectivePrice;
-                  if (effectivePrice > globalMax) globalMax = effectivePrice;
+                  if (Math.floor(effectivePrice) < globalMin) globalMin = Math.floor(effectivePrice);
+                  if (Math.ceil(effectivePrice) > globalMax) globalMax = Math.ceil(effectivePrice);
                 }
               }
             } else if (attrs.precio) {
               // Producto sin variantes: usar precio del producto
               const effectivePrice = attrs.precio_oferta || attrs.precio;
-              if (effectivePrice < globalMin) globalMin = effectivePrice;
-              if (effectivePrice > globalMax) globalMax = effectivePrice;
+              if (Math.floor(effectivePrice) < globalMin) globalMin = Math.floor(effectivePrice);
+              if (Math.ceil(effectivePrice) > globalMax) globalMax = Math.ceil(effectivePrice);
             }
           }
 
@@ -369,7 +369,7 @@ export default function Catalogo() {
         setAvailableCategories([...categories].sort());
         setAvailableSizes([...sizes].sort());
         if (globalMin !== Infinity && globalMax !== -Infinity) {
-          setAvailablePriceRange([globalMin, globalMax]);
+          setAvailablePriceRange([Math.floor(globalMin), Math.ceil(globalMax)]);
         }
       } catch (err) {
         console.error('Error fetching filters data:', err);
@@ -377,6 +377,56 @@ export default function Catalogo() {
     }
     fetchFilterMetadata();
   }, []);
+
+  // -- Marcas reactivas al nivel activo (tipo > subcategor�a > categor�a > secci�n) --
+  useEffect(() => {
+    async function fetchDynamicFilters() {
+      try {
+        const params = new URLSearchParams();
+        params.set('pagination[pageSize]', '500');
+        // Queremos marca del producto base y las variantes para obtener los volumenes
+        params.set('populate', 'variantes');
+
+        if (activeTipoParam) {
+          activeTipoParam.split(',').forEach((t, i) =>
+            params.set(`filters[$or][${i}][tipo][$eq]`, t));
+        } else if (activeSubcatParam) {
+          activeSubcatParam.split(',').forEach((s, i) =>
+            params.set(`filters[$or][${i}][subcategoria][$eq]`, s));
+        } else if (activeCatParam) {
+          activeCatParam.split(',').forEach((c, i) =>
+            params.set(`filters[$or][${i}][categoria][nombre][$eq]`, c));
+        } else if (activeSeccion) {
+          params.set('filters[seccion][$eq]', activeSeccion);
+        }
+
+        const res = await fetch(`${STRAPI_URL}/api/productos?${params.toString()}`);
+        const json = await res.json();
+        
+        const brands = new Set();
+        const sizes = new Set();
+        
+        (json.data || []).forEach(p => {
+          const attrs = p.attributes || p;
+          if (attrs.marca) brands.add(attrs.marca);
+          if (attrs.variantes) {
+            attrs.variantes.forEach(v => {
+              // Filtrar solo tamaños reales (que contengan al menos un número), eliminando colores
+              if (v.volumen && /\d/.test(v.volumen)) {
+                sizes.add(v.volumen);
+              }
+            });
+          }
+        });
+
+        setAvailableBrands([...brands].sort());
+        setAvailableSizes([...sizes].sort());
+      } catch (err) {
+        console.warn('[Catalogo] Error fetching dynamic filters:', err.message);
+      }
+    }
+    fetchDynamicFilters();
+  }, [activeCatParam, activeSubcatParam, activeTipoParam, activeSeccion]);
 
   // ── Fetch productos ───────────────────────────────────────────────────────
   const fetchProductos = useCallback(async () => {
@@ -406,7 +456,7 @@ export default function Catalogo() {
 
       if (activeBusqueda) {
         params.set('filters[nombre][$containsi]', activeBusqueda);
-      } else if (activeSeccion) {
+      } else if (activeSeccion && !activeCatParam && !activeSubcatParam && !activeTipoParam) {
         params.set('filters[seccion][$eq]', activeSeccion);
       }
 
@@ -466,13 +516,11 @@ export default function Catalogo() {
       }
 
       if (activePriceParam) {
-        params.set(`filters[$and][${andIndex}][$or][0][variantes][precio_oferta][$gte]`, activePrice[0]);
-        params.set(`filters[$and][${andIndex}][$or][0][variantes][precio_oferta][$lte]`, activePrice[1]);
-        params.set(`filters[$and][${andIndex}][$or][1][$and][0][variantes][precio_oferta][$null]`, true);
-        params.set(`filters[$and][${andIndex}][$or][1][$and][1][variantes][precio][$gte]`, activePrice[0]);
-        params.set(`filters[$and][${andIndex}][$or][1][$and][2][variantes][precio][$lte]`, activePrice[1]);
-        andIndex++;
-      }
+          // Filtro optimizado con denormalización de precios
+          params.set(`filters[$and][${andIndex}][precio_minimo_calculado][$lte]`, activePrice[1]);
+          params.set(`filters[$and][${andIndex}][precio_maximo_calculado][$gte]`, activePrice[0]);
+          andIndex++;
+        }
 
       const res = await fetch(`${STRAPI_URL}/api/productos?${params.toString()}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -507,6 +555,13 @@ export default function Catalogo() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
+
+  // Handlers de drill-down de categorias
+  const handleSelectCategory = (nombre) => updateUrlFilters({ categoria: nombre, subcategoria: null, tipo: null });
+  const handleSelectSubcategory = (nombre) => updateUrlFilters({ subcategoria: nombre, tipo: null });
+  const handleSelectTipo = (nombre) => updateUrlFilters({ tipo: nombre });
+  const handleClearCategory = () => updateUrlFilters({ categoria: null, subcategoria: null, tipo: null });
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <PageContainer>
@@ -529,7 +584,7 @@ export default function Catalogo() {
             activeDescuento={activeDescuentos}
             currentBannerTitle={currentBanner?.breadcrumbTitle || currentBanner?.title}
             onGoToSeccion={() => updateUrlFilters({ banner: null, descuento: null, categoria: null, subcategoria: null, tipo: null, marca: null, tamano: null, precio: null })}
-            activeCategories={activeCategories}
+
             onCategoryClick={(idx) => {
               const nextCats = activeCategories.slice(0, idx + 1);
               updateUrlFilters({ 
@@ -559,7 +614,7 @@ export default function Catalogo() {
           <CatalogoSidebar
             mobileOpen={mobileFiltersOpen}
             onCloseMobile={() => setMobileFiltersOpen(false)}
-            availableCategories={availableCategories}
+
             availableBrands={availableBrands}
             availableSizes={availableSizes}
             availablePriceRange={availablePriceRange}
@@ -579,6 +634,13 @@ export default function Catalogo() {
             onClearAll={clearAllFilters}
             onSubmit={fetchProductos}
             total={total}
+            activeCatParam={activeCatParam}
+            activeSubcatParam={activeSubcatParam}
+            activeTipoParam={activeTipoParam}
+            onSelectCategory={handleSelectCategory}
+            onSelectSubcategory={handleSelectSubcategory}
+            onSelectTipo={handleSelectTipo}
+            onClearCategory={handleClearCategory}
           />
         </FadeInLeft>
 

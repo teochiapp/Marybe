@@ -1,14 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import PriceRangeSlider from './PriceRangeSlider';
 
-// ─── Styled Components ────────────────────────────────────────────────────────
+const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
+// ─── Icons ────────────────────────────────────────────────────────────────────
 const ChevronIcon = () => (
   <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block' }}>
     <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+
+const BackIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+// ─── Styled Components ────────────────────────────────────────────────────────
 
 const Sidebar = styled.aside`
   display: flex;
@@ -95,20 +104,10 @@ const ScrollableFilters = styled.div`
   padding-right: 8px;
   margin-right: -8px;
 
-  &::-webkit-scrollbar {
-    width: 4px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: var(--color-marron-principal);
-    border-radius: 10px;
-  }
-  
-  &::-webkit-scrollbar-thumb:hover {
-    background: var(--color-marron-principal);
-  }
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: var(--color-marron-principal); border-radius: 10px; }
+  &::-webkit-scrollbar-thumb:hover { background: var(--color-marron-principal); }
 `;
 
 const ActiveFiltersWrapper = styled.div`
@@ -147,10 +146,7 @@ const FilterTag = styled.span`
     align-items: center;
     justify-content: center;
     cursor: pointer;
-
-    &:hover {
-      color: var(--color-marron-principal);
-    }
+    &:hover { color: var(--color-marron-principal); }
   }
 `;
 
@@ -159,19 +155,13 @@ const ClearAllBtn = styled.button`
   font-weight: 600;
   color: #535353;
   transition: color 0.15s;
-
-  &:hover {
-    color: var(--color-marron-principal);
-  }
+  &:hover { color: var(--color-marron-principal); }
 `;
 
 const AccordionItem = styled.div`
   border-top: 1px solid #ece9e4;
   padding: 10px 0;
-
-  &:last-child {
-    padding-bottom: 0;
-  }
+  &:last-child { padding-bottom: 0; }
 `;
 
 const AccordionHeader = styled.button`
@@ -194,52 +184,18 @@ const AccordionChevron = styled.span`
 `;
 
 const AccordionContent = styled.div`
-  margin-top: 14px;
+  margin-top: ${({ $open }) => ($open ? '14px' : '0')};
   display: flex;
   flex-direction: column;
   gap: 5px;
-  max-height: ${({ $open }) => ($open ? '250px' : '0')};
+  max-height: ${({ $open }) => ($open ? '300px' : '0')};
   overflow-y: auto;
   transition: max-height 0.3s ease, margin-top 0.3s ease;
 
-  &::-webkit-scrollbar {
-    width: 4px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: var(--color-titulo-marybe);
-    border-radius: 10px;
-  }
-  &::-webkit-scrollbar-thumb:hover {
-    background: var(--color-marron-principal);
-  }
-`;
-
-
-const NestedCategoryList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  .indent-1 {
-    margin-left: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 12px;
-    border-left: 1px solid #ece9e4;
-    padding-left: 12px;
-  }
-
-  .indent-2 {
-    margin-left: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 12px;
-  }
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: var(--color-titulo-marybe); border-radius: 10px; }
+  &::-webkit-scrollbar-thumb:hover { background: var(--color-marron-principal); }
 `;
 
 const CheckboxLabel = styled.label`
@@ -256,6 +212,7 @@ const CheckboxLabel = styled.label`
     appearance: none;
     width: 18px;
     height: 18px;
+    min-width: 18px;
     border: 1px solid #c4c4c4;
     border-radius: 4px;
     outline: none;
@@ -267,7 +224,6 @@ const CheckboxLabel = styled.label`
     &:checked {
       background-color: var(--color-bordo-secundario);
       border-color: var(--color-bordo-secundario);
-
       &::after {
         content: '✓';
         position: absolute;
@@ -279,15 +235,41 @@ const CheckboxLabel = styled.label`
         font-weight: bold;
       }
     }
-
-    &:hover {
-      border-color: var(--color-bordo-secundario);
-    }
+    &:hover { border-color: var(--color-bordo-secundario); }
   }
 
-  &:hover {
-    color: black;
-  }
+  &:hover { color: black; }
+`;
+
+const CategoryBreadcrumb = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 0.82rem;
+  color: #9A8F87;
+`;
+
+const BreadcrumbBack = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: var(--color-bordo-secundario);
+  cursor: pointer;
+  font-weight: 500;
+  padding: 2px 0;
+  &:hover { color: var(--color-marron-principal); }
+`;
+
+const CategoryIndent = styled.div`
+  margin-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  border-left: 2px solid #f0ebe4;
+  padding-left: 12px;
 `;
 
 const SidebarSubmitBtn = styled.button`
@@ -304,9 +286,7 @@ const SidebarSubmitBtn = styled.button`
   box-shadow: 0 4px 12px rgba(62, 1, 2, 0.1);
   flex-shrink: 0;
 
-  &:hover {
-    background-color: var(--color-marron-principal);
-  }
+  &:hover { background-color: var(--color-marron-principal); }
 `;
 
 // ─── Componente ───────────────────────────────────────────────────────────────
@@ -314,17 +294,25 @@ const SidebarSubmitBtn = styled.button`
 export default function CatalogoSidebar({
   mobileOpen,
   onCloseMobile,
-  availableCategories,
   availableBrands,
   availableSizes,
   availablePriceRange,
-  activeCategories,
   activeBrands,
   activeSizes,
   activePrice,
   activePriceParam,
   activeSeccion,
   activeDescuento,
+  // Jerarquía de categorías (params separados)
+  activeCatParam,
+  activeSubcatParam,
+  activeTipoParam,
+  // Handlers de categoría
+  onSelectCategory,
+  onSelectSubcategory,
+  onSelectTipo,
+  onClearCategory,
+  // Handlers generales
   accordions,
   onToggleAccordion,
   onCheckboxToggle,
@@ -335,39 +323,195 @@ export default function CatalogoSidebar({
   onSubmit,
   total,
 }) {
-  const hasActiveFilters =
-    activeDescuento.length > 0 || activeBrands.length > 0 || activeCategories.length > 0 || activeSizes.length > 0 || activePriceParam;
+  // ── Estado de la jerarquía de categorías (fetched de Strapi) ────────────────
+  const [categoryTree, setCategoryTree] = useState([]);
 
+  useEffect(() => {
+    fetch(
+      `${STRAPI_URL}/api/categorias` +
+      `?populate[subcategorias][populate][tipos]=*` +
+      `&pagination[pageSize]=100` +
+      `&publicationState=live`
+    )
+      .then(r => r.json())
+      .then(json => {
+        const tree = (json.data || []).map(entry => {
+          const a = entry.attributes || entry;
+          return {
+            nombre: a.nombre,
+            seccion: a.seccion,
+            subcategorias: (a.subcategorias || [])
+              .map(sub => {
+                const sName = sub.nombre || sub.attributes?.nombre;
+                const tipos = (sub.tipos || sub.attributes?.tipos || [])
+                  .map(t => t.nombre || t.attributes?.nombre)
+                  .filter(Boolean);
+                return { nombre: sName, tipos };
+              })
+              .filter(s => s.nombre),
+          };
+        }).filter(c => c.nombre);
+        setCategoryTree(tree);
+      })
+      .catch(err => console.warn('[CatalogoSidebar] Error fetching categories:', err));
+  }, []);
+
+  // ── Niveles activos ──────────────────────────────────────────────────────────
+  const activeCat = activeCatParam ? activeCatParam.split(',')[0] : null;
+  const activeSub = activeSubcatParam ? activeSubcatParam.split(',')[0] : null;
+  const activeTipo = activeTipoParam ? activeTipoParam.split(',')[0] : null;
+
+  // Nodo activo en el árbol
+  const activeCatNode = activeCat
+    ? categoryTree.find(c => c.nombre === activeCat)
+    : null;
+  const activeSubNode = activeCatNode && activeSub
+    ? activeCatNode.subcategorias.find(s => s.nombre === activeSub)
+    : null;
+
+  // ── ¿Hay filtros activos? ────────────────────────────────────────────────────
+  const hasActiveFilters =
+    activeDescuento.length > 0 ||
+    activeBrands.length > 0 ||
+    activeSizes.length > 0 ||
+    activePriceParam ||
+    activeCatParam ||
+    activeSubcatParam ||
+    activeTipoParam;
+
+  // ── Tamaños ordenados ────────────────────────────────────────────────────────
   const sortedSizes = React.useMemo(() => {
     if (!availableSizes) return [];
     return [...availableSizes].sort((a, b) => {
       const numA = parseFloat(a.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
       const numB = parseFloat(b.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-      
       const unitA = a.replace(/[\d.,\s]/g, '').toLowerCase();
       const unitB = b.replace(/[\d.,\s]/g, '').toLowerCase();
-
       let valA = numA;
       let valB = numB;
       if (unitA === 'l' || unitA === 'lt') valA *= 1000;
       if (unitB === 'l' || unitB === 'lt') valB *= 1000;
       if (unitA === 'kg') valA *= 1000;
       if (unitB === 'kg') valB *= 1000;
-
       const isWeightA = unitA.includes('g') || unitA.includes('k');
       const isWeightB = unitB.includes('g') || unitB.includes('k');
       if (isWeightA !== isWeightB) return isWeightA ? 1 : -1;
-      
       if (valA !== valB) return valA - valB;
-      
       return a.localeCompare(b);
     });
   }, [availableSizes]);
 
+  // ── Click en overlay (mobile) ────────────────────────────────────────────────
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget && onCloseMobile) {
       onCloseMobile();
     }
+  };
+
+  // ── Render de la sección de Categorías (drill-down dinámico) ─────────────────
+  const renderCategories = () => {
+    // NIVEL 0: Sin categoría activa → mostrar todas las categorías
+    if (!activeCat) {
+      if (categoryTree.length === 0) {
+        return <span style={{ fontSize: '0.85rem', color: '#9A8F87' }}>Cargando...</span>;
+      }
+
+      const filteredTree = activeSeccion 
+        ? categoryTree.filter(cat => {
+            if (!cat.seccion) return true;
+            const normalize = str => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            return normalize(cat.seccion) === normalize(activeSeccion);
+          })
+        : categoryTree;
+
+      return filteredTree.map(cat => (
+        <CheckboxLabel key={cat.nombre}>
+          <input
+            type="checkbox"
+            checked={false}
+            onChange={() => onSelectCategory(cat.nombre)}
+          />
+          {cat.nombre}
+        </CheckboxLabel>
+      ));
+    }
+
+    // NIVEL 1: Categoría activa, sin subcategoría → cat checked + sus subcats
+    if (!activeSub) {
+      return (
+        <>
+          <CheckboxLabel style={{ fontWeight: 600, color: '#160000' }}>
+            <input
+              type="checkbox"
+              checked={true}
+              onChange={() => onClearCategory()}
+            />
+            {activeCat}
+          </CheckboxLabel>
+          {activeCatNode && activeCatNode.subcategorias.length > 0 && (
+            <CategoryIndent>
+              {activeCatNode.subcategorias.map(sub => (
+                <CheckboxLabel key={sub.nombre}>
+                  <input
+                    type="checkbox"
+                    checked={false}
+                    onChange={() => onSelectSubcategory(sub.nombre)}
+                  />
+                  {sub.nombre}
+                </CheckboxLabel>
+              ))}
+            </CategoryIndent>
+          )}
+        </>
+      );
+    }
+
+    // NIVEL 2: Categoría + subcategoría activas → mostrar tipos
+    return (
+      <>
+        <BreadcrumbBack onClick={() => onClearCategory()}>
+          <BackIcon /> Todas las categorías
+        </BreadcrumbBack>
+        <CheckboxLabel style={{ fontWeight: 600, color: '#160000', marginTop: '8px' }}>
+          <input
+            type="checkbox"
+            checked={true}
+            onChange={() => onClearCategory()}
+          />
+          {activeCat}
+        </CheckboxLabel>
+        <CategoryIndent>
+          <CheckboxLabel style={{ fontWeight: 600, color: '#160000' }}>
+            <input
+              type="checkbox"
+              checked={true}
+              onChange={() => onRemoveTag('subcategoria', activeSub)}
+            />
+            {activeSub}
+          </CheckboxLabel>
+          {activeSubNode && activeSubNode.tipos.length > 0 && (
+            <CategoryIndent>
+              {activeSubNode.tipos.map(tipo => (
+                <CheckboxLabel key={tipo}>
+                  <input
+                    type="checkbox"
+                    checked={activeTipo === tipo}
+                    onChange={() => {
+                      if (activeTipo === tipo) {
+                        onRemoveTag('tipo', tipo);
+                      } else {
+                        onSelectTipo(tipo);
+                      }
+                    }}
+                  />
+                  {tipo}
+                </CheckboxLabel>
+              ))}
+            </CategoryIndent>
+          )}
+        </CategoryIndent>
+      </>
+    );
   };
 
   return (
@@ -385,43 +529,56 @@ export default function CatalogoSidebar({
           )}
         </FilterCardHeader>
 
-        {/* Tags activos (Fijos arriba) */}
+        {/* Tags activos — separados por nivel URL correcto */}
         <ActiveFiltersWrapper>
           <FilterTagsList>
             {activeSeccion && (
               <FilterTag>
                 {activeSeccion}
-                <button onClick={() => onRemoveTag('seccion', activeSeccion)} aria-label="Quitar filtro de sección">×</button>
+                <button onClick={() => onRemoveTag('seccion', activeSeccion)}>×</button>
               </FilterTag>
             )}
             {activeDescuento.map((desc) => (
               <FilterTag key={desc}>
                 {desc === 'todas' ? 'Ofertas' : `${desc}% OFF`}
-                <button onClick={() => onRemoveTag('descuento', desc)} aria-label="Quitar filtro de descuento">×</button>
+                <button onClick={() => onRemoveTag('descuento', desc)}>×</button>
               </FilterTag>
             ))}
             {activeBrands.map((b) => (
               <FilterTag key={b}>
                 {b}
-                <button onClick={() => onRemoveTag('marca', b)} aria-label={`Quitar filtro de marca ${b}`}>×</button>
+                <button onClick={() => onRemoveTag('marca', b)}>×</button>
               </FilterTag>
             ))}
-            {activeCategories.map((c) => (
-              <FilterTag key={c}>
+            {/* Categoría — cada nivel con su urlKey correcto */}
+            {activeCatParam && activeCatParam.split(',').map(c => (
+              <FilterTag key={`cat-${c}`}>
                 {c}
-                <button onClick={() => onRemoveTag('categoria', c)} aria-label={`Quitar filtro de categoría ${c}`}>×</button>
+                <button onClick={() => onClearCategory()}>×</button>
+              </FilterTag>
+            ))}
+            {activeSubcatParam && activeSubcatParam.split(',').map(s => (
+              <FilterTag key={`sub-${s}`}>
+                {s}
+                <button onClick={() => onRemoveTag('subcategoria', s)}>×</button>
+              </FilterTag>
+            ))}
+            {activeTipoParam && activeTipoParam.split(',').map(t => (
+              <FilterTag key={`tipo-${t}`}>
+                {t}
+                <button onClick={() => onRemoveTag('tipo', t)}>×</button>
               </FilterTag>
             ))}
             {activeSizes.map((sz) => (
               <FilterTag key={sz}>
                 {sz}
-                <button onClick={() => onRemoveTag('tamano', sz)} aria-label={`Quitar filtro de tamaño ${sz}`}>×</button>
+                <button onClick={() => onRemoveTag('tamano', sz)}>×</button>
               </FilterTag>
             ))}
             {activePriceParam && (
               <FilterTag>
                 {`$${activePrice[0].toLocaleString('es-AR')} - $${activePrice[1].toLocaleString('es-AR')}`}
-                <button onClick={() => onRemoveTag('precio', null)} aria-label="Quitar filtro de precio">×</button>
+                <button onClick={() => onRemoveTag('precio', null)}>×</button>
               </FilterTag>
             )}
           </FilterTagsList>
@@ -429,8 +586,8 @@ export default function CatalogoSidebar({
 
         <ScrollableFilters>
 
-          {/* Marcas */}
-          {availableBrands.length > 0 && (
+          {/* ── Marcas ────────────────────────────────────────────────────── */}
+          {availableBrands && availableBrands.length > 0 && (
             <AccordionItem>
               <AccordionHeader onClick={() => onToggleAccordion('marca')}>
                 Marca
@@ -451,8 +608,8 @@ export default function CatalogoSidebar({
             </AccordionItem>
           )}
 
-          {/* Tamaños */}
-          {availableSizes.length > 0 && (
+          {/* ── Tamaños ───────────────────────────────────────────────────── */}
+          {availableSizes && availableSizes.length > 0 && (
             <AccordionItem>
               <AccordionHeader onClick={() => onToggleAccordion('tamano')}>
                 Tamaño
@@ -473,94 +630,48 @@ export default function CatalogoSidebar({
             </AccordionItem>
           )}
 
-          {/* Categorías */}
-          {availableCategories.length > 0 && (
-            <AccordionItem>
-              <AccordionHeader onClick={() => onToggleAccordion('categoria')}>
-                Categorías
-                <AccordionChevron $open={accordions.categoria}><ChevronIcon /></AccordionChevron>
-              </AccordionHeader>
-              <AccordionContent $open={accordions.categoria}>
-                <NestedCategoryList>
-                  {(() => {
-                    const { TAXONOMY } = require('../../../utils/taxonomy');
-                    const availableSet = new Set(availableCategories);
-                    const renderedSet = new Set();
+          {/* ── Categorías (drill-down dinámico) ─────────────────────────── */}
+          <AccordionItem>
+            <AccordionHeader onClick={() => onToggleAccordion('categoria')}>
+              Categorías
+              {activeCat && (
+                <span style={{
+                  backgroundColor: '#F2D4D4',
+                  color: '#7C0405',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                  marginLeft: '8px',
+                }}>
+                  {activeSub ? (activeTipo ? '3' : '2') : '1'}
+                </span>
+              )}
+              <AccordionChevron $open={accordions.categoria}><ChevronIcon /></AccordionChevron>
+            </AccordionHeader>
+            <AccordionContent $open={accordions.categoria} style={{ maxHeight: accordions.categoria ? '400px' : '0' }}>
+              {renderCategories()}
+            </AccordionContent>
+          </AccordionItem>
 
-                    const isNodeActive = (key, value) => {
-                      if (availableSet.has(key)) return true;
-                      if (Array.isArray(value)) {
-                        return value.some(tipo => availableSet.has(tipo));
-                      } else if (typeof value === 'object' && value !== null) {
-                        return Object.entries(value).some(([k, v]) => isNodeActive(k, v));
-                      }
-                      return false;
-                    };
-
-                    const renderNode = (key, value, level) => {
-                      if (!isNodeActive(key, value) && level === 0) return null; // Only prune at root if completely empty? Actually let's prune at all levels.
-                      
-                      // Wait, if a subcategory is not active, should we hide it? Yes.
-                      if (!isNodeActive(key, value)) return null;
-
-                      renderedSet.add(key);
-
-                      let children = [];
-                      if (Array.isArray(value)) {
-                        children = value.map(tipo => renderNode(tipo, null, level + 1)).filter(Boolean);
-                      } else if (typeof value === 'object' && value !== null) {
-                        children = Object.entries(value).map(([k, v]) => renderNode(k, v, level + 1)).filter(Boolean);
-                      }
-
-                      return (
-                        <React.Fragment key={key}>
-                          <CheckboxLabel style={{ marginTop: level > 0 ? '12px' : '0' }}>
-                            <input
-                              type="checkbox"
-                              checked={activeCategories.includes(key)}
-                              onChange={() => onCheckboxToggle(activeCategories, key, 'categoria')}
-                            />
-                            {key}
-                          </CheckboxLabel>
-                          {children.length > 0 && (
-                            <div className={level === 0 ? "indent-1" : "indent-2"}>
-                              {children}
-                            </div>
-                          )}
-                        </React.Fragment>
-                      );
-                    };
-
-                    const treeNodes = Object.entries(TAXONOMY).map(([k, v]) => renderNode(k, v, 0)).filter(Boolean);
-                    const remaining = availableCategories.filter(c => !renderedSet.has(c));
-
-                    return (
-                      <>
-                        {treeNodes}
-                        {remaining.length > 0 && remaining.map(cat => (
-                          <CheckboxLabel key={cat} style={{ marginTop: '12px' }}>
-                            <input
-                              type="checkbox"
-                              checked={activeCategories.includes(cat)}
-                              onChange={() => onCheckboxToggle(activeCategories, cat, 'categoria')}
-                            />
-                            {cat}
-                          </CheckboxLabel>
-                        ))}
-                      </>
-                    );
-                  })()}
-                </NestedCategoryList>
-              </AccordionContent>
-            </AccordionItem>
-          )}
-
-          {/* Ofertas */}
+          {/* ── Ofertas ───────────────────────────────────────────────────── */}
           <AccordionItem>
             <AccordionHeader onClick={() => onToggleAccordion('ofertas')}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                Ofertas 
-                {activeDescuento.length > 0 && <span style={{ backgroundColor: '#F2D4D4', color: '#7C0405', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '8px' }}>{activeDescuento.length}</span>}
+                Ofertas
+                {activeDescuento.length > 0 && (
+                  <span style={{
+                    backgroundColor: '#F2D4D4',
+                    color: '#7C0405',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    marginLeft: '8px',
+                  }}>
+                    {activeDescuento.length}
+                  </span>
+                )}
               </div>
               <AccordionChevron $open={accordions.ofertas}><ChevronIcon /></AccordionChevron>
             </AccordionHeader>
@@ -578,7 +689,7 @@ export default function CatalogoSidebar({
             </AccordionContent>
           </AccordionItem>
 
-          {/* Rango de precio */}
+          {/* ── Rango de precio ───────────────────────────────────────────── */}
           {availablePriceRange && availablePriceRange[0] !== availablePriceRange[1] && (
             <AccordionItem>
               <AccordionHeader onClick={() => onToggleAccordion('precio')}>
@@ -590,7 +701,7 @@ export default function CatalogoSidebar({
                   min={availablePriceRange[0]}
                   max={availablePriceRange[1]}
                   value={activePrice}
-                  onChange={() => { }}
+                  onChange={() => {}}
                   onFinalChange={onPriceChange}
                 />
               </AccordionContent>
@@ -598,7 +709,10 @@ export default function CatalogoSidebar({
           )}
         </ScrollableFilters>
 
-        <SidebarSubmitBtn id="sidebar-submit" onClick={() => { onSubmit(); onCloseMobile?.(); }}>
+        <SidebarSubmitBtn
+          id="sidebar-submit"
+          onClick={() => { onSubmit(); onCloseMobile?.(); }}
+        >
           Mostrar resultados ({total})
         </SidebarSubmitBtn>
       </FilterCard>

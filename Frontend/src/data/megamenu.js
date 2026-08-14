@@ -110,6 +110,31 @@ export const OFERTAS_HOGAR = {
 };
 
 /**
+ * Rutas que corresponden al Mega Menu "General".
+ */
+export const SECTION_GENERAL_PATHS = new Set([
+  '/contacto',
+  '/sucursales',
+  '/nuestra-historia',
+  '/preguntas-frecuentes',
+  '/cambios-devoluciones',
+  '/terminos-condiciones',
+  '/arrepentimiento',
+  '/metodo-envio',
+  '/gift-card',
+]);
+
+/**
+ * Mapeo de query params o secciones detectadas a su constante de contexto
+ */
+export const SECTION_MAP = {
+  perfumeria: 'PERFUMERIA',
+  hogar: 'HOGAR',
+  Perfumería: 'PERFUMERIA',
+  Hogar: 'HOGAR',
+};
+
+/**
  * URL base de Strapi (se puede sobreescribir con la variable de entorno).
  */
 export const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
