@@ -817,6 +817,17 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
     addLog(`Progreso: ${procesados}/${productos.length} — ✅ Creados: ${creados} | 🔄 Actualizados: ${actualizados} | ⏩ Sin cambios: ${sinCambios} | ❌ Errores: ${errores}`);
   }
 
+  addLog(`🔄 Republicando ${categoriaIdPorNombre.size} categorías para asentar relaciones...`);
+  for (const [keyCat, docId] of categoriaIdPorNombre) {
+    try {
+      await strapi.documents(UID_CAT).publish({
+        documentId: docId
+      });
+    } catch (e) {
+      addLog(`❌ Error al republicar categoría: ${e.message}`);
+    }
+  }
+
   const elapsed = ((Date.now() - inicio) / 1000).toFixed(1);
   const resumen = {
     ok: true,

@@ -485,9 +485,9 @@ export default function CategoryNav() {
               >
                 <RocketIcon /> Lanzamientos
               </MegaActionBtn>
-              <MegaTextLink to="/sucursales"><PinIconSmall /> Nuestros Locales</MegaTextLink>
-              <MegaTextLink to="/nuestra-historia"><BuildingIcon /> Sobre Marybe</MegaTextLink>
-              <MegaTextLink to="/contacto"><ChatIcon /> Contacto</MegaTextLink>
+              <MegaTextLink to="/sucursales" onClick={() => setActiveCategory(null)}><PinIconSmall /> Nuestros Locales</MegaTextLink>
+              <MegaTextLink to="/nuestra-historia" onClick={() => setActiveCategory(null)}><BuildingIcon /> Sobre Marybe</MegaTextLink>
+              <MegaTextLink to="/contacto" onClick={() => setActiveCategory(null)}><ChatIcon /> Contacto</MegaTextLink>
             </BottomActionBar>
           </DropdownContainer>
         )}
