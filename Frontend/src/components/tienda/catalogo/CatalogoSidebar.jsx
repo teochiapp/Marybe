@@ -361,9 +361,16 @@ export default function CatalogoSidebar({
   const activeSub = activeSubcatParam ? activeSubcatParam.split(',')[0] : null;
   const activeTipo = activeTipoParam ? activeTipoParam.split(',')[0] : null;
 
-  // Nodo activo en el árbol
+  // Nodo activo en el árbol (filtrado por sección para evitar duplicados como Fragancias en Hogar/Perfumería)
   const activeCatNode = activeCat
-    ? categoryTree.find(c => c.nombre === activeCat)
+    ? categoryTree.find(c => {
+        if (c.nombre !== activeCat) return false;
+        if (activeSeccion && c.seccion) {
+          const normalize = str => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          return normalize(c.seccion) === normalize(activeSeccion);
+        }
+        return true;
+      })
     : null;
   const activeSubNode = activeCatNode && activeSub
     ? activeCatNode.subcategorias.find(s => s.nombre === activeSub)

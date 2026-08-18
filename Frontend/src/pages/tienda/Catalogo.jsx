@@ -216,7 +216,12 @@ export default function Catalogo() {
   useEffect(() => {
     if (activeCategories.length === 1) {
       const catName = activeCategories[0];
-      fetch(`${STRAPI_URL}/api/categorias?filters[nombre][$eq]=${encodeURIComponent(catName)}&populate=portada`)
+      let fetchUrl = `${STRAPI_URL}/api/categorias?filters[nombre][$eq]=${encodeURIComponent(catName)}&populate=portada`;
+      if (activeSeccion) {
+        fetchUrl += `&filters[seccion][$eq]=${encodeURIComponent(activeSeccion)}`;
+      }
+      
+      fetch(fetchUrl)
         .then(res => res.json())
         .then(data => {
           if (data?.data?.[0]) {
@@ -236,7 +241,7 @@ export default function Catalogo() {
     } else {
       setDynamicBannerImg(null);
     }
-  }, [activeCategories]);
+  }, [activeCategories, activeSeccion]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const toggleAccordion = (field) =>
@@ -378,7 +383,7 @@ export default function Catalogo() {
     fetchFilterMetadata();
   }, []);
 
-  // -- Marcas reactivas al nivel activo (tipo > subcategor�a > categor�a > secci�n) --
+  // -- Marcas reactivas al nivel activo (tipo > subcategora > categora > seccin) --
   useEffect(() => {
     async function fetchDynamicFilters() {
       try {

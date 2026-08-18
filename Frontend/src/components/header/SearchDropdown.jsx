@@ -287,7 +287,11 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
 
   const handleCategoryClick = (cat) => {
     const attrs = cat.attributes || cat;
-    navigate(`/tienda?categoria=${encodeURIComponent(attrs.nombre || '')}`);
+    let url = `/tienda?categoria=${encodeURIComponent(attrs.nombre || '')}`;
+    if (attrs.seccion) {
+      url += `&seccion=${encodeURIComponent(attrs.seccion)}`;
+    }
+    navigate(url);
     onClose();
   };
 
