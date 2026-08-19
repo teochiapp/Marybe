@@ -382,26 +382,16 @@ export default function Login() {
       };
 
       let res;
-      if (checkData.data && checkData.data.length > 0) {
-        const clienteId = checkData.data[0].id;
-        res = await fetch(`${apiUrl}/api/clientes/${clienteId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        });
-      } else {
-        res = await fetch(`${apiUrl}/api/mi-perfil`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        });
-      }
+      // createOrUpdateMe maneja tanto crear como actualizar internamente
+      // No necesitamos verificar si existe — el endpoint lo hace solo
+      res = await fetch(`${apiUrl}/api/mi-perfil`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
 
       if (!res.ok) {
         const errData = await res.json();

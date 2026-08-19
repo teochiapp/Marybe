@@ -5,7 +5,7 @@
     "singularName": "configuracion-general",
     "pluralName": "configuracion-generals",
     "displayName": "Configuración General",
-    "description": "Configuraciones globales del sitio: WhatsApp, costos de envío, etc."
+    "description": "Configuraciones globales del sitio: WhatsApp, costos de envío, métodos de pago, etc."
   },
   "options": {
     "draftAndPublish": false
@@ -23,6 +23,92 @@
     },
     "costo_uber_moto": {
       "type": "biginteger"
+    },
+
+    "mp_habilitado": {
+      "type": "boolean",
+      "default": true
+    },
+    "mp_titulo": {
+      "type": "string"
+    },
+    "mp_subtitulo": {
+      "type": "string"
+    },
+    "mp_etiqueta": {
+      "type": "string"
+    },
+    "mp_descripcion": {
+      "type": "text"
+    },
+
+    "transf_habilitado": {
+      "type": "boolean",
+      "default": true
+    },
+    "transf_titulo": {
+      "type": "string"
+    },
+    "transf_subtitulo": {
+      "type": "string"
+    },
+    "transf_etiqueta": {
+      "type": "string"
+    },
+    "transf_banco": {
+      "type": "string"
+    },
+    "transf_titular": {
+      "type": "string"
+    },
+    "transf_cuit": {
+      "type": "string"
+    },
+    "transf_cbu": {
+      "type": "string"
+    },
+    "transf_alias": {
+      "type": "string"
+    },
+    "transf_mensaje_wp": {
+      "type": "string"
+    },
+
+    "ef_habilitado": {
+      "type": "boolean",
+      "default": true
+    },
+    "ef_titulo": {
+      "type": "string"
+    },
+    "ef_subtitulo": {
+      "type": "string"
+    },
+    "ef_etiqueta": {
+      "type": "string"
+    },
+    "ef_horario": {
+      "type": "string"
+    },
+
+    "ac_habilitado": {
+      "type": "boolean",
+      "default": true
+    },
+    "ac_titulo": {
+      "type": "string"
+    },
+    "ac_subtitulo": {
+      "type": "string"
+    },
+    "ac_etiqueta": {
+      "type": "string"
+    },
+    "ac_descripcion": {
+      "type": "text"
+    },
+    "ac_respuesta": {
+      "type": "string"
     }
   }
 }

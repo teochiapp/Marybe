@@ -614,6 +614,7 @@ export default function MiCuentaContent() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [passwords, setPasswords] = useState({ currentPassword: '', password: '', confirm: '' });
   const [passwordStatus, setPasswordStatus] = useState({ type: '', message: '' });
+  const [addressStatus, setAddressStatus] = useState({ type: '', message: '' });
   const [direcciones, setDirecciones] = useState([]);
   const [misPedidos, setMisPedidos] = useState([]);
   const [addressForm, setAddressForm] = useState({
@@ -724,7 +725,7 @@ export default function MiCuentaContent() {
         
         // Strapi returns a new token on password change, so we must update it
         if (json.jwt) {
-          localStorage.setItem('marybe_jwt', json.jwt);
+          localStorage.setItem('jwt', json.jwt);
         }
       } else {
         // Error
@@ -741,6 +742,7 @@ export default function MiCuentaContent() {
   };
 
   const handleSaveAddress = async () => {
+    setAddressStatus({ type: '', message: '' });
     try {
       const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
       const res = await fetch(`${apiUrl}/api/mi-perfil`, {
@@ -760,11 +762,19 @@ export default function MiCuentaContent() {
       if (res.ok) {
         setDirecciones(json.data?.direcciones || [addressForm]);
         setShowAddressForm(false);
+        setAddressStatus({ type: 'success', message: '¡Tu dirección fue guardada correctamente!' });
       } else {
-        console.error('Hubo un error al guardar la dirección');
+        // Mapear errores conocidos al español
+        let msg = json.error?.message || 'Hubo un error al guardar la dirección';
+        if (res.status === 401 || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('forbidden')) {
+          msg = 'Sesión expirada. Por favor, volvé a iniciar sesión para guardar los cambios.';
+        }
+        setAddressStatus({ type: 'error', message: msg });
+        console.error('Error al guardar dirección:', msg);
       }
     } catch (error) {
-      console.error("Error saving address", error);
+      console.error('Error saving address', error);
+      setAddressStatus({ type: 'error', message: 'Error de conexión. Verificá tu internet e intentá nuevamente.' });
     }
   };
 
@@ -964,6 +974,17 @@ export default function MiCuentaContent() {
                   <SaveRow>
                     <SaveDark onClick={handleSaveAddress}>Guardar</SaveDark>
                   </SaveRow>
+                  {addressStatus.message && (
+                    <p style={{
+                      marginTop: '12px',
+                      fontSize: '0.88rem',
+                      fontFamily: 'var(--font-family-secondary)',
+                      color: addressStatus.type === 'error' ? '#c0392b' : '#27ae60',
+                      textAlign: 'center'
+                    }}>
+                      {addressStatus.message}
+                    </p>
+                  )}
                 </FormCollapse>
               )}
             </AnimatePresence>

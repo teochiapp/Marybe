@@ -581,7 +581,7 @@ export interface ApiConfiguracionGeneralConfiguracionGeneral
   extends Struct.SingleTypeSchema {
   collectionName: 'configuracion_general';
   info: {
-    description: 'Configuraciones globales del sitio: WhatsApp, costos de env\u00EDo, etc.';
+    description: 'Configuraciones globales del sitio: WhatsApp, costos de env\u00EDo, m\u00E9todos de pago, etc.';
     displayName: 'Configuraci\u00F3n General';
     pluralName: 'configuracion-generals';
     singularName: 'configuracion-general';
@@ -590,11 +590,22 @@ export interface ApiConfiguracionGeneralConfiguracionGeneral
     draftAndPublish: false;
   };
   attributes: {
+    ac_descripcion: Schema.Attribute.Text;
+    ac_etiqueta: Schema.Attribute.String;
+    ac_habilitado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    ac_respuesta: Schema.Attribute.String;
+    ac_subtitulo: Schema.Attribute.String;
+    ac_titulo: Schema.Attribute.String;
     costo_envio: Schema.Attribute.BigInteger;
     costo_uber_moto: Schema.Attribute.BigInteger;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    ef_etiqueta: Schema.Attribute.String;
+    ef_habilitado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    ef_horario: Schema.Attribute.String;
+    ef_subtitulo: Schema.Attribute.String;
+    ef_titulo: Schema.Attribute.String;
     envio_gratis_desde: Schema.Attribute.BigInteger;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -602,7 +613,23 @@ export interface ApiConfiguracionGeneralConfiguracionGeneral
       'api::configuracion-general.configuracion-general'
     > &
       Schema.Attribute.Private;
+    mp_descripcion: Schema.Attribute.Text;
+    mp_etiqueta: Schema.Attribute.String;
+    mp_habilitado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    mp_subtitulo: Schema.Attribute.String;
+    mp_titulo: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
+    transf_alias: Schema.Attribute.String;
+    transf_banco: Schema.Attribute.String;
+    transf_cbu: Schema.Attribute.String;
+    transf_cuit: Schema.Attribute.String;
+    transf_etiqueta: Schema.Attribute.String;
+    transf_habilitado: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<true>;
+    transf_mensaje_wp: Schema.Attribute.String;
+    transf_subtitulo: Schema.Attribute.String;
+    transf_titular: Schema.Attribute.String;
+    transf_titulo: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

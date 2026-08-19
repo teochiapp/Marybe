@@ -1,9 +1,9 @@
-import React, { useContext, useState, useEffect, useCallback } from 'react';
+import React, { useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
-import { paymentOptions, sucursalesRetiro, infoTransferencia } from '../../data/checkout/paymentMethods';
+import { sucursalesRetiro } from '../../data/checkout/paymentMethods';
 import { useConfiguracionGeneral } from '../../hooks/useConfiguracionGeneral';
 
 const PageContainer = styled.div`
@@ -592,12 +592,23 @@ export default function Pago() {
   const { token, user } = useContext(AuthContext);
   const { config: siteConfig } = useConfiguracionGeneral();
 
+  // Métodos de pago dinámicos desde Strapi (con fallback al archivo estático)
+  const metodosPago = useMemo(() => siteConfig?.metodosPago ?? [], [siteConfig]);
+  const infoTransf  = useMemo(() => siteConfig?.infoTransferencia ?? {}, [siteConfig]);
+
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState('transferencia');
   const [savedAddress, setSavedAddress] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState('Peatonal Tucuman 20, Santiago del Estero');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+
+  // Si el método activo fue deshabilitado en Strapi, seleccionar el primero disponible
+  useEffect(() => {
+    if (metodosPago.length > 0 && !metodosPago.find(m => m.id === paymentMethod)) {
+      setPaymentMethod(metodosPago[0].id);
+    }
+  }, [metodosPago, paymentMethod]);
 
   // Lógica de costo de envío dinámico desde Strapi
   const costoEnvio = siteConfig?.costo_envio ?? null;
@@ -819,17 +830,17 @@ export default function Pago() {
           <ModalCard onClick={(e) => e.stopPropagation()}>
             <ModalTitle>Datos para Transferencia Bancaria</ModalTitle>
             <TransferCard>
-              <TransferRow><span className="label">Banco</span> <span className="value">{infoTransferencia.banco}</span></TransferRow>
-              <TransferRow><span className="label">Titular</span> <span className="value">{infoTransferencia.titular}</span></TransferRow>
-              <TransferRow><span className="label">CUIT</span> <span className="value">{infoTransferencia.cuit}</span></TransferRow>
-              <TransferRow><span className="label">CBU</span> <span className="value">{infoTransferencia.cbu}</span></TransferRow>
-              <TransferRow><span className="label">Alias</span> <span className="value">{infoTransferencia.alias}</span></TransferRow>
+              <TransferRow><span className="label">Banco</span> <span className="value">{infoTransf.banco || 'Banco Galicia'}</span></TransferRow>
+              <TransferRow><span className="label">Titular</span> <span className="value">{infoTransf.titular || 'Marybe SRL'}</span></TransferRow>
+              <TransferRow><span className="label">CUIT</span> <span className="value">{infoTransf.cuit || '30-71234567-9'}</span></TransferRow>
+              <TransferRow><span className="label">CBU</span> <span className="value">{infoTransf.cbu || '—'}</span></TransferRow>
+              <TransferRow><span className="label">Alias</span> <span className="value">{infoTransf.alias || '—'}</span></TransferRow>
             </TransferCard>
             <InfoBox>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M19.0498 4.91005C18.1329 3.98416 17.0408 3.25002 15.8373 2.75042C14.6338 2.25081 13.3429 1.99574 12.0398 2.00005C6.5798 2.00005 2.1298 6.45005 2.1298 11.9101C2.1298 13.6601 2.5898 15.3601 3.4498 16.8601L2.0498 22.0001L7.2998 20.6201C8.7498 21.4101 10.3798 21.8301 12.0398 21.8301C17.4998 21.8301 21.9498 17.3801 21.9498 11.9201C21.9498 9.27005 20.9198 6.78005 19.0498 4.91005ZM12.0398 20.1501C10.5598 20.1501 9.1098 19.7501 7.8398 19.0001L7.5398 18.8201L4.4198 19.6401L5.2498 16.6001L5.0498 16.2901C4.22735 14.9771 3.79073 13.4593 3.7898 11.9101C3.7898 7.37005 7.4898 3.67005 12.0298 3.67005C14.2298 3.67005 16.2998 4.53005 17.8498 6.09005C18.6174 6.85392 19.2257 7.7626 19.6394 8.76338C20.0531 9.76417 20.264 10.8371 20.2598 11.9201C20.2798 16.4601 16.5798 20.1501 12.0398 20.1501ZM16.5598 13.9901C16.3098 13.8701 15.0898 13.2701 14.8698 13.1801C14.6398 13.1001 14.4798 13.0601 14.3098 13.3001C14.1398 13.5501 13.6698 14.1101 13.5298 14.2701C13.3898 14.4401 13.2398 14.4601 12.9898 14.3301C12.7398 14.2101 11.9398 13.9401 10.9998 13.1001C10.2598 12.4401 9.7698 11.6301 9.6198 11.3801C9.4798 11.1301 9.5998 11.0001 9.7298 10.8701C9.8398 10.7601 9.9798 10.5801 10.0998 10.4401C10.2198 10.3001 10.2698 10.1901 10.3498 10.0301C10.4298 9.86005 10.3898 9.72005 10.3298 9.60005C10.2698 9.48005 9.7698 8.26005 9.5698 7.76005C9.3698 7.28005 9.1598 7.34005 9.0098 7.33005H8.5298C8.3598 7.33005 8.0998 7.39005 7.8698 7.64005C7.6498 7.89005 7.0098 8.49005 7.0098 9.71005C7.0098 10.9301 7.89981 12.1101 8.0198 12.2701C8.1398 12.4401 9.7698 14.9401 12.2498 16.0101C12.8398 16.2701 13.2998 16.4201 13.6598 16.5301C14.2498 16.7201 14.7898 16.6901 15.2198 16.6301C15.6998 16.5601 16.6898 16.0301 16.8898 15.4501C17.0998 14.8701 17.0998 14.3801 17.0298 14.2701C16.9598 14.1601 16.8098 14.1101 16.5598 13.9901Z" fill="#560203" />
               </svg>
-              {infoTransferencia.mensajeWhatsapp}
+              {infoTransf.mensajeWhatsapp || 'Enviá el comprobante por WhatsApp'}
             </InfoBox>
             <ModalButtonGroup>
               <SecondaryBtn onClick={() => setShowTransferModal(false)}>Cancelar</SecondaryBtn>
@@ -868,7 +879,7 @@ export default function Pago() {
           <div>
             <SectionTitle>Método de pago</SectionTitle>
 
-            {paymentOptions.map((opt) => (
+            {metodosPago.map((opt) => (
               <OptionCard key={opt.id} $selected={paymentMethod === opt.id} onClick={() => setPaymentMethod(opt.id)}>
                 <OptionInfo>
                   <input type="radio" checked={paymentMethod === opt.id} readOnly />
@@ -921,33 +932,33 @@ export default function Pago() {
               </>
             ) : paymentMethod === 'transferencia' ? (
               <>
-                <SectionTitle>Datos para Transferencia Bancaria</SectionTitle>
+                <SectionTitle>{siteConfig?.transf_titulo || 'Datos para Transferencia Bancaria'}</SectionTitle>
                 <TransferCard>
-                  <TransferRow><span className="label">Banco</span> <span className="value">{infoTransferencia.banco}</span></TransferRow>
-                  <TransferRow><span className="label">Titular</span> <span className="value">{infoTransferencia.titular}</span></TransferRow>
-                  <TransferRow><span className="label">CUIT</span> <span className="value">{infoTransferencia.cuit}</span></TransferRow>
-                  <TransferRow><span className="label">CBU</span> <span className="value">{infoTransferencia.cbu}</span></TransferRow>
-                  <TransferRow><span className="label">Alias</span> <span className="value">{infoTransferencia.alias}</span></TransferRow>
+                  <TransferRow><span className="label">Banco</span> <span className="value">{infoTransf.banco || 'Banco Galicia'}</span></TransferRow>
+                  <TransferRow><span className="label">Titular</span> <span className="value">{infoTransf.titular || 'Marybe SRL'}</span></TransferRow>
+                  <TransferRow><span className="label">CUIT</span> <span className="value">{infoTransf.cuit || '—'}</span></TransferRow>
+                  <TransferRow><span className="label">CBU</span> <span className="value">{infoTransf.cbu || '—'}</span></TransferRow>
+                  <TransferRow><span className="label">Alias</span> <span className="value">{infoTransf.alias || '—'}</span></TransferRow>
                 </TransferCard>
                 <InfoBox>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M19.0498 4.91005C18.1329 3.98416 17.0408 3.25002 15.8373 2.75042C14.6338 2.25081 13.3429 1.99574 12.0398 2.00005C6.5798 2.00005 2.1298 6.45005 2.1298 11.9101C2.1298 13.6601 2.5898 15.3601 3.4498 16.8601L2.0498 22.0001L7.2998 20.6201C8.7498 21.4101 10.3798 21.8301 12.0398 21.8301C17.4998 21.8301 21.9498 17.3801 21.9498 11.9201C21.9498 9.27005 20.9198 6.78005 19.0498 4.91005ZM12.0398 20.1501C10.5598 20.1501 9.1098 19.7501 7.8398 19.0001L7.5398 18.8201L4.4198 19.6401L5.2498 16.6001L5.0498 16.2901C4.22735 14.9771 3.79073 13.4593 3.7898 11.9101C3.7898 7.37005 7.4898 3.67005 12.0298 3.67005C14.2298 3.67005 16.2998 4.53005 17.8498 6.09005C18.6174 6.85392 19.2257 7.7626 19.6394 8.76338C20.0531 9.76417 20.264 10.8371 20.2598 11.9201C20.2798 16.4601 16.5798 20.1501 12.0398 20.1501ZM16.5598 13.9901C16.3098 13.8701 15.0898 13.2701 14.8698 13.1801C14.6398 13.1001 14.4798 13.0601 14.3098 13.3001C14.1398 13.5501 13.6698 14.1101 13.5298 14.2701C13.3898 14.4401 13.2398 14.4601 12.9898 14.3301C12.7398 14.2101 11.9398 13.9401 10.9998 13.1001C10.2598 12.4401 9.7698 11.6301 9.6198 11.3801C9.4798 11.1301 9.5998 11.0001 9.7298 10.8701C9.8398 10.7601 9.9798 10.5801 10.0998 10.4401C10.2198 10.3001 10.2698 10.1901 10.3498 10.0301C10.4298 9.86005 10.3898 9.72005 10.3298 9.60005C10.2698 9.48005 9.7698 8.26005 9.5698 7.76005C9.3698 7.28005 9.1598 7.34005 9.0098 7.33005H8.5298C8.3598 7.33005 8.0998 7.39005 7.8698 7.64005C7.6498 7.89005 7.0098 8.49005 7.0098 9.71005C7.0098 10.9301 7.89981 12.1101 8.0198 12.2701C8.1398 12.4401 9.7698 14.9401 12.2498 16.0101C12.8398 16.2701 13.2998 16.4201 13.6598 16.5301C14.2498 16.7201 14.7898 16.6901 15.2198 16.6301C15.6998 16.5601 16.6898 16.0301 16.8898 15.4501C17.0998 14.8701 17.0998 14.3801 17.0298 14.2701C16.9598 14.1601 16.8098 14.1101 16.5598 13.9901Z" fill="#560203" />
                   </svg>
-                  {infoTransferencia.mensajeWhatsapp}
+                  {infoTransf.mensajeWhatsapp || 'Enviá el comprobante por WhatsApp'}
                 </InfoBox>
               </>
             ) : paymentMethod === 'mercadopago' ? (
               <>
-                <SectionTitle>Pago con Mercado Pago</SectionTitle>
+                <SectionTitle>{siteConfig?.mp_titulo || 'Pago con Mercado Pago'}</SectionTitle>
                 <PaymentTextInfo>
-                  <p>Al hacer clic en "Pagar", serás redirigido de forma segura a Mercado Pago para completar tu compra con tarjetas de débito, crédito o dinero en cuenta.</p>
+                  <p>{siteConfig?.mp_descripcion || 'Al hacer clic en "Pagar", serás redirigido de forma segura a Mercado Pago para completar tu compra con tarjetas de débito, crédito o dinero en cuenta.'}</p>
                 </PaymentTextInfo>
               </>
             ) : paymentMethod === 'aconvenir' ? (
               <>
-                <SectionTitle>Pago a Convenir por WhatsApp</SectionTitle>
+                <SectionTitle>{siteConfig?.ac_titulo || 'Pago a Convenir por WhatsApp'}</SectionTitle>
                 <PaymentTextInfo>
-                  <p>Al hacer clic en <strong>"Contactar por WhatsApp"</strong>, te redirigiremos a una conversación de WhatsApp con los datos de tu pedido para que coordines el pago directamente con nosotros.</p>
+                  <p>{siteConfig?.ac_descripcion || (<>Al hacer clic en <strong>"Contactar por WhatsApp"</strong>, te redirigiremos a una conversación de WhatsApp con los datos de tu pedido para que coordines el pago directamente con nosotros.</>)}</p>
                   {siteConfig?.whatsapp_numero && (
                     <p>📱 <strong>WhatsApp:</strong> +{siteConfig.whatsapp_numero}</p>
                   )}
@@ -956,7 +967,7 @@ export default function Pago() {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M19.0498 4.91005C18.1329 3.98416 17.0408 3.25002 15.8373 2.75042C14.6338 2.25081 13.3429 1.99574 12.0398 2.00005C6.5798 2.00005 2.1298 6.45005 2.1298 11.9101C2.1298 13.6601 2.5898 15.3601 3.4498 16.8601L2.0498 22.0001L7.2998 20.6201C8.7498 21.4101 10.3798 21.8301 12.0398 21.8301C17.4998 21.8301 21.9498 17.3801 21.9498 11.9201C21.9498 9.27005 20.9198 6.78005 19.0498 4.91005ZM12.0398 20.1501C10.5598 20.1501 9.1098 19.7501 7.8398 19.0001L7.5398 18.8201L4.4198 19.6401L5.2498 16.6001L5.0498 16.2901C4.22735 14.9771 3.79073 13.4593 3.7898 11.9101C3.7898 7.37005 7.4898 3.67005 12.0298 3.67005C14.2298 3.67005 16.2998 4.53005 17.8498 6.09005C18.6174 6.85392 19.2257 7.7626 19.6394 8.76338C20.0531 9.76417 20.264 10.8371 20.2598 11.9201C20.2798 16.4601 16.5798 20.1501 12.0398 20.1501ZM16.5598 13.9901C16.3098 13.8701 15.0898 13.2701 14.8698 13.1801C14.6398 13.1001 14.4798 13.0601 14.3098 13.3001C14.1398 13.5501 13.6698 14.1101 13.5298 14.2701C13.3898 14.4401 13.2398 14.4601 12.9898 14.3301C12.7398 14.2101 11.9398 13.9401 10.9998 13.1001C10.2598 12.4401 9.7698 11.6301 9.6198 11.3801C9.4798 11.1301 9.5998 11.0001 9.7298 10.8701C9.8398 10.7601 9.9798 10.5801 10.0998 10.4401C10.2198 10.3001 10.2698 10.1901 10.3498 10.0301C10.4298 9.86005 10.3898 9.72005 10.3298 9.60005C10.2698 9.48005 9.7698 8.26005 9.5698 7.76005C9.3698 7.28005 9.1598 7.34005 9.0098 7.33005H8.5298C8.3598 7.33005 8.0998 7.39005 7.8698 7.64005C7.6498 7.89005 7.0098 8.49005 7.0098 9.71005C7.0098 10.9301 7.89981 12.1101 8.0198 12.2701C8.1398 12.4401 9.7698 14.9401 12.2498 16.0101C12.8398 16.2701 13.2998 16.4201 13.6598 16.5301C14.2498 16.7201 14.7898 16.6901 15.2198 16.6301C15.6998 16.5601 16.6898 16.0301 16.8898 15.4501C17.0998 14.8701 17.0998 14.3801 17.0298 14.2701C16.9598 14.1601 16.8098 14.1101 16.5598 13.9901Z" fill="#560203" />
                   </svg>
-                  Te responderemos a la brevedad para coordinar el pago
+                  {siteConfig?.ac_respuesta || 'Te responderemos a la brevedad para coordinar el pago'}
                 </InfoBox>
               </>
             ) : (
@@ -984,7 +995,7 @@ export default function Pago() {
                     <circle cx="12" cy="10" r="3"></circle>
                   </svg>
                   <span>
-                    <strong>{selectedBranch}</strong> - Lun a vie de 09:00 a 20:00. Pagás al retirar.
+                    <strong>{selectedBranch}</strong> - {siteConfig?.ef_horario || 'Lun a vie de 09:00 a 20:00. Pagás al retirar.'}
                   </span>
                 </InfoBox>
               </>

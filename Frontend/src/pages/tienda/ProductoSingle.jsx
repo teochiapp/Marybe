@@ -99,7 +99,7 @@ const GiftCardSection = styled.div`
 `;
 
 export default function ProductoSingle() {
-  const { id } = useParams(); // Puede ser id numérico o documentId + slug (ej: 11138-shampoo)
+  const { id } = useParams(); // Puede ser id_original + slug (ej: 11138-shampoo) generado por Cannon
   const actualId = id ? id.split('-')[0] : null;
 
   const [producto, setProducto] = useState(null);
@@ -109,12 +109,11 @@ export default function ProductoSingle() {
   useEffect(() => {
     window.scrollTo(0, 0);
 
-    // Asumimos que el ID pasado es el documentId o id numérico
-    // Primero intentamos buscarlo directo si la ruta /api/productos/:id funciona
-    // Pero en Strapi v4 a veces es mejor buscar por array con filtros si no estamos seguros
+    // El slug de la URL viene de Cannon: /{id_original}-{nombre-slugificado}
+    // Buscamos por id_original (campo de negocio) en vez del id interno de Strapi
     if (!actualId) return;
 
-    fetch(`${STRAPI_URL}/api/productos?filters[id][$eq]=${actualId}&populate=*`)
+    fetch(`${STRAPI_URL}/api/productos?filters[id_original][$eq]=${actualId}&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data && data.data.length > 0) {
@@ -124,7 +123,7 @@ export default function ProductoSingle() {
             ...(prodData.attributes || prodData)
           });
         } else {
-          // Fallback por documentId si id no match
+          // Fallback por documentId de Strapi si id_original no matchea
           return fetch(`${STRAPI_URL}/api/productos?filters[documentId][$eq]=${actualId}&populate=*`)
             .then(res2 => res2.json())
             .then(data2 => {

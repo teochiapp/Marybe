@@ -241,14 +241,6 @@ const CheckboxLabel = styled.label`
   &:hover { color: black; }
 `;
 
-const CategoryBreadcrumb = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
-  font-size: 0.82rem;
-  color: #9A8F87;
-`;
 
 const BreadcrumbBack = styled.button`
   display: inline-flex;

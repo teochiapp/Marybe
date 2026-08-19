@@ -216,6 +216,27 @@ export default function AuthModal() {
     clearAuthRedirect();
   };
 
+  // Traduce los mensajes de error de Strapi (en inglés) al español
+  const translateStrapiError = (msg = '') => {
+    const m = msg.toLowerCase();
+    if (m.includes('identifier or password invalid') || m.includes('invalid identifier or password'))
+      return 'Email o contraseña incorrectos.';
+    if (m.includes('email or username are already taken') || m.includes('email already taken') || m.includes('already taken'))
+      return 'Ese email ya está registrado. Intentá iniciar sesión.';
+    if (m.includes('username already taken'))
+      return 'Ese nombre de usuario ya está en uso.';
+    if (m.includes('password') && m.includes('characters'))
+      return 'La contraseña es demasiado corta. Usá al menos 6 caracteres.';
+    if (m.includes('too many requests') || m.includes('rate limit'))
+      return 'Demasiados intentos. Esperá unos minutos e intentá de nuevo.';
+    if (m.includes('your account email is not confirmed'))
+      return 'Tu cuenta no está confirmada. Revisá tu email.';
+    if (m.includes('user not found'))
+      return 'No existe una cuenta con ese email.';
+    // fallback: devolver el original si no hay traducción
+    return msg || 'Ocurrió un error. Verificá tus datos.';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -246,7 +267,7 @@ export default function AuthModal() {
         finishAuth();
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Ocurrió un error. Verifica tus datos.');
+      setErrorMsg(translateStrapiError(err.message));
     }
   };
 
