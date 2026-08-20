@@ -704,6 +704,43 @@ export interface ApiGiftCardGiftCard extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiMenuBarraSuperiorMenuBarraSuperior
+  extends Struct.SingleTypeSchema {
+  collectionName: 'menu_barra_superior';
+  info: {
+    description: '\u00CDtems de la barra de anuncios superior del sitio (m\u00E1ximo 5).';
+    displayName: 'Menu Barra Superior';
+    pluralName: 'menu-barra-superiors';
+    singularName: 'menu-barra-superior';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    items: Schema.Attribute.Component<'shared.item-barra-superior', true> &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 5;
+          min: 0;
+        },
+        number
+      >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::menu-barra-superior.menu-barra-superior'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader
   extends Struct.SingleTypeSchema {
   collectionName: 'ordenamiento_menu_headers';
@@ -1593,6 +1630,7 @@ declare module '@strapi/strapi' {
       'api::configuracion-general.configuracion-general': ApiConfiguracionGeneralConfiguracionGeneral;
       'api::evento.evento': ApiEventoEvento;
       'api::gift-card.gift-card': ApiGiftCardGiftCard;
+      'api::menu-barra-superior.menu-barra-superior': ApiMenuBarraSuperiorMenuBarraSuperior;
       'api::ordenamiento-menu-header.ordenamiento-menu-header': ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader;
       'api::pedido.pedido': ApiPedidoPedido;
       'api::producto.producto': ApiProductoProducto;

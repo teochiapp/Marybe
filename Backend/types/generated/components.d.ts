@@ -157,6 +157,22 @@ export interface SharedBanner extends Struct.ComponentSchema {
   };
 }
 
+export interface SharedItemBarraSuperior extends Struct.ComponentSchema {
+  collectionName: 'components_shared_item_barra_superiors';
+  info: {
+    description: 'Un \u00EDtem de la barra superior con texto y enlace.';
+    displayName: 'Item Barra Superior';
+    icon: 'link';
+  };
+  attributes: {
+    enlace: Schema.Attribute.String;
+    icono: Schema.Attribute.Enumeration<['estrella', 'pin']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'estrella'>;
+    texto: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
 declare module '@strapi/strapi' {
   export module Public {
     export interface ComponentSchemas {
@@ -168,6 +184,7 @@ declare module '@strapi/strapi' {
       'layout.fila-mixta': LayoutFilaMixta;
       'producto.variante': ProductoVariante;
       'shared.banner': SharedBanner;
+      'shared.item-barra-superior': SharedItemBarraSuperior;
     }
   }
 }

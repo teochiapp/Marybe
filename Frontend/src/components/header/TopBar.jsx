@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
 
@@ -88,30 +88,56 @@ const PinIcon = () => (
   </svg>
 );
 
-const items = [
-  { icon: <StarIcon />, text: "Retirá gratis en tu sucursal", path: "/sucursales" },
-  { icon: <StarIcon />, text: "Hasta 9 cuotas sin interés", path: "/promociones-bancarias" },
-  { icon: <StarIcon />, text: "Envíos Gratis", path: "/envios" },
-  { icon: <PinIcon />,  text: "Sucursales Marybe", path: "/sucursales" },
+// Ítems de fallback si Strapi no devuelve datos
+const FALLBACK_ITEMS = [
+  { texto: "Retirá gratis en tu sucursal", enlace: "/sucursales", icono: "estrella" },
+  { texto: "Hasta 9 cuotas sin interés", enlace: "/promociones-bancarias", icono: "estrella" },
+  { texto: "Envíos Gratis", enlace: "/envios", icono: "estrella" },
+  { texto: "Sucursales Marybe", enlace: "/sucursales", icono: "pin" },
 ];
 
+const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+
 export default function TopBar() {
+  const [items, setItems] = useState(FALLBACK_ITEMS);
+
+  useEffect(() => {
+    fetch(`${STRAPI_URL}/api/menu-barra-superior?populate=*`)
+      .then(res => res.json())
+      .then(data => {
+        // Strapi v5: data.data.items || Strapi v4: data.data.attributes.items
+        const raw = data?.data?.items ?? data?.data?.attributes?.items;
+        if (Array.isArray(raw) && raw.length > 0) {
+          // Respetar límite de 5
+          setItems(raw.slice(0, 5));
+        }
+      })
+      .catch(() => {
+        // Silencioso: se mantiene el fallback
+      });
+  }, []);
+
+  const renderIcon = (icono) => {
+    return icono === 'pin' ? <PinIcon /> : <StarIcon />;
+  };
+
   return (
     <TopBarWrapper>
       <DesktopItems>
         {items.map((item, i) => (
-          <Item key={i} to={item.path}>
-            {item.icon}
-            <span>{item.text}</span>
+          <Item key={i} to={item.enlace || '/'}>
+            {renderIcon(item.icono)}
+            <span>{item.texto}</span>
           </Item>
         ))}
       </DesktopItems>
 
+      {/* En mobile duplicamos la lista para el efecto marquee infinito */}
       <MobileTrack>
         {[...items, ...items].map((item, i) => (
-          <Item key={i} to={item.path}>
-            {item.icon}
-            <span>{item.text}</span>
+          <Item key={i} to={item.enlace || '/'}>
+            {renderIcon(item.icono)}
+            <span>{item.texto}</span>
           </Item>
         ))}
       </MobileTrack>

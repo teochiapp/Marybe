@@ -383,18 +383,7 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
     }
   };
 
-  // Fallback dummy just to see the structure if strapi is empty during dev
-  const dummyCategorias = [
-    { id: 'd1', attributes: { nombre: 'Ofertas' } },
-    { id: 'd2', attributes: { nombre: 'Electro Belleza' } },
-    { id: 'd3', attributes: { nombre: 'Fragancias' } },
-    { id: 'd4', attributes: { nombre: 'Maquillaje' } },
-    { id: 'd5', attributes: { nombre: 'Dermocosmética' } },
-    { id: 'd6', attributes: { nombre: 'Lanzamientos' } },
-  ];
-
-  const renderItems = categorias.length > 0 ? categorias : dummyCategorias;
-  const itemsToShow = (isMobile && !showAllMobile) ? renderItems.slice(0, 4) : renderItems;
+  const itemsToShow = (isMobile && !showAllMobile) ? categorias.slice(0, 4) : categorias;
 
   return (
     <SectionWrapper>
@@ -412,7 +401,7 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
           onMouseMove={handleMouseMove}
           variants={staggerContainerVariants}
           initial="hidden"
-          animate={renderItems.length > 0 ? 'show' : 'hidden'}
+          animate={categorias.length > 0 ? 'show' : 'hidden'}
         >
           {itemsToShow.map((item) => {
             const id = item.id || item.documentId || Math.random();
@@ -452,7 +441,7 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
         </NavArrowBtn>
       </CarouselWrapper>
 
-      {isMobile && renderItems.length > 0 && (
+      {isMobile && categorias.length > 0 && (
         <ViewMoreContainer
           $isOpen={showAllMobile}
           onClick={() => setShowAllMobile(!showAllMobile)}

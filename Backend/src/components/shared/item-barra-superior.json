@@ -1,0 +1,28 @@
+{
+  "collectionName": "components_shared_item_barra_superiors",
+  "info": {
+    "displayName": "Item Barra Superior",
+    "icon": "link",
+    "description": "Un ítem de la barra superior con texto y enlace."
+  },
+  "options": {},
+  "attributes": {
+    "texto": {
+      "type": "string",
+      "required": true
+    },
+    "enlace": {
+      "type": "string",
+      "required": false
+    },
+    "icono": {
+      "type": "enumeration",
+      "enum": [
+        "estrella",
+        "pin"
+      ],
+      "default": "estrella",
+      "required": true
+    }
+  }
+}

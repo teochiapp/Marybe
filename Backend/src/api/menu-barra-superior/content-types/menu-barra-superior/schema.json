@@ -1,0 +1,23 @@
+{
+  "kind": "singleType",
+  "collectionName": "menu_barra_superior",
+  "info": {
+    "singularName": "menu-barra-superior",
+    "pluralName": "menu-barra-superiors",
+    "displayName": "Menu Barra Superior",
+    "description": "Ítems de la barra de anuncios superior del sitio (máximo 5)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "items": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.item-barra-superior",
+      "min": 0,
+      "max": 5
+    }
+  }
+}
