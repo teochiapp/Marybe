@@ -25,7 +25,14 @@ export function useMegaMenuContext() {
       return;
     }
 
-    // 2. Si la ruta especifica la categoría, subcategoría o tipo
+    // 2. Si hay parametro explícito `seccion`
+    const seccionParam = searchParams.get('seccion');
+    if (seccionParam && SECTION_MAP[seccionParam]) {
+      setContext(SECTION_MAP[seccionParam]);
+      return;
+    }
+
+    // 3. Si la ruta especifica la categoría, subcategoría o tipo
     const categoria = searchParams.get('categoria');
     const subcategoria = searchParams.get('subcategoria');
     const tipo = searchParams.get('tipo');
@@ -40,13 +47,6 @@ export function useMegaMenuContext() {
         setContext(section);
         return;
       }
-    }
-
-    // 3. Si hay parametro explícito `seccion`
-    const seccionParam = searchParams.get('seccion');
-    if (seccionParam && SECTION_MAP[seccionParam]) {
-      setContext(SECTION_MAP[seccionParam]);
-      return;
     }
 
     // 4. Fallbacks por path
