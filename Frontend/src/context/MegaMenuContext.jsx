@@ -31,7 +31,11 @@ export function MegaMenuProvider({ children }) {
           const attrs = entry.attributes || entry;
           const nombre = attrs.nombre;
           if (!nombre) return;
-          if (attrs.seccion) secMap.set(nombre, SECTION_MAP[attrs.seccion] || 'GENERAL');
+          const seccionMapped = attrs.seccion ? (SECTION_MAP[attrs.seccion] || 'GENERAL') : 'GENERAL';
+          const key = `${seccionMapped}-${nombre}`;
+          secMap.set(key, seccionMapped);
+          secMap.set(nombre, seccionMapped); // Fallback
+          
           if (STATIC_CATEGORIES.has(nombre)) return;
           const subcats = attrs.subcategorias || [];
           if (subcats.length === 0) return;
@@ -55,7 +59,10 @@ export function MegaMenuProvider({ children }) {
             }
             return { title: subNombre, items };
           }).filter(Boolean);
-          if (columns.length > 0) colMap.set(nombre, columns);
+          if (columns.length > 0) {
+            colMap.set(key, columns);
+            colMap.set(nombre, columns); // Fallback
+          }
         });
         setMegaMap(colMap);
         setCategorySectionMap(secMap);
@@ -101,7 +108,14 @@ export function MegaMenuProvider({ children }) {
   }, []);
 
   const getColumnsForCategory = useCallback(
-    (catName) => { if (STATIC_CATEGORIES.has(catName)) return null; return megaMap.get(catName) || []; },
+    (catName, context) => { 
+      if (STATIC_CATEGORIES.has(catName)) return null; 
+      if (context) {
+        const key = `${context}-${catName}`;
+        if (megaMap.has(key)) return megaMap.get(key);
+      }
+      return megaMap.get(catName) || []; 
+    },
     [megaMap]
   );
   const getSectionForCategory = useCallback(

@@ -392,7 +392,7 @@ export default function CategoryNav() {
       ];
     }
     // ── Dinámicas (Strapi) — fallback automático a [] si no hay datos
-    return getColumnsForCategory(cat) || [];
+    return getColumnsForCategory(cat, context) || [];
   };
 
   return (
