@@ -1,0 +1,32 @@
+{
+  "collectionName": "components_shared_banner_destacados",
+  "info": {
+    "displayName": "Banner Destacado",
+    "icon": "star",
+    "description": "Banner para la sección de categorías destacadas"
+  },
+  "options": {},
+  "attributes": {
+    "titulo": {
+      "type": "string",
+      "required": true
+    },
+    "imagen": {
+      "type": "media",
+      "multiple": false,
+      "required": true,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "texto_boton": {
+      "type": "string",
+      "required": true,
+      "default": "Conocer más"
+    },
+    "link_boton": {
+      "type": "string",
+      "required": true
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "kind": "singleType",
+  "collectionName": "seccion_categorias_destacadas",
+  "info": {
+    "singularName": "seccion-categorias-destacadas",
+    "pluralName": "secciones-categorias-destacadas",
+    "displayName": "Sección Categorías Destacadas",
+    "description": "Sección de banners que va al final de la home de perfumería"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "banners": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.banner-destacado",
+      "max": 2,
+      "required": true
+    }
+  }
+}

@@ -507,6 +507,7 @@ const ImagePlaceholder = () => (
 
 export default function FeaturedSection({ seccion = 'perfumeria' }) {
   const [productos, setProductos] = useState([]);
+  const [bannersDestacados, setBannersDestacados] = useState([]);
   const scrollRef = useRef(null);
   const navigate = useNavigate();
   const isDragging = useRef(false);
@@ -531,7 +532,18 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
         }
       })
       .catch(err => console.error('Error fetching productos:', err));
-  }, [seccionName]);
+
+    if (seccion !== 'hogar') {
+      fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-categorias-destacadas?populate[banners][populate]=*`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.data && data.data.attributes && data.data.attributes.banners) {
+            setBannersDestacados(data.data.attributes.banners);
+          }
+        })
+        .catch(err => console.error('Error fetching banners destacados:', err));
+    }
+  }, [seccionName, seccion]);
 
   const isDown = useRef(false);
   const startX = useRef(0);
@@ -678,7 +690,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
                 </CardImageContainer>
 
                 <ProductBrand>{marca}</ProductBrand>
-      <ProductName onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
+                <ProductName onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
 
                 <PriceRow>
                   {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
@@ -703,21 +715,43 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
 
       {seccion !== 'hogar' && (
         <BannersRow>
-          <BottomBanner>
-            <BannerTitle>El poder del elixir</BannerTitle>
-            <BannerImageWrapper>
-              <img src="/inicio/elixir.webp" alt="El poder del elixir" width="220" height="220" loading="eager" decoding="sync" />
-            </BannerImageWrapper>
-            <BannerButton onClick={() => { navigate('/tienda?banner=elixir&seccion=Perfumer%C3%ADa'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Conocer más</BannerButton>
-          </BottomBanner>
+          {bannersDestacados && bannersDestacados.length > 0 ? (
+            bannersDestacados.map((banner, index) => {
+              const getFullUrl = (url) => url?.startsWith('http') ? url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${url}`;
+              const imgUrl = banner.imagen?.data?.attributes?.url ? getFullUrl(banner.imagen.data.attributes.url) : '';
+              return (
+                <BottomBanner key={index}>
+                  <BannerTitle>{banner.titulo}</BannerTitle>
+                  {imgUrl && (
+                    <BannerImageWrapper>
+                      <img src={imgUrl} alt={banner.titulo} width="220" height="220" loading="eager" decoding="sync" />
+                    </BannerImageWrapper>
+                  )}
+                  <BannerButton onClick={() => { navigate(banner.link_boton || '/tienda'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>
+                    {banner.texto_boton}
+                  </BannerButton>
+                </BottomBanner>
+              );
+            })
+          ) : (
+            <>
+              <BottomBanner>
+                <BannerTitle>El poder del elixir</BannerTitle>
+                <BannerImageWrapper>
+                  <img src="/inicio/elixir.webp" alt="El poder del elixir" width="220" height="220" loading="eager" decoding="sync" />
+                </BannerImageWrapper>
+                <BannerButton onClick={() => { navigate('/tienda?banner=elixir&seccion=Perfumer%C3%ADa'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Conocer más</BannerButton>
+              </BottomBanner>
 
-          <BottomBanner>
-            <BannerTitle>Toda la línea de Azzaro</BannerTitle>
-            <BannerImageWrapper>
-              <img src="/inicio/azzaro.webp" alt="Línea Azzaro" width="220" height="220" loading="eager" decoding="sync" />
-            </BannerImageWrapper>
-            <BannerButton onClick={() => { navigate('/tienda?banner=azzaro&seccion=Perfumer%C3%ADa'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Conocer más</BannerButton>
-          </BottomBanner>
+              <BottomBanner>
+                <BannerTitle>Toda la línea de Azzaro</BannerTitle>
+                <BannerImageWrapper>
+                  <img src="/inicio/azzaro.webp" alt="Línea Azzaro" width="220" height="220" loading="eager" decoding="sync" />
+                </BannerImageWrapper>
+                <BannerButton onClick={() => { navigate('/tienda?banner=azzaro&seccion=Perfumer%C3%ADa'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Conocer más</BannerButton>
+              </BottomBanner>
+            </>
+          )}
         </BannersRow>
       )}
 
