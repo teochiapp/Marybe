@@ -391,8 +391,8 @@ export default function CategoryNav() {
         MEGA_COLUMNS[5],
       ];
     }
-    // ── Dinámicas (Strapi) — fallback automático a MEGA_COLUMNS si no hay datos
-    return getColumnsForCategory(cat) || MEGA_COLUMNS;
+    // ── Dinámicas (Strapi) — fallback automático a [] si no hay datos
+    return getColumnsForCategory(cat) || [];
   };
 
   return (

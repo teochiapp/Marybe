@@ -101,7 +101,7 @@ export function MegaMenuProvider({ children }) {
   }, []);
 
   const getColumnsForCategory = useCallback(
-    (catName) => { if (STATIC_CATEGORIES.has(catName)) return null; return megaMap.get(catName) || MEGA_COLUMNS; },
+    (catName) => { if (STATIC_CATEGORIES.has(catName)) return null; return megaMap.get(catName) || []; },
     [megaMap]
   );
   const getSectionForCategory = useCallback(
