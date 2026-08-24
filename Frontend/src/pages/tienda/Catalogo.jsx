@@ -461,7 +461,7 @@ export default function Catalogo() {
 
       if (activeBusqueda) {
         params.set('filters[nombre][$containsi]', activeBusqueda);
-      } else if (activeSeccion && !activeCatParam && !activeSubcatParam && !activeTipoParam) {
+      } else if (activeSeccion) {
         params.set('filters[seccion][$eq]', activeSeccion);
       }
 
@@ -496,23 +496,20 @@ export default function Catalogo() {
       //   - tipo (string)
 
       if (activeTipoParam) {
-        // NIVEL 3 — Solo filtrar por tipo exacto
         const tipos = activeTipoParam.split(',');
         tipos.forEach((tipo, idx) => {
           params.set(`filters[$and][${andIndex}][$or][${idx}][tipo][$eq]`, tipo);
         });
         andIndex++;
-      } else if (activeSubcatParam) {
-        // NIVEL 2 — Filtrar por subcategoría (también incluye los tipos de esa subcategoría)
-        // Traer productos donde subcategoria = Y, lo cual implica que los tipos también
-        // están dentro de esa subcategoría. El filtro en Strapi es sobre el campo subcategoria.
+      }
+      if (activeSubcatParam) {
         const subcats = activeSubcatParam.split(',');
         subcats.forEach((subcat, idx) => {
           params.set(`filters[$and][${andIndex}][$or][${idx}][subcategoria][$eq]`, subcat);
         });
         andIndex++;
-      } else if (activeCatParam) {
-        // NIVEL 1 — Filtrar por categoría principal (trae subcategorías y tipos)
+      }
+      if (activeCatParam) {
         const cats = activeCatParam.split(',');
         cats.forEach((cat, idx) => {
           params.set(`filters[$and][${andIndex}][$or][${idx}][categoria][nombre][$eq]`, cat);
