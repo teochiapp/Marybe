@@ -537,8 +537,11 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
       fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-categorias-destacadas?populate[banners][populate]=*`)
         .then(res => res.json())
         .then(data => {
-          if (data && data.data && data.data.attributes && data.data.attributes.banners) {
-            setBannersDestacados(data.data.attributes.banners);
+          if (data && data.data) {
+            const attrs = data.data.attributes || data.data;
+            if (attrs.banners) {
+              setBannersDestacados(attrs.banners);
+            }
           }
         })
         .catch(err => console.error('Error fetching banners destacados:', err));
@@ -718,7 +721,12 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
           {bannersDestacados && bannersDestacados.length > 0 ? (
             bannersDestacados.map((banner, index) => {
               const getFullUrl = (url) => url?.startsWith('http') ? url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${url}`;
-              const imgUrl = banner.imagen?.data?.attributes?.url ? getFullUrl(banner.imagen.data.attributes.url) : '';
+              let imgUrl = '';
+              if (banner.imagen?.data?.attributes?.url) {
+                imgUrl = getFullUrl(banner.imagen.data.attributes.url);
+              } else if (banner.imagen?.url) {
+                imgUrl = getFullUrl(banner.imagen.url);
+              }
               return (
                 <BottomBanner key={index}>
                   <BannerTitle>{banner.titulo}</BannerTitle>
