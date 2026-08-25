@@ -600,6 +600,30 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
     handleInteract();
   }, [handleInteract]);
 
+  const handleBannerClick = (link) => {
+    let target = link || '/tienda';
+    if (target.startsWith('http://') || target.startsWith('https://')) {
+      try {
+        const url = new URL(target);
+        if (url.origin === window.location.origin) {
+          target = url.pathname + url.search + url.hash;
+          navigate(target);
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        } else {
+          window.location.href = target;
+        }
+      } catch (e) {
+        window.location.href = target;
+      }
+    } else {
+      if (!target.startsWith('/')) {
+        target = '/' + target;
+      }
+      navigate(target);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  };
+
   const handleProductClick = (id, nombre) => {
     if (!isDragging.current) {
       navigate(generateProductUrl(id, nombre));
@@ -735,7 +759,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
                       <img src={imgUrl} alt={banner.titulo} width="220" height="220" loading="eager" decoding="sync" />
                     </BannerImageWrapper>
                   )}
-                  <BannerButton onClick={() => { navigate(banner.link_boton || '/tienda'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>
+                  <BannerButton onClick={() => handleBannerClick(banner.link_boton)}>
                     {banner.texto_boton}
                   </BannerButton>
                 </BottomBanner>
