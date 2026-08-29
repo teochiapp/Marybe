@@ -157,6 +157,23 @@ export interface SharedBanner extends Struct.ComponentSchema {
   };
 }
 
+export interface SharedBannerDestacado extends Struct.ComponentSchema {
+  collectionName: 'components_shared_banner_destacados';
+  info: {
+    description: 'Banner para la secci\u00F3n de categor\u00EDas destacadas';
+    displayName: 'Banner Destacado';
+    icon: 'star';
+  };
+  attributes: {
+    imagen: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
+    link_boton: Schema.Attribute.String & Schema.Attribute.Required;
+    texto_boton: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Conocer m\u00E1s'>;
+    titulo: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
 export interface SharedItemBarraSuperior extends Struct.ComponentSchema {
   collectionName: 'components_shared_item_barra_superiors';
   info: {
@@ -184,6 +201,7 @@ declare module '@strapi/strapi' {
       'layout.fila-mixta': LayoutFilaMixta;
       'producto.variante': ProductoVariante;
       'shared.banner': SharedBanner;
+      'shared.banner-destacado': SharedBannerDestacado;
       'shared.item-barra-superior': SharedItemBarraSuperior;
     }
   }

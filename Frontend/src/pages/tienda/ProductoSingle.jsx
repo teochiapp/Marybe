@@ -99,8 +99,8 @@ const GiftCardSection = styled.div`
 `;
 
 export default function ProductoSingle() {
-  const { id } = useParams(); // Puede ser id_original + slug (ej: 11138-shampoo) generado por Cannon
-  const actualId = id ? id.split('-')[0] : null;
+  const { id } = useParams(); // Formato: {strapi_id}-{nombre-slugificado} (ej: 200793-oral-b-kids)
+  const actualId = id ? id.split('-')[0] : null; // El primer segmento es el id numérico interno de Strapi
 
   const [producto, setProducto] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -109,11 +109,10 @@ export default function ProductoSingle() {
   useEffect(() => {
     window.scrollTo(0, 0);
 
-    // El slug de la URL viene de Cannon: /{id_original}-{nombre-slugificado}
-    // Buscamos por id_original (campo de negocio) en vez del id interno de Strapi
     if (!actualId) return;
 
-    fetch(`${STRAPI_URL}/api/productos?filters[id_original][$eq]=${actualId}&populate=*`)
+    // El slug usa el id numérico interno de Strapi (ej: /producto/200793-oral-b-kids → id=200793)
+    fetch(`${STRAPI_URL}/api/productos?filters[id][$eq]=${actualId}&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data && data.data.length > 0) {
@@ -123,7 +122,7 @@ export default function ProductoSingle() {
             ...(prodData.attributes || prodData)
           });
         } else {
-          // Fallback por documentId de Strapi si id_original no matchea
+          // Fallback por documentId de Strapi si el id numérico no matchea
           return fetch(`${STRAPI_URL}/api/productos?filters[documentId][$eq]=${actualId}&populate=*`)
             .then(res2 => res2.json())
             .then(data2 => {
