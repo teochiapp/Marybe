@@ -267,7 +267,13 @@ export default function UbicacionPopup({ onClose }) {
               maxLength={8}
             />
           </InputRow>
-          <NoSeLink href="#">No sé mi código postal</NoSeLink>
+          <NoSeLink 
+            href="https://www.correoargentino.com.ar/formularios/cpa"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            No sé mi código postal
+          </NoSeLink>
         </div>
 
         <ToggleRow>

@@ -24,13 +24,12 @@ const formatPrice = (price) => {
 };
 
 const getProductTag = (producto) => {
+  if (producto.caracteristicas) {
+    return { label: producto.caracteristicas.split('|')[0].trim(), bg: '#FAF0F0', color: 'var(--color-bordo-secundario)' };
+  }
   const name = (producto.nombre || '').toLowerCase();
-  const discount = producto.descuento || 0;
   if (name.includes('combo') || name.includes('sachet') || name.includes('kit')) {
     return { label: 'Combo', bg: '#E5A9A9', color: 'var(--color-bordo-tercero)' };
-  }
-  if (discount >= 30) {
-    return { label: '2x1', bg: '#FAF0F0', color: 'var(--color-bordo-secundario)' };
   }
   return null;
 };
@@ -370,9 +369,9 @@ export default function CatalogoProductCard({ product, strapiUrl }) {
         )}
       </PriceRow>
 
-      <Installments>
-        3 cuotas sin interés de {formatPrice(Math.round(currentPriceVal / 3))}
-      </Installments>
+      {attrs.especificaciones && (
+        <Installments>{attrs.especificaciones}</Installments>
+      )}
       <LegalText>
         Precio sin impuestos nacionales {formatPrice(Math.round(currentPriceVal * 0.79))}
       </LegalText>

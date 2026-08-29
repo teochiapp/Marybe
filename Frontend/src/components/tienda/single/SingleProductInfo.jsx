@@ -698,12 +698,11 @@ export default function SingleProductInfo({ producto }) {
       <Brand>{marca}</Brand>
       <Title>{nombre}</Title>
 
-      <SubBadges>
-        {caracteristicas
-          ? caracteristicas.split('|').map((c, i) => <span key={i}>{c.trim()}</span>)
-          : <span>Edición limitada</span>
-        }
-      </SubBadges>
+      {caracteristicas && (
+        <SubBadges>
+          {caracteristicas.split('|').map((c, i) => <span key={i}>{c.trim()}</span>)}
+        </SubBadges>
+      )}
 
       {descripcion && <DescriptionExcerpt>{descripcion}</DescriptionExcerpt>}
 
@@ -721,9 +720,11 @@ export default function SingleProductInfo({ producto }) {
         <PaymentLink onClick={() => setIsPaymentModalOpen(true)}>Ver medios de pago</PaymentLink>
         <CfteaText>CFTEA 0%</CfteaText>
 
-        <InstallmentsText>
-          3 cuotas sin interés de <span>{formatPrice(installmentValue)}</span>
-        </InstallmentsText>
+        {producto.especificaciones && (
+          <InstallmentsText>
+            {producto.especificaciones}
+          </InstallmentsText>
+        )}
         <LegalText>Precio sin impuestos nacionales {formatPrice(priceWithoutTaxes)}</LegalText>
       </PriceBlock>
 
