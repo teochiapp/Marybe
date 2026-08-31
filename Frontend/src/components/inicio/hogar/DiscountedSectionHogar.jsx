@@ -7,6 +7,7 @@ import { getProductPrice } from '../../../utils/productPrice';
 import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
 import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
+import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-hogar);
@@ -449,6 +450,7 @@ const ChevronRightIcon = () => (
 );
 
 export default function DiscountedSectionHogar() {
+  const { config } = useConfiguracionGeneral();
   const [productos, setProductos] = useState([]);
   const [tituloCursiva, setTituloCursiva] = useState('Descuentos');
   const [tituloNormal, setTituloNormal] = useState('de Hogar');
@@ -654,9 +656,11 @@ export default function DiscountedSectionHogar() {
                 {descuentoCalc > 0 && <DiscountBadge>{descuentoCalc}%</DiscountBadge>}
               </PriceRow>
 
-              <Installments>
-                3 cuotas sin interés de {formatPrice(Math.round((offerPrice || price) / 3))}
-              </Installments>
+              {config?.cuotas_activas && (
+                <Installments>
+                  {config?.cuotas_texto_previo ? config.cuotas_texto_previo + ' ' : '3 cuotas sin interés de '}{formatPrice(Math.round((offerPrice || price) / (config?.cuotas_cantidad || 3)))}
+                </Installments>
+              )}
               <LegalText>
                 Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
               </LegalText>

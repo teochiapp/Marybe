@@ -27,7 +27,7 @@
       "required": true
     },
     "fecha_expiracion": {
-      "type": "datetime"
+      "type": "date"
     }
   }
 }

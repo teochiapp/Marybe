@@ -26,6 +26,9 @@
     "ubicacion": {
       "type": "string",
       "required": true
+    },
+    "whatsapp_numero": {
+      "type": "string"
     }
   }
 }

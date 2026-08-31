@@ -12,6 +12,17 @@
   },
   "pluginOptions": {},
   "attributes": {
+    "cuotas_activas": {
+      "type": "boolean",
+      "default": true
+    },
+    "cuotas_texto_previo": {
+      "type": "string"
+    },
+    "cuotas_cantidad": {
+      "type": "integer",
+      "default": 3
+    },
     "whatsapp_numero": {
       "type": "string"
     },

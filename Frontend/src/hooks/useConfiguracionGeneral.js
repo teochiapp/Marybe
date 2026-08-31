@@ -37,6 +37,10 @@ export function useConfiguracionGeneral() {
 
         // ── Campos base ──────────────────────────────────────────────────────────
         const config = {
+          cuotas_activas:      attrs.cuotas_activas !== false, // default true
+          cuotas_texto_previo: attrs.cuotas_texto_previo || '',
+          cuotas_cantidad:     attrs.cuotas_cantidad != null ? Number(attrs.cuotas_cantidad) : 3,
+
           whatsapp_numero:    attrs.whatsapp_numero   || null,
           costo_envio:        attrs.costo_envio        != null ? Number(attrs.costo_envio)        : null,
           envio_gratis_desde: attrs.envio_gratis_desde != null ? Number(attrs.envio_gratis_desde) : null,

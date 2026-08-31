@@ -601,6 +601,9 @@ export interface ApiConfiguracionGeneralConfiguracionGeneral
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    cuotas_activas: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    cuotas_cantidad: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<3>;
+    cuotas_texto_previo: Schema.Attribute.String;
     ef_etiqueta: Schema.Attribute.String;
     ef_habilitado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     ef_horario: Schema.Attribute.String;
@@ -665,6 +668,7 @@ export interface ApiEventoEvento extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    whatsapp_numero: Schema.Attribute.String;
   };
 }
 
@@ -689,7 +693,7 @@ export interface ApiGiftCardGiftCard extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    fecha_expiracion: Schema.Attribute.DateTime;
+    fecha_expiracion: Schema.Attribute.Date;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
 import { getProductPrice } from '../../../utils/productPrice';
 import AddToCartModal from '../../carrito/AddToCartModal';
+import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
 
 const SectionWrapper = styled.section`
   margin-top: 72px;
@@ -319,6 +320,7 @@ const ImagePlaceholder = () => (
 );
 
 export default function SingleSimilares({ producto, title = 'Similares', query, items }) {
+  const { config } = useConfiguracionGeneral();
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef(null);
@@ -503,9 +505,11 @@ export default function SingleSimilares({ producto, title = 'Similares', query, 
                 {descuentoCalc > 0 && <DiscountBadge>{descuentoCalc}% OFF</DiscountBadge>}
               </PriceRow>
 
-              <Installments>
-                3 cuotas sin interés de {formatPrice(Math.round((offerPrice || price) / 3))}
-              </Installments>
+              {config?.cuotas_activas && (
+                <Installments>
+                  {config?.cuotas_texto_previo ? config.cuotas_texto_previo + ' ' : '3 cuotas sin interés de '}{formatPrice(Math.round((offerPrice || price) / (config?.cuotas_cantidad || 3)))}
+                </Installments>
+              )}
               <LegalText>
                 Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
               </LegalText>

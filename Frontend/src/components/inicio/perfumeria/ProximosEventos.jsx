@@ -284,7 +284,8 @@ export default function ProximosEventos() {
 
   const handleReservar = (ev) => {
     const message = `Hola, me gustaría reservar un turno para el evento "${ev.titulo}" el día ${ev.fecha} en ${ev.ubicacion}.`;
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+    const targetNumber = ev.whatsapp_numero || WHATSAPP_NUMBER;
+    const url = `https://wa.me/${targetNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
 
