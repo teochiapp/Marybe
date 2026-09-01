@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import styled from 'styled-components';
 import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-// ─── Styled Components (sin cambios) ────────────────────────────────────────
+import { CartContext } from '../../context/CartContext';
 
 const PageContainer = styled.div`
   min-height: 80vh;
@@ -304,6 +304,7 @@ export default function OrderSuccess() {
   const navigate = useNavigate();
   const [orderData, setOrderData] = useState(location.state || null);
   const [loading, setLoading] = useState(false);
+  const { clearCart, setAppliedGiftCard } = useContext(CartContext);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -374,6 +375,8 @@ export default function OrderSuccess() {
           sessionStorage.setItem(cacheKey, JSON.stringify(newOrderData));
           setOrderData(newOrderData);
           setLoading(false);
+          clearCart();
+          setAppliedGiftCard(null);
         };
         createOrder();
         return;

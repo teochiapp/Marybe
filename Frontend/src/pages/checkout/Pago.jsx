@@ -700,8 +700,7 @@ export default function Pago() {
             costoEnvioFinal
           }));
 
-          // ── Limpiar carrito y redirigir a Checkout Pro (igual que Maquifit) ──
-          clearCart();
+          // ── Redirigir a Checkout Pro sin limpiar el carrito (por si vuelve atrás) ──
           const checkoutUrl = data.init_point || data.sandbox_init_point;
           window.location.href = checkoutUrl;
           return;
@@ -1034,6 +1033,15 @@ export default function Pago() {
                 <SummaryRow style={{ fontSize: '0.8rem', color: '#888', marginTop: '-8px' }}>
                   <span style={{ fontStyle: 'italic' }}>Envío gratis desde {formatPrice(envioGratisDesde)}</span>
                   <span />
+                </SummaryRow>
+              )}
+
+              {appliedGiftCard && (
+                <SummaryRow>
+                  <span>Gift Card:</span>
+                  <span className="val" style={{ color: '#27ae60' }}>
+                    - {formatPrice(appliedGiftCard.monto)}
+                  </span>
                 </SummaryRow>
               )}
 

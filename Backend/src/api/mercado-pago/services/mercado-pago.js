@@ -49,7 +49,7 @@ module.exports = () => ({
           // Descuento aplicado (Mercado Pago no permite items negativos de forma simple)
           finalItems = [
             {
-              title: 'Pedido Marybe (con descuento aplicado)',
+              title: 'Pedido Marybe (con Gift Card)',
               description: 'Compra en tienda Marybe',
               category_id: 'others',
               quantity: 1,
