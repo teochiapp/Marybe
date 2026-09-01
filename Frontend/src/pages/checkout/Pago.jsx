@@ -597,7 +597,7 @@ export default function Pago() {
   const infoTransf  = useMemo(() => siteConfig?.infoTransferencia ?? {}, [siteConfig]);
 
   const navigate = useNavigate();
-  const [paymentMethod, setPaymentMethod] = useState('transferencia');
+  const [paymentMethod, setPaymentMethod] = useState('mercadopago');
   const [savedAddress, setSavedAddress] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState('Peatonal Tucuman 20, Santiago del Estero');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -1038,7 +1038,20 @@ export default function Pago() {
 
               {appliedGiftCard && (
                 <SummaryRow>
-                  <span>Gift Card:</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Gift Card:
+                    <button 
+                      onClick={() => setAppliedGiftCard(null)} 
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: '#e74c3c' }}
+                      title="Quitar Gift Card"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                      </svg>
+                    </button>
+                  </span>
                   <span className="val" style={{ color: '#27ae60' }}>
                     - {formatPrice(appliedGiftCard.monto)}
                   </span>

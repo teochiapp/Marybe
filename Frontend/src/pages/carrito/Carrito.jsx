@@ -571,7 +571,16 @@ export default function Carrito() {
   // Lógica de costo de envío dinámico desde Strapi
   const costoEnvio = siteConfig?.costo_envio ?? null;
   const envioGratisDesde = siteConfig?.envio_gratis_desde ?? null;
-  const envioEsGratis = envioGratisDesde !== null && cartTotal >= envioGratisDesde;
+  
+  // Calculamos el total de productos físicos (ignorando Gift Cards)
+  const totalFisico = cartItems.reduce((acc, item) => {
+    const esGiftCard = item.product?.id?.toString().startsWith('gift-card-') || 
+                       item.product?.nombre?.toLowerCase().includes('gift card');
+    return esGiftCard ? acc : acc + ((item.price || item.product?.precio || 0) * (item.quantity || 1));
+  }, 0);
+
+  // El envío es gratis si solo se compran Gift Cards (totalFisico === 0) o si superan el mínimo
+  const envioEsGratis = (totalFisico === 0) || (envioGratisDesde !== null && totalFisico >= envioGratisDesde);
   const costoEnvioFinal = envioEsGratis ? 0 : (costoEnvio ?? 0);
 
   const handleApplyCoupon = async () => {
@@ -787,7 +796,20 @@ export default function Carrito() {
 
                 {appliedGiftCard && (
                   <SummaryRow style={{ color: 'black', fontWeight: 600 }}>
-                    <span>Descuento (Gift Card)</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      Descuento (Gift Card)
+                      <button 
+                        onClick={handleRemoveCoupon} 
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: '#e74c3c' }}
+                        title="Quitar Gift Card"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="15" y1="9" x2="9" y2="15"></line>
+                          <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                      </button>
+                    </span>
                     <span className="val" style={{ color: 'black' }}>-{formatPrice(discountAmount)}</span>
                   </SummaryRow>
                 )}

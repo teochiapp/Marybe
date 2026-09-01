@@ -350,8 +350,15 @@ export default function Envio() {
   const costoEnvio = siteConfig?.costo_envio ?? null;
   const envioGratisDesde = siteConfig?.envio_gratis_desde ?? null;
   
+  // Calculamos el total de productos físicos (ignorando Gift Cards)
+  const totalFisico = cartItems.reduce((acc, item) => {
+    const esGiftCard = item.product?.id?.toString().startsWith('gift-card-') || 
+                       item.product?.nombre?.toLowerCase().includes('gift card');
+    return esGiftCard ? acc : acc + ((item.price || item.product?.precio || 0) * (item.quantity || 1));
+  }, 0);
+
   const esSucursal = shippingMethod === 'sucursal';
-  const envioEsGratis = esSucursal || (envioGratisDesde !== null && cartTotal >= envioGratisDesde);
+  const envioEsGratis = esSucursal || (totalFisico === 0) || (envioGratisDesde !== null && totalFisico >= envioGratisDesde);
   const shippingCost = envioEsGratis ? 0 : (costoEnvio ?? 0);
   
   const finalTotal = cartTotal + shippingCost;
@@ -401,7 +408,7 @@ export default function Envio() {
               <OptionPrice>
                 {costoEnvio === null 
                   ? 'Calculando...' 
-                  : (envioGratisDesde !== null && cartTotal >= envioGratisDesde) 
+                  : envioEsGratis
                   ? 'Gratis' 
                   : formatPrice(costoEnvio)}
               </OptionPrice>
