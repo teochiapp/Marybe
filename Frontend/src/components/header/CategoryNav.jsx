@@ -472,9 +472,9 @@ export default function CategoryNav() {
                 <CalendarIcon /> Próximos eventos
               </MegaActionBtn>
               <MegaActionBtn
-                as="button"
+                to="/gift-card"
                 style={{ cursor: 'pointer', fontFamily: 'var(--font-family-secondary)' }}
-                onClick={() => scrollToHomeSection('seccion-gift-card')}
+                onClick={() => setActiveCategory(null)}
               >
                 <GiftIcon /> Gift cards
               </MegaActionBtn>

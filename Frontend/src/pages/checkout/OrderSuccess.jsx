@@ -349,10 +349,15 @@ export default function OrderSuccess() {
                 direccion_envio: pending.savedAddress || {},
                 mp_payment_id: mpPaymentId,
                 mp_external_reference: mpExternalRef,
+                envio: pending.costoEnvioFinal || 0,
+                descuento_gift_card: pending.appliedGiftCard ? pending.appliedGiftCard.monto : 0,
+                codigo_gift_card: pending.appliedGiftCard ? pending.appliedGiftCard.codigo : null
               })
             });
             const json = await response.json();
             orderNumber = json.data?.numero_pedido || 'M-000000';
+
+            // ─── La Generación y Consumo de Gift Cards ahora ocurre internamente en el backend ───
           } catch (err) {
             console.error('Error al registrar pedido MP en Strapi:', err);
           }

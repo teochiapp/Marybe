@@ -8,22 +8,6 @@ module.exports = {
         auth: false,
       },
     },
-    {
-      method: 'POST',
-      path: '/gift-cards/consume',
-      handler: 'custom-gift-card.consume',
-      config: {
-        auth: false,
-      },
-    },
-    {
-      method: 'POST',
-      path: '/gift-cards/generate',
-      handler: 'custom-gift-card.generate',
-      config: {
-        auth: false,
-      },
-    },
   ],
 };
 

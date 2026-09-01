@@ -613,9 +613,18 @@ export default function Pago() {
   // Lógica de costo de envío dinámico desde Strapi
   const costoEnvio = siteConfig?.costo_envio ?? null;
   const envioGratisDesde = siteConfig?.envio_gratis_desde ?? null;
+
+  // Calculamos el total de productos físicos (ignorando Gift Cards) para la lógica de envío
+  const totalFisico = cartItems.reduce((acc, item) => {
+    const esGiftCard = item.product?.id?.toString().startsWith('gift-card-') || 
+                       item.product?.nombre?.toLowerCase().includes('gift card');
+    return esGiftCard ? acc : acc + ((item.price || item.product?.precio || 0) * (item.quantity || 1));
+  }, 0);
+
   // Efectivo = retiro en sucursal, sin costo de envío
   const esEfectivo = paymentMethod === 'efectivo';
-  const envioEsGratis = esEfectivo || (envioGratisDesde !== null && cartTotal >= envioGratisDesde);
+  // El envío es gratis si es retiro, si solo se compraron Gift Cards (totalFisico === 0), o si superan el mínimo
+  const envioEsGratis = esEfectivo || (totalFisico === 0) || (envioGratisDesde !== null && totalFisico >= envioGratisDesde);
   const costoEnvioFinal = envioEsGratis ? 0 : (costoEnvio ?? 0);
 
   const buttonText = paymentMethod === 'mercadopago' || paymentMethod === 'credito' || paymentMethod === 'debito'
@@ -653,6 +662,13 @@ export default function Pago() {
     setIsProcessing(true);
 
     if (paymentMethod === 'mercadopago') {
+      // Si la Gift Card cubre todo el monto, finalTotal será 0.
+      // Mercado Pago no permite pagos de 0, así que saltamos MP y procesamos directo.
+      if (finalTotal === 0) {
+        await confirmOrder(finalTotal);
+        return;
+      }
+
       try {
         const generatedRef = `MARYBE-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
@@ -680,6 +696,8 @@ export default function Pago() {
             email: user?.email || '',
             token: token || '',
             externalReference: generatedRef,
+            appliedGiftCard: appliedGiftCard || null,
+            costoEnvioFinal
           }));
 
           // ── Limpiar carrito y redirigir a Checkout Pro (igual que Maquifit) ──
@@ -725,44 +743,17 @@ export default function Pago() {
           productos: cartItems,
           total: finalTotal,
           metodo_pago: paymentMethod,
-          direccion_envio: savedAddress || {}
+          direccion_envio: savedAddress || {},
+          envio: costoEnvioFinal,
+          descuento_gift_card: appliedGiftCard ? appliedGiftCard.monto : 0,
+          codigo_gift_card: appliedGiftCard ? appliedGiftCard.codigo : null
         })
       });
 
       const json = await response.json();
       orderNumber = json.data?.numero_pedido || 'M-000000';
-      
-      // 2. Si hay gift cards en el carrito, generarlas en Strapi
-      const giftCardItems = cartItems.filter(item =>
-        item.product?.id?.toString().startsWith('gift-card-') ||
-        item.product?.nombre?.toLowerCase().includes('gift card')
-      );
-
-      if (giftCardItems.length > 0) {
-        const giftItems = giftCardItems.map(item => ({
-          monto: item.price || item.product?.precio || 0,
-          cantidad: item.quantity || 1,
-        }));
-
-        try {
-          await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/gift-cards/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: giftItems, numero_pedido: orderNumber })
-          });
-        } catch (gcErr) {
-          console.error('Error al generar gift cards en Strapi:', gcErr);
-          // No bloqueamos la navegación
-        }
-      }
-
-      // 3. Si se usó una gift card como descuento, consumirla
+      // 2 y 3: La generación y consumo de Gift Cards ahora ocurre internamente en el backend al crear el pedido.
       if (appliedGiftCard) {
-        await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/gift-cards/consume`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ codigo: appliedGiftCard.codigo })
-        });
         setAppliedGiftCard(null);
       }
     } catch (err) {

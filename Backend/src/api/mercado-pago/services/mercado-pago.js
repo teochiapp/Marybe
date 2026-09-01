@@ -26,14 +26,50 @@ module.exports = () => ({
       };
     });
 
-    const finalItems = items.length > 0 ? items : [
-      {
-        title: 'Pedido Marybe',
-        description: 'Compra en tienda Marybe',
-        quantity: 1,
-        unit_price: Number(Number(total || 10).toFixed(2)),
+    let finalItems = [];
+
+    if (items.length > 0) {
+      let currentTotal = items.reduce((acc, item) => acc + (item.unit_price * item.quantity), 0);
+      currentTotal = Number(currentTotal.toFixed(2));
+      const expectedTotal = Number(Number(total || 10).toFixed(2));
+
+      if (currentTotal !== expectedTotal) {
+        const difference = expectedTotal - currentTotal;
+        if (difference > 0) {
+          // Costo de envío o cargos adicionales
+          items.push({
+            title: 'Costo de Envío',
+            description: 'Envío de pedido a domicilio o sucursal',
+            category_id: 'others',
+            quantity: 1,
+            unit_price: Number(difference.toFixed(2)),
+          });
+          finalItems = items;
+        } else {
+          // Descuento aplicado (Mercado Pago no permite items negativos de forma simple)
+          finalItems = [
+            {
+              title: 'Pedido Marybe (con descuento aplicado)',
+              description: 'Compra en tienda Marybe',
+              category_id: 'others',
+              quantity: 1,
+              unit_price: expectedTotal,
+            }
+          ];
+        }
+      } else {
+        finalItems = items;
       }
-    ];
+    } else {
+      finalItems = [
+        {
+          title: 'Pedido Marybe',
+          description: 'Compra en tienda Marybe',
+          quantity: 1,
+          unit_price: Number(Number(total || 10).toFixed(2)),
+        }
+      ];
+    }
 
     const body = {
       items: finalItems,
@@ -45,7 +81,7 @@ module.exports = () => ({
         pending: `${baseFrontendUrl}/order-success`,
         failure: `${baseFrontendUrl}/order-error`,
       },
-      auto_return: 'all',
+      // auto_return: 'approved',
       binary_mode: true,
       external_reference: externalReference || `MARYBE-${Date.now()}`,
       statement_descriptor: 'MARYBE PERFUMERIA',
