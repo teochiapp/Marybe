@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_producto_clasificaciones",
+  "info": {
+    "displayName": "Clasificacion",
+    "description": "Ruta taxonómica de un producto: Sección > Categoría > Subcategoría > Tipo"
+  },
+  "options": {},
+  "attributes": {
+    "seccion": {
+      "type": "string"
+    },
+    "categoria": {
+      "type": "string"
+    },
+    "subcategoria": {
+      "type": "string"
+    },
+    "tipo": {
+      "type": "string"
+    }
+  }
+}

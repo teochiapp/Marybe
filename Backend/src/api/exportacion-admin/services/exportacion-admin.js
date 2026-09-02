@@ -164,6 +164,7 @@ async function fetchAllProductos(strapi) {
     const resultado = await strapi.documents(UID_PRODUCTO).findMany({
       populate: {
         variantes: true,
+        clasificaciones: true,
         categoria: {
           populate: {
             subcategorias: {
@@ -272,18 +273,13 @@ async function generarExcel(strapi) {
   let totalVariantes = 0;
 
   for (const prod of productos) {
-    rowIdxP++;
-    const isEven  = rowIdxP % 2 === 0;
-    const bgColor = isEven ? C.blanco : C.grisClaro;
-
+    // ── Resolver precio del producto (con fallback desde variante fantasma) ──
     let precioNum       = safeNum(prod.precio);
     let precioOfertaNum = safeNum(prod.precio_oferta);
 
-    // Rescatar el precio de la variante fantasma si el padre no tiene precio
     if (precioNum === null && prod.variantes && prod.variantes.length > 0) {
       const padreIdStr = prod.id_original || String(prod.id || '');
       const v1 = prod.variantes.find(v => v.id_original === `${padreIdStr}-v1`);
-      
       if (v1) {
         precioNum = safeNum(v1.precio);
         if (precioOfertaNum === null) precioOfertaNum = safeNum(v1.precio_oferta);
@@ -296,113 +292,147 @@ async function generarExcel(strapi) {
         }
       }
     }
-    const pctDesc         = calcPct(precioNum, precioOfertaNum, prod.descuento);
+    const pctDesc = calcPct(precioNum, precioOfertaNum, prod.descuento);
 
-    // ── Resolver Categoría / Subcategoría / Tipo ────────────────────────────
-    // Fuente primaria: campos string planos del producto.
-    // Fallback: relación categoria → subcategorias → tipos (deep populate).
-    const catRelacion    = prod.categoria || null;
-    const categoriaNombre = catRelacion?.nombre || '';
+    // ── Construir la lista de clasificaciones a exportar ──────────────────────
+    // Si el producto tiene clasificaciones[] (nuevo campo) las usamos.
+    // Fallback: construir una clasificación desde los campos planos / relación.
+    let clasifRows = [];
 
-    // Sección: campo del producto, fallback de la categoría
-    const seccionVal = prod.seccion || catRelacion?.seccion || '';
-
-    // Subcategoría: campo string del producto, fallback primera subcat de la relación
-    let subcategoriaVal = (prod.subcategoria || '').trim();
-    if (!subcategoriaVal && catRelacion?.subcategorias?.length > 0) {
-      subcategoriaVal = catRelacion.subcategorias[0]?.nombre || '';
+    if (prod.clasificaciones && prod.clasificaciones.length > 0) {
+      clasifRows = prod.clasificaciones.map(c => ({
+        seccion:      c.seccion      || '',
+        categoria:    c.categoria    || '',
+        subcategoria: c.subcategoria || '',
+        tipo:         c.tipo         || '',
+      }));
+    } else {
+      // Fallback retrocompatible: campos planos + relación categoria
+      const catRelacion = prod.categoria || null;
+      const categoriaNombre = catRelacion?.nombre || '';
+      const seccionVal = prod.seccion || catRelacion?.seccion || '';
+      let subcategoriaVal = (prod.subcategoria || '').trim();
+      if (!subcategoriaVal && catRelacion?.subcategorias?.length > 0) {
+        subcategoriaVal = catRelacion.subcategorias[0]?.nombre || '';
+      }
+      let tipoVal = (prod.tipo || '').trim();
+      if (!tipoVal && catRelacion?.subcategorias?.length > 0) {
+        const subcatMatch = subcategoriaVal
+          ? catRelacion.subcategorias.find(s => s.nombre === subcategoriaVal)
+          : catRelacion.subcategorias[0];
+        if (subcatMatch?.tipos?.length > 0) {
+          tipoVal = subcatMatch.tipos[0]?.nombre || '';
+        }
+      }
+      clasifRows = [{ seccion: seccionVal, categoria: categoriaNombre, subcategoria: subcategoriaVal, tipo: tipoVal }];
     }
 
-    // Tipo: campo string del producto, fallback primer tipo de la primera subcat
-    let tipoVal = (prod.tipo || '').trim();
-    if (!tipoVal && catRelacion?.subcategorias?.length > 0) {
-      // Buscar en la subcategoría que coincida, o en la primera
-      const subcatMatch = subcategoriaVal
-        ? catRelacion.subcategorias.find(s => s.nombre === subcategoriaVal)
-        : catRelacion.subcategorias[0];
-      if (subcatMatch?.tipos?.length > 0) {
-        tipoVal = subcatMatch.tipos[0]?.nombre || '';
-      }
-    }
-
-    const valores = [
-      prod.id_original   || String(prod.id || ''),  // A: ID Original
-      prod.sku            || '',                      // B: SKU/EAN
-      prod.nombre         || '',                      // C: Nombre
-      prod.marca          || '',                      // D: Marca
-      seccionVal,                                     // E: Sección
-      categoriaNombre,                                // F: Categoría
-      subcategoriaVal,                                // G: Subcategoría
-      tipoVal,                                        // H: Tipo
-      prod.descripcion    || '',                      // I: Descripción
-      prod.especificaciones || '',                    // J: Especificaciones
-      prod.proveedor      || '',                      // K: Proveedor
-      boolStr(prod.publicado),                        // L: Publicado
-      boolStr(prod.destacado),                        // M: Destacado
-      prod.stock          ?? 0,                       // N: Stock
-      prod.caracteristicas || '',                     // O: Características
-      // P, Q, R: con estilos especiales (abajo)
-    ];
-
-    const r = wsP.getRow(rowIdxP);
-    r.height = 20;
-
-    // Columnas A–O (índices 0-14)
-    valores.forEach((val, ci) => {
-      const cell = r.getCell(ci + 1);
-      // Forzar que el ID Original se guarde como texto para evitar problemas con VLOOKUP
-      cell.value = ci === 0 ? String(val) : val;
-      applyStyle(cell, dataStyle(bgColor));
-      if (ci === 0) cell.numFmt = '@';
-
-      // Categorías en azul (E,F,G,H = índices 4-7)
-      if (ci >= 4 && ci <= 7) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? C.azulClaro : 'FFBFDBFE' } };
-        cell.font = { color: { argb: '1E3A5F' }, size: 10, name: 'Calibri' };
-      }
-      // Publicado/Destacado en verde/rojo (L,M = índices 11,12)
-      if (ci === 11 || ci === 12) {
-        cell.font = { bold: true, color: { argb: val === 'SI' ? '16A34A' : 'EF4444' }, size: 10 };
-      }
-    });
-
-    // Stock (N, col 14) — override estilo: centrado
-    const cellStock = r.getCell(14);
-    cellStock.font      = { bold: false, color: { argb: C.grisOscuro }, size: 10, name: 'Calibri' };
-    cellStock.alignment = { vertical: 'middle', horizontal: 'center' };
-
-    // P (col 16): Precio — editable
-    const cP = r.getCell(16);
-    if (precioNum !== null) cP.value = precioNum;
-    applyStyle(cP, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
-    cP.font      = { bold: true, color: { argb: '065F46' }, size: 10, name: 'Calibri' };
-    cP.alignment = { vertical: 'middle', horizontal: 'right' };
-
-    // Q (col 17): Precio Oferta — EDITABLE (usuario lo ingresa)
-    const cQ = r.getCell(17);
-    if (precioOfertaNum !== null) cQ.value = precioOfertaNum;
-    applyStyle(cQ, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
-    cQ.font      = { bold: true, color: { argb: '065F46' }, size: 10, name: 'Calibri' };
-    cQ.alignment = { vertical: 'middle', horizontal: 'right' };
-
-    // R (col 18): % Descuento — valor numérico calculado en el servidor
-    // NO usar fórmula Excel: cuando el cliente re-guarda el archivo, ExcelJS
-    // serializa { formula, result } como "[object Object]" al reimportar.
-    const cR = r.getCell(18);
-    let calculatedResult = 0;
+    // ── Calcular descuento para las celdas de precio ──────────────────────────
+    let calculatedPct = 0;
     if (precioNum && precioOfertaNum && precioNum > 0) {
-      calculatedResult = Math.round((1 - precioOfertaNum / precioNum) * 100);
+      calculatedPct = Math.round((1 - precioOfertaNum / precioNum) * 100);
     } else if (pctDesc > 0) {
-      calculatedResult = pctDesc;
+      calculatedPct = pctDesc;
     }
-    cR.value = calculatedResult;  // número puro, sin fórmula
-    applyStyle(cR, readonlyStyle());
-    cR.font      = { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri', italic: true };
-    cR.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    // ── Validaciones en cascada para esta fila ──────────────────────────────
-    // (Ahora se aplican todas juntas al final mediante bloques)
-    r.commit();
+    // ── Emitir UNA FILA POR CLASIFICACIÓN ────────────────────────────────────
+    for (let clasifIdx = 0; clasifIdx < clasifRows.length; clasifIdx++) {
+      const clasif  = clasifRows[clasifIdx];
+      const esPrimera = clasifIdx === 0;
+
+      rowIdxP++;
+      const isEven  = rowIdxP % 2 === 0;
+
+      // Fondo: la primera clasificación usa el color normal, las adicionales usan
+      // un tono gris muy suave para indicar visualmente que son filas duplicadas.
+      const bgBase  = isEven ? C.blanco : C.grisClaro;
+      const bgExtra = 'FFEDEDED'; // gris muy claro para clasificaciones adicionales
+      const bgColor = esPrimera ? bgBase : bgExtra;
+
+      const valores = [
+        prod.id_original   || String(prod.id || ''),  // A: ID Original
+        esPrimera ? (prod.sku || '') : '',             // B: SKU/EAN (solo fila 1)
+        esPrimera ? (prod.nombre || '') : '',          // C: Nombre  (solo fila 1)
+        esPrimera ? (prod.marca || '') : '',           // D: Marca   (solo fila 1)
+        clasif.seccion,                                // E: Sección
+        clasif.categoria,                              // F: Categoría
+        clasif.subcategoria,                           // G: Subcategoría
+        clasif.tipo,                                   // H: Tipo
+        esPrimera ? (prod.descripcion || '') : '',     // I: Descripción (solo fila 1)
+        esPrimera ? (prod.especificaciones || '') : '',// J: Especificaciones (solo fila 1)
+        esPrimera ? (prod.proveedor || '') : '',       // K: Proveedor (solo fila 1)
+        esPrimera ? boolStr(prod.publicado) : '',      // L: Publicado (solo fila 1)
+        esPrimera ? boolStr(prod.destacado) : '',      // M: Destacado (solo fila 1)
+        esPrimera ? (prod.stock ?? 0) : '',            // N: Stock (solo fila 1)
+        esPrimera ? (prod.caracteristicas || '') : '', // O: Características (solo fila 1)
+      ];
+
+      const r = wsP.getRow(rowIdxP);
+      r.height = 20;
+
+      // Columnas A–O (índices 0-14)
+      valores.forEach((val, ci) => {
+        const cell = r.getCell(ci + 1);
+        cell.value = ci === 0 ? String(val) : val;
+        applyStyle(cell, dataStyle(bgColor));
+        if (ci === 0) cell.numFmt = '@';
+
+        // Categorías en azul (E,F,G,H = índices 4-7)
+        if (ci >= 4 && ci <= 7) {
+          const catBg = esPrimera
+            ? (isEven ? C.azulClaro : 'FFBFDBFE')
+            : 'FFD0E4F7'; // azul más pálido para filas adicionales
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: catBg } };
+          cell.font = { color: { argb: '1E3A5F' }, size: 10, name: 'Calibri' };
+        }
+        // Publicado/Destacado en verde/rojo (L,M = índices 11,12)
+        if (ci === 11 || ci === 12) {
+          if (val === 'SI' || val === 'NO') {
+            cell.font = { bold: true, color: { argb: val === 'SI' ? '16A34A' : 'EF4444' }, size: 10 };
+          }
+        }
+        // Filas adicionales: texto en gris para diferenciar
+        if (!esPrimera && ci !== 0 && ci < 4) {
+          cell.font = { color: { argb: 'FF888888' }, size: 9, name: 'Calibri', italic: true };
+        }
+      });
+
+      // Stock (N, col 14) — centrado
+      const cellStock = r.getCell(14);
+      cellStock.font      = { bold: false, color: { argb: C.grisOscuro }, size: 10, name: 'Calibri' };
+      cellStock.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // P, Q, R: precio solo en la primera fila (las adicionales son solo clasificaciones)
+      if (esPrimera) {
+        const cP = r.getCell(16);
+        if (precioNum !== null) cP.value = precioNum;
+        applyStyle(cP, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
+        cP.font      = { bold: true, color: { argb: '065F46' }, size: 10, name: 'Calibri' };
+        cP.alignment = { vertical: 'middle', horizontal: 'right' };
+
+        const cQ = r.getCell(17);
+        if (precioOfertaNum !== null) cQ.value = precioOfertaNum;
+        applyStyle(cQ, dataStyle(isEven ? C.verdeClaro : 'FFD1FAE5'));
+        cQ.font      = { bold: true, color: { argb: '065F46' }, size: 10, name: 'Calibri' };
+        cQ.alignment = { vertical: 'middle', horizontal: 'right' };
+
+        const cR = r.getCell(18);
+        cR.value = calculatedPct;
+        applyStyle(cR, readonlyStyle());
+        cR.font      = { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri', italic: true };
+        cR.alignment = { vertical: 'middle', horizontal: 'center' };
+      } else {
+        // Filas adicionales: celdas P, Q, R vacías y en gris
+        [16, 17, 18].forEach(colIdx => {
+          const cell = r.getCell(colIdx);
+          cell.value = '';
+          applyStyle(cell, dataStyle('FFEDEDED'));
+        });
+      }
+
+      r.commit();
+    }
+
     totalVariantes += (prod.variantes || []).length;
   }
 

@@ -498,21 +498,24 @@ export default function Catalogo() {
       if (activeTipoParam) {
         const tipos = activeTipoParam.split(',');
         tipos.forEach((tipo, idx) => {
-          params.set(`filters[$and][${andIndex}][$or][${idx}][tipo][$eq]`, tipo);
+          params.set(`filters[$and][${andIndex}][$or][${idx * 2}][tipo][$eq]`, tipo);
+          params.set(`filters[$and][${andIndex}][$or][${idx * 2 + 1}][clasificaciones][tipo][$eq]`, tipo);
         });
         andIndex++;
       }
       if (activeSubcatParam) {
         const subcats = activeSubcatParam.split(',');
         subcats.forEach((subcat, idx) => {
-          params.set(`filters[$and][${andIndex}][$or][${idx}][subcategoria][$eq]`, subcat);
+          params.set(`filters[$and][${andIndex}][$or][${idx * 2}][subcategoria][$eq]`, subcat);
+          params.set(`filters[$and][${andIndex}][$or][${idx * 2 + 1}][clasificaciones][subcategoria][$eq]`, subcat);
         });
         andIndex++;
       }
       if (activeCatParam) {
         const cats = activeCatParam.split(',');
         cats.forEach((cat, idx) => {
-          params.set(`filters[$and][${andIndex}][$or][${idx}][categoria][nombre][$eq]`, cat);
+          params.set(`filters[$and][${andIndex}][$or][${idx * 2}][categoria][nombre][$eq]`, cat);
+          params.set(`filters[$and][${andIndex}][$or][${idx * 2 + 1}][clasificaciones][categoria][$eq]`, cat);
         });
         andIndex++;
       }

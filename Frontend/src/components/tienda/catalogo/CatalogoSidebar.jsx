@@ -327,23 +327,40 @@ export default function CatalogoSidebar({
     )
       .then(r => r.json())
       .then(json => {
-        const tree = (json.data || []).map(entry => {
+        const treeMap = new Map();
+        (json.data || []).forEach(entry => {
           const a = entry.attributes || entry;
-          return {
-            nombre: a.nombre,
-            seccion: a.seccion,
-            subcategorias: (a.subcategorias || [])
-              .map(sub => {
-                const sName = sub.nombre || sub.attributes?.nombre;
-                const tipos = (sub.tipos || sub.attributes?.tipos || [])
-                  .map(t => t.nombre || t.attributes?.nombre)
-                  .filter(Boolean);
-                return { nombre: sName, tipos };
-              })
-              .filter(s => s.nombre),
-          };
-        }).filter(c => c.nombre);
-        setCategoryTree(tree);
+          const catName = a.nombre;
+          if (!catName) return;
+
+          const subcategorias = (a.subcategorias || [])
+            .map(sub => {
+              const sName = sub.nombre || sub.attributes?.nombre;
+              const tipos = (sub.tipos || sub.attributes?.tipos || [])
+                .map(t => t.nombre || t.attributes?.nombre)
+                .filter(Boolean);
+              return { nombre: sName, tipos };
+            })
+            .filter(s => s.nombre);
+
+          if (!treeMap.has(catName)) {
+            treeMap.set(catName, { nombre: catName, secciones: [], subcategorias: [] });
+          }
+          const existing = treeMap.get(catName);
+          if (a.seccion && !existing.secciones.includes(a.seccion)) {
+            existing.secciones.push(a.seccion);
+          }
+          
+          subcategorias.forEach(sub => {
+            const extSub = existing.subcategorias.find(s => s.nombre === sub.nombre);
+            if (extSub) {
+              extSub.tipos = [...new Set([...extSub.tipos, ...sub.tipos])];
+            } else {
+              existing.subcategorias.push(sub);
+            }
+          });
+        });
+        setCategoryTree(Array.from(treeMap.values()));
       })
       .catch(err => console.warn('[CatalogoSidebar] Error fetching categories:', err));
   }, []);
@@ -417,9 +434,10 @@ export default function CatalogoSidebar({
 
       const filteredTree = activeSeccion 
         ? categoryTree.filter(cat => {
-            if (!cat.seccion) return true;
+            if (!cat.secciones || cat.secciones.length === 0) return true;
             const normalize = str => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-            return normalize(cat.seccion) === normalize(activeSeccion);
+            const normalizedActive = normalize(activeSeccion);
+            return cat.secciones.some(sec => normalize(sec) === normalizedActive);
           })
         : categoryTree;
 

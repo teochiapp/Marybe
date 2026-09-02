@@ -64,6 +64,7 @@ function dataHasChanges(newData, oldData) {
   if (!oldData) return true;
   for (const key of Object.keys(newData)) {
     if (key === 'variantes') continue;
+    if (key === 'clasificaciones') continue; // clasificaciones se compara aparte
     const newVal = newData[key];
     const oldVal = oldData[key];
     
@@ -109,6 +110,71 @@ function dataHasChanges(newData, oldData) {
   return false;
 }
 
+// ─── Agrupar filas duplicadas por id_original ─────────────────────────────────
+//
+// Opción A (recomendada): varias filas con el mismo ID en el Excel.
+// La PRIMERA fila aporta todos los datos base (nombre, precio, marca, etc.).
+// CADA fila (incluida la primera) aporta una clasificación al array.
+//
+// Regla de conflicto: si la fila N tiene un precio distinto al de la fila 1,
+// se ignora y se loguea un warning. Los datos base siempre los manda la fila 1.
+//
+// Resultado: array de productos únicos, cada uno con:
+//   { ...datosDeFila1, clasificaciones: [{ seccion, categoria, subcategoria, tipo }, ...] }
+//
+function agruparFilasDuplicadas(filas, addLog) {
+  const mapaProductos = new Map(); // id_original → producto agrupado
+  const warnings = [];
+
+  for (const fila of filas) {
+    const id = (fila.id_original || '').trim();
+    if (!id) continue;
+
+    const clasificacion = {
+      seccion:      (fila.seccion      || '').trim(),
+      categoria:    (fila.categoria    || '').trim(),
+      subcategoria: (fila.subcategoria || '').trim(),
+      tipo:         (fila.tipo         || '').trim(),
+    };
+
+    if (!mapaProductos.has(id)) {
+      // Primera fila para este ID → establece los datos base
+      mapaProductos.set(id, {
+        ...fila,
+        clasificaciones: [clasificacion],
+      });
+    } else {
+      // Fila duplicada → solo añade la clasificación
+      const existente = mapaProductos.get(id);
+
+      // Detectar conflictos en datos base (precio, nombre, marca)
+      if (fila.nombre && existente.nombre && fila.nombre.trim() !== existente.nombre.trim()) {
+        warnings.push(`⚠️  CONFLICTO en nombre para ID="${id}": fila 1="${existente.nombre}", fila extra="${fila.nombre}" → se usa fila 1`);
+      }
+      if (fila.precio && existente.precio && String(fila.precio).trim() !== String(existente.precio).trim()) {
+        warnings.push(`⚠️  CONFLICTO en precio para ID="${id}": fila 1="${existente.precio}", fila extra="${fila.precio}" → se usa fila 1`);
+      }
+
+      // Evitar clasificaciones duplicadas exactas
+      const claveClasif = `${clasificacion.seccion}|${clasificacion.categoria}|${clasificacion.subcategoria}|${clasificacion.tipo}`;
+      const yaExiste = existente.clasificaciones.some(
+        c => `${c.seccion}|${c.categoria}|${c.subcategoria}|${c.tipo}` === claveClasif
+      );
+
+      if (!yaExiste) {
+        existente.clasificaciones.push(clasificacion);
+      }
+    }
+  }
+
+  // Loguear warnings
+  if (addLog && warnings.length > 0) {
+    warnings.forEach(w => addLog(w));
+  }
+
+  return Array.from(mapaProductos.values());
+}
+
 // ─── Leer el Excel y extraer filas de productos y variantes ──────────────────
 async function leerExcel(rutaArchivo) {
   const wb = new ExcelJS.Workbook();
@@ -117,7 +183,7 @@ async function leerExcel(rutaArchivo) {
   const wsProveedor = wb.getWorksheet('💲 Precios por Proveedor');
   const wsProductos = wb.getWorksheet('📦 Productos') || (!wsProveedor && wb.worksheets.find(ws => ws.name !== 'Listas'));
 
-  const productos = [];
+  const filasRaw = [];  // filas crudas (antes de agrupar)
   const variantes = [];
   let hasVariantesSheet = false;
   let isPartialUpdate = false;
@@ -173,7 +239,7 @@ async function leerExcel(rutaArchivo) {
 
       if (!isVariante) {
         currentPadreId = cleanId;
-        productos.push({
+        filasRaw.push({
           id_original:   cleanId,
           seccion:       seccion,
           categoria:     categoria,
@@ -213,7 +279,7 @@ async function leerExcel(rutaArchivo) {
       const id_original = cellVal(row, 1);
       if (!id_original) return;
 
-      productos.push({
+      filasRaw.push({
         id_original,
         sku:             cellVal(row, 2),
         nombre:          cellVal(row, 3),
@@ -275,10 +341,17 @@ async function leerExcel(rutaArchivo) {
     throw new Error('Formato de Excel no reconocido. Faltan hojas de Productos o Precios por Proveedor.');
   }
   
-  return { productos, variantes, hasVariantesSheet, isPartialUpdate, isModoAlta };
+  // ─── AGRUPAMIENTO: filas duplicadas por ID → clasificaciones[] ───────────────
+  // Se hace SIEMPRE (modo clásico y modo proveedor) después de leer las filas.
+  // La función recibe las filas crudas y devuelve productos con clasificaciones[].
+  // addLog no está disponible aquí todavía, se pasará en procesarImportacion().
+  const productos = filasRaw; // se agrupará en procesarImportacion() con acceso a addLog
+
+  return { filasRaw: productos, variantes, hasVariantesSheet, isPartialUpdate, isModoAlta };
 }
 
 // ─── Validación y diagnóstico pre-importación ──────────────────────────────────────
+// NOTA: recibe productos YA AGRUPADOS (con clasificaciones[])
 function validarYDiagnosticar(productos, variantes, hasVariantesSheet, addLog) {
   addLog('─────────────────────────────────────────────');
   addLog('🔎 DIAGNÓSTICO PRE-IMPORTACIÓN');
@@ -313,6 +386,16 @@ function validarYDiagnosticar(productos, variantes, hasVariantesSheet, addLog) {
     productosEjemplo.forEach(id => addLog(`     └ ID: "${id}"`));
   }
 
+  // 1c. Loguear productos con múltiples clasificaciones
+  const multiClasif = productosFiltrados.filter(p => p.clasificaciones && p.clasificaciones.length > 1);
+  if (multiClasif.length > 0) {
+    addLog(`🏷️  ${multiClasif.length} producto(s) con MÚLTIPLES CLASIFICACIONES:`);
+    multiClasif.slice(0, 10).forEach(p => {
+      addLog(`     └ "${p.nombre || p.id_original}" → ${p.clasificaciones.length} clasificaciones`);
+    });
+    if (multiClasif.length > 10) addLog(`     ... y ${multiClasif.length - 10} más`);
+  }
+
   // 2. Construir set de IDs válidos
   const idsProductos = new Set(productosFiltrados.map(p => (p.id_original || '').trim()));
 
@@ -343,7 +426,7 @@ function validarYDiagnosticar(productos, variantes, hasVariantesSheet, addLog) {
   const idsConVariante = new Set(variantesFiltradas.map(v => (v.producto_padre_id || '').trim()));
   const productosSinVariante = productosFiltrados.filter(p => !idsConVariante.has((p.id_original || '').trim()));
 
-  addLog(`📦 Productos con ID válido: ${productosFiltrados.length}`);
+  addLog(`📦 Productos únicos con ID válido: ${productosFiltrados.length}`);
   addLog(`🔗 Variantes válidas (con padre en Productos): ${variantesFiltradas.length}`);
 
   if (variantesSinId.length > 0) {
@@ -480,11 +563,22 @@ async function procesarImportacion(strapi, rutaExcel) {
 
   addLog(`📂 Leyendo archivo: ${path.basename(rutaExcel)}`);
   
-  // 1. Leer el Excel
-  const { productos: productosRaw, variantes: variantesRaw, hasVariantesSheet, isPartialUpdate, isModoAlta } = await leerExcel(rutaExcel);
+  // 1. Leer el Excel (devuelve filas crudas sin agrupar)
+  const { filasRaw, variantes: variantesRaw, hasVariantesSheet, isPartialUpdate, isModoAlta } = await leerExcel(rutaExcel);
 
-  addLog(`📦 ${productosRaw.length} productos encontrados en el Excel (hoja Productos)`);
+  addLog(`📦 ${filasRaw.length} filas de productos encontradas en el Excel (antes de agrupar)`);
   addLog(`🔗 ${variantesRaw.length} variantes encontradas en el Excel (hoja Variantes)`);
+
+  // 2. Agrupar filas duplicadas → productos con clasificaciones[]
+  const productosAgrupados = agruparFilasDuplicadas(filasRaw, addLog);
+
+  const filasConMultipleClasif = productosAgrupados.filter(p => p.clasificaciones && p.clasificaciones.length > 1);
+  if (filasConMultipleClasif.length > 0) {
+    addLog(`🏷️  Agrupamiento completado: ${filasRaw.length} filas → ${productosAgrupados.length} productos únicos`);
+    addLog(`   └ ${filasConMultipleClasif.length} producto(s) con múltiples clasificaciones`);
+  } else {
+    addLog(`🏷️  Agrupamiento completado: ${productosAgrupados.length} productos únicos (todos con 1 clasificación)`);
+  }
 
   if (isPartialUpdate) {
     addLog('🟢 MODO PROVEEDOR DETECTADO: Actualización parcial (solo stock y precios).');
@@ -493,8 +587,8 @@ async function procesarImportacion(strapi, rutaExcel) {
     addLog('🟡 MODO ALTA DETECTADO: Solo se crearán productos NUEVOS. Si algún ID ya existe en la BD se cancelará la importación.');
   }
 
-  // 2. Validación y diagnóstico
-  const validacion = validarYDiagnosticar(productosRaw, variantesRaw, hasVariantesSheet, addLog);
+  // 3. Validación y diagnóstico (sobre productos ya agrupados)
+  const validacion = validarYDiagnosticar(productosAgrupados, variantesRaw, hasVariantesSheet, addLog);
   const productos  = validacion.productosFiltrados;
   const variantes  = validacion.variantesFiltradas;
 
@@ -506,7 +600,7 @@ async function procesarImportacion(strapi, rutaExcel) {
     addLog(`⏩ Variantes omitidas (padre inexistente): ${validacion.variantesSinPadre.length}`);
   }
 
-  // 3. Ejecutar Upsert
+  // 4. Ejecutar Upsert
   return await ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, isPartialUpdate, isModoAlta, validacion, addLog, log, inicio);
 }
 
@@ -561,26 +655,32 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
     addLog(`✅ Todos los IDs son únicos. Procediendo con la importación...`);
   }
 
+  // ─── Procesar categorías de TODAS las clasificaciones ────────────────────────
+  // Un producto puede tener N clasificaciones → N categorías a upsertear.
   const categoriasMap = new Map();
-  // Procesar categorías en AMBOS modos (completo y proveedor)
-  for (const p of productos) {
-    const cat    = (p.categoria    || '').trim();
-    const seccion = (p.seccion     || '').trim();
-    const subcat  = (p.subcategoria || '').trim();
-    const tipo    = (p.tipo         || '').trim();
-    if (!cat) continue;
 
-    const keyCat = `${seccion}__${cat}`;
-    if (!categoriasMap.has(keyCat)) {
-      categoriasMap.set(keyCat, { nombre: cat, seccion, subcategoriasMap: new Map() });
-    }
-    if (subcat) {
-      const subcatsMap = categoriasMap.get(keyCat).subcategoriasMap;
-      if (!subcatsMap.has(subcat)) {
-        subcatsMap.set(subcat, new Set());
+  for (const p of productos) {
+    const clasificaciones = p.clasificaciones || [];
+
+    for (const clasif of clasificaciones) {
+      const cat    = (clasif.categoria    || '').trim();
+      const seccion = (clasif.seccion     || '').trim();
+      const subcat  = (clasif.subcategoria || '').trim();
+      const tipo    = (clasif.tipo         || '').trim();
+      if (!cat) continue;
+
+      const keyCat = `${seccion}__${cat}`;
+      if (!categoriasMap.has(keyCat)) {
+        categoriasMap.set(keyCat, { nombre: cat, seccion, subcategoriasMap: new Map() });
       }
-      if (tipo) {
-        subcatsMap.get(subcat).add(tipo);
+      if (subcat) {
+        const subcatsMap = categoriasMap.get(keyCat).subcategoriasMap;
+        if (!subcatsMap.has(subcat)) {
+          subcatsMap.set(subcat, new Set());
+        }
+        if (tipo) {
+          subcatsMap.get(subcat).add(tipo);
+        }
       }
     }
   }
@@ -615,6 +715,7 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
     const keys = Object.keys(newData);
     for (const key of keys) {
       if (key === 'variantes') continue;
+      if (key === 'clasificaciones') continue;
       if (String(newData[key] ?? '') !== String(oldData[key] ?? '')) return true;
     }
     return false;
@@ -691,27 +792,40 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
         ? Math.round((1 - precioOfertaProd / precioProd) * 100)
         : Math.round(parseDecimal(p.pct_descuento) || 0);
 
+      // ─── Construir el array de clasificaciones para Strapi ───────────────────
+      // Siempre reemplaza (idempotente): el Excel es la fuente de verdad.
+      const clasificacionesData = (p.clasificaciones || []).map(c => ({
+        seccion:      (c.seccion      || '').trim(),
+        categoria:    (c.categoria    || '').trim(),
+        subcategoria: (c.subcategoria || '').trim(),
+        tipo:         (c.tipo         || '').trim(),
+      }));
+
+      // ─── Primera clasificación para campos planos de retrocompatibilidad ─────
+      const primeraClasif = clasificacionesData[0] || {};
+      const nombreCat1    = (primeraClasif.categoria || '').trim();
+      const seccion1      = (primeraClasif.seccion   || '').trim();
+      const keyCat1       = `${seccion1}__${nombreCat1}`;
+      const catDocId1     = categoriaIdPorNombre.get(keyCat1) || null;
+
       let productoData = {
         stock:           parseInt(p.stock) || 0,
         descuento:       maxDescuento || pctDescProd,
         precio:          precioProd,
         precio_oferta:   precioOfertaProd,
+        clasificaciones: clasificacionesData,
       };
 
       // En MODO PROVEEDOR, también actualizamos los campos de categoría y visibilidad
       // si el usuario los completó en el Excel (celdas no vacías).
       if (isPartialUpdate) {
-        if ((p.seccion      || '').trim()) productoData.seccion      = (p.seccion      || '').trim();
-        if ((p.subcategoria || '').trim()) productoData.subcategoria = (p.subcategoria || '').trim();
-        if ((p.tipo         || '').trim()) productoData.tipo         = (p.tipo         || '').trim();
+        // Actualizar campos planos desde la primera clasificación
+        if (primeraClasif.seccion)      productoData.seccion      = primeraClasif.seccion;
+        if (primeraClasif.subcategoria) productoData.subcategoria = primeraClasif.subcategoria;
+        if (primeraClasif.tipo)         productoData.tipo         = primeraClasif.tipo;
         // Categoría: vincular la relación si la celda tiene un nombre válido
-        const nombreCatProv = (p.categoria || '').trim();
-        const seccionProv = (productoData.seccion || '').trim();
-        if (nombreCatProv) {
-          const keyCat = `${seccionProv}__${nombreCatProv}`;
-          const catDocId = categoriaIdPorNombre.get(keyCat) || null;
-          if (catDocId) productoData.categoria = catDocId;
-        }
+        if (nombreCat1 && catDocId1) productoData.categoria = catDocId1;
+
         // Publicado y Destacado: solo actualizar si la celda tiene un valor explícito SI/NO
         const pubVal = (p.publicado || '').trim().toUpperCase();
         if (pubVal === 'SI' || pubVal === 'NO') productoData.publicado = pubVal === 'SI';
@@ -719,29 +833,25 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
         if (destVal === 'SI' || destVal === 'NO') productoData.destacado = destVal === 'SI';
       }
 
-
       if (!isPartialUpdate) {
-        const nombreCategoria = (p.categoria  || '').trim();
-        const seccionProv = (p.seccion || '').trim();
-        const keyCat = `${seccionProv}__${nombreCategoria}`;
-        const categoriaDocId  = categoriaIdPorNombre.get(keyCat) || null;
-
         productoData = {
           ...productoData,
           id_original:     idOriginal,
           sku:             (p.sku || '').trim(),
           nombre:          (p.nombre || '').trim(),
           marca:           (p.marca || '').trim(),
-          seccion:         (p.seccion || '').trim(),
-          subcategoria:    (p.subcategoria || '').trim(),
-          tipo:            (p.tipo || '').trim(),
+          // Campos planos de retrocompatibilidad (primera clasificación)
+          seccion:         primeraClasif.seccion      || '',
+          subcategoria:    primeraClasif.subcategoria || '',
+          tipo:            primeraClasif.tipo          || '',
           descripcion:     (p.descripcion || '').trim(),
           especificaciones: (p.especificaciones || '').trim(),
           proveedor:       (p.proveedor || '').trim(),
           publicado:       parseBoolean(p.publicado),
           destacado:       parseBoolean(p.destacado),
           caracteristicas: (p.caracteristicas || '').trim() || null,
-          categoria:       categoriaDocId ? categoriaDocId : null,
+          // Relación categoria (retrocompatibilidad): vincula la primera clasificación
+          categoria:       catDocId1 ? catDocId1 : null,
         };
       }
 
@@ -752,7 +862,7 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
       try {
         const existente = await strapi.db.query(UID_PRODUCTO).findOne({
           where: { id_original: idOriginal },
-          populate: ['variantes']
+          populate: ['variantes', 'clasificaciones']
         });
 
         if (existente) {
@@ -837,6 +947,7 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
     variantesOmitidasSinId:  validacion.variantesSinId.length,
     creados,
     actualizados,
+    sinCambios,
     errores,
     erroresList,
     tiempoSegundos: parseFloat(elapsed),
@@ -957,5 +1068,8 @@ module.exports = () => ({
   procesarImportacion,
   guardarArchivo,
   obtenerUltimaImportacion,
-  verificarPreciosIntegridad
+  verificarPreciosIntegridad,
+  // Exportar agruparFilasDuplicadas para tests
+  agruparFilasDuplicadas,
 });
+

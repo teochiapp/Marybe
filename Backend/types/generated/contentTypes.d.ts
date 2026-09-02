@@ -848,6 +848,7 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
       'manyToOne',
       'api::categoria.categoria'
     >;
+    clasificaciones: Schema.Attribute.Component<'producto.clasificacion', true>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

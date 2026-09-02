@@ -146,6 +146,7 @@ async function fetchProductosPorProveedor(strapi, proveedores) {
       filters:  { proveedor: { $in: proveedores } },
       populate: {
         variantes: true,
+        clasificaciones: true,
         categoria: {
           populate: {
             subcategorias: {
@@ -340,20 +341,33 @@ async function generarExcelProveedor(strapi, proveedores) {
     applyStyle(cD, dataStyle(bgProd));
     cD.font   = { bold: true, color: { argb: C.grisOscuro }, size: 10, name: 'Calibri' };
 
-    // Resolver Categoría / Subcategoría / Tipo desde la relación (igual que exportacion-admin)
-    const catRelacion     = prod.categoria || null;
-    const categoriaNombre = catRelacion?.nombre || '';
-    const seccionVal      = prod.seccion || catRelacion?.seccion || '';
-    let subcategoriaVal   = (prod.subcategoria || '').trim();
-    if (!subcategoriaVal && catRelacion?.subcategorias?.length > 0) {
-      subcategoriaVal = catRelacion.subcategorias[0]?.nombre || '';
-    }
-    let tipoVal = (prod.tipo || '').trim();
-    if (!tipoVal && catRelacion?.subcategorias?.length > 0) {
-      const subcatMatch = subcategoriaVal
-        ? catRelacion.subcategorias.find(s => s.nombre === subcategoriaVal)
-        : catRelacion.subcategorias[0];
-      if (subcatMatch?.tipos?.length > 0) tipoVal = subcatMatch.tipos[0]?.nombre || '';
+    // Resolver Categoría / Subcategoría / Tipo:
+    // Fuente primaria: clasificaciones[0] (nuevo campo multi-clasificación).
+    // Fallback: campos planos del producto + relación categoria (retrocompatibilidad).
+    let seccionVal = '', categoriaNombre = '', subcategoriaVal = '', tipoVal = '';
+
+    if (prod.clasificaciones && prod.clasificaciones.length > 0) {
+      const c = prod.clasificaciones[0];
+      seccionVal      = c.seccion      || '';
+      categoriaNombre = c.categoria    || '';
+      subcategoriaVal = c.subcategoria || '';
+      tipoVal         = c.tipo         || '';
+    } else {
+      // Fallback retrocompatible: campos planos + relación categoria
+      const catRelacion = prod.categoria || null;
+      categoriaNombre   = catRelacion?.nombre || '';
+      seccionVal        = prod.seccion || catRelacion?.seccion || '';
+      subcategoriaVal   = (prod.subcategoria || '').trim();
+      if (!subcategoriaVal && catRelacion?.subcategorias?.length > 0) {
+        subcategoriaVal = catRelacion.subcategorias[0]?.nombre || '';
+      }
+      tipoVal = (prod.tipo || '').trim();
+      if (!tipoVal && catRelacion?.subcategorias?.length > 0) {
+        const subcatMatch = subcategoriaVal
+          ? catRelacion.subcategorias.find(s => s.nombre === subcategoriaVal)
+          : catRelacion.subcategorias[0];
+        if (subcatMatch?.tipos?.length > 0) tipoVal = subcatMatch.tipos[0]?.nombre || '';
+      }
     }
     const boolStr = val => (val === true || val === 1 || String(val).toLowerCase() === 'true' || String(val).toLowerCase() === 'si') ? 'SI' : 'NO';
 

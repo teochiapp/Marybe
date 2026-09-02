@@ -111,6 +111,20 @@ export interface LayoutFilaMixta extends Struct.ComponentSchema {
   };
 }
 
+export interface ProductoClasificacion extends Struct.ComponentSchema {
+  collectionName: 'components_producto_clasificaciones';
+  info: {
+    description: 'Ruta taxon\u00F3mica de un producto: Secci\u00F3n > Categor\u00EDa > Subcategor\u00EDa > Tipo';
+    displayName: 'Clasificacion';
+  };
+  attributes: {
+    categoria: Schema.Attribute.String;
+    seccion: Schema.Attribute.String;
+    subcategoria: Schema.Attribute.String;
+    tipo: Schema.Attribute.String;
+  };
+}
+
 export interface ProductoVariante extends Struct.ComponentSchema {
   collectionName: 'components_producto_variantes';
   info: {
@@ -199,6 +213,7 @@ declare module '@strapi/strapi' {
       'layout.fila-2-columnas': LayoutFila2Columnas;
       'layout.fila-4-columnas': LayoutFila4Columnas;
       'layout.fila-mixta': LayoutFilaMixta;
+      'producto.clasificacion': ProductoClasificacion;
       'producto.variante': ProductoVariante;
       'shared.banner': SharedBanner;
       'shared.banner-destacado': SharedBannerDestacado;
