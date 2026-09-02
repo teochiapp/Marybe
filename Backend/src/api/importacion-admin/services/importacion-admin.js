@@ -1064,12 +1064,74 @@ async function verificarPreciosIntegridad(strapi) {
   };
 }
 
+// ─── Migración one-shot de clasificaciones existentes ─────────────────────────
+async function migrarClasificacionesExistentes(strapi) {
+  const todos = await strapi.documents(UID_PRODUCTO).findMany({
+    populate: {
+      clasificaciones: true,
+      categoria: true,
+    },
+    limit: 50000,
+  });
+
+  let migrados = 0;
+  let omitidos = 0;
+  let sinDatos = 0;
+  let errores  = 0;
+  const erroresList = [];
+
+  for (const prod of todos) {
+    if (prod.clasificaciones && prod.clasificaciones.length > 0) {
+      omitidos++;
+      continue;
+    }
+
+    const seccion      = (prod.seccion || prod.categoria?.seccion || '').trim();
+    const categoria    = (prod.categoria?.nombre || '').trim();
+    const subcategoria = (prod.subcategoria || '').trim();
+    const tipo         = (prod.tipo || '').trim();
+
+    if (!seccion && !categoria && !subcategoria && !tipo) {
+      sinDatos++;
+      continue;
+    }
+
+    try {
+      await strapi.documents(UID_PRODUCTO).update({
+        documentId: prod.documentId,
+        data: {
+          clasificaciones: [
+            { seccion, categoria, subcategoria, tipo }
+          ]
+        },
+        status: 'published',
+      });
+      migrados++;
+    } catch (err) {
+      errores++;
+      erroresList.push({ id: prod.id_original || prod.documentId, error: err.message });
+    }
+  }
+
+  return {
+    ok: true,
+    total: todos.length,
+    migrados,
+    omitidos,
+    sinDatos,
+    errores,
+    erroresList: erroresList.slice(0, 50),
+  };
+}
+
 module.exports = () => ({
   procesarImportacion,
   guardarArchivo,
   obtenerUltimaImportacion,
   verificarPreciosIntegridad,
+  migrarClasificacionesExistentes,
   // Exportar agruparFilasDuplicadas para tests
   agruparFilasDuplicadas,
 });
+
 

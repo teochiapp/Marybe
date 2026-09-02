@@ -2,26 +2,24 @@
  * migrate_clasificaciones.js
  *
  * Script de migración ONE-SHOT.
- * Lee todos los productos en Strapi que tienen los campos planos
- * (seccion, categoria, subcategoria, tipo) pero NO tienen clasificaciones[].
- * Para cada uno, crea clasificaciones[0] con esos valores.
+ * Se autentica con el endpoint de administración de importación
+ * y dispara la migración interna en Strapi a través de la API dedicada:
+ * POST /api/importacion-admin/migrar-clasificaciones
  *
  * USO:
  *   node scripts/migrate_clasificaciones.js
  *
- * REQUISITO: Strapi debe estar CORRIENDO en localhost:1337 con el JWT de importación.
- * Configurar IMPORT_ADMIN_EMAIL y IMPORT_ADMIN_PASSWORD en el .env del Backend.
- *
- * SEGURIDAD: Este script NO modifica los campos planos existentes.
- * Es seguro ejecutarlo múltiples veces (idempotente): si clasificaciones ya tiene datos,
- * no vuelve a poblarlos.
+ * Variables de entorno:
+ *   IMPORT_ADMIN_EMAIL    (opcional, default admin@marybe.com)
+ *   IMPORT_ADMIN_PASSWORD (requerido)
+ *   STRAPI_URL            (opcional, default http://localhost:1337)
  */
 
 'use strict';
 
 const axios = require('axios');
 
-const STRAPI_URL = process.env.STRAPI_URL || 'http://localhost:1337';
+const STRAPI_URL = (process.env.STRAPI_URL || 'http://localhost:1337').replace(/\/$/, '');
 const EMAIL      = process.env.IMPORT_ADMIN_EMAIL || 'admin@marybe.com';
 const PASSWORD   = process.env.IMPORT_ADMIN_PASSWORD;
 
@@ -29,8 +27,6 @@ if (!PASSWORD) {
   console.error('❌ IMPORT_ADMIN_PASSWORD no está definido en las variables de entorno.');
   process.exit(1);
 }
-
-const PAGE_SIZE = 50;
 
 // ─── Login para obtener el JWT custom ─────────────────────────────────────────
 async function login() {
@@ -41,46 +37,23 @@ async function login() {
   return res.data.jwt;
 }
 
-// ─── Obtener todos los productos paginados ─────────────────────────────────────
-async function fetchAllProductos(jwt) {
-  const todos = [];
-  let page = 1;
-
-  while (true) {
-    const res = await axios.get(`${STRAPI_URL}/api/productos`, {
+// ─── Disparar migración en el backend ─────────────────────────────────────────
+async function ejecutarMigracion(jwt) {
+  const res = await axios.post(
+    `${STRAPI_URL}/api/importacion-admin/migrar-clasificaciones`,
+    {},
+    {
       headers: { Authorization: `Bearer ${jwt}` },
-      params: {
-        'populate[clasificaciones]': true,
-        'populate[categoria]':       true,
-        'pagination[page]':          page,
-        'pagination[pageSize]':      PAGE_SIZE,
-        'status':                    'published',
-      },
-    });
-
-    const items = res.data?.data || [];
-    if (items.length === 0) break;
-    todos.push(...items);
-    if (items.length < PAGE_SIZE) break;
-    page++;
-  }
-
-  return todos;
-}
-
-// ─── Actualizar un producto con clasificaciones[] ─────────────────────────────
-async function actualizarProducto(jwt, documentId, clasificaciones) {
-  await axios.put(
-    `${STRAPI_URL}/api/productos/${documentId}`,
-    { data: { clasificaciones } },
-    { headers: { Authorization: `Bearer ${jwt}` } }
+      timeout: 120000, // 2 minutos máx
+    }
   );
+  return res.data;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
   console.log('🚀 Iniciando migración de clasificaciones...');
-  console.log(`   URL: ${STRAPI_URL}`);
+  console.log(`   URL:     ${STRAPI_URL}`);
   console.log(`   Usuario: ${EMAIL}`);
   console.log('');
 
@@ -93,69 +66,35 @@ async function main() {
     process.exit(1);
   }
 
-  let productos;
+  console.log('⏳ Ejecutando migración en Strapi...');
+  let resultado;
   try {
-    productos = await fetchAllProductos(jwt);
-    console.log(`📦 ${productos.length} productos encontrados en la BD\n`);
+    resultado = await ejecutarMigracion(jwt);
   } catch (err) {
-    console.error('❌ Error al obtener productos:', err.response?.data || err.message);
+    if (err.response?.status === 404) {
+      console.error('❌ Error 404: La ruta /api/importacion-admin/migrar-clasificaciones no existe.');
+      console.error('👉 Asegurate de haber reiniciado Strapi o desplegado los últimos cambios de código.');
+    } else {
+      console.error('❌ Error al ejecutar migración:', err.response?.data || err.message);
+    }
     process.exit(1);
-  }
-
-  let migrados   = 0;
-  let omitidos   = 0;
-  let sinDatos   = 0;
-  let errores    = 0;
-
-  for (const prod of productos) {
-    const attrs   = prod.attributes || prod; // compatibilidad v4 / v5
-    const docId   = prod.documentId || prod.id;
-    const nombre  = attrs.nombre || String(prod.id);
-
-    // ── Ya tiene clasificaciones → omitir ───────────────────────────────────
-    const clasifExistentes = attrs.clasificaciones?.data || attrs.clasificaciones || [];
-    if (Array.isArray(clasifExistentes) && clasifExistentes.length > 0) {
-      omitidos++;
-      continue;
-    }
-
-    // ── Construir la clasificación desde los campos planos ───────────────────
-    const seccion      = (attrs.seccion      || '').trim();
-    const categoria    = (attrs.categoria?.data?.attributes?.nombre || attrs.categoria?.nombre || '').trim();
-    const subcategoria = (attrs.subcategoria || '').trim();
-    const tipo         = (attrs.tipo         || '').trim();
-
-    // Si no tiene ningún dato taxonómico, omitir
-    if (!seccion && !categoria && !subcategoria && !tipo) {
-      sinDatos++;
-      console.log(`  ⚪ Sin datos taxonómicos: "${nombre}" (${docId})`);
-      continue;
-    }
-
-    // ── Actualizar en Strapi ─────────────────────────────────────────────────
-    try {
-      await actualizarProducto(jwt, docId, [{ seccion, categoria, subcategoria, tipo }]);
-      migrados++;
-      console.log(`  ✅ Migrado: "${nombre}" → seccion="${seccion}", categoria="${categoria}", subcategoria="${subcategoria}", tipo="${tipo}"`);
-    } catch (err) {
-      errores++;
-      console.error(`  ❌ Error en "${nombre}" (${docId}):`, err.response?.data?.error?.message || err.message);
-    }
   }
 
   console.log('\n─────────────────────────────────────────────');
-  console.log(`✅ Migración completada:`);
-  console.log(`   └ ✅ Migrados:   ${migrados}`);
-  console.log(`   └ ⏩ Omitidos (ya tenían clasificaciones): ${omitidos}`);
-  console.log(`   └ ⚪ Sin datos taxonómicos:               ${sinDatos}`);
-  console.log(`   └ ❌ Errores:    ${errores}`);
+  console.log('✅ Migración completada exitosamente:');
+  console.log(`   ├ 📦 Total analizados:                 ${resultado.total}`);
+  console.log(`   ├ ✅ Migrados a clasificaciones[]:     ${resultado.migrados}`);
+  console.log(`   ├ ⏩ Omitidos (ya tenían datos):       ${resultado.omitidos}`);
+  console.log(`   ├ ⚪ Sin datos taxonómicos:            ${resultado.sinDatos}`);
+  console.log(`   └ ❌ Errores:                          ${resultado.errores || 0}`);
   console.log('─────────────────────────────────────────────');
 
-  if (errores > 0) {
-    console.log('\n⚠️  Hubo errores. Revisá los logs de arriba y volvé a ejecutar el script.');
+  if (resultado.errores > 0) {
+    console.log('\n⚠️  Algunos productos tuvieron errores:');
+    (resultado.erroresList || []).forEach(e => console.log(`   - ID ${e.id}: ${e.error}`));
     process.exit(1);
   } else {
-    console.log('\n🎉 Todos los productos fueron migrados exitosamente.');
+    console.log('\n🎉 Todos los productos quedaron listos con el nuevo formato.');
     process.exit(0);
   }
 }

@@ -147,6 +147,25 @@ module.exports = {
   },
 
   /**
+   * POST /api/importacion-admin/migrar-clasificaciones
+   * Migra productos existentes con campos planos a clasificaciones[].
+   */
+  async migrarClasificaciones(ctx) {
+    if (!verificarAdminImportacion(ctx)) {
+      return ctx.unauthorized('No autenticado o sesión expirada.');
+    }
+
+    try {
+      const servicio = strapi.service('api::importacion-admin.importacion-admin');
+      const resultado = await servicio.migrarClasificacionesExistentes(strapi);
+      return ctx.send(resultado);
+    } catch (err) {
+      strapi.log.error(`[ImportAdmin] Error en migración de clasificaciones: ${err.message}`);
+      return ctx.internalServerError(`Error al migrar: ${err.message}`);
+    }
+  },
+
+  /**
    * GET /api/importacion-admin/verificar-precios
    * Revisa la integridad de precios de todos los productos y comprueba
    * que se exportarán correctamente sin discrepancias.

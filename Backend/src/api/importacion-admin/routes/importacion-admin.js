@@ -47,6 +47,16 @@ module.exports = {
       },
     },
     {
+      method: 'POST',
+      path: '/importacion-admin/migrar-clasificaciones',
+      handler: 'importacion-admin.migrarClasificaciones',
+      config: {
+        auth: false,
+        description: 'Migra clasificaciones existentes de campos planos a clasificaciones[]',
+        tags: ['Admin'],
+      },
+    },
+    {
       method: 'GET',
       path: '/importacion-admin/taxonomia-vacia',
       handler: 'importacion-admin.taxonomiaVacia',
