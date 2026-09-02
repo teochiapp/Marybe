@@ -117,7 +117,7 @@ const BadgeButton = styled.button`
 
 export default function OfertasSection({ seccion }) {
   const navigate = useNavigate();
-  const discountValores = [50, 40, 35, 30, 20];
+  const discountValores = [60, 50, 40, 35, 30, 25, 20, 15, 10];
   const scrollRef = useRef(null);
 
   const isDown = useRef(false);

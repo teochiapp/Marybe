@@ -693,7 +693,7 @@ export default function CatalogoSidebar({
               <AccordionChevron $open={accordions.ofertas}><ChevronIcon /></AccordionChevron>
             </AccordionHeader>
             <AccordionContent $open={accordions.ofertas}>
-              {['todas', '50', '40', '35', '30', '20', '10'].map((descValue) => (
+              {['todas', '60', '50', '40', '35', '30', '25', '20', '15', '10'].map((descValue) => (
                 <CheckboxLabel key={descValue}>
                   <input
                     type="checkbox"
