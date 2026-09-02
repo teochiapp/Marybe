@@ -321,8 +321,20 @@ export default function CatalogoProductCard({ product, strapiUrl }) {
   }
 
   const visualTag = getProductTag(attrs);
-  const availableBadges = [10, 15, 20, 25, 30, 35, 40, 50, 60];
-  const hasImageBadge = availableBadges.includes(calcDescuento);
+
+  const getStampValue = (descuento) => {
+    if (descuento <= 10) return 10;
+    if (descuento <= 15) return 15;
+    if (descuento <= 20) return 20;
+    if (descuento <= 25) return 25;
+    if (descuento <= 30) return 30;
+    if (descuento <= 35) return 35;
+    if (descuento <= 40) return 40;
+    if (descuento <= 50) return 50;
+    return 60;
+  };
+
+  const stampVal = calcDescuento > 0 ? getStampValue(calcDescuento) : null;
 
   const handleNavigate = () => {
     navigate(generateProductUrl(id, nombre));
@@ -337,12 +349,8 @@ export default function CatalogoProductCard({ product, strapiUrl }) {
           </LeftTopTag>
         )}
 
-        {calcDescuento > 0 && hasImageBadge && (
-          <DiscountBadgeImage src={`/ofertas/${calcDescuento}.png`} alt={`-${calcDescuento}% OFF`} />
-        )}
-
-        {calcDescuento > 0 && !hasImageBadge && (
-          <DiscountBadgeAbsolute>-{calcDescuento}%</DiscountBadgeAbsolute>
+        {stampVal && (
+          <DiscountBadgeImage src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
         )}
 
         <HeartContainer>
