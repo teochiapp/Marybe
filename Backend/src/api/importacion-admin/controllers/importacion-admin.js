@@ -154,10 +154,11 @@ module.exports = {
     if (!verificarAdminImportacion(ctx)) {
       return ctx.unauthorized('No autenticado o sesión expirada.');
     }
+    const { offset = 0, limit = 500 } = ctx.request.body || {};
 
     try {
       const servicio = strapi.service('api::importacion-admin.importacion-admin');
-      const resultado = await servicio.migrarClasificacionesExistentes(strapi);
+      const resultado = await servicio.migrarClasificacionesExistentes(strapi, Number(offset), Number(limit));
       return ctx.send(resultado);
     } catch (err) {
       strapi.log.error(`[ImportAdmin] Error en migración de clasificaciones: ${err.message}`);

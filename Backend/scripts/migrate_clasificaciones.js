@@ -37,14 +37,14 @@ async function login() {
   return res.data.jwt;
 }
 
-// ─── Disparar migración en el backend ─────────────────────────────────────────
-async function ejecutarMigracion(jwt) {
+// ─── Disparar migración en el backend por lotes ────────────────────────────────
+async function ejecutarMigracion(jwt, offset, limit) {
   const res = await axios.post(
     `${STRAPI_URL}/api/importacion-admin/migrar-clasificaciones`,
-    {},
+    { offset, limit },
     {
       headers: { Authorization: `Bearer ${jwt}` },
-      timeout: 120000, // 2 minutos máx
+      timeout: 30000, // 30 segundos por batch
     }
   );
   return res.data;
@@ -66,10 +66,38 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('⏳ Ejecutando migración en Strapi...');
-  let resultado;
+  console.log('⏳ Ejecutando migración en Strapi por lotes...');
+  
+  let totalAnalizados = 0;
+  let totalMigrados = 0;
+  let totalOmitidos = 0;
+  let totalSinDatos = 0;
+  let totalErrores = 0;
+  const todosErrores = [];
+  
+  let offset = 0;
+  const limit = 500;
+
   try {
-    resultado = await ejecutarMigracion(jwt);
+    while (true) {
+      console.log(`   ➤ Procesando lote (offset: ${offset}, limit: ${limit})...`);
+      const resultado = await ejecutarMigracion(jwt, offset, limit);
+      
+      totalAnalizados += resultado.total;
+      totalMigrados += resultado.migrados;
+      totalOmitidos += resultado.omitidos;
+      totalSinDatos += resultado.sinDatos;
+      totalErrores += resultado.errores;
+      
+      if (resultado.erroresList && resultado.erroresList.length > 0) {
+        todosErrores.push(...resultado.erroresList);
+      }
+      
+      if (resultado.total < limit) {
+        break; // No hay más productos
+      }
+      offset += limit;
+    }
   } catch (err) {
     if (err.response?.status === 404) {
       console.error('❌ Error 404: La ruta /api/importacion-admin/migrar-clasificaciones no existe.');
@@ -82,16 +110,17 @@ async function main() {
 
   console.log('\n─────────────────────────────────────────────');
   console.log('✅ Migración completada exitosamente:');
-  console.log(`   ├ 📦 Total analizados:                 ${resultado.total}`);
-  console.log(`   ├ ✅ Migrados a clasificaciones[]:     ${resultado.migrados}`);
-  console.log(`   ├ ⏩ Omitidos (ya tenían datos):       ${resultado.omitidos}`);
-  console.log(`   ├ ⚪ Sin datos taxonómicos:            ${resultado.sinDatos}`);
-  console.log(`   └ ❌ Errores:                          ${resultado.errores || 0}`);
+  console.log(`   ├ 📦 Total analizados:                 ${totalAnalizados}`);
+  console.log(`   ├ ✅ Migrados a clasificaciones[]:     ${totalMigrados}`);
+  console.log(`   ├ ⏩ Omitidos (ya tenían datos):       ${totalOmitidos}`);
+  console.log(`   ├ ⚪ Sin datos taxonómicos:            ${totalSinDatos}`);
+  console.log(`   └ ❌ Errores:                          ${totalErrores}`);
   console.log('─────────────────────────────────────────────');
 
-  if (resultado.errores > 0) {
+  if (totalErrores > 0) {
     console.log('\n⚠️  Algunos productos tuvieron errores:');
-    (resultado.erroresList || []).forEach(e => console.log(`   - ID ${e.id}: ${e.error}`));
+    todosErrores.slice(0, 50).forEach(e => console.log(`   - ID ${e.id}: ${e.error}`));
+    if (todosErrores.length > 50) console.log(`   ...y ${todosErrores.length - 50} más.`);
     process.exit(1);
   } else {
     console.log('\n🎉 Todos los productos quedaron listos con el nuevo formato.');

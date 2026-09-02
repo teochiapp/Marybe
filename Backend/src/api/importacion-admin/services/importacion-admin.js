@@ -1065,13 +1065,14 @@ async function verificarPreciosIntegridad(strapi) {
 }
 
 // ─── Migración one-shot de clasificaciones existentes ─────────────────────────
-async function migrarClasificacionesExistentes(strapi) {
+async function migrarClasificacionesExistentes(strapi, offset = 0, limit = 500) {
   const todos = await strapi.documents(UID_PRODUCTO).findMany({
     populate: {
       clasificaciones: true,
       categoria: true,
     },
-    limit: 50000,
+    start: offset,
+    limit: limit,
   });
 
   let migrados = 0;
