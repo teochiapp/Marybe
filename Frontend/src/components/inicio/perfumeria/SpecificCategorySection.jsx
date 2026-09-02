@@ -469,11 +469,15 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
   };
 
   const getStampValue = (descuento) => {
+    if (descuento <= 10) return 10;
+    if (descuento <= 15) return 15;
     if (descuento <= 20) return 20;
+    if (descuento <= 25) return 25;
     if (descuento <= 30) return 30;
     if (descuento <= 35) return 35;
     if (descuento <= 40) return 40;
-    return 50;
+    if (descuento <= 50) return 50;
+    return 60;
   };
 
   if (loading || !config || productos.length === 0) {

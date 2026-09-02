@@ -321,7 +321,7 @@ export default function CatalogoProductCard({ product, strapiUrl }) {
   }
 
   const visualTag = getProductTag(attrs);
-  const availableBadges = [20, 30, 35, 40, 50];
+  const availableBadges = [10, 15, 20, 25, 30, 35, 40, 50, 60];
   const hasImageBadge = availableBadges.includes(calcDescuento);
 
   const handleNavigate = () => {
