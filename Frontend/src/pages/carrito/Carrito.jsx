@@ -733,7 +733,11 @@ export default function Carrito() {
                         <QuantityBox>
                           <button onClick={() => updateQuantity(item.cartId, item.quantity - 1)}>−</button>
                           <span>{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.cartId, item.quantity + 1)}>+</button>
+                          <button 
+                            onClick={() => updateQuantity(item.cartId, item.quantity + 1)}
+                            disabled={item.quantity >= (item.variant?.stock ?? item.product?.stock ?? 99)}
+                            style={{ opacity: item.quantity >= (item.variant?.stock ?? item.product?.stock ?? 99) ? 0.3 : 1 }}
+                          >+</button>
                         </QuantityBox>
 
                         <DeleteButton onClick={() => removeFromCart(item.cartId)} aria-label="Eliminar producto">

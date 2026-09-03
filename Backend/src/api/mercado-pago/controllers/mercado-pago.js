@@ -41,4 +41,27 @@ module.exports = {
       ctx.send({ pagado: false });
     }
   },
+
+  async webhook(ctx) {
+    try {
+      const query = ctx.request.query;
+      const body = ctx.request.body;
+
+      // Mercado Pago envía notificaciones de diferentes tipos (payment, merchant_order)
+      const topic = query.topic || body.type;
+      const id = query.id || body.data?.id;
+
+      if (!id || (topic !== 'payment' && topic !== 'payment.created' && topic !== 'payment.updated')) {
+        return ctx.send('OK'); // Ignorar otros eventos para no saturar
+      }
+
+      const service = getMercadoPagoService();
+      await service.procesarWebhookDePago(id);
+
+      ctx.send('OK');
+    } catch (error) {
+      console.error('Error procesando webhook de MP:', error);
+      ctx.throw(500, 'Error procesando webhook');
+    }
+  },
 };

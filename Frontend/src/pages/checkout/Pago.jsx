@@ -662,24 +662,53 @@ export default function Pago() {
     setIsProcessing(true);
 
     if (paymentMethod === 'mercadopago') {
-      // Si la Gift Card cubre todo el monto, finalTotal será 0.
-      // Mercado Pago no permite pagos de 0, así que saltamos MP y procesamos directo.
       if (finalTotal === 0) {
         await confirmOrder(finalTotal);
         return;
       }
 
       try {
-        const generatedRef = `MARYBE-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        // 1. Primero creamos el pedido en Strapi como "Procesando" para obtener el número de pedido real
+        // Captura del carrito antes de limpiarlo
+        const itemsSnapshot = [...cartItems];
+        let orderNumber = 'M-000000';
+
+        const responseOrder = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/mis-pedidos`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            productos: cartItems,
+            total: finalTotal,
+            metodo_pago: paymentMethod,
+            direccion_envio: savedAddress || {},
+            envio: costoEnvioFinal,
+            descuento_gift_card: appliedGiftCard ? appliedGiftCard.monto : 0,
+            codigo_gift_card: appliedGiftCard ? appliedGiftCard.codigo : null
+          })
+        });
+        
+        if (!responseOrder.ok) {
+          throw new Error('No se pudo generar el pedido en la tienda.');
+        }
+
+        const json = await responseOrder.json();
+        orderNumber = json.data?.numero_pedido || 'M-000000';
+
+        // 2. Ahora sí generamos la preferencia de Mercado Pago usando el número de pedido como externalReference
         const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
         const res = await fetch(`${apiUrl}/api/mercado-pago/crear-preferencia`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             productos: cartItems,
-            total: finalTotal,
+            total: finalTotal, // Solo por fallback, el backend recalcula
+            envio: costoEnvioFinal,
+            descuentoGiftCard: appliedGiftCard ? appliedGiftCard.monto : 0,
             userEmail: user?.email,
-            externalReference: generatedRef,
+            externalReference: orderNumber,
             frontendUrl: window.location.origin,
           }),
         });
@@ -687,7 +716,7 @@ export default function Pago() {
         const data = await res.json();
 
         if (data.success && (data.init_point || data.sandbox_init_point)) {
-          // ── Guardar datos del carrito en sessionStorage antes de salir ──
+          // ── Guardar datos del carrito en sessionStorage por si vuelve atrás ──
           sessionStorage.setItem('mp_pending_order', JSON.stringify({
             cartItems,
             cartTotal: finalTotal,
@@ -695,7 +724,7 @@ export default function Pago() {
             savedAddress: savedAddress || null,
             email: user?.email || '',
             token: token || '',
-            externalReference: generatedRef,
+            externalReference: orderNumber,
             appliedGiftCard: appliedGiftCard || null,
             costoEnvioFinal
           }));
@@ -708,7 +737,7 @@ export default function Pago() {
           throw new Error('No se pudo generar el link de Mercado Pago');
         }
       } catch (error) {
-        console.error('Error al generar preferencia MP:', error);
+        console.error('Error al generar pedido o preferencia MP:', error);
         setIsProcessing(false);
         alert('Hubo un error al conectar con Mercado Pago. Intenta nuevamente.');
         return;

@@ -16,5 +16,13 @@ module.exports = {
         auth: false, // Permitir consulta pública desde el temporizador del modal
       },
     },
+    {
+      method: 'POST',
+      path: '/mercado-pago/webhook',
+      handler: 'mercado-pago.webhook',
+      config: {
+        auth: false,
+      },
+    },
   ],
 };

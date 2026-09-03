@@ -331,54 +331,24 @@ export default function OrderSuccess() {
         }
 
         setLoading(true);
-        // Crear el pedido en Strapi
-        const createOrder = async () => {
-          let orderNumber = 'M-000000';
-          try {
-            const headers = { 'Content-Type': 'application/json' };
-            if (pending.token) {
-              headers.Authorization = `Bearer ${pending.token}`;
-            }
+        // Ya no creamos el pedido, fue creado en Pago.jsx
+        // Solo mostramos los datos del pedido que teníamos en pendiente.
+        const orderNumber = pending.externalReference || 'M-000000';
 
-            const response = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/mis-pedidos`, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify({
-                productos: pending.cartItems,
-                total: pending.cartTotal,
-                metodo_pago: 'mercadopago',
-                direccion_envio: pending.savedAddress || {},
-                mp_payment_id: mpPaymentId,
-                mp_external_reference: mpExternalRef,
-                envio: pending.costoEnvioFinal || 0,
-                descuento_gift_card: pending.appliedGiftCard ? pending.appliedGiftCard.monto : 0,
-                codigo_gift_card: pending.appliedGiftCard ? pending.appliedGiftCard.codigo : null
-              })
-            });
-            const json = await response.json();
-            orderNumber = json.data?.numero_pedido || 'M-000000';
-
-            // ─── La Generación y Consumo de Gift Cards ahora ocurre internamente en el backend ───
-          } catch (err) {
-            console.error('Error al registrar pedido MP en Strapi:', err);
-          }
-
-          const newOrderData = {
-            paymentMethod: 'mercadopago',
-            cartItems: pending.cartItems,
-            cartTotal: pending.cartTotal,
-            savedAddress: pending.savedAddress,
-            email: pending.email,
-            orderNumber,
-          };
-
-          sessionStorage.setItem(cacheKey, JSON.stringify(newOrderData));
-          setOrderData(newOrderData);
-          setLoading(false);
-          clearCart();
-          setAppliedGiftCard(null);
+        const newOrderData = {
+          paymentMethod: 'mercadopago',
+          cartItems: pending.cartItems,
+          cartTotal: pending.cartTotal,
+          savedAddress: pending.savedAddress,
+          email: pending.email,
+          orderNumber,
         };
-        createOrder();
+
+        sessionStorage.setItem(cacheKey, JSON.stringify(newOrderData));
+        setOrderData(newOrderData);
+        setLoading(false);
+        clearCart();
+        setAppliedGiftCard(null);
         return;
       } else if (mpStatus === 'pending') {
         const data = pending || {};

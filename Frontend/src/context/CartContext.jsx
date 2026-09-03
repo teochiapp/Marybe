@@ -57,7 +57,8 @@ export const CartProvider = ({ children }) => {
         updatedItems[existingItemIndex].quantity += quantity;
         
         // Ensure we don't exceed stock if available
-        const maxStock = variant?.stock ?? 99;
+        const isGiftCard = product.id?.toString().startsWith('gift-card-') || product.nombre?.toLowerCase().includes('gift card');
+        const maxStock = isGiftCard ? 99 : (variant?.stock ?? product.stock ?? product.attributes?.stock ?? 99);
         if (updatedItems[existingItemIndex].quantity > maxStock) {
            updatedItems[existingItemIndex].quantity = maxStock;
         }
@@ -72,6 +73,7 @@ export const CartProvider = ({ children }) => {
             marca: product.marca || product.attributes?.marca,
             descuento: product.descuento || product.attributes?.descuento || 0,
             portada: product.portada || product.attributes?.portada,
+            stock: product.stock || product.attributes?.stock, // Added stock
           },
           variant: variant || {},
           quantity: quantity,
@@ -89,7 +91,10 @@ export const CartProvider = ({ children }) => {
   const updateQuantity = (cartId, quantity) => {
     setCartItems(prevItems => prevItems.map(item => {
       if (item.cartId === cartId) {
-        return { ...item, quantity: Math.max(1, quantity) }; // Minimum 1
+        const isGiftCard = item.product?.id?.toString().startsWith('gift-card-') || item.product?.nombre?.toLowerCase().includes('gift card');
+        const maxStock = isGiftCard ? 99 : (item.variant?.stock ?? item.product?.stock ?? 99);
+        const newQuantity = Math.min(Math.max(1, quantity), maxStock);
+        return { ...item, quantity: newQuantity }; // Enforce max stock
       }
       return item;
     }));

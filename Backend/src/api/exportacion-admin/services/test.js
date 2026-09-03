@@ -440,32 +440,26 @@ async function generarExcel(strapi) {
   const EXTRA_ROWS = 300;
   const lastRow    = rowIdxP + EXTRA_ROWS;
 
-  // @ts-ignore
   wsP.dataValidations.add(`E4:E${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.secciones],
   });
-  // @ts-ignore
   wsP.dataValidations.add(`F4:F${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.categorias],
   });
-  // @ts-ignore
   wsP.dataValidations.add(`G4:G${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.subcategorias],
   });
-  // @ts-ignore
   wsP.dataValidations.add(`H4:H${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.tipos],
   });
-  // @ts-ignore
   wsP.dataValidations.add(`L4:L${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.booleanos],
   });
-  // @ts-ignore
   wsP.dataValidations.add(`M4:M${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.booleanos],
@@ -641,12 +635,10 @@ async function generarExcel(strapi) {
 
   // ── Validaciones en bloque para toda la hoja de Variantes ────────────────
   const lastRowV = rowIdxV + EXTRA_ROWS;
-  // @ts-ignore
   wsV.dataValidations.add(`J4:J${lastRowV}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.booleanos],
   });
-  // @ts-ignore
   wsV.dataValidations.add(`L4:L${lastRowV}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.colores],
@@ -883,32 +875,26 @@ async function generarExcelVacio(strapi) {
   const EXTRA_ROWS = 300;
   const lastRow    = rowIdxP + EXTRA_ROWS;
 
-  // @ts-ignore
   wsP.dataValidations.add(`E4:E${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.secciones],
   });
-  // @ts-ignore
   wsP.dataValidations.add(`F4:F${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.categorias],
   });
-  // @ts-ignore
   wsP.dataValidations.add(`G4:G${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.subcategorias],
   });
-  // @ts-ignore
   wsP.dataValidations.add(`H4:H${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.tipos],
   });
-  // @ts-ignore
   wsP.dataValidations.add(`L4:L${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.booleanos],
   });
-  // @ts-ignore
   wsP.dataValidations.add(`M4:M${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.booleanos],
