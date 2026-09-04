@@ -37,6 +37,16 @@ module.exports = {
       },
     },
     {
+      method: 'GET',
+      path: '/editor-admin/buscar',
+      handler: 'editor-admin.buscar',
+      config: {
+        auth: false,
+        description: 'Busca productos por SKU/EAN (id_original) sin filtro de proveedor',
+        tags: ['Admin'],
+      },
+    },
+    {
       method: 'PATCH',
       path: '/editor-admin/productos/:documentId',
       handler: 'editor-admin.actualizarProducto',

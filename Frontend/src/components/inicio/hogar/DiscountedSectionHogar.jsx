@@ -454,6 +454,7 @@ export default function DiscountedSectionHogar() {
   const [productos, setProductos] = useState([]);
   const [tituloCursiva, setTituloCursiva] = useState('Descuentos');
   const [tituloNormal, setTituloNormal] = useState('de Hogar');
+  const [imagenUrl, setImagenUrl] = useState(null);
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
@@ -492,16 +493,25 @@ export default function DiscountedSectionHogar() {
         return res.json();
       })
       .then(data => {
-        const item = data && data.data;
-        if (item) {
-          const attrs = item.attributes || item;
+        if (data && data.data) {
+          const attrs = data.data.attributes || data.data;
           if (attrs.titulo_cursiva) setTituloCursiva(attrs.titulo_cursiva);
           if (attrs.titulo_normal) setTituloNormal(attrs.titulo_normal);
-
-          let prods = [];
-          if (attrs.productos) {
-            prods = attrs.productos.data || attrs.productos;
+          if (attrs.imagen_destacada?.data?.attributes?.url) {
+            let mediaUrl = attrs.imagen_destacada.data.attributes.url;
+            if (!mediaUrl.startsWith('http')) {
+              mediaUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${mediaUrl}`;
+            }
+            setImagenUrl(mediaUrl);
+          } else if (attrs.imagen_destacada?.url) {
+            let mediaUrl = attrs.imagen_destacada.url;
+            if (!mediaUrl.startsWith('http')) {
+              mediaUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${mediaUrl}`;
+            }
+            setImagenUrl(mediaUrl);
           }
+
+          let prods = attrs.productos?.data || attrs.productos || [];
 
           if (Array.isArray(prods) && prods.length > 0) {
             setProductos(prods);
@@ -603,7 +613,10 @@ export default function DiscountedSectionHogar() {
           </Title>
         </TextBlock>
         <FeaturedPicture>
-          <img src="/inicio/discountedSectionHogar.webp" alt="Descuentos de Hogar" />
+          <img
+            src={imagenUrl || '/inicio/discountedSectionHogar.webp'}
+            alt={`${tituloCursiva} ${tituloNormal}`}
+          />
         </FeaturedPicture>
       </TopHeader>
 

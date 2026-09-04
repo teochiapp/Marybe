@@ -101,6 +101,23 @@ module.exports = {
     }
   },
 
+  // ── GET /api/editor-admin/buscar?q=<sku_o_ean> ─────────────────────
+  async buscar(ctx) {
+    if (!verificarAdmin(ctx)) return noAuth(ctx);
+
+    const q = (ctx.query.q || '').trim();
+    if (q.length < 2) return ctx.badRequest('Ingresá al menos 2 caracteres para buscar.');
+
+    try {
+      const servicio  = strapi.service('api::editor-admin.editor-admin');
+      const productos = await servicio.fetchProductosPorSKU(q);
+      return ctx.send({ ok: true, productos, total: productos.length });
+    } catch (err) {
+      strapi.log.error(`[EditorAdmin] buscar: ${err.message}`);
+      return ctx.internalServerError(`Error al buscar productos: ${err.message}`);
+    }
+  },
+
   // ── PATCH /api/editor-admin/productos/:documentId ─────────────────────────
   async actualizarProducto(ctx) {
     if (!verificarAdmin(ctx)) return noAuth(ctx);

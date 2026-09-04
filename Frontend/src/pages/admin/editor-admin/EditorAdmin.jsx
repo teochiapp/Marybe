@@ -4,6 +4,7 @@ import './EditorAdmin.css';
 import '../ImportacionAdmin.css';
 import ProveedorSelector from './components/ProveedorSelector';
 import ProductosTable    from './components/ProductosTable';
+import SKUSearchBar      from './components/SKUSearchBar';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
 
@@ -355,6 +356,14 @@ export default function EditorAdmin() {
 
         {/* ── Cuerpo ────────────────────────────────────────────────────────── */}
         <main className="ea-body">
+          {/* Buscador universal de SKU / EAN */}
+          <SKUSearchBar
+            token={token}
+            pendingChanges={pendingChanges}
+            onMarkDirty={handleMarkDirty}
+            lightboxSetter={setLightboxUrl}
+          />
+
           {/* Selector de proveedor */}
           <ProveedorSelector
             proveedores={proveedores}

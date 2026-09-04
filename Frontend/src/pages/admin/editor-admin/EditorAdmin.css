@@ -636,3 +636,208 @@
   .ea-toolbar { flex-direction: column; align-items: stretch; }
   .ea-select { min-width: unset; width: 100%; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Buscador universal de SKU / EAN
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ea-sku-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+/* ─── Barra de input ─────────────────────────────────────────────────────────── */
+.ea-sku-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(242,220,143,0.2);
+  border-radius: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s, border-radius 0.15s;
+}
+
+.ea-sku-input-wrap:focus-within {
+  border-color: rgba(242,220,143,0.45);
+  box-shadow: 0 0 0 2px rgba(242,220,143,0.08);
+}
+
+.ea-sku-input-wrap--open {
+  border-radius: 10px 10px 0 0;
+  border-bottom-color: transparent;
+}
+
+.ea-sku-icon {
+  display: flex;
+  align-items: center;
+  color: rgba(242,220,143,0.55);
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.ea-sku-input-wrap:focus-within .ea-sku-icon {
+  color: rgba(242,220,143,0.85);
+}
+
+.ea-sku-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f0e6c8;
+  font-size: 0.87rem;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+}
+
+.ea-sku-input::placeholder {
+  color: rgba(242,220,143,0.3);
+}
+
+/* ─── Badge de cantidad de resultados ────────────────────────────────────────── */
+.ea-sku-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  background: rgba(99,102,241,0.18);
+  border: 1px solid rgba(99,102,241,0.3);
+  color: #a5b4fc;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+  animation: ea-fade-in 0.2s ease;
+}
+
+/* ─── Botón limpiar ──────────────────────────────────────────────────────────── */
+.ea-sku-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.07);
+  color: rgba(242,220,143,0.5);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.ea-sku-clear:hover {
+  background: rgba(239,68,68,0.18);
+  color: #fca5a5;
+}
+
+/* ─── Botón colapsar/expandir ────────────────────────────────────────────────── */
+.ea-sku-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid rgba(242,220,143,0.15);
+  background: transparent;
+  color: rgba(242,220,143,0.45);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.ea-sku-toggle:hover {
+  background: rgba(242,220,143,0.08);
+  border-color: rgba(242,220,143,0.35);
+  color: #f2dc8f;
+}
+
+/* ─── Panel de resultados ────────────────────────────────────────────────────── */
+.ea-sku-results {
+  background: rgba(14, 0, 0, 0.7);
+  border: 1px solid rgba(242,220,143,0.2);
+  border-top: 1px solid rgba(242,220,143,0.07);
+  border-radius: 0 0 10px 10px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  animation: ea-sku-slide-down 0.2s ease;
+  overflow: hidden;
+}
+
+@keyframes ea-sku-slide-down {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Header del panel de resultados ─────────────────────────────────────────── */
+.ea-sku-results-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: rgba(242,220,143,0.55);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(242,220,143,0.07);
+  background: rgba(0,0,0,0.2);
+}
+
+.ea-sku-results-header em {
+  font-style: normal;
+  color: rgba(242,220,143,0.8);
+}
+
+/* ─── Tabla dentro del panel de resultados ───────────────────────────────────── */
+.ea-sku-table-wrap {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.ea-sku-table-wrap::-webkit-scrollbar { width: 5px; }
+.ea-sku-table-wrap::-webkit-scrollbar-track { background: transparent; }
+.ea-sku-table-wrap::-webkit-scrollbar-thumb { background: rgba(242,220,143,0.2); border-radius: 3px; }
+
+/* ─── Estado vacío del buscador ──────────────────────────────────────────────── */
+.ea-sku-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 2.5rem 1.5rem;
+  color: rgba(242,220,143,0.35);
+  text-align: center;
+}
+
+.ea-sku-empty svg { opacity: 0.4; }
+
+.ea-sku-empty p {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(242,220,143,0.5);
+}
+
+.ea-sku-empty strong {
+  color: rgba(242,220,143,0.75);
+}
+
+/* ─── Columna proveedor en buscador ──────────────────────────────────────────── */
+.ea-cell-proveedor {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #a5b4fc;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* ─── Responsive buscador ────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ea-sku-input { font-size: 0.82rem; }
+  .ea-sku-badge { display: none; }
+}

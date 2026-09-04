@@ -69,8 +69,31 @@ async function fetchProductosPorProveedor(proveedor) {
   return todos;
 }
 
+// ─── Buscar producto por SKU / EAN ───────────────────────────────────────────────
+// Busca únicamente en el campo sku (EAN/código de barras), case-insensitive.
+async function fetchProductosPorSKU(query) {
+  if (!query || query.trim().length < 2) return [];
+
+  const q = query.trim();
+
+  const resultado = await strapi.documents(UID_PRODUCTO).findMany({
+    filters: { sku: { $containsi: q } },
+    fields:  ['id_original', 'sku', 'nombre', 'marca', 'proveedor', 'precio', 'precio_oferta', 'stock'],
+    populate: {
+      portada: { fields: ['id', 'name', 'url', 'width', 'height', 'size'] },
+      galeria: { fields: ['id', 'name', 'url', 'width', 'height', 'size'] },
+    },
+    limit:  20,
+    start:  0,
+    status: 'published',
+  });
+
+  return resultado || [];
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 module.exports = () => ({
   fetchProveedores,
   fetchProductosPorProveedor,
+  fetchProductosPorSKU,
 });

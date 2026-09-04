@@ -662,7 +662,12 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
           ) : (
             <>
               <source media="(max-width: 768px)" srcSet="/inicio/fragancias-mobile.webp" />
-              <img src="/inicio/featured.webp" alt="Fragancias destacadas" loading="eager" decoding="sync" />
+              <img
+                src={config?.img_featured_perfumeria || '/inicio/featured.webp'}
+                alt="Fragancias destacadas"
+                loading="eager"
+                decoding="sync"
+              />
             </>
           )}
         </FeaturedPicture>

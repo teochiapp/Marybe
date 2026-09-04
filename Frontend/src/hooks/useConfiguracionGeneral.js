@@ -16,9 +16,6 @@ import {
  *   ac_*      → A Convenir
  *
  * Strapi 5: Single Type devuelve { data: { id, ...campos } } (sin capa "attributes")
- * Strapi 4: Single Type devuelve { data: { id, attributes: { ... } } }
- * El hook maneja ambos formatos.
- */
 export function useConfiguracionGeneral() {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);

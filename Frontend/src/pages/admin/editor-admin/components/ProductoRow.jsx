@@ -11,8 +11,10 @@ import GaleriaUploader from './GaleriaUploader';
  *   onMarkDirty    : (documentId, campo, valor) => void  — notifica al padre que hay cambio pendiente
  *   pendingChanges : objeto { precio?, precio_oferta?, stock? } con cambios sin guardar para este producto
  *   lightboxSetter : (urlONull) => void
+ *   showProveedor  : bool — si true muestra la columna Proveedor (usado en el buscador de SKU)
+ *   showSku        : bool — si true muestra la columna EAN/SKU (usado en el buscador de SKU)
  */
-export default function ProductoRow({ producto, token, onMarkDirty, pendingChanges, lightboxSetter }) {
+export default function ProductoRow({ producto, token, onMarkDirty, pendingChanges, lightboxSetter, showProveedor, showSku }) {
   const { documentId } = producto;
 
   // Estado local de imágenes (se actualiza optimistamente)
@@ -36,6 +38,25 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
       <td className="ea-td--sticky">
         <span className="ea-cell-id">{producto.id_original || '—'}</span>
       </td>
+
+      {/* EAN / SKU (solo en buscador) */}
+      {showSku && (
+        <td>
+          <span className="ea-cell-id" style={{ color: 'rgba(165,180,252,0.8)', fontSize: '0.71rem' }}
+                title={producto.sku || ''}>
+            {producto.sku || '—'}
+          </span>
+        </td>
+      )}
+
+      {/* Proveedor (solo en buscador de SKU) */}
+      {showProveedor && (
+        <td>
+          <span className="ea-cell-text ea-cell-proveedor" title={producto.proveedor || ''}>
+            {producto.proveedor || '—'}
+          </span>
+        </td>
+      )}
 
       {/* Marca */}
       <td>
