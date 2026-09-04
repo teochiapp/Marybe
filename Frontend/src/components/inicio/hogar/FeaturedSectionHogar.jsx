@@ -128,7 +128,7 @@ const FeaturedPicture = styled.picture`
   @media (min-width: 769px) {
     position: absolute;
     right: 0%;
-    top: 24vh;
+    top: 29vh;
     width: 45%;
     height: 100%;
     display: flex;
