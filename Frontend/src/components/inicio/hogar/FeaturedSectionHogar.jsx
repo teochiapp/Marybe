@@ -23,7 +23,6 @@ const SectionWrapper = styled.section`
     padding: 30px 20px;
     padding-right: 0 !important;
     padding-left: 20px;
-    gap: 30px;
   }
 `;
 
@@ -54,24 +53,30 @@ const HaloLuz = styled.img`
 const TopHeader = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   position: relative;
   z-index: 1;
+  padding-top: 40px;
   
   @media (max-width: 768px) {
     flex-direction: column;
+    align-items: center;
     text-align: center;
     gap: 20px;
+    padding-top: 20px;
   }
 `;
 
 const TextBlock = styled.div`
   max-width: 50%;
   padding-left: 60px;
+  position: relative;
+  z-index: 2;
   
   @media (max-width: 768px) {
     max-width: 100%;
     display: contents;
+    padding-left: 0;
   }
 `;
 
@@ -120,12 +125,18 @@ const Subtitle = styled.p`
 `;
 
 const FeaturedPicture = styled.picture`
-  width: 50%;
-  max-height: 40vh;
-  max-width: 100%;
-  padding-right: 60px;
-  display: flex;
-  justify-content: center;
+  @media (min-width: 769px) {
+    position: absolute;
+    right: 0%;
+    top: 24vh;
+    width: 45%;
+    height: 100%;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    z-index: 0;
+    pointer-events: none;
+  }
   
   @media (max-width: 768px) {
     width: 100%;
@@ -133,21 +144,23 @@ const FeaturedPicture = styled.picture`
     order: 2;
     padding: 0 5px;
     margin-bottom: 8px;
+    display: flex;
+    justify-content: center;
   }
 
   img {
     width: 100%;
     height: 100%;
-    max-height: 92vh;
     object-fit: contain;
     filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+    pointer-events: none;
 
     @media (min-width: 769px) {
-      min-height: 100%;
-      max-height: 65vh !important;
-      position: absolute;
-      left: 20vw;
-      top: 0px;
+      object-position: right center;
+    }
+    
+    @media (max-width: 768px) {
+      max-height: 40vh;
     }
   }
 `;
@@ -160,11 +173,12 @@ const ProductsGrid = styled(motion.div)`
   scrollbar-width: none;
   gap: 30px;
   position: relative;
-  z-index: 1;
+  z-index: 2;
   cursor: grab;
   margin-left: 60px;
   padding-right: 60px;
   padding-bottom: 10px;
+  margin-top: 30px;
 
   &:active {
     cursor: grabbing;
@@ -592,7 +606,7 @@ export default function FeaturedSectionHogar() {
               </CardImageContainer>
 
               <ProductBrand>{marca}</ProductBrand>
-      <ProductName onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
+              <ProductName onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
 
               <PriceRow>
                 {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
