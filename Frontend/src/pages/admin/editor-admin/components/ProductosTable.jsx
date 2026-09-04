@@ -41,11 +41,11 @@ export default function ProductosTable({ productos, token, pendingChanges, onMar
             <th className="ea-th--sticky">ID Original</th>
             <th>Marca</th>
             <th>Nombre</th>
-            <th className="ea-th--right">Precio</th>
-            <th className="ea-th--right">Precio Oferta</th>
-            <th className="ea-th--right">Stock</th>
+            <th style={{ textAlign: 'center' }}>Precio</th>
+            <th style={{ textAlign: 'center' }}>Precio Oferta</th>
+            <th style={{ textAlign: 'center' }}>Stock</th>
             <th className="ea-th--center">Portada</th>
-            <th>Galería</th>
+            <th style={{ textAlign: 'center' }}>Galería</th>
           </tr>
         </thead>
         <tbody>

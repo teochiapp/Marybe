@@ -841,3 +841,133 @@
   .ea-sku-input { font-size: 0.82rem; }
   .ea-sku-badge { display: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   VARIANTES — Filas expandibles dentro de la tabla de productos
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Botón toggle de variantes (flechita) ──────────────────────────────────── */
+.ea-variant-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid rgba(242,220,143,0.4);
+  background: rgba(242,220,143,0.15);
+  color: #f2dc8f;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.ea-variant-toggle:hover {
+  background: rgba(242,220,143,0.25);
+  border-color: rgba(242,220,143,0.6);
+  box-shadow: 0 0 10px rgba(242,220,143,0.2);
+}
+
+.ea-variant-toggle svg {
+  transition: transform 0.2s ease;
+}
+
+.ea-variant-toggle--open svg {
+  transform: rotate(180deg);
+}
+
+/* ─── Badge de cantidad de variantes ─────────────────────────────────────────── */
+.ea-variant-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 20px;
+  background: rgba(99,102,241,0.15);
+  border: 1px solid rgba(99,102,241,0.3);
+  color: #a5b4fc;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+/* ─── Fila sub-encabezado de variantes ───────────────────────────────────────── */
+.ea-variant-header-row {
+  background: rgba(99,102,241,0.04) !important;
+  border-bottom: 1px solid rgba(99,102,241,0.12) !important;
+}
+
+.ea-variant-th {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f2dc8f; /* Dorado de contraste */
+  background: rgba(0,0,0,0.15);
+}
+
+/* ─── Fila de variante ───────────────────────────────────────────────────────── */
+.ea-variant-row {
+  background: rgba(22,0,40,0.25) !important;
+  border-bottom: 1px solid rgba(99,102,241,0.07) !important;
+  transition: background 0.12s;
+}
+
+.ea-variant-row:hover {
+  background: rgba(99,102,241,0.05) !important;
+}
+
+.ea-variant-row--dirty {
+  background: rgba(99,102,241,0.07) !important;
+}
+
+.ea-variant-row--dirty td:first-child {
+  border-left: 2px solid rgba(165,180,252,0.4) !important;
+}
+
+/* ─── Celda interna de variante ─────────────────────────────────────────────── */
+.ea-variant-td {
+  padding: 0.45rem 0.85rem;
+  vertical-align: middle;
+}
+
+/* ─── Barra de indentación lateral ──────────────────────────────────────────── */
+.ea-variant-indent {
+  width: 10px;
+  height: 24px;
+  border-left: 2px solid rgba(99,102,241,0.35);
+  border-bottom: 2px solid rgba(99,102,241,0.35);
+  border-bottom-left-radius: 4px;
+  margin-left: 0.5rem;
+  opacity: 0.7;
+}
+
+/* ─── Campos individuales de variante ────────────────────────────────────────── */
+.ea-variant-field {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.ea-variant-field--sku {
+  font-family: 'Courier New', monospace;
+}
+
+.ea-variant-field--num {
+  justify-content: flex-end;
+}
+
+/* ─── Input numérico compacto para variantes ─────────────────────────────────── */
+.ea-input-num--sm {
+  min-width: 60px;
+  max-width: 90px;
+  padding: 0.28rem 0.4rem;
+  font-size: 0.78rem;
+}
+
+/* ─── Separador al final del bloque de variantes ────────────────────────────── */
+.ea-variant-footer-row {
+  background: rgba(99,102,241,0.06) !important;
+}

@@ -39,6 +39,14 @@
     },
     "color_nombre": {
       "type": "string"
+    },
+    "portada": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
     }
   }
 }

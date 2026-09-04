@@ -48,6 +48,12 @@ async function fetchProductosPorProveedor(proveedor) {
         galeria: {
           fields: ['id', 'name', 'url', 'width', 'height', 'size'],
         },
+        variantes: {
+          fields: ['id', 'sku_ean', 'volumen', 'color_nombre', 'precio', 'precio_oferta', 'stock'],
+          populate: {
+            portada: { fields: ['id', 'name', 'url', 'width', 'height', 'size'] }
+          }
+        },
       },
       limit:  PAGE_SIZE,
       start:  (page - 1) * PAGE_SIZE,
@@ -77,11 +83,22 @@ async function fetchProductosPorSKU(query) {
   const q = query.trim();
 
   const resultado = await strapi.documents(UID_PRODUCTO).findMany({
-    filters: { sku: { $containsi: q } },
+    filters: {
+      $or: [
+        { sku: { $containsi: q } },
+        { variantes: { sku_ean: { $containsi: q } } }
+      ]
+    },
     fields:  ['id_original', 'sku', 'nombre', 'marca', 'proveedor', 'precio', 'precio_oferta', 'stock'],
     populate: {
       portada: { fields: ['id', 'name', 'url', 'width', 'height', 'size'] },
       galeria: { fields: ['id', 'name', 'url', 'width', 'height', 'size'] },
+      variantes: {
+        fields: ['id', 'sku_ean', 'volumen', 'color_nombre', 'precio', 'precio_oferta', 'stock'],
+        populate: {
+          portada: { fields: ['id', 'name', 'url', 'width', 'height', 'size'] }
+        }
+      },
     },
     limit:  20,
     start:  0,

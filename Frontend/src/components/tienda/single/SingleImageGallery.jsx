@@ -89,12 +89,10 @@ const MainImageContainer = styled.div`
   }
 `;
 
-export default function SingleImageGallery({ images, nombre }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-
+export default function SingleImageGallery({ images, nombre, activeIndex, setActiveIndex }) {
   // Mapeamos o filtramos por si no vienen imágenes
-  const validImages = images && images.length > 0 ? images : ['/placeholder.png'];
-  const mainImage = validImages[activeIndex];
+  const validImages = images && images.length > 0 ? images : [{ url: '/placeholder.png' }];
+  const mainImage = validImages[activeIndex] || validImages[0];
 
   return (
     <GalleryContainer>
@@ -105,13 +103,13 @@ export default function SingleImageGallery({ images, nombre }) {
             $active={activeIndex === idx}
             onClick={() => setActiveIndex(idx)}
           >
-            <img src={img} alt={`${nombre} thumbnail ${idx + 1}`} />
+            <img src={img.url} alt={`${nombre} thumbnail ${idx + 1}`} />
           </Thumbnail>
         ))}
       </ThumbnailsContainer>
 
       <MainImageContainer>
-        <img src={mainImage} alt={nombre} />
+        <img src={mainImage.url} alt={nombre} />
       </MainImageContainer>
     </GalleryContainer>
   );

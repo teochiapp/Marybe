@@ -96,5 +96,15 @@ module.exports = {
         tags: ['Admin'],
       },
     },
+    {
+      method: 'POST',
+      path: '/editor-admin/productos/:documentId/variantes/:varianteId/portada',
+      handler: 'editor-admin.subirPortadaVariante',
+      config: {
+        auth: false,
+        description: 'Sube y asigna la imagen de portada a una variante específica (max 200KB)',
+        tags: ['Admin'],
+      },
+    },
   ],
 };

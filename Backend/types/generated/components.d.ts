@@ -136,6 +136,7 @@ export interface ProductoVariante extends Struct.ComponentSchema {
     envio: Schema.Attribute.String;
     id_original: Schema.Attribute.String;
     moneda: Schema.Attribute.String & Schema.Attribute.DefaultTo<'ARS'>;
+    portada: Schema.Attribute.Media<'images'>;
     precio: Schema.Attribute.Decimal & Schema.Attribute.Required;
     precio_oferta: Schema.Attribute.Decimal;
     publicado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;

@@ -126,12 +126,39 @@ module.exports = {
     const rawBody = ctx.request.body;
     strapi.log.info(`[EditorAdmin] PATCH productos/${documentId} body=${JSON.stringify(rawBody)}`);
 
-    const { precio, precio_oferta, stock } = rawBody;
+    const { precio, precio_oferta, stock, variantes } = rawBody;
 
     const data = {};
     if (precio        !== undefined) data.precio        = precio        === '' || precio        === null ? null : Number(precio);
     if (precio_oferta !== undefined) data.precio_oferta = precio_oferta === '' || precio_oferta === null ? null : Number(precio_oferta);
     if (stock         !== undefined) data.stock         = stock         === '' || stock         === null ? 0   : parseInt(stock, 10);
+
+    // Variantes: mapear por índice al draft para evitar errores de IDs estancados (stale IDs) tras publicar
+    if (variantes !== undefined) {
+      if (!Array.isArray(variantes)) {
+        return ctx.badRequest('El campo "variantes" debe ser un array.');
+      }
+      
+      const pDraft = await strapi.documents(UID_PRODUCTO).findOne({ documentId, populate: ['variantes'] });
+
+      data.variantes = variantes.map((v, i) => {
+        const item = {};
+        // Asignar el ID del borrador directamente por índice
+        if (pDraft?.variantes?.[i]) {
+           item.id = pDraft.variantes[i].id;
+        }
+        if (v.sku_ean       !== undefined) item.sku_ean       = v.sku_ean || null;
+        if (v.volumen       !== undefined) item.volumen       = v.volumen || null;
+        if (v.color_nombre  !== undefined) item.color_nombre  = v.color_nombre || null;
+        if (v.precio        !== undefined) item.precio        = v.precio === '' || v.precio === null ? null : Number(v.precio);
+        if (v.precio_oferta !== undefined) item.precio_oferta = v.precio_oferta === '' || v.precio_oferta === null ? null : Number(v.precio_oferta);
+        if (v.stock         !== undefined) item.stock         = v.stock === '' || v.stock === null ? 0 : parseInt(v.stock, 10);
+        if (v.portada       !== undefined) {
+          item.portada = (v.portada && typeof v.portada === 'object') ? v.portada.id : v.portada;
+        }
+        return item;
+      });
+    }
 
     if (Object.keys(data).length === 0) {
       strapi.log.warn(`[EditorAdmin] actualizarProducto ${documentId}: body sin campos reconocidos`);
@@ -151,6 +178,7 @@ module.exports = {
       return ctx.internalServerError(`Error al actualizar producto: ${err.message}`);
     }
   },
+
 
   // ── POST /api/editor-admin/productos/:documentId/portada ──────────────────
   async subirPortada(ctx) {
@@ -187,6 +215,72 @@ module.exports = {
       strapi.log.error(`  error: ${err.message}`);
       strapi.log.error(`  stack: ${err.stack}`);
       return ctx.internalServerError(`Error al subir portada: ${err.message}`);
+    }
+  },
+
+  // ── POST /api/editor-admin/productos/:documentId/variantes/:varianteId/portada ─
+  async subirPortadaVariante(ctx) {
+    if (!verificarAdmin(ctx)) return noAuth(ctx);
+
+    const { documentId, varianteId } = ctx.params;
+    const indexVariante = parseInt(varianteId, 10); // El frontend ahora envía el índice en lugar del ID
+    const files = ctx.request.files;
+
+    if (!files || !files.portada) {
+      return ctx.badRequest('No se recibió ningún archivo (campo: portada).');
+    }
+
+    const file = Array.isArray(files.portada) ? files.portada[0] : files.portada;
+
+    if (file.size > 200 * 1024) {
+      return ctx.badRequest(`La imagen supera el tamaño máximo permitido (200KB). Tamaño recibido: ${Math.round(file.size / 1024)}KB.`);
+    }
+
+    try {
+      // 1. Upload
+      const uploadedFiles = await strapi.plugins.upload.services.upload.upload({
+        data: { fileInfo: { name: file.name, caption: '', alternativeText: '' } },
+        files: file,
+      });
+      const mediaId = uploadedFiles[0].id;
+      strapi.log.info(`[EditorAdmin] subirPortadaVariante: archivo subido → mediaId=${mediaId}`);
+
+      // 2. Traer la versión draft para modificarla
+      const productoDraft = await strapi.documents(UID_PRODUCTO).findOne({
+        documentId,
+        populate: ['variantes', 'variantes.portada'],
+      });
+
+      if (!productoDraft || !productoDraft.variantes || !productoDraft.variantes[indexVariante]) {
+        return ctx.badRequest('Producto draft o variante por índice no encontrados.');
+      }
+
+      // 3. Modificar la variante en el draft
+      const variantesModificadas = productoDraft.variantes.map((v, i) => {
+        const item = { ...v };
+        
+        // Strapi falla si enviamos el objeto completo de portada, extraer solo el ID
+        if (item.portada && typeof item.portada === 'object') {
+          item.portada = item.portada.id;
+        }
+
+        if (i === indexVariante) {
+          item.portada = mediaId;
+        }
+        
+        return item;
+      });
+
+      // 4. Update (actualiza el draft y publica)
+      await updatePublished(documentId, { variantes: variantesModificadas });
+
+      strapi.log.info(`[EditorAdmin] ✅ Portada de variante índice ${indexVariante} del producto ${documentId} actualizada (published) → mediaId ${mediaId}`);
+      return ctx.send({ ok: true, media: uploadedFiles[0] });
+    } catch (err) {
+      strapi.log.error(`[EditorAdmin] ❌ subirPortadaVariante FAILED: documentId=${documentId} varianteIndex=${varianteId}`);
+      strapi.log.error(`  error: ${err.message}`);
+      strapi.log.error(`  stack: ${err.stack}`);
+      return ctx.internalServerError(`Error al subir portada de variante: ${err.message}`);
     }
   },
 

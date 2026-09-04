@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -105,6 +105,7 @@ export default function ProductoSingle() {
   const [producto, setProducto] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -112,7 +113,7 @@ export default function ProductoSingle() {
     if (!actualId) return;
 
     // El slug usa el id numérico interno de Strapi (ej: /producto/200793-oral-b-kids → id=200793)
-    fetch(`${STRAPI_URL}/api/productos?filters[id][$eq]=${actualId}&populate=*`)
+    fetch(`${STRAPI_URL}/api/productos?filters[id][$eq]=${actualId}&populate[categoria][populate]=*&populate[portada][populate]=*&populate[galeria][populate]=*&populate[variantes][populate]=portada`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data && data.data.length > 0) {
@@ -123,7 +124,7 @@ export default function ProductoSingle() {
           });
         } else {
           // Fallback por documentId de Strapi si el id numérico no matchea
-          return fetch(`${STRAPI_URL}/api/productos?filters[documentId][$eq]=${actualId}&populate=*`)
+          return fetch(`${STRAPI_URL}/api/productos?filters[documentId][$eq]=${actualId}&populate[categoria][populate]=*&populate[portada][populate]=*&populate[galeria][populate]=*&populate[variantes][populate]=portada`)
             .then(res2 => res2.json())
             .then(data2 => {
               if (data2 && data2.data && data2.data.length > 0) {
@@ -147,6 +148,57 @@ export default function ProductoSingle() {
       });
   }, [actualId]);
 
+  const images = useMemo(() => {
+    let imgs = [];
+    if (!producto) return [{ url: '/placeholder.png', variantId: null }];
+
+    if (producto.portada?.data?.attributes?.url) {
+      imgs.push({ url: `${STRAPI_URL}${producto.portada.data.attributes.url}`, variantId: null });
+    } else if (producto.portada?.url) {
+      imgs.push({ url: `${STRAPI_URL}${producto.portada.url}`, variantId: null });
+    }
+
+    if (producto.galeria?.data) {
+      producto.galeria.data.forEach(img => {
+        imgs.push({ url: `${STRAPI_URL}${img.attributes.url}`, variantId: null });
+      });
+    } else if (producto.galeria?.length > 0) {
+      producto.galeria.forEach(img => {
+        imgs.push({ url: `${STRAPI_URL}${img.url}`, variantId: null });
+      });
+    }
+
+    // Agregamos portadas de variantes
+    if (producto.variantes && producto.variantes.length > 0) {
+      producto.variantes.forEach(variant => {
+        if (variant.portada) {
+          const url = variant.portada.url || (variant.portada.data && variant.portada.data.attributes.url);
+          if (url) {
+            imgs.push({
+              url: `${STRAPI_URL}${url}`,
+              variantId: variant.id
+            });
+          }
+        }
+      });
+    }
+
+    // Si no hay imágenes, ponemos una de placeholder
+    if (imgs.length === 0) {
+      imgs.push({ url: '/placeholder.png', variantId: null });
+    }
+    
+    return imgs;
+  }, [producto]);
+
+  const handleVariantSelect = useCallback((variantId) => {
+    if (!variantId) return;
+    const index = images.findIndex(img => img.variantId === variantId);
+    if (index !== -1) {
+      setActiveIndex(index);
+    }
+  }, [images]);
+
   if (loading) {
     return (
       <PageContainer>
@@ -164,28 +216,6 @@ export default function ProductoSingle() {
   }
 
   // Preparamos las imágenes para la galería
-  let images = [];
-  if (producto.portada?.data?.attributes?.url) {
-    images.push(`${STRAPI_URL}${producto.portada.data.attributes.url}`);
-  } else if (producto.portada?.url) {
-    images.push(`${STRAPI_URL}${producto.portada.url}`);
-  }
-
-  if (producto.galeria?.data) {
-    producto.galeria.data.forEach(img => {
-      images.push(`${STRAPI_URL}${img.attributes.url}`);
-    });
-  } else if (producto.galeria?.length > 0) {
-    producto.galeria.forEach(img => {
-      images.push(`${STRAPI_URL}${img.url}`);
-    });
-  }
-
-  // Si no hay imágenes, ponemos una de placeholder
-  if (images.length === 0) {
-    images.push('/placeholder.png');
-  }
-
   const handleShare = async () => {
     if (!producto) return;
     const shareData = {
@@ -245,11 +275,16 @@ export default function ProductoSingle() {
             <SingleImageGallery
               images={images}
               nombre={producto.nombre}
+              activeIndex={activeIndex}
+              setActiveIndex={setActiveIndex}
             />
 
             {/* Lado derecho: Info, precio, opciones, carrito */}
             <div>
-              <SingleProductInfo producto={producto} />
+              <SingleProductInfo 
+                producto={producto} 
+                onVariantSelect={handleVariantSelect}
+              />
 
               {/* Acordeones inferiores */}
               <SingleAccordion

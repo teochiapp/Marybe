@@ -4,6 +4,22 @@ import { useNavigate } from 'react-router-dom';
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
+// ─── Helpers de API ───────────────────────────────────────────────────────────
+
+/** Construye la URL de Strapi con filtros $or para nombre, marca, subcategoria y tipo */
+function buildProductQuery(q) {
+  const enc = encodeURIComponent(q);
+  return (
+    `${STRAPI_URL}/api/productos` +
+    `?filters[$or][0][nombre][$containsi]=${enc}` +
+    `&filters[$or][1][marca][$containsi]=${enc}` +
+    `&filters[$or][2][subcategoria][$containsi]=${enc}` +
+    `&filters[$or][3][tipo][$containsi]=${enc}` +
+    `&pagination[pageSize]=20` +
+    `&populate[portada]=true`
+  );
+}
+
 // ─── Styled Components ────────────────────────────────────────────────────────
 
 const Dropdown = styled.div`
@@ -17,7 +33,7 @@ const Dropdown = styled.div`
   border: 1px solid #ece9e4;
   z-index: 9999;
   overflow: hidden;
-  max-height: 420px;
+  max-height: 480px;
   overflow-y: auto;
 
   &::-webkit-scrollbar {
@@ -210,11 +226,18 @@ const LoadingState = styled.div`
   }
 `;
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Iconos SVG ───────────────────────────────────────────────────────────────
 
 const CategoryIconSvg = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-bordo-secundario)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+  </svg>
+);
+
+const BrandIconSvg = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-bordo-secundario)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+    <line x1="7" y1="7" x2="7.01" y2="7" />
   </svg>
 );
 
@@ -228,9 +251,12 @@ const ArrowSvg = () => (
 
 export default function SearchDropdown({ query, onClose, dropdownRef }) {
   const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(false);
+
+  const [products, setProducts]   = useState([]);  // Matches por nombre (máx 5)
+  const [brands, setBrands]       = useState([]);  // Marcas únicas que coinciden
+  const [subcats, setSubcats]     = useState([]);  // Subcategorías/Tipos únicos
+  const [categories, setCategories] = useState([]); // Categorías de Strapi
+  const [loading, setLoading]     = useState(false);
   const abortRef = useRef(null);
 
   const fetchSuggestions = useCallback(async (q) => {
@@ -240,10 +266,7 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
     setLoading(true);
     try {
       const [prodRes, catRes] = await Promise.all([
-        fetch(
-          `${STRAPI_URL}/api/productos?filters[nombre][$containsi]=${encodeURIComponent(q)}&pagination[pageSize]=5&populate=*`,
-          { signal: abortRef.current.signal }
-        ),
+        fetch(buildProductQuery(q), { signal: abortRef.current.signal }),
         fetch(
           `${STRAPI_URL}/api/categorias?filters[nombre][$containsi]=${encodeURIComponent(q)}&pagination[pageSize]=4`,
           { signal: abortRef.current.signal }
@@ -255,12 +278,66 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
         catRes.json(),
       ]);
 
-      setProducts(prodJson.data || []);
+      const allProds = prodJson.data || [];
+      const lq = q.toLowerCase();
+
+      // ── Productos que coinciden por nombre (máx 5) ───────────────────────
+      const prodsByName = allProds
+        .filter(p => (p.attributes || p).nombre?.toLowerCase().includes(lq))
+        .slice(0, 5);
+
+      // ── Marcas únicas que coinciden ──────────────────────────────────────
+      const brandMap = new Map();
+      allProds.forEach(p => {
+        const a = p.attributes || p;
+        if (a.marca && a.marca.toLowerCase().includes(lq)) {
+          const key = a.marca.toLowerCase();
+          if (!brandMap.has(key)) {
+            brandMap.set(key, { nombre: a.marca, seccion: a.seccion || '' });
+          }
+        }
+      });
+      const uniqueBrands = [...brandMap.values()].slice(0, 3);
+
+      // ── Subcategorías / Tipos únicos que coinciden ───────────────────────
+      const subcatMap = new Map();
+      allProds.forEach(p => {
+        const a = p.attributes || p;
+        if (a.subcategoria && a.subcategoria.toLowerCase().includes(lq)) {
+          const key = 'sub_' + a.subcategoria.toLowerCase();
+          if (!subcatMap.has(key)) {
+            subcatMap.set(key, {
+              label: a.subcategoria,
+              subcategoria: a.subcategoria,
+              tipo: null,
+              seccion: a.seccion || '',
+            });
+          }
+        }
+        if (a.tipo && a.tipo.toLowerCase().includes(lq)) {
+          const key = 'tipo_' + a.tipo.toLowerCase();
+          if (!subcatMap.has(key)) {
+            subcatMap.set(key, {
+              label: a.tipo,
+              subcategoria: a.subcategoria || null,
+              tipo: a.tipo,
+              seccion: a.seccion || '',
+            });
+          }
+        }
+      });
+      const uniqueSubcats = [...subcatMap.values()].slice(0, 3);
+
+      setProducts(prodsByName);
+      setBrands(uniqueBrands);
+      setSubcats(uniqueSubcats);
       setCategories(catJson.data || []);
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.error('SearchDropdown error:', err);
         setProducts([]);
+        setBrands([]);
+        setSubcats([]);
         setCategories([]);
       }
     } finally {
@@ -271,6 +348,8 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
   useEffect(() => {
     if (!query || query.trim().length < 2) {
       setProducts([]);
+      setBrands([]);
+      setSubcats([]);
       setCategories([]);
       setLoading(false);
       return;
@@ -279,18 +358,38 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
     return () => clearTimeout(timer);
   }, [query, fetchSuggestions]);
 
+  // ─── Handlers de navegación ───────────────────────────────────────────────
+
   const handleProductClick = (product) => {
     const attrs = product.attributes || product;
     navigate(`/tienda?busqueda=${encodeURIComponent(attrs.nombre || '')}`);
     onClose();
   };
 
+  const handleBrandClick = (brand) => {
+    let url = `/tienda?marca=${encodeURIComponent(brand.nombre)}`;
+    if (brand.seccion) url += `&seccion=${encodeURIComponent(brand.seccion)}`;
+    navigate(url);
+    onClose();
+  };
+
+  const handleSubcatClick = (item) => {
+    let url = '/tienda?';
+    if (item.tipo) {
+      url += `tipo=${encodeURIComponent(item.tipo)}`;
+      if (item.subcategoria) url += `&subcategoria=${encodeURIComponent(item.subcategoria)}`;
+    } else {
+      url += `subcategoria=${encodeURIComponent(item.subcategoria)}`;
+    }
+    if (item.seccion) url += `&seccion=${encodeURIComponent(item.seccion)}`;
+    navigate(url);
+    onClose();
+  };
+
   const handleCategoryClick = (cat) => {
     const attrs = cat.attributes || cat;
     let url = `/tienda?categoria=${encodeURIComponent(attrs.nombre || '')}`;
-    if (attrs.seccion) {
-      url += `&seccion=${encodeURIComponent(attrs.seccion)}`;
-    }
+    if (attrs.seccion) url += `&seccion=${encodeURIComponent(attrs.seccion)}`;
     navigate(url);
     onClose();
   };
@@ -300,8 +399,11 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
     onClose();
   };
 
-  const hasResults = products.length > 0 || categories.length > 0;
+  const hasResults =
+    products.length > 0 || brands.length > 0 || subcats.length > 0 || categories.length > 0;
   const showEmpty = !loading && query.trim().length >= 2 && !hasResults;
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <Dropdown ref={dropdownRef} role="listbox" aria-label="Sugerencias de búsqueda">
@@ -313,10 +415,59 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
 
       {!loading && (
         <>
-          {/* Categorías */}
-          {categories.length > 0 && (
+          {/* ── MARCAS ──────────────────────────────────────────────────────── */}
+          {brands.length > 0 && (
+            <Section>
+              <SectionLabel>Marcas</SectionLabel>
+              {brands.map((brand) => (
+                <CategoryItem
+                  key={brand.nombre}
+                  onClick={() => handleBrandClick(brand)}
+                  role="option"
+                >
+                  <CategoryIcon style={{ backgroundColor: '#D4E8F2' }}>
+                    <BrandIconSvg />
+                  </CategoryIcon>
+                  <div>
+                    <CategoryName>{brand.nombre}</CategoryName>
+                    <CategorySub>Ver productos de esta marca</CategorySub>
+                  </div>
+                </CategoryItem>
+              ))}
+              {(subcats.length > 0 || categories.length > 0 || products.length > 0) && <Divider />}
+            </Section>
+          )}
+
+          {/* ── SUBCATEGORÍAS / TIPOS ────────────────────────────────────────── */}
+          {subcats.length > 0 && (
             <Section>
               <SectionLabel>Categorías</SectionLabel>
+              {subcats.map((item) => (
+                <CategoryItem
+                  key={(item.tipo || '') + '|' + (item.subcategoria || '')}
+                  onClick={() => handleSubcatClick(item)}
+                  role="option"
+                >
+                  <CategoryIcon>
+                    <CategoryIconSvg />
+                  </CategoryIcon>
+                  <div>
+                    <CategoryName>{item.label}</CategoryName>
+                    <CategorySub>
+                      {item.tipo ? 'Tipo · ' : 'Subcategoría · '}
+                      {item.seccion || 'Todos los productos'}
+                    </CategorySub>
+                  </div>
+                </CategoryItem>
+              ))}
+              {(categories.length > 0 || products.length > 0) && <Divider />}
+            </Section>
+          )}
+
+          {/* ── CATEGORÍAS PRINCIPALES ───────────────────────────────────────── */}
+          {categories.length > 0 && (
+            <Section>
+              {subcats.length === 0 && <SectionLabel>Categorías</SectionLabel>}
               {categories.map((cat) => {
                 const attrs = cat.attributes || cat;
                 return (
@@ -339,7 +490,7 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
             </Section>
           )}
 
-          {/* Productos */}
+          {/* ── PRODUCTOS ────────────────────────────────────────────────────── */}
           {products.length > 0 && (
             <Section>
               <SectionLabel>Productos</SectionLabel>
@@ -368,7 +519,7 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
                     </ProductThumb>
                     <ProductInfo>
                       <ProductBrand>{attrs.marca || 'Marybe'}</ProductBrand>
-      <ProductName>{attrs.nombre}</ProductName>
+                      <ProductName>{attrs.nombre}</ProductName>
                     </ProductInfo>
                   </ProductItem>
                 );
@@ -376,7 +527,7 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
             </Section>
           )}
 
-          {/* Ver todos */}
+          {/* ── VER TODOS ────────────────────────────────────────────────────── */}
           {hasResults && (
             <>
               <Divider />
@@ -387,10 +538,10 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
             </>
           )}
 
-          {/* Estado vacío */}
+          {/* ── ESTADO VACÍO ─────────────────────────────────────────────────── */}
           {showEmpty && (
             <EmptyState>
-              No encontramos productos para "<strong>{query}</strong>"
+              No encontramos resultados para "<strong>{query}</strong>"
             </EmptyState>
           )}
         </>

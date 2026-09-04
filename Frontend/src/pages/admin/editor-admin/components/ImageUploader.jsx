@@ -9,7 +9,7 @@ const MAX_KB  = 200;
  * Muestra el thumbnail actual. Al hacer clic abre el file input.
  * Llama a onUploaded(mediaObj) cuando el upload es exitoso.
  */
-export default function ImageUploader({ productoDocumentId, portadaActual, token, onUploaded }) {
+export default function ImageUploader({ productoDocumentId, varianteId, portadaActual, token, onUploaded }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError]         = useState('');
@@ -30,8 +30,13 @@ export default function ImageUploader({ productoDocumentId, portadaActual, token
     try {
       const fd = new FormData();
       fd.append('portada', file);
+      
+      const endpoint = varianteId !== undefined
+        ? `${API_URL}/api/editor-admin/productos/${productoDocumentId}/variantes/${varianteId}/portada`
+        : `${API_URL}/api/editor-admin/productos/${productoDocumentId}/portada`;
+
       const res = await axios.post(
-        `${API_URL}/api/editor-admin/productos/${productoDocumentId}/portada`,
+        endpoint,
         fd,
         {
           headers: {
