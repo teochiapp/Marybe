@@ -516,6 +516,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [seccionInfo, setSeccionInfo] = useState(null);
 
   const handleAddClick = (product, e) => {
     e.stopPropagation();
@@ -534,6 +535,21 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
         }
       })
       .catch(err => console.error('Error fetching productos:', err));
+
+    // Obtener la información de la Sección Principal
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[secciones][populate]=*`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          const attrs = data.data.attributes || data.data;
+          const secciones = attrs.secciones || [];
+          const info = secciones.find(s => s.seccion?.toLowerCase() === 'perfumeria' || s.seccion?.toLowerCase() === 'perfumería');
+          if (info) {
+            setSeccionInfo(info);
+          }
+        }
+      })
+      .catch(err => console.error('Error fetching seccion-principal:', err));
 
     if (seccion !== 'hogar') {
       fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-categorias-destacadas?populate[banners][populate]=*`)
@@ -644,16 +660,14 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
         <TextBlock>
           <Title>
             <span className="italic-text">
-              {seccion === 'hogar' ? 'Tu espacio,' : 'Lo nuevo'}
+              {seccionInfo?.titulo_cursiva || 'Lo nuevo'}
             </span>
             <span className="gold-text">
-              {seccion === 'hogar' ? 'tu hogar' : 'en Marybe'}
+              {seccionInfo?.titulo_normal || 'en Marybe'}
             </span>
           </Title>
           <Subtitle>
-            {seccion === 'hogar'
-              ? 'Calidez, diseño y aromas para ambientar cada rincón.'
-              : 'Intensidad, seducción y carácter en un solo lugar.'}
+            {seccionInfo?.subtitulo || 'Intensidad, seducción y carácter en un solo lugar.'}
           </Subtitle>
         </TextBlock>
         <FeaturedPicture>
@@ -661,9 +675,18 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             <img src="/inicio/hogar-featured.webp" alt="Hogar destacado" style={{ maxHeight: '42vh' }} loading="eager" decoding="sync" />
           ) : (
             <>
-              <source media="(max-width: 768px)" srcSet="/inicio/fragancias-mobile.webp" />
+              {seccionInfo?.imagen_mobile?.url ? (
+                <source media="(max-width: 768px)" srcSet={`${seccionInfo.imagen_mobile.url.startsWith('http') ? '' : process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${seccionInfo.imagen_mobile.url}`} />
+              ) : (
+                <source media="(max-width: 768px)" srcSet="/inicio/fragancias-mobile.webp" />
+              )}
+              
               <img
-                src={config?.img_featured_perfumeria || '/inicio/featured.webp'}
+                src={
+                  seccionInfo?.imagen_desktop?.url
+                    ? (seccionInfo.imagen_desktop.url.startsWith('http') ? seccionInfo.imagen_desktop.url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${seccionInfo.imagen_desktop.url}`)
+                    : '/inicio/featured.webp'
+                }
                 alt="Fragancias destacadas"
                 loading="eager"
                 decoding="sync"

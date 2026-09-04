@@ -204,6 +204,25 @@ export interface SharedItemBarraSuperior extends Struct.ComponentSchema {
   };
 }
 
+export interface SharedSeccionPrincipalItem extends Struct.ComponentSchema {
+  collectionName: 'components_shared_seccion_principal_items';
+  info: {
+    description: "Configuraci\u00F3n para la secci\u00F3n 'Lo nuevo en Marybe' de cada \u00E1rea";
+    displayName: 'Secci\u00F3n Principal Item';
+    icon: 'layout';
+  };
+  attributes: {
+    imagen_desktop: Schema.Attribute.Media<'images'> &
+      Schema.Attribute.Required;
+    imagen_mobile: Schema.Attribute.Media<'images'>;
+    seccion: Schema.Attribute.Enumeration<['Perfumeria', 'Hogar']> &
+      Schema.Attribute.Required;
+    subtitulo: Schema.Attribute.Text;
+    titulo_cursiva: Schema.Attribute.String & Schema.Attribute.Required;
+    titulo_normal: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
 declare module '@strapi/strapi' {
   export module Public {
     export interface ComponentSchemas {
@@ -218,6 +237,7 @@ declare module '@strapi/strapi' {
       'shared.banner': SharedBanner;
       'shared.banner-destacado': SharedBannerDestacado;
       'shared.item-barra-superior': SharedItemBarraSuperior;
+      'shared.seccion-principal-item': SharedSeccionPrincipalItem;
     }
   }
 }

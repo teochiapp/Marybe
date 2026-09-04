@@ -1,0 +1,22 @@
+{
+  "kind": "singleType",
+  "collectionName": "seccion_principal",
+  "info": {
+    "singularName": "seccion-principal",
+    "pluralName": "secciones-principales",
+    "displayName": "Sección Principal (Lo Nuevo)",
+    "description": "Textos e imágenes principales para 'Lo nuevo en Marybe'"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "secciones": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.seccion-principal-item",
+      "required": true
+    }
+  }
+}

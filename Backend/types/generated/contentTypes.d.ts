@@ -1166,6 +1166,40 @@ export interface ApiSeccionDestacadaSeccionDestacada
   };
 }
 
+export interface ApiSeccionPrincipalSeccionPrincipal
+  extends Struct.SingleTypeSchema {
+  collectionName: 'seccion_principal';
+  info: {
+    description: "Textos e im\u00E1genes principales para 'Lo nuevo en Marybe'";
+    displayName: 'Secci\u00F3n Principal (Lo Nuevo)';
+    pluralName: 'secciones-principales';
+    singularName: 'seccion-principal';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::seccion-principal.seccion-principal'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    secciones: Schema.Attribute.Component<
+      'shared.seccion-principal-item',
+      true
+    > &
+      Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface PluginContentReleasesRelease
   extends Struct.CollectionTypeSchema {
   collectionName: 'strapi_releases';
@@ -1695,6 +1729,7 @@ declare module '@strapi/strapi' {
       'api::seccion-descuento.seccion-descuento': ApiSeccionDescuentoSeccionDescuento;
       'api::seccion-destacada-hogar.seccion-destacada-hogar': ApiSeccionDestacadaHogarSeccionDestacadaHogar;
       'api::seccion-destacada.seccion-destacada': ApiSeccionDestacadaSeccionDestacada;
+      'api::seccion-principal.seccion-principal': ApiSeccionPrincipalSeccionPrincipal;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

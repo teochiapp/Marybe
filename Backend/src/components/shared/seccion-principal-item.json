@@ -1,0 +1,46 @@
+{
+  "collectionName": "components_shared_seccion_principal_items",
+  "info": {
+    "displayName": "Sección Principal Item",
+    "icon": "layout",
+    "description": "Configuración para la sección 'Lo nuevo en Marybe' de cada área"
+  },
+  "options": {},
+  "attributes": {
+    "seccion": {
+      "type": "enumeration",
+      "enum": [
+        "Perfumeria",
+        "Hogar"
+      ],
+      "required": true
+    },
+    "titulo_cursiva": {
+      "type": "string",
+      "required": true
+    },
+    "titulo_normal": {
+      "type": "string",
+      "required": true
+    },
+    "subtitulo": {
+      "type": "text"
+    },
+    "imagen_desktop": {
+      "type": "media",
+      "multiple": false,
+      "required": true,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "imagen_mobile": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    }
+  }
+}

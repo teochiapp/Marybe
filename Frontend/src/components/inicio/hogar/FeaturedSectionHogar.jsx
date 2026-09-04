@@ -424,6 +424,7 @@ export default function FeaturedSectionHogar() {
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [seccionInfo, setSeccionInfo] = useState(null);
 
   const handleAddClick = (product, e) => {
     e.stopPropagation();
@@ -440,6 +441,21 @@ export default function FeaturedSectionHogar() {
         }
       })
       .catch(err => console.error('Error fetching productos destacados de hogar:', err));
+
+    // Obtener la información de la Sección Principal
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[secciones][populate]=*`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          const attrs = data.data.attributes || data.data;
+          const secciones = attrs.secciones || [];
+          const info = secciones.find(s => s.seccion?.toLowerCase() === 'hogar');
+          if (info) {
+            setSeccionInfo(info);
+          }
+        }
+      })
+      .catch(err => console.error('Error fetching seccion-principal:', err));
   }, []);
 
   const isDown = useRef(false);
@@ -502,18 +518,34 @@ export default function FeaturedSectionHogar() {
       <TopHeader>
         <TextBlock>
           <Title>
-            <span className="italic-text">Lo nuevo </span>
-            <span className="gold-text">en Marybe</span>
+            <span className="italic-text">
+              {seccionInfo?.titulo_cursiva || 'Tu espacio,'}
+            </span>
+            <span className="gold-text">
+              {seccionInfo?.titulo_normal || 'tu hogar'}
+            </span>
           </Title>
           <Subtitle>
-            Intensidad, seducción y carácter en un solo lugar.
+            {seccionInfo?.subtitulo || 'Calidez, diseño y aromas para ambientar cada rincón.'}
           </Subtitle>
         </TextBlock>
         <FeaturedPicture>
-          <img
-            src={config?.img_featured_hogar || '/inicio/featuredSectionHogar.webp'}
-            alt="Hogar destacado"
-          />
+          <picture>
+            {seccionInfo?.imagen_mobile?.url ? (
+              <source media="(max-width: 768px)" srcSet={`${seccionInfo.imagen_mobile.url.startsWith('http') ? '' : process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${seccionInfo.imagen_mobile.url}`} />
+            ) : null}
+            <img
+              src={
+                seccionInfo?.imagen_desktop?.url
+                  ? (seccionInfo.imagen_desktop.url.startsWith('http') ? seccionInfo.imagen_desktop.url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${seccionInfo.imagen_desktop.url}`)
+                  : '/inicio/hogar-featured.webp'
+              }
+              alt="Hogar destacado"
+              style={{ maxHeight: '42vh' }}
+              loading="eager"
+              decoding="sync"
+            />
+          </picture>
         </FeaturedPicture>
       </TopHeader>
 
