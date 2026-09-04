@@ -141,6 +141,14 @@ const FeaturedPicture = styled.picture`
     max-height: 92vh;
     object-fit: contain;
     filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+
+    @media (min-width: 769px) {
+      min-height: 100%;
+      max-height: 65vh !important;
+      position: absolute;
+      left: 20vw;
+      top: 0px;
+    }
   }
 `;
 
@@ -538,10 +546,9 @@ export default function FeaturedSectionHogar() {
               src={
                 seccionInfo?.imagen_desktop?.url
                   ? (seccionInfo.imagen_desktop.url.startsWith('http') ? seccionInfo.imagen_desktop.url : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${seccionInfo.imagen_desktop.url}`)
-                  : '/inicio/hogar-featured.webp'
+                  : '/inicio/featuredSectionHogar.webp'
               }
               alt="Hogar destacado"
-              style={{ maxHeight: '42vh' }}
               loading="eager"
               decoding="sync"
             />
