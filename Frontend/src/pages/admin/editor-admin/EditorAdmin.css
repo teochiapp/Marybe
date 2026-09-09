@@ -334,7 +334,7 @@
   font-size: 0.78rem;
   color: var(--color-titulo-marybe, #f2dc8f);
   white-space: nowrap;
-  max-width: 200px;
+  max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -349,14 +349,14 @@
 /* ─── Inputs numéricos inline ────────────────────────────────────────────────── */
 .ea-input-num {
   width: 100%;
-  min-width: 80px;
-  max-width: 110px;
-  padding: 0.35rem 0.5rem;
+  min-width: 90px;
+  max-width: 130px;
+  padding: 0.45rem 0.6rem;
   border-radius: 6px;
   border: 1px solid rgba(242,220,143,0.15);
   background: rgba(255,255,255,0.05);
   color: #f0e6c8;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   text-align: right;
   transition: border-color 0.15s, box-shadow 0.15s;
   appearance: textfield;

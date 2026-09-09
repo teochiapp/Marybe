@@ -83,7 +83,8 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
             ) : (
               <span style={{ width: 20, flexShrink: 0 }} />
             )}
-            <span className="ea-cell-id">{producto.id_original || '—'}</span>
+            <span className="ea-cell-id" style={{ display: 'none' }}>{producto.id_original || '—'}</span>
+            <span className="ea-cell-id" title={producto.sku || ''}>{producto.sku || '—'}</span>
           </div>
         </td>
 
@@ -116,7 +117,7 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
         {/* Nombre + badge variantes */}
         <td>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="ea-cell-text" title={producto.nombre || ''} style={{ maxWidth: 220 }}>
+            <span className="ea-cell-text" title={producto.nombre || ''} style={{ maxWidth: 320 }}>
               {producto.nombre || '—'}
             </span>
             {tieneVariantes && (
@@ -162,7 +163,7 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
             min={0}
             step={1}
             placeholder="0"
-            style={{ maxWidth: 72, margin: '0 auto' }}
+            style={{ maxWidth: 120, margin: '0 auto' }}
             onChange={e => handleNumChange('stock', e.target.value)}
           />
         </td>
@@ -277,7 +278,7 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
                     min={0}
                     step={1}
                     placeholder="0"
-                    style={{ maxWidth: 60, margin: '0 auto' }}
+                    style={{ maxWidth: 120, margin: '0 auto' }}
                     onChange={e => handleVarianteChange(idx, 'stock', e.target.value)}
                   />
                 </td>

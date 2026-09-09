@@ -38,7 +38,7 @@ export default function ProductosTable({ productos, token, pendingChanges, onMar
       <table className="ea-table">
         <thead>
           <tr>
-            <th className="ea-th--sticky">ID Original</th>
+            <th className="ea-th--sticky">SKU / EAN</th>
             <th>Marca</th>
             <th>Nombre</th>
             <th style={{ textAlign: 'center' }}>Precio</th>

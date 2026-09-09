@@ -40,7 +40,7 @@ async function fetchProductosPorProveedor(proveedor) {
   while (true) {
     const resultado = await strapi.documents(UID_PRODUCTO).findMany({
       filters: { proveedor: { $eqi: proveedor } },
-      fields:  ['id_original', 'nombre', 'marca', 'proveedor', 'precio', 'precio_oferta', 'stock'],
+      fields:  ['id_original', 'sku', 'nombre', 'marca', 'proveedor', 'precio', 'precio_oferta', 'stock'],
       populate: {
         portada: {
           fields: ['id', 'name', 'url', 'width', 'height', 'size'],
