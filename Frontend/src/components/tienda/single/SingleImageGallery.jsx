@@ -70,11 +70,15 @@ const MainImageContainer = styled.div`
   padding: 40px;
   aspect-ratio: 1 / 1;
   max-height: 600px;
+  overflow: hidden;
+  position: relative;
   
   img {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    transition: transform 0.1s ease-out;
+    cursor: zoom-in;
   }
 
   @media (max-width: 768px) {
@@ -90,6 +94,30 @@ const MainImageContainer = styled.div`
 `;
 
 export default function SingleImageGallery({ images, nombre, activeIndex, setActiveIndex }) {
+  const [zoomStyle, setZoomStyle] = useState({ transformOrigin: 'center center' });
+  const [isZooming, setIsZooming] = useState(false);
+
+  const handleMouseMove = (e) => {
+    // Only zoom on desktop devices, disable for touch since it can interfere with scrolling
+    if (window.innerWidth <= 768) return;
+
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setZoomStyle({ transformOrigin: `${x}% ${y}%` });
+  };
+
+  const handleMouseEnter = () => {
+    if (window.innerWidth > 768) {
+      setIsZooming(true);
+    }
+  };
+  
+  const handleMouseLeave = () => {
+    setIsZooming(false);
+    setZoomStyle({ transformOrigin: 'center center' });
+  };
+
   // Mapeamos o filtramos por si no vienen imágenes
   const validImages = images && images.length > 0 ? images : [{ url: '/placeholder.png' }];
   const mainImage = validImages[activeIndex] || validImages[0];
@@ -108,8 +136,16 @@ export default function SingleImageGallery({ images, nombre, activeIndex, setAct
         ))}
       </ThumbnailsContainer>
 
-      <MainImageContainer>
-        <img src={mainImage.url} alt={nombre} />
+      <MainImageContainer
+        onMouseMove={handleMouseMove}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <img 
+          src={mainImage.url} 
+          alt={nombre} 
+          style={isZooming ? { transform: 'scale(2.5)', ...zoomStyle } : zoomStyle}
+        />
       </MainImageContainer>
     </GalleryContainer>
   );
