@@ -1,7 +1,7 @@
 FROM node:20-alpine
 
 # Install system build tools for node-gyp, better-sqlite3, and sharp
-RUN apk update && apk add --no-cache build-base gcc autoconf automake zlib-dev libpng-dev nasm bash vips-dev python3
+RUN apk update && apk add --no-cache build-base gcc autoconf automake zlib-dev libpng-dev nasm bash vips-dev python3 curl
 
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
