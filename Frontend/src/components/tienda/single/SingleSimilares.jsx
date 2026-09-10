@@ -62,8 +62,8 @@ const ProductsGrid = styled.div`
 
 const ProductCard = styled.div`
   background-color: var(--color-blanco);
-  border-radius: 24px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -74,18 +74,18 @@ const ProductCard = styled.div`
   -webkit-user-drag: none;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 
-  width: calc((100% - (5 * 30px)) / 5.5);
+  width: 290px;
 
-  @media (max-width: 1440px) {
-    width: calc((100% - (4 * 30px)) / 4.5);
+  @media (max-width: 1400px) {
+    width: 290px;
   }
 
-  @media (max-width: 1024px) {
-    width: calc((100% - (2 * 24px)) / 2.5);
+  @media (max-width: 997px) {
+    width: 280px;
   }
 
   @media (max-width: 600px) {
-    width: calc((100% - (1 * 20px)) / 1.5);
+    width: 240px;
     padding: 12px;
     border-radius: 18px;
   }
@@ -98,10 +98,10 @@ const ProductCard = styled.div`
 
 const CardImageContainer = styled.div`
   width: 100%;
-  height: 250px;
-  background-color: #f6f4f0;
+  height: 200px;
+  background-color: #fff;
   border-radius: var(--radius-md);
-  margin-bottom: 15px;
+  margin-bottom: 12px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -110,7 +110,7 @@ const CardImageContainer = styled.div`
   cursor: pointer;
 
   @media (max-width: 600px) {
-    height: 160px;
+    height: 140px;
     margin-bottom: 10px;
   }
 
