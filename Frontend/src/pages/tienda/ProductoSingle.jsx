@@ -71,14 +71,7 @@ const MobileTopRow = styled.div`
   }
 `;
 
-const Pill = styled.span`
-  background-color: #F2D4D4;
-  color: var(--color-bordo-tercero);
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  font-weight: 600;
-`;
+
 
 const IconsContainer = styled.div`
   display: flex;
@@ -248,10 +241,7 @@ export default function ProductoSingle() {
             />
           </DesktopOnly>
 
-          <MobileTopRow>
-            <div>
-              {producto.descuento > 0 && <Pill>Super oferta</Pill>}
-            </div>
+          <MobileTopRow style={{ justifyContent: 'flex-end' }}>
             <IconsContainer>
               <svg
                 width="24"

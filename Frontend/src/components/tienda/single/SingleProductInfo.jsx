@@ -7,7 +7,7 @@ import AddToCartModal from '../../carrito/AddToCartModal';
 import { CartContext } from '../../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import FavoriteButton from '../../shared/FavoriteButton';
-import { variantesReales } from '../../../utils/productPrice';
+import { getVariantPrice, variantesReales } from '../../../utils/productPrice';
 
 const InfoContainer = styled.div`
   display: flex;
@@ -25,21 +25,6 @@ const TopRow = styled.div`
   @media (max-width: 768px) {
     display: none;
   }
-`;
-
-const PillsContainer = styled.div`
-  display: flex;
-  gap: 10px;
-`;
-
-const Pill = styled.span`
-  background-color: #F2D4D4;
-  color: var(--color-bordo-tercero);
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  font-weight: 600;
 `;
 
 const IconsContainer = styled.div`
@@ -782,9 +767,8 @@ export default function SingleProductInfo({ producto, onVariantSelect }) {
     }
   }
 
-  const price = activeVariant.precio ?? producto.precio ?? 0;
-  let offerPrice = activeVariant.precio_oferta ?? producto.precio_oferta ?? null;
-  const stock = activeVariant.stock ?? producto.stock ?? 0;
+  const { price, offerPrice, calcDescuento, tieneOferta } = getVariantPrice(activeVariant, producto);
+  const stock = activeVariant?.stock ?? producto?.stock ?? 0;
 
   // Notificamos a ProductoSingle cuando cambia la variante seleccionada
   useEffect(() => {
@@ -794,13 +778,6 @@ export default function SingleProductInfo({ producto, onVariantSelect }) {
   }, [activeVariant?.id, onVariantSelect]);
 
   if (!producto) return null;
-
-  // Si no hay precio de oferta pero hay un descuento global, lo calculamos
-  if (!offerPrice && descuento > 0 && price > 0) {
-    offerPrice = price - (price * (descuento / 100));
-  }
-
-  const calcDescuento = offerPrice && offerPrice < price ? Math.round((1 - offerPrice / price) * 100) : (descuento || 0);
 
   const handleShare = async () => {
     const shareData = {
@@ -920,11 +897,7 @@ export default function SingleProductInfo({ producto, onVariantSelect }) {
 
   return (
     <InfoContainer>
-      <TopRow>
-        <PillsContainer>
-          {calcDescuento > 30 && <Pill>Super oferta</Pill>}
-          {calcDescuento > 0 && calcDescuento <= 30 && <Pill>Promoción</Pill>}
-        </PillsContainer>
+      <TopRow style={{ justifyContent: 'flex-end' }}>
         <IconsContainer>
           <svg
             width="24"
@@ -962,10 +935,10 @@ export default function SingleProductInfo({ producto, onVariantSelect }) {
       </MobileActionRow>
 
       <PriceBlock>
-        {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
+        {tieneOferta && <OldPrice>{formatPrice(price)}</OldPrice>}
         <CurrentPriceRow>
-          <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
-          {descuento > 0 && <DiscountBadge>- {descuento}%</DiscountBadge>}
+          <CurrentPrice>{formatPrice(tieneOferta ? offerPrice : price)}</CurrentPrice>
+          {calcDescuento > 0 && <DiscountBadge>- {calcDescuento}%</DiscountBadge>}
         </CurrentPriceRow>
 
         <PaymentLink onClick={() => setIsPaymentModalOpen(true)}>Ver medios de pago</PaymentLink>

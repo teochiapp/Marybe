@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
+import { getVariantPrice } from '../utils/productPrice';
 
 export const CartContext = createContext();
 
@@ -65,19 +66,22 @@ export const CartProvider = ({ children }) => {
         return updatedItems;
       } else {
         // Add new item
+        const priceInfo = getVariantPrice(variant, product.attributes || product);
+        const unitPrice = priceInfo.tieneOferta ? priceInfo.offerPrice : priceInfo.price;
+
         const newItem = {
           cartId: uniqueId,
           product: {
             id: product.id || product.documentId,
             nombre: product.nombre || product.attributes?.nombre,
             marca: product.marca || product.attributes?.marca,
-            descuento: product.descuento || product.attributes?.descuento || 0,
+            descuento: priceInfo.calcDescuento,
             portada: product.portada || product.attributes?.portada,
             stock: product.stock || product.attributes?.stock, // Added stock
           },
           variant: variant || {},
           quantity: quantity,
-          price: variant?.precio_oferta || variant?.precio || product.precio_oferta || product.precio || 0,
+          price: unitPrice,
         };
         return [...prevItems, newItem];
       }

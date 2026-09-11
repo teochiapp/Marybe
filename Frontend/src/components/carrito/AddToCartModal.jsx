@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { variantesReales } from '../../utils/productPrice';
+import { getVariantPrice, variantesReales } from '../../utils/productPrice';
 
 // Styled Components
 const Overlay = styled.div`
@@ -242,7 +242,7 @@ const QuantityBox = styled.div`
   }
 `;
 
-// Mapa de colores (Mismo que en SingleProductInfo)
+// Mapa de colores
 const COLOR_MAP = {
   "Negro": "#1a1a1a",
   "Negro Azulado": "#0d0d1a",
@@ -403,7 +403,8 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
   }
 
   const stock = activeVariant?.stock ?? attrs?.stock ?? 0;
-  const price = activeVariant?.precio_oferta || activeVariant?.precio || attrs.precio_oferta || attrs.precio || 0;
+  const variantPriceInfo = getVariantPrice(activeVariant, attrs);
+  const price = variantPriceInfo.tieneOferta ? variantPriceInfo.offerPrice : variantPriceInfo.price;
 
   // Get image URL
   let imgUrl = '/placeholder.png';
