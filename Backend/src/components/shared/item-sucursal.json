@@ -1,0 +1,28 @@
+{
+  "collectionName": "components_shared_item_sucursales",
+  "info": {
+    "displayName": "Item Sucursal",
+    "icon": "pin",
+    "description": "Sucursal con información de ubicación, teléfonos y mapa"
+  },
+  "options": {},
+  "attributes": {
+    "provincia": {
+      "type": "string",
+      "required": true
+    },
+    "calle": {
+      "type": "string",
+      "required": true
+    },
+    "numero_celular": {
+      "type": "string"
+    },
+    "numero_fijo": {
+      "type": "string"
+    },
+    "embed_google_maps": {
+      "type": "text"
+    }
+  }
+}

@@ -88,7 +88,7 @@ export default function FooterBrand() {
       <FooterLogo src="/logo-marybe.png" alt="Marybe" width="200" height="40" />
 
       <Tagline>
-        Tu farmacia y perfumería de confianza desde hace <strong>más de 50 años.</strong>
+        Tu perfumería de confianza desde hace <strong>más de 50 años.</strong>
       </Tagline>
 
       <DesktopLocation>

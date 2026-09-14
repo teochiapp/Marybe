@@ -786,6 +786,76 @@ export interface ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader
   };
 }
 
+export interface ApiPaginaHistoriaPaginaHistoria
+  extends Struct.SingleTypeSchema {
+  collectionName: 'pagina_historia';
+  info: {
+    description: 'Contenido editable de la p\u00E1gina Nuestra Historia';
+    displayName: 'P\u00E1gina de Nuestra Historia';
+    pluralName: 'pagina-historia-plural';
+    singularName: 'pagina-historia';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    imagen_final_desktop: Schema.Attribute.Media<'images'>;
+    imagen_final_mobile: Schema.Attribute.Media<'images'>;
+    imagen_inicio: Schema.Attribute.Media<'images'>;
+    imagen_secundaria: Schema.Attribute.Media<'images'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::pagina-historia.pagina-historia'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    texto_banner_1: Schema.Attribute.RichText;
+    texto_banner_2: Schema.Attribute.RichText;
+    texto_intermedio: Schema.Attribute.RichText;
+    titulo: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Nuestra Historia'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPaginaSucursalesPaginaSucursales
+  extends Struct.SingleTypeSchema {
+  collectionName: 'pagina_sucursales';
+  info: {
+    description: 'Contenido din\u00E1mico de la p\u00E1gina de sucursales con lista de locales';
+    displayName: 'P\u00E1gina de Sucursales';
+    pluralName: 'pagina-sucursales-plural';
+    singularName: 'pagina-sucursales';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::pagina-sucursales.pagina-sucursales'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    sucursales: Schema.Attribute.Component<'shared.item-sucursal', true>;
+    titulo: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Nuestras Sucursales'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiPedidoPedido extends Struct.CollectionTypeSchema {
   collectionName: 'pedidos';
   info: {
@@ -1720,6 +1790,8 @@ declare module '@strapi/strapi' {
       'api::gift-card.gift-card': ApiGiftCardGiftCard;
       'api::menu-barra-superior.menu-barra-superior': ApiMenuBarraSuperiorMenuBarraSuperior;
       'api::ordenamiento-menu-header.ordenamiento-menu-header': ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader;
+      'api::pagina-historia.pagina-historia': ApiPaginaHistoriaPaginaHistoria;
+      'api::pagina-sucursales.pagina-sucursales': ApiPaginaSucursalesPaginaSucursales;
       'api::pedido.pedido': ApiPedidoPedido;
       'api::producto.producto': ApiProductoProducto;
       'api::promocion-bancaria.promocion-bancaria': ApiPromocionBancariaPromocionBancaria;

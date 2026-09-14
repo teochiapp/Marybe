@@ -205,6 +205,22 @@ export interface SharedItemBarraSuperior extends Struct.ComponentSchema {
   };
 }
 
+export interface SharedItemSucursal extends Struct.ComponentSchema {
+  collectionName: 'components_shared_item_sucursales';
+  info: {
+    description: 'Sucursal con informaci\u00F3n de ubicaci\u00F3n, tel\u00E9fonos y mapa';
+    displayName: 'Item Sucursal';
+    icon: 'pin';
+  };
+  attributes: {
+    calle: Schema.Attribute.String & Schema.Attribute.Required;
+    embed_google_maps: Schema.Attribute.Text;
+    numero_celular: Schema.Attribute.String;
+    numero_fijo: Schema.Attribute.String;
+    provincia: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
 export interface SharedSeccionPrincipalItem extends Struct.ComponentSchema {
   collectionName: 'components_shared_seccion_principal_items';
   info: {
@@ -238,6 +254,7 @@ declare module '@strapi/strapi' {
       'shared.banner': SharedBanner;
       'shared.banner-destacado': SharedBannerDestacado;
       'shared.item-barra-superior': SharedItemBarraSuperior;
+      'shared.item-sucursal': SharedItemSucursal;
       'shared.seccion-principal-item': SharedSeccionPrincipalItem;
     }
   }

@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import ArgentinaMap from './ArgentinaMap';
 import SucursalCard from './SucursalCard';
-import { sucursales } from './sucursalesData';
+import { usePaginaSucursales } from '../../hooks/usePaginaSucursales';
 
 const Section = styled.section`
   background-color: #560203;
@@ -87,9 +87,11 @@ const CardList = styled.div`
 `;
 
 export default function SucursalesContent() {
+  const { titulo, sucursales } = usePaginaSucursales();
+
   return (
     <Section>
-      <Title>Nuestras Sucursales</Title>
+      <Title>{titulo || 'Nuestras Sucursales'}</Title>
       <Layout>
         <MapColumn>
           <ArgentinaMap />

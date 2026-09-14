@@ -9,6 +9,8 @@
 ---
 
 ## Reglas obligatorias
+## 0 - habra un archivo MD para dejar las tareas realizadas a lo largo del mes.. cada tarea terminada dejar el log ahi Frontend\informe-mensual-X.md
+
 
 ### 1. styled-components — siempre en el mismo archivo que el JSX
 Nunca crear archivos `.css` separados. Los estilos van definidos con `styled-components` arriba del componente, en el mismo `.jsx`..

@@ -415,6 +415,49 @@ const AddButton = styled.button`
   }
 `;
 
+const ScrollWrapper = styled.div`
+  position: relative;
+`;
+
+const ArrowBtn = styled.button`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  ${({ $side }) => $side}: 10px;
+  z-index: 10;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  color: var(--color-marron-principal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    background-color: #fff;
+    transform: translateY(-50%) scale(1.08);
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
 // Helper SVG Icons
 
 
@@ -430,6 +473,13 @@ const ImagePlaceholder = () => (
   <svg viewBox="0 0 24 24" fill="#ccc">
     <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
   </svg>
+);
+
+const ChevronLeft = () => (
+  <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+);
+const ChevronRight = () => (
+  <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
 );
 
 const formatPrice = (price) => {
@@ -528,6 +578,15 @@ export default function FeaturedSectionHogar() {
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
+  const scrollByStep = useCallback((dir) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const first = el.children[0];
+    const gap = 30;
+    const step = first ? first.getBoundingClientRect().width + gap : el.clientWidth;
+    el.scrollTo({ left: el.scrollLeft + dir * step, behavior: 'smooth' });
+  }, []);
+
   const handleProductClick = (id, nombre) => {
     if (!isDragging.current) {
       navigate(generateProductUrl(id, nombre));
@@ -570,66 +629,74 @@ export default function FeaturedSectionHogar() {
         </FeaturedPicture>
       </TopHeader>
 
-      <ProductsGrid
-        ref={scrollRef}
-        onMouseDown={handleMouseDown}
-        onMouseLeave={handleMouseLeave}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-      >
-        {productos.map((item) => {
-          const id = item.id || item.documentId;
-          const attrs = item.attributes || item;
+      <ScrollWrapper>
+        <ArrowBtn $side="left" type="button" aria-label="Anterior" onClick={() => scrollByStep(-1)}>
+          <ChevronLeft />
+        </ArrowBtn>
+        <ProductsGrid
+          ref={scrollRef}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+        >
+          {productos.map((item) => {
+            const id = item.id || item.documentId;
+            const attrs = item.attributes || item;
 
-          const nombre = attrs.nombre;
-          const marca = attrs.marca;
-          const { price, offerPrice, calcDescuento: descuentoCalc } = getProductPrice(attrs);
+            const nombre = attrs.nombre;
+            const marca = attrs.marca;
+            const { price, offerPrice, calcDescuento: descuentoCalc } = getProductPrice(attrs);
 
-          let imgUrl = null;
-          if (attrs.portada?.data?.attributes?.url) {
-            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.data.attributes.url}`;
-          } else if (attrs.portada?.url) {
-            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
-          }
+            let imgUrl = null;
+            if (attrs.portada?.data?.attributes?.url) {
+              imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.data.attributes.url}`;
+            } else if (attrs.portada?.url) {
+              imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
+            }
 
-          return (
-            <ProductCard key={id}>
-              <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
-                {imgUrl ? (
-                  <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" />
-                ) : (
-                  <ImagePlaceholder />
+            return (
+              <ProductCard key={id}>
+                <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
+                  {imgUrl ? (
+                    <img src={imgUrl} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable="false" />
+                  ) : (
+                    <ImagePlaceholder />
+                  )}
+                  <HeartContainer>
+                    <FavoriteButton product={item} />
+                  </HeartContainer>
+                </CardImageContainer>
+
+                <ProductBrand>{marca}</ProductBrand>
+                <ProductName onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
+
+                <PriceRow>
+                  {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
+                  <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
+                  {descuentoCalc > 0 && <DiscountBadge>{descuentoCalc}% OFF</DiscountBadge>}
+                </PriceRow>
+
+                {config?.cuotas_activas && (
+                  <Installments>
+                    {config?.cuotas_texto_previo ? config.cuotas_texto_previo + ' ' : '3 cuotas sin interés de '}{formatPrice(Math.round((offerPrice || price) / (config?.cuotas_cantidad || 3)))}
+                  </Installments>
                 )}
-                <HeartContainer>
-                  <FavoriteButton product={item} />
-                </HeartContainer>
-              </CardImageContainer>
+                <LegalText>
+                  Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
+                </LegalText>
 
-              <ProductBrand>{marca}</ProductBrand>
-              <ProductName onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
-
-              <PriceRow>
-                {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
-                <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
-                {descuentoCalc > 0 && <DiscountBadge>{descuentoCalc}% OFF</DiscountBadge>}
-              </PriceRow>
-
-              {config?.cuotas_activas && (
-                <Installments>
-                  {config?.cuotas_texto_previo ? config.cuotas_texto_previo + ' ' : '3 cuotas sin interés de '}{formatPrice(Math.round((offerPrice || price) / (config?.cuotas_cantidad || 3)))}
-                </Installments>
-              )}
-              <LegalText>
-                Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
-              </LegalText>
-
-              <AddButton onClick={(e) => handleAddClick(item, e)}>
-                Agregar <CartIcon />
-              </AddButton>
-            </ProductCard>
-          );
-        })}
-      </ProductsGrid>
+                <AddButton onClick={(e) => handleAddClick(item, e)}>
+                  Agregar <CartIcon />
+                </AddButton>
+              </ProductCard>
+            );
+          })}
+        </ProductsGrid>
+        <ArrowBtn $side="right" type="button" aria-label="Siguiente" onClick={() => scrollByStep(1)}>
+          <ChevronRight />
+        </ArrowBtn>
+      </ScrollWrapper>
       {selectedProduct && (
         <AddToCartModal
           isOpen={isModalOpen}

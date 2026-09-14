@@ -7,7 +7,8 @@ import AddToCartModal from '../../carrito/AddToCartModal';
 import { CartContext } from '../../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import FavoriteButton from '../../shared/FavoriteButton';
-import { getVariantPrice, variantesReales } from '../../../utils/productPrice';
+import VariantSelector from '../../shared/VariantSelector';
+import { getVariantPrice, variantesReales, getMainVariant, sortSizes } from '../../../utils/productPrice';
 
 const InfoContainer = styled.div`
   display: flex;
@@ -149,8 +150,13 @@ const CfteaText = styled.div`
 const InstallmentsText = styled.div`
   font-size: 0.95rem;
   color: #535353;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
+  line-height: 1.4;
   font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 
   span {
     font-weight: 700;
@@ -709,15 +715,10 @@ const COLOR_MAP = {
   "Violeta": "#8B00FF"
 };
 
-
-
-
 export default function SingleProductInfo({ producto, onVariantSelect }) {
   const { addToCart } = useContext(CartContext);
   const [qty, setQty] = useState(1);
   const [qtyDir, setQtyDir] = useState(1);
-  const [selectedSize, setSelectedSize] = useState(0);
-  const [selectedColor, setSelectedColor] = useState(null); // null = ninguno seleccionado
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isShippingModalOpen, setShippingModalOpen] = useState(false);
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
@@ -736,19 +737,17 @@ export default function SingleProductInfo({ producto, onVariantSelect }) {
   const coloresUnicos = [...colorMap.entries()]; // [[nombre, variante], ...]
   const tieneColores = coloresUnicos.length > 0;
 
-  const sizes = [...new Set(variantes.map(v => v.volumen || 'Único'))].sort((a, b) => {
-    if (a === 'Único') return 1;
-    if (b === 'Único') return -1;
-    
-    const numA = parseFloat(a);
-    const numB = parseFloat(b);
-    
-    if (!isNaN(numA) && !isNaN(numB)) {
-      return numA - numB;
-    }
-    return String(a).localeCompare(String(b));
-  });
+  const sizes = sortSizes([...new Set(variantes.map(v => v.volumen || 'Único'))]);
   const tieneVariantesTam = sizes.length > 0 && (sizes.length > 1 || sizes[0] !== 'Único');
+
+  // Inicialización inteligente basada en variante principal real
+  const mainV = getMainVariant(producto || {});
+  const initialColor = mainV?.color_nombre || (coloresUnicos[0]?.[0] || null);
+  const initialSizeVal = mainV?.volumen || sizes[0];
+  const initialSizeIdx = sizes.indexOf(initialSizeVal) !== -1 ? sizes.indexOf(initialSizeVal) : 0;
+
+  const [selectedSize, setSelectedSize] = useState(initialSizeIdx);
+  const [selectedColor, setSelectedColor] = useState(initialColor);
 
   // ── Si hay colores y se seleccionó uno, o si hay tamaños, buscar la variante exacta ──
   const currentSize = sizes[selectedSize] || sizes[0];
@@ -928,8 +927,6 @@ export default function SingleProductInfo({ producto, onVariantSelect }) {
         </SubBadges>
       )}
 
-      {descripcion && <DescriptionExcerpt>{descripcion}</DescriptionExcerpt>}
-
       <MobileActionRow>
         {renderAddToCart()}
       </MobileActionRow>
@@ -952,48 +949,18 @@ export default function SingleProductInfo({ producto, onVariantSelect }) {
         <LegalText>Precio sin impuestos nacionales {formatPrice(priceWithoutTaxes)}</LegalText>
       </PriceBlock>
 
-      {tieneVariantesTam && (
-        <>
-          <OptionLabel>Tamaño</OptionLabel>
-          <SizesContainer>
-            {sizes.map((size, idx) => (
-              <SizeBtn
-                key={idx}
-                $active={selectedSize === idx}
-                onClick={() => setSelectedSize(idx)}
-              >
-                {size}
-              </SizeBtn>
-            ))}
-          </SizesContainer>
-        </>
-      )}
-
-      {/* Selección de color — solo si las variantes tienen color_nombre en Strapi */}
-      {tieneColores && (
-        <>
-          <OptionLabel>
-            Color
-            {selectedColor && (
-              <span style={{ fontWeight: 400, color: '#555', marginLeft: 8 }}>— {selectedColor}</span>
-            )}
-          </OptionLabel>
-          <ColorsContainer>
-            {coloresUnicos.map(([nombre, variante]) => {
-              const hex = COLOR_MAP[nombre] || '#CCCCCC';
-              return (
-                <ColorBtn
-                  key={nombre}
-                  $color={hex}
-                  $active={selectedColor === nombre}
-                  onClick={() => setSelectedColor(nombre)}
-                  title={nombre}
-                />
-              );
-            })}
-          </ColorsContainer>
-        </>
-      )}
+      <VariantSelector
+        compact={false}
+        coloresUnicos={coloresUnicos}
+        selectedColor={selectedColor}
+        onColorSelect={setSelectedColor}
+        sizes={sizes}
+        selectedSize={selectedSize}
+        onSizeSelect={setSelectedSize}
+        tieneColores={tieneColores}
+        tieneVariantesTam={tieneVariantesTam}
+        variantes={variantes}
+      />
 
       <StockInfo>
         {stock > 0

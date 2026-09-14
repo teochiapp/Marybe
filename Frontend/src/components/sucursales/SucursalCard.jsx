@@ -64,15 +64,26 @@ const InfoRow = styled.span`
 `;
 
 export default function SucursalCard({ provincia, direccion, telefono, telefonoFijo, mapa }) {
-  // Construimos una URL de búsqueda para el iframe ya que los enlaces cortos de Google 
-  // (https://maps.app.goo.gl/...) bloquean la incrustación mediante X-Frame-Options.
   const mapQuery = encodeURIComponent(`${direccion}, ${provincia || ''}, Argentina`);
-  const embedUrl = `https://maps.google.com/maps?q=${mapQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+  let finalEmbedUrl = `https://maps.google.com/maps?q=${mapQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+
+  if (mapa && typeof mapa === 'string') {
+    const trimmed = mapa.trim();
+    if (trimmed.includes('<iframe')) {
+      const match = trimmed.match(/src=["']([^"']+)["']/);
+      if (match && match[1]) finalEmbedUrl = match[1];
+    } else if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      if (trimmed.includes('maps.google.com/maps') || trimmed.includes('output=embed') || trimmed.includes('/embed')) {
+        finalEmbedUrl = trimmed;
+      }
+    }
+  }
+
   return (
     <Card>
       <MapWrap>
         <MapFrame
-          src={embedUrl}
+          src={finalEmbedUrl}
           title={`Mapa de ${direccion}`}
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"

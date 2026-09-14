@@ -4,7 +4,8 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getVariantPrice, variantesReales } from '../../utils/productPrice';
+import { getVariantPrice, variantesReales, getMainVariant, sortSizes } from '../../utils/productPrice';
+import VariantSelector from '../shared/VariantSelector';
 
 // Styled Components
 const Overlay = styled.div`
@@ -96,57 +97,7 @@ const OptionLabel = styled.div`
   color: #28180B;
 `;
 
-const SizesContainer = styled.div`
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-  flex-wrap: wrap;
-`;
 
-const SizeBtn = styled.button`
-  border: 1px solid ${({ $active }) => ($active ? '#750707' : '#ccc')};
-  background-color: ${({ $active }) => ($active ? '#750707' : '#fff')};
-  color: ${({ $active }) => ($active ? '#fff' : '#28180B')};
-  border-radius: 12px;
-  padding: 6px 16px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    border-color: #750707;
-  }
-`;
-
-const ColorsContainer = styled.div`
-  display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-`;
-
-const ColorBtn = styled.button`
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background-color: ${({ $color }) => $color};
-  cursor: pointer;
-  padding: 0;
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: -6px;
-    left: -6px;
-    right: -6px;
-    bottom: -6px;
-    border-radius: 8px;
-    border: 1px solid ${({ $active }) => ($active ? '#750707' : '#d8d2ca')};
-    transition: border-color 0.2s ease;
-  }
-`;
 
 const ActionRow = styled.div`
   display: flex;
@@ -242,103 +193,7 @@ const QuantityBox = styled.div`
   }
 `;
 
-// Mapa de colores
-const COLOR_MAP = {
-  "Negro": "#1a1a1a",
-  "Negro Azulado": "#0d0d1a",
-  "Castaño Oscuro": "#3E2009",
-  "Castaño Natural": "#6B4226",
-  "Castaño Claro": "#8B6347",
-  "Castaño Ceniza": "#6B5B52",
-  "Castaño Dorado": "#8B5E3C",
-  "Chocolate": "#3D1C02",
-  "Caoba": "#722F37",
-  "Avellana": "#855E42",
-  "Rubio Oscuro": "#C8A96E",
-  "Rubio Natural": "#E8C98A",
-  "Rubio Claro": "#F5DEB3",
-  "Rubio Dorado": "#DAA520",
-  "Rubio Ceniza": "#D4C5A9",
-  "Rubio Platinado": "#F0E6C8",
-  "Miel": "#FFC30B",
-  "Rojo": "#CC0000",
-  "Rojo Intenso": "#8B0000",
-  "Bordo": "#5C0A0A",
-  "Bordo Oscuro": "#3E0102",
-  "Cobre": "#B87333",
-  "Rojizo": "#9B2335",
-  "Rosa Claro": "#FFCDD2",
-  "Rosa": "#FFB6C1",
-  "Rosa Oscuro": "#C2185B",
-  "Fucsia": "#FF0090",
-  "Coral": "#FF6B6B",
-  "Durazno": "#FFCBA4",
-  "Nude": "#D4A574",
-  "Beige": "#F5F5DC",
-  "Arena": "#C2B280",
-  "Marfil": "#FFFFF0",
-  "Porcelana": "#F7E7CE",
-  "Blanco": "#FFFFFF",
-  "Blanco Perla": "#F8F8F0",
-  "Dorado": "#FFD700",
-  "Plateado": "#C0C0C0",
-  "Bronce": "#CD7F32",
-  "Lavanda": "#E6E6FA",
-  "Lila": "#C8A2C8",
-  "Violeta": "#8B00FF",
-  "Morado": "#6A0DAD",
-  "Azul": "#0055AA",
-  "Turquesa": "#40E0D0",
-  "Verde": "#228B22",
-  "Verde Oliva": "#808000",
-  "Gris Claro": "#D3D3D3",
-  "Gris": "#808080",
-  "Gris Oscuro": "#404040",
-  "Transparente": "#E8E8E8",
-  "Incoloro": "#F5F5F5",
-  "Negro Intenso": "#000000",
-  "Negro Profundo": "#0A0A0A",
-  "Ebano": "#1C1C1C",
-  "Castano Oscuro": "#3B1E08",
-  "Castano Claro Dorado": "#8B5E3C",
-  "Castano Claro": "#6B3A1F",
-  "Castano Ceniza Caoba": "#5A3525",
-  "Castano Rojizo": "#7B3B2A",
-  "Castano": "#4A2A0A",
-  "Rubio Ultra Claro": "#F5E6C8",
-  "Rubio Muy Claro": "#E8D5A3",
-  "Rubio Claro Cenizo": "#C8BFA0",
-  "Rubio Claro Dorado": "#D4AF37",
-  "Rubio Cenizo": "#B0A080",
-  "Rubio Rojizo": "#A0522D",
-  "Rubio": "#C9A84C",
-  "Rojo Cobrizo": "#CB6D3A",
-  "Cobrizo Rubi": "#9B2335",
-  "Cobrizo": "#CB6D3A",
-  "Chocolate Caoba": "#4A2416",
-  "Chocolate Puro": "#3D1C02",
-  "Borgonya": "#800020",
-  "Borgoña": "#800020",
-  "Caramelo": "#C68642",
-  "Ceniza": "#A0A0A0",
-  "Dorado Cobrizo": "#B8860B",
-  "Arandano": "#5D2D91",
-  "Grosella": "#8B0040",
-  "Tamarindo": "#6B3226",
-  "Cafe": "#4A2F1C",
-  "Capuccino": "#6F4E37",
-  "Espresso": "#2C1503",
-  "Champana": "#F7E7CE",
-  "Almendra": "#EFDECD",
-  "Jazmin": "#F5F0E8",
-  "Margarita": "#FFFACD",
-  "Nectar": "#FFBE00",
-  "Trigo": "#F5DEB3",
-  "Centeno": "#8B7355",
-  "Ambar": "#FFBF00",
-  "Azahar": "#F0E5CE",
-  "Maracuya": "#F5C518"
-};
+
 
 const formatPrice = (price) => {
   if (!price) return '$0';
@@ -380,7 +235,7 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
   const coloresUnicos = [...colorMap.entries()];
   const tieneColores = coloresUnicos.length > 0;
 
-  const sizes = [...new Set(variantes.map(v => v.volumen || 'Único'))];
+  const sizes = sortSizes([...new Set(variantes.map(v => v.volumen || 'Único'))]);
   const tieneVariantesTam = sizes.length > 0 && (sizes.length > 1 || sizes[0] !== 'Único');
 
   // Find active variant if not provided externally
@@ -482,47 +337,17 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
           </ProductDetails>
         </ProductInfo>
 
-        {tieneVariantesTam && (
-          <div style={{ marginBottom: '15px' }}>
-            <OptionLabel>Tamaño</OptionLabel>
-            <SizesContainer>
-              {sizes.map((size, idx) => (
-                <SizeBtn
-                  key={idx}
-                  $active={selectedSize === idx}
-                  onClick={() => setSelectedSize(idx)}
-                >
-                  {size}
-                </SizeBtn>
-              ))}
-            </SizesContainer>
-          </div>
-        )}
-
-        {tieneColores && (
-          <div style={{ marginBottom: '15px' }}>
-            <OptionLabel>
-              Color
-              {selectedColor && (
-                <span style={{ fontWeight: 400, color: '#555', marginLeft: 8 }}>— {selectedColor}</span>
-              )}
-            </OptionLabel>
-            <ColorsContainer>
-              {coloresUnicos.map(([nombre, variante]) => {
-                const hex = COLOR_MAP[nombre] || '#CCCCCC';
-                return (
-                  <ColorBtn
-                    key={nombre}
-                    $color={hex}
-                    $active={selectedColor === nombre}
-                    onClick={() => setSelectedColor(nombre)}
-                    title={nombre}
-                  />
-                );
-              })}
-            </ColorsContainer>
-          </div>
-        )}
+        <VariantSelector
+          coloresUnicos={coloresUnicos}
+          selectedColor={selectedColor}
+          onColorSelect={setSelectedColor}
+          sizes={sizes}
+          selectedSize={selectedSize}
+          onSizeSelect={setSelectedSize}
+          tieneColores={tieneColores}
+          tieneVariantesTam={tieneVariantesTam}
+          variantes={variantes}
+        />
 
         <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', marginTop: '20px' }}>
           <div>

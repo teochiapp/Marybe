@@ -9,22 +9,16 @@ import CategoriesSection from '../../inicio/perfumeria/CategoriesSection';
 
 const ProductsGrid = styled(motion.div)`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-
-  @media (max-width: 1600px) {
-    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  }
-
-  @media (max-width: 1400px) {
-    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  }
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
 
   @media (max-width: 997px) {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
   }
 
   @media (max-width: 600px) {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 16px;
   }
 `;
@@ -260,7 +254,11 @@ export default function CatalogoProductGrid({
             )
           ) : (
             productos.map((product) => (
-              <motion.div key={product.id || product.documentId} variants={staggerItemFadeVariants}>
+              <motion.div
+                key={product.id || product.documentId}
+                variants={staggerItemFadeVariants}
+                style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+              >
                 <CatalogoProductCard
                   product={product}
                   strapiUrl={strapiUrl}

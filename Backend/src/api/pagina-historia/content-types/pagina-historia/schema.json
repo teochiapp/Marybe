@@ -1,0 +1,68 @@
+{
+  "kind": "singleType",
+  "collectionName": "pagina_historia",
+  "info": {
+    "singularName": "pagina-historia",
+    "pluralName": "pagina-historia-plural",
+    "displayName": "Página de Nuestra Historia",
+    "description": "Contenido editable de la página Nuestra Historia"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "titulo": {
+      "type": "string",
+      "default": "Nuestra Historia"
+    },
+    "imagen_inicio": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ],
+      "description": "Imagen del banner superior inicial. Tamaño recomendado: 1000 x 800 px (Formato 5:4 o 4:3)"
+    },
+    "texto_banner_1": {
+      "type": "richtext",
+      "description": "Texto inicial junto a la primera imagen (Fundación y valores de Marybe)"
+    },
+    "texto_intermedio": {
+      "type": "richtext",
+      "description": "Texto del bloque central a ancho completo (Plena expansión y sucursales)"
+    },
+    "texto_banner_2": {
+      "type": "richtext",
+      "description": "Texto del banner secundario (Trayectoria de más de 50 años)"
+    },
+    "imagen_secundaria": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ],
+      "description": "Imagen del banner secundario. Tamaño recomendado: 1000 x 800 px"
+    },
+    "imagen_final_desktop": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ],
+      "description": "Imagen panorámica final para versión Escritorio. Tamaño recomendado: 1920 x 800 px (Formato 16:7 o 16:9)"
+    },
+    "imagen_final_mobile": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ],
+      "description": "Imagen final adaptada para móviles. Tamaño recomendado: 800 x 1000 px (Formato 4:5 u 1:1)"
+    }
+  }
+}

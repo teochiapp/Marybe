@@ -10,12 +10,26 @@
  */
 
 /**
- * Filtra variantes que tienen al menos un atributo real (volumen o color).
- * @param {Array} variantes
+ * Extrae de forma segura la lista de variantes de cualquier formato de entrada (Array, Objeto Producto, Strapi attrs).
+ * @param {Array|Object} input
  * @returns {Array}
  */
-export function variantesReales(variantes = []) {
-  return (variantes || []).filter(function(v) {
+export function extractVariantesArray(input) {
+  if (!input) return [];
+  if (Array.isArray(input)) return input;
+  if (Array.isArray(input.variantes)) return input.variantes;
+  if (input.attributes && Array.isArray(input.attributes.variantes)) return input.attributes.variantes;
+  return [];
+}
+
+/**
+ * Filtra variantes que tienen al menos un atributo real (volumen o color).
+ * @param {Array|Object} input
+ * @returns {Array}
+ */
+export function variantesReales(input = []) {
+  var list = extractVariantesArray(input);
+  return list.filter(function(v) {
     return (v && ((v.volumen || '').trim() !== '' || (v.color_nombre || '').trim() !== ''));
   });
 }
@@ -24,14 +38,21 @@ export function variantesReales(variantes = []) {
  * Obtiene la variante principal para mostrar precio.
  * Prioriza: variante publicada con stock > 0, luego primera variante real.
  * Si no hay variantes reales, devuelve { variant: null, usarVariante: false }.
- * @param {Array} variantes
- * @returns {{ variant: Object|null, usarVariante: boolean }}
+ * @param {Array|Object} input
+ * @returns {Object} Variante principal (compatible tanto como objeto directo o mediante result.variant)
  */
-export function getMainVariant(variantes = []) {
-  var reales = variantesReales(variantes);
+export function getMainVariant(input = []) {
+  var list = extractVariantesArray(input);
+  var reales = variantesReales(list);
   if (reales.length === 0) return { variant: null, usarVariante: false };
-  var conStock = reales.find(function(v) { return v.publicado !== false && v.stock > 0; });
-  return { variant: conStock || reales[0], usarVariante: true };
+  var conStock = reales.find(function(v) { return v.publicado !== false && (v.stock ?? 0) > 0; });
+  var chosen = conStock || reales[0];
+  if (!chosen) return { variant: null, usarVariante: false };
+
+  var result = Object.assign({}, chosen);
+  result.variant = chosen;
+  result.usarVariante = true;
+  return result;
 }
 
 /**
@@ -138,5 +159,19 @@ export function getVariantPrice(variant, attrs = {}) {
 export function getProductPrice(attrs = {}) {
   var result = getMainVariant((attrs || {}).variantes || []);
   return getVariantPrice(result.variant, attrs);
+}
+
+/**
+ * Ordena de forma numérica natural los nombres/cadenas de talles y volúmenes.
+ * Ej: ["N° 20", "N° 10", "N° 121"] -> ["N° 10", "N° 20", "N° 121"]
+ * @param {Array<string>} sizes
+ * @returns {Array<string>}
+ */
+export function sortSizes(sizes = []) {
+  return [...(sizes || [])].sort(function(a, b) {
+    if (a === 'Único') return 1;
+    if (b === 'Único') return -1;
+    return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+  });
 }
 

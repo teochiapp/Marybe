@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { usePaginaHistoria } from '../../hooks/usePaginaHistoria';
 
 const Container = styled.div`
   max-width: 1480px;
@@ -150,49 +151,44 @@ const FullPhoto = styled.img`
 `;
 
 export default function HistoriaContent() {
+  const {
+    titulo,
+    imagen_inicio,
+    texto_banner_1,
+    texto_intermedio,
+    texto_banner_2,
+    imagen_secundaria,
+    imagen_final_desktop,
+    imagen_final_mobile,
+  } = usePaginaHistoria();
+
   return (
     <>
       <Banner>
-        <Photo src="/nuestra-historia/foto-vieja.webp" alt="Fundadores de MARYBE en los inicios de la perfumería" />
+        <Photo src={imagen_inicio} alt="Fundadores de MARYBE en los inicios de la perfumería" />
         <BannerText>
           <TextBlock>
-            <Title>Nuestra Historia</Title>
-            <p>
-              <strong>MARYBE Perfumerías es una empresa familiar fundada en Santiago del Estero en 1969.</strong> Desde sus inicios, creció gracias al trabajo, la tenacidad, la pasión y el compromiso de quienes formaron parte de su camino.
-            </p>
-            <p>
-              A lo largo de los años, supo renovarse, adaptarse a los cambios y evolucionar junto a las necesidades de sus clientes, sin perder nunca de vista aquello que la define: el respeto, la cercanía y su vocación por brindar una atención de calidad.
-            </p>
+            <Title>{titulo}</Title>
+            <div dangerouslySetInnerHTML={{ __html: texto_banner_1 }} />
           </TextBlock>
         </BannerText>
       </Banner>
 
       <Container>
-        <FullText>
-          <p>
-            Hoy, MARYBE continúa en <strong>plena expansión</strong>, impulsada por nuevas generaciones de la familia que mantienen vivo el espíritu de sus fundadores, incorporando nuevas formas de pensar, emprender y responder a un mercado cada vez más dinámico, competitivo y exigente.
-          </p>
-          <p>
-            Trabajamos día a día para ofrecer una experiencia de compra cercana, confiable y especial, en espacios pensados para que cada persona se vea y se sienta mejor. Esta esencia se refleja en cada una de nuestras sucursales, ubicadas en <strong>Santiago del Estero, La Banda y San Miguel de Tucumán</strong>.
-          </p>
-        </FullText>
+        <FullText dangerouslySetInnerHTML={{ __html: texto_intermedio }} />
       </Container>
 
       <Banner>
         <BannerText>
-          <TextBlock>
-            <p>
-              <strong>Con más de 50 años de trayectoria</strong>, somos representantes oficiales de reconocidas marcas nacionales e internacionales, reafirmando nuestro compromiso con la excelencia en el servicio y la calidad de cada producto.
-            </p>
-          </TextBlock>
+          <TextBlock dangerouslySetInnerHTML={{ __html: texto_banner_2 }} />
         </BannerText>
         <OverlapWrap>
-          <CroppedPhoto src="/nuestra-historia/vestidas.png" alt="Equipo de MARYBE en una de las sucursales" />
+          <CroppedPhoto src={imagen_secundaria} alt="Equipo de MARYBE en una de las sucursales" />
         </OverlapWrap>
       </Banner>
 
-      <FullPhoto src="/contacto/familiaMarybenueva.webp" alt="Familia y equipo de MARYBE Perfumerías" />
-      <MobileFullPhoto src="/nuestra-historia/fotomarybe.jpg" alt="Familia y equipo de MARYBE Perfumerías" />
+      <FullPhoto src={imagen_final_desktop} alt="Familia y equipo de MARYBE Perfumerías" />
+      <MobileFullPhoto src={imagen_final_mobile} alt="Familia y equipo de MARYBE Perfumerías" />
     </>
   );
 }

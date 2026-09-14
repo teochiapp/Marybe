@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
+  padding-right: 0 !important;
   background-color: var(--color-blanco);
   display: flex;
   flex-direction: column;

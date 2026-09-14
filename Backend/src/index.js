@@ -168,8 +168,10 @@ module.exports = {
 
   async bootstrap({ strapi }) {
 
-    // ── Otorgar permisos públicos para la nueva sección destacada ──────────
+    // ── Otorgar permisos públicos para la nueva sección destacada y páginas ──────────
     await grantPublicPermission(strapi, 'api::seccion-destacada.seccion-destacada.find');
+    await grantPublicPermission(strapi, 'api::pagina-sucursales.pagina-sucursales.find');
+    await grantPublicPermission(strapi, 'api::pagina-historia.pagina-historia.find');
 
     // ── Auto-seed de la sección destacada si está vacía ───────────────────
     try {
@@ -190,6 +192,94 @@ module.exports = {
       }
     } catch (err) {
       strapi.log.warn(`[Seed] ⚠ Error en el seed de Sección Destacada: ${err.message}`);
+    }
+
+    // ── Auto-seed de Página de Sucursales si está vacía ───────────────────
+    try {
+      const UID_PS = 'api::pagina-sucursales.pagina-sucursales';
+      const existingPS = await strapi.documents(UID_PS).findFirst();
+      if (!existingPS) {
+        await strapi.documents(UID_PS).create({
+          data: {
+            titulo: 'Nuestras Sucursales',
+            sucursales: [
+              {
+                provincia: 'Santiago del Estero',
+                calle: 'Absalón Rojas 55',
+                numero_celular: '+54 9 3854 73-5731',
+                numero_fijo: '(0385) 4214890',
+                embed_google_maps: 'https://maps.app.goo.gl/v2Pv5MuWfwSJLqpYA'
+              },
+              {
+                provincia: 'Santiago del Estero',
+                calle: 'Absalón Rojas 20',
+                numero_celular: '+54 9 3854 71-4936',
+                numero_fijo: '',
+                embed_google_maps: 'https://maps.app.goo.gl/EmHayxc7aJZDgdjRA'
+              },
+              {
+                provincia: 'Santiago del Estero',
+                calle: 'Pellegrini 141',
+                numero_celular: '+54 9 3854 71-4941',
+                numero_fijo: '(0385) 4211687',
+                embed_google_maps: 'https://maps.app.goo.gl/7LqPPnQxyixpWTxA9'
+              },
+              {
+                provincia: 'Santiago del Estero',
+                calle: 'Tucumán 20',
+                numero_celular: '+54 9 3855 18-9775',
+                numero_fijo: '(0385) 4227000',
+                embed_google_maps: 'https://maps.app.goo.gl/kHwZjA289i3QdQj68'
+              },
+              {
+                provincia: 'Santiago del Estero',
+                calle: 'España 99 - La Banda',
+                numero_celular: '+54 9 3855 99-6408',
+                numero_fijo: '(0385) 4221300',
+                embed_google_maps: 'https://maps.app.goo.gl/pBUmzByjeiD25KkN7'
+              },
+              {
+                provincia: 'Tucumán',
+                calle: '25 de Mayo 256',
+                numero_celular: '+54 9 3814 01-1551',
+                numero_fijo: '(0381) 4310500',
+                embed_google_maps: 'https://maps.app.goo.gl/m5PoF2Vw2ZKH2SEv9'
+              },
+              {
+                provincia: 'Tucumán',
+                calle: 'Maipú 164',
+                numero_celular: '+54 9 3854 71-4926',
+                numero_fijo: '',
+                embed_google_maps: 'https://maps.app.goo.gl/jqGnE8KZ7xxGW4Yy8'
+              }
+            ]
+          },
+          status: 'published'
+        });
+        strapi.log.info(`[Seed] ✔ Creada configuración inicial para Página de Sucursales con 7 locales.`);
+      }
+    } catch (err) {
+      strapi.log.warn(`[Seed] ⚠ Error en el seed de Página de Sucursales: ${err.message}`);
+    }
+
+    // ── Auto-seed de Página de Nuestra Historia si está vacía ─────────────
+    try {
+      const UID_PH = 'api::pagina-historia.pagina-historia';
+      const existingPH = await strapi.documents(UID_PH).findFirst();
+      if (!existingPH) {
+        await strapi.documents(UID_PH).create({
+          data: {
+            titulo: 'Nuestra Historia',
+            texto_banner_1: `<p><strong>MARYBE Perfumerías es una empresa familiar fundada en Santiago del Estero en 1969.</strong> Desde sus inicios, creció gracias al trabajo, la tenacidad, la pasión y el compromiso de quienes formaron parte de su camino.</p><p>A lo largo de los años, supo renovarse, adaptarse a los cambios y evolucionar junto a las necesidades de sus clientes, sin perder nunca de vista aquello que la define: el respeto, la cercanía y su vocación por brindar una atención de calidad.</p>`,
+            texto_intermedio: `<p>Hoy, MARYBE continúa en <strong>plena expansión</strong>, impulsada por nuevas generaciones de la familia que mantienen vivo el espíritu de sus fundadores, incorporando nuevas formas de pensar, emprender y responder a un mercado cada vez más dinámico, competitivo y exigente.</p><p>Trabajamos día a día para ofrecer una experiencia de compra cercana, confiable y especial, en espacios pensados para que cada persona se vea y se sienta mejor. Esta esencia se refleja en cada una de nuestras sucursales, ubicadas en <strong>Santiago del Estero, La Banda y San Miguel de Tucumán</strong>.</p>`,
+            texto_banner_2: `<p><strong>Con más de 50 años de trayectoria</strong>, somos representantes oficiales de reconocidas marcas nacionales e internacionales, reafirmando nuestro compromiso con la excelencia en el servicio y la calidad de cada producto.</p>`
+          },
+          status: 'published'
+        });
+        strapi.log.info(`[Seed] ✔ Creada configuración inicial para Página de Nuestra Historia.`);
+      }
+    } catch (err) {
+      strapi.log.warn(`[Seed] ⚠ Error en el seed de Página de Nuestra Historia: ${err.message}`);
     }
 
     // ── Guard: no reimportar si ya hay datos (salvo que SEED_FORCE=true) ─────
