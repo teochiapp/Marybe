@@ -135,6 +135,9 @@ const MobileFullPhoto = styled.img`
   @media (max-width: 900px) {
     display: block;
     width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    object-position: center top;
   }
 `;
 
@@ -144,6 +147,9 @@ const FullPhoto = styled.img`
   position: relative;
   z-index: 2;
   margin-top: -80px; /* 70% de los 460px del banner superior */
+  max-height: 600px;
+  object-fit: cover;
+  object-position: center top;
 
   @media (max-width: 900px) {
     display: none;
