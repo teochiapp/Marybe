@@ -5,6 +5,8 @@ import UbicacionPopup from './UbicacionPopup';
 import SearchDropdown from './SearchDropdown';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
+import { useMegaMenu } from '../../hooks/useMegaMenu';
+import { useMegaMenuContext } from '../../hooks/useMegaMenuContext';
 
 /* ── Animaciones ── */
 const slideIn = keyframes`
@@ -374,10 +376,31 @@ const DrawerSubItem = styled.a`
   }
 `;
 
+/* Nivel 3: Tipos dentro de subcategoría */
+const DrawerTypeItem = styled.a`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 24px 9px 48px;
+  font-family: var(--font-family-secondary);
+  font-size: 13px;
+  color: var(--color-marron-secundario);
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-fondo-beneficio-tarjeta);
+  background-color: rgba(0,0,0,0.015);
+
+  &:hover {
+    background-color: var(--color-fondo-beneficio-tarjeta);
+    color: var(--color-bordo-secundario);
+  }
+`;
+
 const SubList = styled.div`
   overflow: hidden;
-  max-height: ${({ $open }) => ($open ? '300px' : '0')};
-  transition: max-height 0.25s ease;
+  max-height: ${({ $open }) => ($open ? '600px' : '0')};
+  transition: max-height 0.3s ease;
+  padding-bottom: ${({ $open }) => ($open ? '8px' : '0')};
 `;
 
 const OfertasSection = styled.div`
@@ -490,19 +513,13 @@ const RocketIcon = () => (
   </svg>
 );
 
-const menu = [
-  {
-    label: 'Perfumería',
-    sub: ['Dermocosmética', 'Fragancias', 'Maquillaje', 'Cuidado personal'],
-  },
-  { label: 'Hogar', sub: [] },
-  { label: 'Electro belleza', sub: [] },
-];
+
 
 export default function NavBar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMounted, setDrawerMounted] = useState(false);
-  const [openSection, setOpenSection] = useState(null);
+  const [openSection, setOpenSection] = useState(null);      // Nivel 1: categoría
+  const [openSubSection, setOpenSubSection] = useState(null); // Nivel 2: subcategoría
   const [ubicacionOpen, setUbicacionOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -515,6 +532,11 @@ export default function NavBar() {
   const mobileSearchContainerRef = useRef(null);
   const { itemCount } = useContext(CartContext);
   const { isAuthenticated, openAuthModal } = useContext(AuthContext);
+
+  // ─── Datos dinámicos del mega menu (mismos que desktop) ───
+  const { context, getCategoriesForContext } = useMegaMenuContext();
+  const { getColumnsForCategory } = useMegaMenu();
+  const dynamicCategories = getCategoriesForContext(context);
 
   // ─── Helper: navega al inicio y hace scroll suave a una sección por ID ───
   const scrollToHomeSection = (sectionId) => {
@@ -620,8 +642,16 @@ export default function NavBar() {
     }
   };
 
-  const toggleSection = (label) =>
-    setOpenSection((prev) => (prev === label ? null : label));
+  const toggleSection = (label) => {
+    setOpenSection((prev) => {
+      // Al colapsar la categoría, también resetear el sub-nivel
+      if (prev === label) setOpenSubSection(null);
+      return prev === label ? null : label;
+    });
+  };
+
+  const toggleSubSection = (key) =>
+    setOpenSubSection((prev) => (prev === key ? null : key));
 
   return (
     <>
@@ -762,27 +792,97 @@ export default function NavBar() {
                 </span>
               </DrawerItem>
 
-              {menu.map(({ label, sub }) => (
-                <div key={label}>
-                  <DrawerItem onClick={() => sub.length ? toggleSection(label) : closeDrawer()}>
-                    <span style={{ fontWeight: 500 }}>{label}</span>
-                    {sub.length > 0 && <ChevronIcon open={openSection === label} />}
-                  </DrawerItem>
-                  {sub.length > 0 && (
-                    <SubList $open={openSection === label}>
-                      {sub.map((s) => (
-                        <DrawerSubItem key={s} onClick={() => closeDrawer()}>
-                          {s} <ArrowRight />
-                        </DrawerSubItem>
-                      ))}
-                    </SubList>
-                  )}
-                </div>
-              ))}
+              {dynamicCategories.map((cat) => {
+                const columns = getColumnsForCategory(cat, context) || [];
+                const hasColumns = columns.length > 0;
 
-              <DrawerItem style={{ borderTop: '1px solid var(--color-fondo-beneficio-tarjeta)', marginTop: 8, paddingTop: 16 }} onClick={() => { navigate('/ofertas'); closeDrawer(); }}>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>Ofertas</span>
-              </DrawerItem>
+                return (
+                  <div key={cat}>
+                    {/* ── Nivel 1: Categoría ── */}
+                    <DrawerItem
+                      onClick={() => {
+                        if (hasColumns) {
+                          toggleSection(cat);
+                        } else {
+                          if (cat === 'Ofertas') { closeDrawer(); navigate('/ofertas'); }
+                          else if (cat === 'Lanzamientos') { closeDrawer(); navigate('/tienda?lanzamientos=true'); }
+                          else { closeDrawer(); navigate(`/tienda?categoria=${encodeURIComponent(cat)}`); }
+                        }
+                      }}
+                    >
+                      <span style={{ fontWeight: 500 }}>{cat}</span>
+                      {hasColumns && <ChevronIcon open={openSection === cat} />}
+                    </DrawerItem>
+
+                    {/* ── Nivel 2: Subcategorías ── */}
+                    {hasColumns && (
+                      <SubList $open={openSection === cat}>
+                        {columns.map((col) => {
+                          const subKey = `${cat}::${col.title}`;
+                          const verTodoItem = col.items?.find(
+                            (i) => typeof i === 'object' && i.isVerTodo
+                          );
+                          const types = (col.items || []).filter(
+                            (i) => typeof i === 'object' && !i.isVerTodo
+                          );
+                          const hasTypes = types.length > 0;
+
+                          return (
+                            <div key={col.title}>
+                              {/* Subcategoría: si tiene tipos → expandir; si no → navegar */}
+                              <DrawerSubItem
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  if (hasTypes) {
+                                    toggleSubSection(subKey);
+                                  } else {
+                                    closeDrawer();
+                                    if (verTodoItem?.href) navigate(verTodoItem.href);
+                                  }
+                                }}
+                              >
+                                {col.title}
+                                {hasTypes && <ChevronIcon open={openSubSection === subKey} />}
+                              </DrawerSubItem>
+
+                              {/* ── Nivel 3: Tipos ── */}
+                              {hasTypes && (
+                                <SubList $open={openSubSection === subKey}>
+                                  {types.map((item, idx) => (
+                                    <DrawerTypeItem
+                                      key={`${item.label}-${idx}`}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        closeDrawer();
+                                        navigate(item.href);
+                                      }}
+                                    >
+                                      {item.label}
+                                    </DrawerTypeItem>
+                                  ))}
+                                  {verTodoItem && (
+                                    <DrawerTypeItem
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        closeDrawer();
+                                        navigate(verTodoItem.href);
+                                      }}
+                                      style={{ fontWeight: 600, color: 'var(--color-bordo-secundario)' }}
+                                    >
+                                      Ver todos
+                                    </DrawerTypeItem>
+                                  )}
+                                </SubList>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </SubList>
+                    )}
+                  </div>
+                );
+              })}
+
 
               <OfertasSection>
                 <OfertaBtn onClick={() => scrollToHomeSection('seccion-eventos')}><CalendarIcon /> Próximos eventos</OfertaBtn>

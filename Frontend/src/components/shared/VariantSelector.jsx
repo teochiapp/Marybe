@@ -2,6 +2,19 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { getColorHex } from '../../utils/colorMap';
 
+// ─── Hook: ancho de ventana reactivo ─────────────────────────────────────────
+function useWindowWidth() {
+  const [width, setWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1024
+  );
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return width;
+}
+
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const MAX_VISIBLE_SWATCHES = 6;
@@ -98,6 +111,11 @@ const SwatchButton = styled.button`
     width: 32px;
     height: 32px;
   }
+
+  @media (max-width: 375px) {
+    width: 26px;
+    height: 26px;
+  }
 `;
 
 const MoreButton = styled.button`
@@ -136,6 +154,14 @@ const MoreButton = styled.button`
     width: ${({ $isSize }) => ($isSize ? 'auto' : '32px')};
     height: 32px;
     font-size: 0.65rem;
+  }
+
+  @media (max-width: 375px) {
+    width: ${({ $isSize }) => ($isSize ? 'auto' : '26px')};
+    height: 26px;
+    min-width: 26px;
+    padding: ${({ $isSize }) => ($isSize ? '0 8px' : '0')};
+    font-size: 0.6rem;
   }
 `;
 
@@ -268,6 +294,13 @@ const SizeButton = styled.button`
     min-height: 40px;
     padding: 6px 16px;
     font-size: 0.85rem;
+  }
+
+  @media (max-width: 375px) {
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    border-radius: 8px;
   }
 `;
 
@@ -405,8 +438,15 @@ export default function VariantSelector({
     return matching.some((v) => (v.stock ?? 0) > 0);
   }
 
+  // ── Límites según pantalla ──
+  // En pantallas muy pequeñas (≤375px) reducimos a 3 para evitar wrapping
+  const windowWidth = useWindowWidth();
+  const isTinyScreen = windowWidth <= 375;
+
+  const maxSwatches = isTinyScreen ? 3 : compact ? 5 : 6;
+  const maxSizes    = isTinyScreen ? 3 : compact ? 5 : 6;
+
   // ── Lógica de límites para Colores ──
-  const maxSwatches = compact ? 5 : 6;
   const showAllSwatches = coloresUnicos.length <= maxSwatches + 1;
   const visibleSwatches = showAllSwatches ? coloresUnicos : coloresUnicos.slice(0, maxSwatches);
   const hiddenSwatches = showAllSwatches ? [] : coloresUnicos.slice(maxSwatches);
@@ -414,7 +454,6 @@ export default function VariantSelector({
   const isColorInHidden = hiddenSwatches.some(([n]) => n === selectedColor);
 
   // ── Lógica de límites para Talles / Tamaños ──
-  const maxSizes = compact ? 5 : 6;
   const showAllSizes = sizes.length <= maxSizes + 1;
   const visibleSizes = showAllSizes
     ? sizes.map((size, idx) => ({ size, originalIdx: idx }))
