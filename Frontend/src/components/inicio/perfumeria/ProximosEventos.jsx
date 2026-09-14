@@ -100,13 +100,44 @@ const CardTitle = styled.h3`
   line-height: 1.2;
 `;
 
-const CardDesc = styled.p`
+const CardDesc = styled.div`
   font-family: var(--font-family-secondary);
   font-size: 14px;
   color: rgba(0, 0, 0, 0.55);
   margin: 0;
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+`;
+
+const EventDescList = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+`;
+
+const EventDescItem = styled.li`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-family: var(--font-family-secondary);
+  font-size: 14px;
+  color: rgba(22, 0, 0, 0.7);
+  line-height: 1.45;
+
+  &::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: var(--color-bordo-secundario);
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
 `;
 
 const InfoList = styled.div`
@@ -308,7 +339,19 @@ export default function ProximosEventos() {
           return (
             <Card key={id}>
               <CardTitle>{ev.titulo}</CardTitle>
-              <CardDesc>{ev.descripcion}</CardDesc>
+              {ev.descripcion ? (
+                <EventDescList>
+                  {ev.descripcion
+                    .split('\n')
+                    .map(line => line.replace(/^\d+[\.\-\)]?\s*/, '').trim())
+                    .filter(Boolean)
+                    .map((line, i) => (
+                      <EventDescItem key={i}>{line}</EventDescItem>
+                    ))}
+                </EventDescList>
+              ) : (
+                <CardDesc />
+              )}
 
               <InfoList>
                 <InfoRow>

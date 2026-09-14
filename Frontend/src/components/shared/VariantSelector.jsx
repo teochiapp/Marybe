@@ -15,6 +15,34 @@ function useWindowWidth() {
   return width;
 }
 
+// ─── Hook: alineamiento automático de popover ─────────────────────────────────
+/**
+ * Detecta si el popover se saldría del viewport por la derecha y,
+ * en ese caso, devuelve alignRight=true para alinearlo desde la derecha.
+ * Por defecto abre hacia la derecha (left:0) como en tarjetas izquierdas.
+ */
+function usePopoverAlign(isOpen, popoverRef) {
+  const [alignRight, setAlignRight] = useState(false);
+  useEffect(() => {
+    if (!isOpen || !popoverRef.current) return;
+    const rect = popoverRef.current.getBoundingClientRect();
+    const overflowsRight = rect.right > (window.innerWidth - 8);
+    const overflowsLeft  = rect.left  < 8;
+    if (overflowsRight) {
+      setAlignRight(true);
+    } else if (overflowsLeft) {
+      setAlignRight(false);
+    }
+  }, [isOpen, popoverRef]);
+
+  // Resetea cuando se cierra
+  useEffect(() => {
+    if (!isOpen) setAlignRight(false);
+  }, [isOpen]);
+
+  return alignRight;
+}
+
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const MAX_VISIBLE_SWATCHES = 6;
@@ -170,7 +198,9 @@ const MoreButton = styled.button`
 const PopoverWrapper = styled.div`
   position: absolute;
   bottom: calc(100% + 8px);
-  right: 0;
+  /* Alineamiento dinámico: por defecto abre hacia la derecha (left:0),
+     y se cambia a right:0 si el popover se saldría del viewport */
+  ${({ $alignRight }) => $alignRight ? 'right: 0; left: auto;' : 'left: 0; right: auto;'}
   z-index: 200;
   background: #fff;
   border: 1px solid #e3e6e8;
@@ -354,6 +384,10 @@ export default function VariantSelector({
   const sizePopoverRef = useRef(null);
   const sizeMoreBtnRef = useRef(null);
 
+  // Alineamiento dinámico: detecta si el popover se sale por la derecha
+  const colorAlignRight = usePopoverAlign(colorPopoverOpen, colorPopoverRef);
+  const sizeAlignRight  = usePopoverAlign(sizePopoverOpen,  sizePopoverRef);
+
   // Cierra los popovers al hacer click fuera
   useEffect(() => {
     function handleOutside(e) {
@@ -509,6 +543,7 @@ export default function VariantSelector({
                 {sizePopoverOpen && (
                   <PopoverWrapper
                     ref={sizePopoverRef}
+                    $alignRight={sizeAlignRight}
                     role="listbox"
                     aria-label="Tamaños adicionales"
                   >
@@ -593,6 +628,7 @@ export default function VariantSelector({
                 {colorPopoverOpen && (
                   <PopoverWrapper
                     ref={colorPopoverRef}
+                    $alignRight={colorAlignRight}
                     role="listbox"
                     aria-label="Colores adicionales"
                   >
