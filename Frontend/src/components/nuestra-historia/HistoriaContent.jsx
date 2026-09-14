@@ -149,7 +149,7 @@ const FullPhoto = styled.img`
   margin-top: -80px; /* 70% de los 460px del banner superior */
   max-height: 600px;
   object-fit: cover;
-  object-position: center top;
+  object-position: center center;
 
   @media (max-width: 900px) {
     display: none;
