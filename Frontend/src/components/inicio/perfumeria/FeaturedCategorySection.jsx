@@ -296,9 +296,60 @@ const AddButton = styled.button`
       height: 18px;
     }
   }
+  }
+`;
+
+const ScrollWrapper = styled.div`
+  position: relative;
+`;
+
+const ArrowBtn = styled.button`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  ${({ $side }) => $side}: 10px;
+  z-index: 10;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  color: var(--color-marron-principal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    background-color: #fff;
+    transform: translateY(-50%) scale(1.08);
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 // SVG Icons
+
+const ChevronLeft = () => (
+  <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+);
+const ChevronRight = () => (
+  <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
+);
 
 
 const CartIcon = () => (
@@ -435,6 +486,15 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria' }) {
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
+  const scrollByStep = useCallback((dir) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const first = el.children[0];
+    const gap = 40;
+    const step = first ? first.getBoundingClientRect().width + gap : el.clientWidth;
+    el.scrollTo({ left: el.scrollLeft + dir * step, behavior: 'smooth' });
+  }, []);
+
   const handleProductClick = (id, nombre) => {
     if (!isDragging.current) {
       navigate(generateProductUrl(id, nombre));
@@ -468,8 +528,12 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria' }) {
     <SectionWrapper>
       <SectionTitle>{titulo}</SectionTitle>
 
-      <ProductsGrid
-        ref={scrollRef}
+      <ScrollWrapper>
+        <ArrowBtn $side="left" type="button" aria-label="Anterior" onClick={() => scrollByStep(-1)}>
+          <ChevronLeft />
+        </ArrowBtn>
+        <ProductsGrid
+          ref={scrollRef}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
@@ -541,6 +605,10 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria' }) {
           );
         })}
       </ProductsGrid>
+      <ArrowBtn $side="right" type="button" aria-label="Siguiente" onClick={() => scrollByStep(1)}>
+        <ChevronRight />
+      </ArrowBtn>
+      </ScrollWrapper>
       {selectedProduct && (
         <AddToCartModal
           isOpen={isModalOpen}
