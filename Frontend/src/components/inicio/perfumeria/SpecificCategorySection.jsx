@@ -11,6 +11,7 @@ import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral'
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
+  padding-right: 0px;
   background-color: var(--color-blanco);
   display: flex;
   flex-direction: column;
@@ -358,7 +359,13 @@ const ArrowBtn = styled.button`
   }
 
   @media (max-width: 768px) {
-    display: none;
+    width: 36px;
+    height: 36px;
+    ${({ $side }) => $side}: 5px;
+    svg {
+      width: 14px;
+      height: 14px;
+    }
   }
 `;
 
@@ -566,77 +573,77 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
         </ArrowBtn>
         <ProductsGrid
           ref={scrollRef}
-        onMouseDown={handleMouseDown}
-        onMouseLeave={handleMouseLeave}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-        variants={staggerContainerVariants}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, margin: "-50px" }}
-      >
-        {productos.map(item => {
-          const id = item.id || item.documentId;
-          const attrs = item.attributes || item;
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          variants={staggerContainerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-50px" }}
+        >
+          {productos.map(item => {
+            const id = item.id || item.documentId;
+            const attrs = item.attributes || item;
 
-          const nombre = attrs.nombre;
-          const marca = attrs.marca;
-          const { price, offerPrice, calcDescuento: descuentoCalc } = getProductPrice(attrs);
+            const nombre = attrs.nombre;
+            const marca = attrs.marca;
+            const { price, offerPrice, calcDescuento: descuentoCalc } = getProductPrice(attrs);
 
-          let imgUrl = null;
-          if (attrs.portada?.data?.attributes?.url) {
-            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.data.attributes.url}`;
-          } else if (attrs.portada?.url) {
-            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
-          }
+            let imgUrl = null;
+            if (attrs.portada?.data?.attributes?.url) {
+              imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.data.attributes.url}`;
+            } else if (attrs.portada?.url) {
+              imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
+            }
 
-          const stampVal = descuentoCalc > 0 ? getStampValue(descuentoCalc) : null;
+            const stampVal = descuentoCalc > 0 ? getStampValue(descuentoCalc) : null;
 
-          return (
-            <ProductCard key={id} variants={staggerItemLeftVariants}>
-              <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
-                {descuentoCalc > 0 && stampVal && (
-                  <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
+            return (
+              <ProductCard key={id} variants={staggerItemLeftVariants}>
+                <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
+                  {descuentoCalc > 0 && stampVal && (
+                    <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
+                  )}
+
+                  {imgUrl ? (
+                    <img className="product-img" src={imgUrl} alt={nombre} draggable="false" />
+                  ) : (
+                    <ImagePlaceholder />
+                  )}
+                  <HeartContainer>
+                    <FavoriteButton product={item} />
+                  </HeartContainer>
+                </CardImageContainer>
+
+                <ProductBrand>{marca}</ProductBrand>
+                <ProductName title={nombre} onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
+
+                <PriceRow>
+                  {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
+                  <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
+                  {descuentoCalc > 0 && <DiscountBadge>{descuentoCalc}% OFF</DiscountBadge>}
+                </PriceRow>
+
+                {globalConfig?.cuotas_activas && (
+                  <Installments>
+                    {globalConfig?.cuotas_texto_previo ? globalConfig.cuotas_texto_previo + ' ' : '3 cuotas sin interés de '}{formatPrice(Math.round((offerPrice || price) / (globalConfig?.cuotas_cantidad || 3)))}
+                  </Installments>
                 )}
+                <LegalText>
+                  Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
+                </LegalText>
 
-                {imgUrl ? (
-                  <img className="product-img" src={imgUrl} alt={nombre} draggable="false" />
-                ) : (
-                  <ImagePlaceholder />
-                )}
-                <HeartContainer>
-                  <FavoriteButton product={item} />
-                </HeartContainer>
-              </CardImageContainer>
-
-              <ProductBrand>{marca}</ProductBrand>
-              <ProductName title={nombre} onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
-
-              <PriceRow>
-                {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
-                <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
-                {descuentoCalc > 0 && <DiscountBadge>{descuentoCalc}% OFF</DiscountBadge>}
-              </PriceRow>
-
-              {globalConfig?.cuotas_activas && (
-                <Installments>
-                  {globalConfig?.cuotas_texto_previo ? globalConfig.cuotas_texto_previo + ' ' : '3 cuotas sin interés de '}{formatPrice(Math.round((offerPrice || price) / (globalConfig?.cuotas_cantidad || 3)))}
-                </Installments>
-              )}
-              <LegalText>
-                Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
-              </LegalText>
-
-              <AddButton onClick={(e) => handleAddClick(item, e)}>
-                Agregar <CartIcon />
-              </AddButton>
-            </ProductCard>
-          );
-        })}
-      </ProductsGrid>
-      <ArrowBtn $side="right" type="button" aria-label="Siguiente" onClick={() => scrollByStep(1)}>
-        <ChevronRight />
-      </ArrowBtn>
+                <AddButton onClick={(e) => handleAddClick(item, e)}>
+                  Agregar <CartIcon />
+                </AddButton>
+              </ProductCard>
+            );
+          })}
+        </ProductsGrid>
+        <ArrowBtn $side="right" type="button" aria-label="Siguiente" onClick={() => scrollByStep(1)}>
+          <ChevronRight />
+        </ArrowBtn>
       </ScrollWrapper>
       {selectedProduct && (
         <AddToCartModal

@@ -445,7 +445,13 @@ const ArrowBtn = styled.button`
   }
 
   @media (max-width: 768px) {
-    display: none;
+    width: 36px;
+    height: 36px;
+    ${({ $side }) => $side}: 5px;
+    svg {
+      width: 14px;
+      height: 14px;
+    }
   }
 `;
 
