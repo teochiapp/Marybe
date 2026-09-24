@@ -34,7 +34,7 @@ module.exports = ({ strapi }) => ({
 
       // Configuración por defecto y datos recibidos
       const mailOptions = {
-        from: '"Marybe" <teochiapps@gmail.com>', // Cambia esto por tu remitente verificado
+        from: '"Marybe" <aldana.marybe@gmail.com>', // Cambia esto por tu remitente verificado
         to: options.to,
         subject: options.subject,
         html: options.html,
@@ -105,7 +105,7 @@ module.exports = ({ strapi }) => ({
     const htmlContent = generarAvisoPedidoCompletado(emailCliente, nombreCliente, pedido);
     const hasGiftCard = pedido.gift_cards_generadas && Array.isArray(pedido.gift_cards_generadas) && pedido.gift_cards_generadas.length > 0;
     const subject = hasGiftCard ? 'Tu Gift Card está lista' : `Tu pedido #${pedido.numero_pedido} ha sido completado`;
-    
+
     return this.enviar({
       to: emailCliente,
       subject,
