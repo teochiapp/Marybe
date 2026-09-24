@@ -2,7 +2,9 @@ module.exports = function generarAvisoPedidoCompletado(emailCliente, nombreClien
   const { numero_pedido, gift_cards_generadas } = pedido;
 
   let giftCardHtml = '';
-  if (gift_cards_generadas && Array.isArray(gift_cards_generadas) && gift_cards_generadas.length > 0) {
+  const hasGiftCards = gift_cards_generadas && Array.isArray(gift_cards_generadas) && gift_cards_generadas.length > 0;
+  
+  if (hasGiftCards) {
     const codigosHtml = gift_cards_generadas.map(code => 
       `<div style="background-color: #ffffff; padding: 10px 15px; border-radius: 4px; border: 1px dashed #ccc; font-family: monospace; font-size: 16px; color: #333; margin-bottom: 8px; font-weight: bold; text-align: center;">${code}</div>`
     ).join('');
@@ -30,8 +32,8 @@ module.exports = function generarAvisoPedidoCompletado(emailCliente, nombreClien
       
       <!-- Body -->
       <div style="padding: 30px;">
-        <h2 style="color: #3E0102; margin-top: 0; font-size: 20px;">Tu pedido ha sido completado</h2>
-        <p style="color: #555; line-height: 1.6; font-size: 15px;">Hola ${nombreCliente}, te confirmamos que tu pedido <strong>#${numero_pedido}</strong> ha finalizado su proceso y ha sido marcado como completado exitosamente.</p>
+        ${hasGiftCards ? '' : `<h2 style="color: #3E0102; margin-top: 0; font-size: 20px;">Tu pedido ha sido completado</h2>
+        <p style="color: #555; line-height: 1.6; font-size: 15px;">Hola ${nombreCliente}, te confirmamos que tu pedido <strong>#${numero_pedido}</strong> ha finalizado su proceso y ha sido marcado como completado exitosamente.</p>`}
         
         ${giftCardHtml}
 
