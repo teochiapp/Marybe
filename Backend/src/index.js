@@ -164,6 +164,30 @@ module.exports = {
         }
       }
     });
+
+    // ── Lifecycle: enviar email de bienvenida al crear un usuario nuevo ──────────
+    strapi.db.lifecycles.subscribe({
+      models: ['plugin::users-permissions.user'],
+
+      async afterCreate({ result }) {
+        try {
+          const email = result.email;
+          const nombre = result.username || result.nombre || email.split('@')[0];
+
+          // Pequeño delay para que Strapi termine de confirmar el usuario
+          setTimeout(async () => {
+            try {
+              await strapi.service('api::correo.correo').enviarBienvenida(email, nombre);
+              strapi.log.info(`[Bienvenida] Email enviado a: ${email}`);
+            } catch (err) {
+              strapi.log.error(`[Bienvenida] Error enviando email a ${email}: ${err.message}`);
+            }
+          }, 2000);
+        } catch (err) {
+          strapi.log.error('[Bienvenida] Error en lifecycle afterCreate:', err.message);
+        }
+      }
+    });
   },
 
   async bootstrap({ strapi }) {
@@ -172,6 +196,12 @@ module.exports = {
     await grantPublicPermission(strapi, 'api::seccion-destacada.seccion-destacada.find');
     await grantPublicPermission(strapi, 'api::pagina-sucursales.pagina-sucursales.find');
     await grantPublicPermission(strapi, 'api::pagina-historia.pagina-historia.find');
+
+    // ── Permisos públicos para secciones del inicio (promociones, categorías) ───
+    await grantPublicPermission(strapi, 'api::promociones-inicio.promociones-inicio.find');
+    await grantPublicPermission(strapi, 'api::promociones-inicio.promociones-inicio.findOne');
+    await grantPublicPermission(strapi, 'api::seccion-categorias-destacadas.seccion-categorias-destacadas.find');
+    await grantPublicPermission(strapi, 'api::seccion-categorias-destacadas.seccion-categorias-destacadas.findOne');
 
     // ── Auto-seed de la sección destacada si está vacía ───────────────────
     try {

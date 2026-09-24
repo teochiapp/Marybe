@@ -134,10 +134,21 @@ const Input = styled.input`
   border-radius: 8px;
   font-size: 0.95rem;
   color: black;
+  background-color: #fff;
 
   &:focus {
     outline: none;
     border-color: #333;
+  }
+
+  /* Neutralizar el fondo amarillo del autofill del navegador */
+  &:-webkit-autofill,
+  &:-webkit-autofill:hover,
+  &:-webkit-autofill:focus {
+    -webkit-text-fill-color: #000;
+    -webkit-box-shadow: 0 0 0px 1000px #fff inset;
+    box-shadow: 0 0 0px 1000px #fff inset;
+    transition: background-color 5000s ease-in-out 0s;
   }
 `;
 
@@ -195,10 +206,12 @@ export default function AuthModal() {
   const { isAuthModalOpen, closeAuthModal, login, authRedirect, clearAuthRedirect } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isLoginMode, setIsLoginMode] = useState(true);
+  const [isForgotMode, setIsForgotMode] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [username, setUsername] = useState(''); // Only for register
+  const [username, setUsername] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   if (!isAuthModalOpen) return null;
 
@@ -240,7 +253,25 @@ export default function AuthModal() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setSuccessMsg('');
     const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+
+    // ── Modo: Recuperar contraseña ──
+    if (isForgotMode) {
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+        setSuccessMsg('Te enviamos un email con el enlace para restablecer tu contraseña. ¡Revisá tu bandeja de entrada!');
+      } catch (err) {
+        setErrorMsg('No pudimos enviar el email. Verificá la dirección ingresada.');
+      }
+      return;
+    }
 
     try {
       if (isLoginMode) {
@@ -276,55 +307,88 @@ export default function AuthModal() {
       <ModalContent onClick={e => e.stopPropagation()}>
         <CloseButton onClick={closeAuthModal}>✕</CloseButton>
 
-        <Title>{isLoginMode ? 'Iniciar sesión para continuar' : 'Crear tu cuenta'}</Title>
-        <Subtitle>
-          Tu carrito está guardado. {isLoginMode ? 'Iniciá sesión o creá tu cuenta' : 'Creá tu cuenta o iniciá sesión'} para finalizar la compra.
-        </Subtitle>
+        {isForgotMode ? (
+          <>
+            <Title>Recuperar contraseña</Title>
+            <Subtitle style={{ textAlign: 'center', marginBottom: '20px', color: '#666', fontSize: '0.9rem' }}>
+              Ingresá tu email y te enviaremos un enlace para restablecer tu contraseña.
+            </Subtitle>
+            <Form onSubmit={handleSubmit}>
+              <Input
+                type="email"
+                placeholder="Tu email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+              />
+              {errorMsg && <ErrorMessage>{errorMsg}</ErrorMessage>}
+              {successMsg && <ErrorMessage style={{ color: '#27ae60' }}>{successMsg}</ErrorMessage>}
+              <SubmitButton type="submit">Enviar enlace</SubmitButton>
+            </Form>
+            <ToggleModeText onClick={() => { setIsForgotMode(false); setErrorMsg(''); setSuccessMsg(''); }}>
+              ← Volver al inicio de sesión
+            </ToggleModeText>
+          </>
+        ) : (
+          <>
+            <Title>{isLoginMode ? 'Iniciar sesión para continuar' : 'Crear tu cuenta'}</Title>
+            <Subtitle>
+              Tu carrito está guardado. {isLoginMode ? 'Iniciá sesión o creá tu cuenta' : 'Creá tu cuenta o iniciá sesión'} para finalizar la compra.
+            </Subtitle>
 
-        <GoogleButton onClick={handleGoogleLogin} type="button">
-          <GoogleIcon />
-          Continuar con Google
-        </GoogleButton>
+            <GoogleButton onClick={handleGoogleLogin} type="button">
+              <GoogleIcon />
+              Continuar con Google
+            </GoogleButton>
 
-        <Divider>o con email</Divider>
+            <Divider>o con email</Divider>
 
-        <Form onSubmit={handleSubmit}>
-          {!isLoginMode && (
-            <Input
-              type="text"
-              placeholder="Nombre completo"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              required
-            />
-          )}
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-          <Input
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
+            <Form onSubmit={handleSubmit}>
+              {!isLoginMode && (
+                <Input
+                  type="text"
+                  placeholder="Nombre completo"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  required
+                />
+              )}
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+              />
+              <Input
+                type="password"
+                placeholder="Contraseña"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+              />
 
-          {isLoginMode && <ForgotPassword>¿Olvidaste tu contraseña?</ForgotPassword>}
+              {isLoginMode && (
+                <ForgotPassword
+                  onClick={() => { setIsForgotMode(true); setErrorMsg(''); setSuccessMsg(''); }}
+                  style={{ display: 'block', textAlign: 'right', marginBottom: '10px' }}
+                >
+                  ¿Olvidaste tu contraseña?
+                </ForgotPassword>
+              )}
 
-          {errorMsg && <ErrorMessage>{errorMsg}</ErrorMessage>}
+              {errorMsg && <ErrorMessage>{errorMsg}</ErrorMessage>}
 
-          <SubmitButton type="submit">
-            {isLoginMode ? 'Iniciar sesión' : 'Crear cuenta'}
-          </SubmitButton>
-        </Form>
+              <SubmitButton type="submit">
+                {isLoginMode ? 'Iniciar sesión' : 'Crear cuenta'}
+              </SubmitButton>
+            </Form>
 
-        <ToggleModeText onClick={() => setIsLoginMode(!isLoginMode)}>
-          {isLoginMode ? 'Crear cuenta' : 'Ya tengo una cuenta. Iniciar sesión'}
-        </ToggleModeText>
+            <ToggleModeText onClick={() => setIsLoginMode(!isLoginMode)}>
+              {isLoginMode ? 'Crear cuenta' : 'Ya tengo una cuenta. Iniciar sesión'}
+            </ToggleModeText>
+          </>
+        )}
 
       </ModalContent>
     </ModalOverlay>

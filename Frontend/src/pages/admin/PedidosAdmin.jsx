@@ -35,6 +35,11 @@ export default function PedidosAdmin() {
   // Confirmar Eliminación Modal
   const [pedidoToDelete, setPedidoToDelete] = useState(null);
 
+  // Modal de Cambio de Estado y Tracking
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState(null);
+  const [trackingCode, setTrackingCode] = useState('');
+
   // ─── Autenticación ───────────────────────────────────────────────────────────
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -101,10 +106,34 @@ export default function PedidosAdmin() {
   }, [token, currentPage]);
 
   // ─── Cambiar Estado de Pedido ────────────────────────────────────────────────
-  const handleUpdateEstado = async (id, nuevoEstado) => {
+  const onStatusChangeRequest = (id, nuevoEstado) => {
+    // Si el estado implica enviar un mail (Enviado, Completado, Cancelado), mostramos el modal de confirmación
+    if (nuevoEstado === 'Enviado' || nuevoEstado === 'Completado' || nuevoEstado === 'Cancelado') {
+      setPendingStatusUpdate({ id, nuevoEstado });
+      setTrackingCode('');
+      setShowStatusModal(true);
+    } else {
+      handleUpdateEstado(id, nuevoEstado, '');
+    }
+  };
+
+  const confirmStatusChange = () => {
+    if (pendingStatusUpdate) {
+      handleUpdateEstado(pendingStatusUpdate.id, pendingStatusUpdate.nuevoEstado, trackingCode);
+    }
+    setShowStatusModal(false);
+    setPendingStatusUpdate(null);
+  };
+
+  const handleUpdateEstado = async (id, nuevoEstado, codigoSeguimiento = '') => {
     try {
+      const dataPayload = { estado: nuevoEstado };
+      if (codigoSeguimiento) {
+        dataPayload.codigo_seguimiento = codigoSeguimiento;
+      }
+
       await axios.put(`${API_URL}/api/admin-pedidos/${id}`, {
-        data: { estado: nuevoEstado }
+        data: dataPayload
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -114,9 +143,9 @@ export default function PedidosAdmin() {
         if (p.documentId === id) {
           // Dependiendo del formato de Strapi, actualizamos attributes o directamente el objeto
           if (p.attributes) {
-            return { ...p, attributes: { ...p.attributes, estado: nuevoEstado }, estado: nuevoEstado };
+            return { ...p, attributes: { ...p.attributes, estado: nuevoEstado, codigo_seguimiento: codigoSeguimiento || p.attributes.codigo_seguimiento }, estado: nuevoEstado, codigo_seguimiento: codigoSeguimiento || p.codigo_seguimiento };
           }
-          return { ...p, estado: nuevoEstado };
+          return { ...p, estado: nuevoEstado, codigo_seguimiento: codigoSeguimiento || p.codigo_seguimiento };
         }
         return p;
       }));
@@ -148,7 +177,15 @@ export default function PedidosAdmin() {
 
   // Helpers
   const formatPrice = (price) => '$ ' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 2 });
-  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('es-AR', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+  const formatDate = (dateString) => {
+    const d = new Date(dateString);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = String(d.getFullYear()).slice(-2);
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}hs`;
+  };
 
   // ─── Render: Login (Reutilizado de ImportacionAdmin) ─────────────────────────
   if (!token) {
@@ -296,6 +333,7 @@ export default function PedidosAdmin() {
                   <th>Nº Pedido</th>
                   <th>Fecha</th>
                   <th>Cliente</th>
+                  <th>Productos</th>
                   <th>Total</th>
                   <th>Pago</th>
                   <th>Estado</th>
@@ -315,13 +353,22 @@ export default function PedidosAdmin() {
                       <td data-label="Nº Pedido" style={{ fontWeight: 600 }}>{p.numero_pedido}</td>
                       <td data-label="Fecha">{formatDate(p.createdAt)}</td>
                       <td data-label="Cliente">{clienteEmail}</td>
+                      <td data-label="Productos">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {(p.productos || []).map((prod, idx) => (
+                            <span key={idx} style={{ fontSize: '0.85rem', backgroundColor: '#f9f9f9', padding: '4px 8px', borderRadius: '4px', border: '1px solid #eee' }}>
+                              <strong>{prod.cantidad}x</strong> {prod.producto} {prod.variante !== 'Única' && prod.variante !== 'Envío' && prod.variante !== 'Descuento' ? `(${prod.variante})` : ''}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
                       <td data-label="Total" style={{ fontWeight: 600 }}>{formatPrice(p.total)}</td>
                       <td data-label="Pago" style={{ textTransform: 'capitalize' }}>{p.metodo_pago}</td>
                       <td data-label="Estado">
                         <select 
                           className="pa-select" 
                           value={estado} 
-                          onChange={(e) => handleUpdateEstado(pedido.documentId, e.target.value)}
+                          onChange={(e) => onStatusChangeRequest(pedido.documentId, e.target.value)}
                         >
                           <option value="Procesando">Procesando</option>
                           <option value="Enviado">Enviado</option>
@@ -330,9 +377,11 @@ export default function PedidosAdmin() {
                         </select>
                       </td>
                       <td data-label="Acciones">
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button className="pa-detail-btn" onClick={() => setSelectedPedido(p)}>Ver detalles</button>
-                          <button className="pa-delete-btn" onClick={() => setPedidoToDelete(pedido.documentId)}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
+                          <button className="pa-detail-btn" onClick={() => setSelectedPedido(p)} title="Ver detalles" style={{ padding: '6px' }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                          </button>
+                          <button className="pa-delete-btn" onClick={() => setPedidoToDelete(pedido.documentId)} title="Eliminar pedido">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                           </button>
                         </div>
@@ -342,7 +391,7 @@ export default function PedidosAdmin() {
                 })}
                 {pedidos.length === 0 && (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: 'center', padding: '40px' }}>No hay pedidos registrados todavía.</td>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '40px' }}>No hay pedidos registrados todavía.</td>
                   </tr>
                 )}
               </tbody>
@@ -351,7 +400,7 @@ export default function PedidosAdmin() {
             {pageCount > 1 && (
               <div className="pa-pagination">
                 <button 
-                  className="ia-btn ia-btn--ghost" 
+                  className="ia-btn ia-btn--primary" 
                   style={{ padding: '8px 16px', fontSize: '0.9rem' }}
                   disabled={currentPage === 1} 
                   onClick={() => setCurrentPage(prev => prev - 1)}
@@ -360,7 +409,7 @@ export default function PedidosAdmin() {
                 </button>
                 <span className="pa-pagination-info">Página {currentPage} de {pageCount}</span>
                 <button 
-                  className="ia-btn ia-btn--ghost" 
+                  className="ia-btn ia-btn--primary" 
                   style={{ padding: '8px 16px', fontSize: '0.9rem' }}
                   disabled={currentPage === pageCount} 
                   onClick={() => setCurrentPage(prev => prev + 1)}
@@ -462,6 +511,71 @@ export default function PedidosAdmin() {
                 </button>
                 <button className="ia-btn ia-btn--primary" style={{ backgroundColor: '#d9534f' }} onClick={confirmDeletePedido}>
                   Sí, eliminar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Confirmación Cambio Estado y Tracking */}
+      <AnimatePresence>
+        {showStatusModal && pendingStatusUpdate && (
+          <div className="pa-modal-overlay" onClick={() => setShowStatusModal(false)}>
+            <motion.div 
+              className="pa-modal"
+              style={{ maxWidth: '450px' }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 style={{ marginTop: 0, fontFamily: 'var(--font-family-primary)', color: '#3E0102' }}>
+                Cambiar a {pendingStatusUpdate.nuevoEstado}
+              </h2>
+              
+              <div style={{ backgroundColor: '#f0f8ff', padding: '16px', borderRadius: '8px', border: '1px solid #cce5ff', marginBottom: '24px' }}>
+                <div style={{ color: '#004085', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    <strong>Atención:</strong>
+                  </div>
+                  <span style={{ paddingLeft: '28px' }}>Al confirmar, se enviará un correo electrónico automáticamente al cliente notificándole este cambio.</span>
+                </div>
+              </div>
+
+              {pendingStatusUpdate.nuevoEstado === 'Enviado' && (
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-marron-principal, #3E0102)' }}>
+                    Código de Seguimiento (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    className="ia-input"
+                    style={{ backgroundColor: 'transparent', color: '#111', border: '1px solid #ccc' }}
+                    placeholder="Ej. AR123456789"
+                    value={trackingCode}
+                    onChange={(e) => setTrackingCode(e.target.value)}
+                  />
+                  <p style={{ margin: '8px 0 0', fontSize: '0.8rem', color: '#777' }}>
+                    Si lo ingresas, se incluirá en el correo electrónico para que el cliente pueda rastrear su pedido.
+                  </p>
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '30px' }}>
+                <button 
+                  className="ia-btn" 
+                  style={{ backgroundColor: '#f5f5f5', color: '#444', border: '1px solid #ddd' }} 
+                  onClick={() => {
+                    setShowStatusModal(false);
+                    setPendingStatusUpdate(null);
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button className="ia-btn ia-btn--primary" onClick={confirmStatusChange}>
+                  Confirmar y Enviar Mail
                 </button>
               </div>
             </motion.div>

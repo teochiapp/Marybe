@@ -2,7 +2,7 @@
   background-color: var(--color-blanco);
   border-radius: 16px;
   width: 100%;
-  max-width: 1400px;
+  max-width: 1800px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
   padding: 40px;
   position: relative;
@@ -88,6 +88,14 @@
 
 .pa-table tr:last-child td {
   border-bottom: none;
+}
+
+.pa-table th:nth-child(3),
+.pa-table td:nth-child(3) {
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pa-table tr:hover {

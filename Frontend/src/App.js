@@ -65,6 +65,9 @@ const EditorAdmin  = lazyWithRetry(() => import('./pages/admin/editor-admin/Edit
 // Página de Gift Card
 const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'), 'GiftCardPage');
 
+// Página de recuperación de contraseña
+const RecuperarContrasena = lazyWithRetry(() => import('./pages/auth/RecuperarContrasena'), 'RecuperarContrasena');
+
 // Componente para la raíz / que detecta tokens de OAuth antes de redirigir a /inicio
 function RootRoute() {
   const location = useLocation();
@@ -127,6 +130,9 @@ function App() {
 
             {/* Ruta de Gift Card */}
             <Route path="/gift-card" element={<GiftCardPage />} />
+
+            {/* Ruta de recuperación de contraseña */}
+            <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
 
             {/* Ruta 404 (Catch all) */}
             <Route path="*" element={<NotFound />} />

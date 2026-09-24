@@ -286,15 +286,29 @@ const formatPrice = (price) => {
   return '$ ' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const getProductImage = (product) => {
-  if (!product) return '/placeholder.png';
-  let imgUrl = '/placeholder.png';
-  if (product?.portada?.data?.attributes?.url) {
-    imgUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${product.portada.data.attributes.url}`;
-  } else if (product?.portada?.url) {
-    imgUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${product.portada.url}`;
+const getProductImage = (item) => {
+  // 1. Si viene la imagen del backend (ej: historial de pedidos)
+  if (item.imagen) {
+    if (item.imagen.startsWith('http')) return item.imagen;
+    if (item.imagen.startsWith('/uploads')) return `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${item.imagen}`;
+    return item.imagen; // Ruta local del frontend
   }
-  return imgUrl;
+
+  // 2. Si viene el objeto product (ej: recién comprado desde cartItems)
+  const product = item.product;
+  if (!product) return '/placeholder.png';
+  
+  if (product.portada?.local) {
+    return product.portada.url;
+  } else if (product.portada?.data?.attributes?.url) {
+    return `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${product.portada.data.attributes.url}`;
+  } else if (product.portada?.url) {
+    // A veces Strapi ya envía la URL absoluta, otras veces empieza con /uploads
+    if (product.portada.url.startsWith('http')) return product.portada.url;
+    return `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${product.portada.url}`;
+  }
+  
+  return '/placeholder.png';
 };
 
 // ─── Componente ─────────────────────────────────────────────────────────────
@@ -482,7 +496,7 @@ export default function OrderSuccess() {
 
           <ProductsCard>
             {cartItems.map((item, idx) => {
-              const imageSrc = item.imagen ? `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${item.imagen}` : getProductImage(item.product);
+              const imageSrc = getProductImage(item);
 
               return (
               <div className="product-item" key={item.cartId || item.id || idx}>

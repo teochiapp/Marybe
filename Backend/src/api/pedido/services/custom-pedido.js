@@ -106,6 +106,13 @@ module.exports = ({ strapi }) => ({
       finalTotal = Math.max(0, finalTotal - descuentoGcNum);
     }
 
+    // ─── Validación crítica: no permitir pedidos a $0 ───
+    // Solo se permite $0 si TODOS los items son gift cards (que ya tienen precio propio)
+    const soloGiftCards = validatedItems.length > 0 && validatedItems.every(i => i.isGiftCard);
+    if (finalTotal <= 0 && !soloGiftCards) {
+      throw new Error('No se puede procesar un pedido con total $0. Verificá que los productos tengan precio configurado.');
+    }
+
     return {
       finalTotal,
       costoEnvioFinal,

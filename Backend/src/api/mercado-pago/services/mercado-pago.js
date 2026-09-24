@@ -172,6 +172,7 @@ module.exports = () => ({
       // Buscar pedido en Strapi
       const pedidos = await strapi.entityService.findMany('api::pedido.pedido', {
         filters: { numero_pedido: orderNumber },
+        populate: ['usuario'],
         limit: 1
       });
       
@@ -202,6 +203,21 @@ module.exports = () => ({
       
       console.log(`Pedido ${orderNumber} marcado como pagado. Descontando stock...`);
 
+      // ─── Enviar Correo de Confirmación ───
+      try {
+        const nombreCliente = pedido.direccion_envio?.nombre || pedido.usuario?.username || pedido.usuario?.nombre || 'Cliente';
+        await strapi.service('api::correo.correo').enviarConfirmacionPedido(
+          pedido.cliente_email,
+          nombreCliente,
+          pedido
+        );
+
+        // Enviar alerta al administrador
+        await strapi.service('api::correo.correo').enviarAlertaNuevoPedidoAdmin(pedido, nombreCliente);
+      } catch (err) {
+        console.error(`[Webhook MP ${orderNumber}] Error enviando email:`, err);
+      }
+
       // ─── Lógica de Stock ───
       const productos = pedido.productos || [];
       for (const item of productos) {
@@ -221,9 +237,10 @@ module.exports = () => ({
             // Es una variante
             const varIndex = dbProduct.variantes.findIndex(v => v.id_original === item.id_variante_original);
             if (varIndex !== -1) {
-              dbProduct.variantes[varIndex].stock = Math.max(0, (dbProduct.variantes[varIndex].stock || 0) - (item.cantidad || 1));
-              await strapi.entityService.update('api::producto.producto', dbProduct.id, {
-                data: { variantes: dbProduct.variantes }
+              const newStock = Math.max(0, (dbProduct.variantes[varIndex].stock || 0) - (item.cantidad || 1));
+              await strapi.db.query('producto.variante').update({
+                where: { id: dbProduct.variantes[varIndex].id },
+                data: { stock: newStock }
               });
             }
           } else {
@@ -306,6 +323,12 @@ module.exports = () => ({
           }
         }
         strapi.log.info(`[Webhook MP ${orderNumber}] ${createdGCs.length} Gift Cards generadas: ${createdGCs.join(', ')}`);
+        
+        if (createdGCs.length > 0) {
+          await strapi.entityService.update('api::pedido.pedido', pedido.id, {
+            data: { gift_cards_generadas: createdGCs }
+          });
+        }
       }
     }
   }

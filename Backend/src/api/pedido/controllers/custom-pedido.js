@@ -29,8 +29,17 @@ module.exports = {
         return ctx.unauthorized('Debe iniciar sesión para realizar un pedido');
       }
 
-      if (!productos || !total) {
-        return ctx.badRequest('Faltan datos del pedido (productos, total)');
+      if (!productos || !Array.isArray(productos) || productos.length === 0) {
+        return ctx.badRequest('El pedido no contiene productos.');
+      }
+
+      const tieneProductosValidos = productos.some(item => (item.quantity || 0) > 0);
+      if (!tieneProductosValidos) {
+        return ctx.badRequest('El pedido no tiene productos con cantidad válida.');
+      }
+
+      if (!total || Number(total) <= 0) {
+        return ctx.badRequest('El total del pedido debe ser mayor a $0.');
       }
 
       // ── Validar precios, stock y calcular total real ──
@@ -42,6 +51,10 @@ module.exports = {
           await customPedidoService.validateCartAndCalculateTotal(productos, envio, descuento_gift_card);
         
         finalTotal = calculatedTotal;
+
+        if (finalTotal <= 0) {
+          return ctx.badRequest('El total del pedido calculado en el servidor debe ser mayor a $0.');
+        }
       } catch (err) {
         console.error("====== ERROR EN VALIDACION DE PRODUCTOS ======");
         console.error(err);
@@ -146,8 +159,11 @@ module.exports = {
             if (item.id_variante_original) {
               const varIndex = dbProduct.variantes.findIndex(v => v.id_original === item.id_variante_original);
               if (varIndex !== -1) {
-                dbProduct.variantes[varIndex].stock = Math.max(0, (dbProduct.variantes[varIndex].stock || 0) - (item.cantidad || 1));
-                await strapi.entityService.update('api::producto.producto', dbProduct.id, { data: { variantes: dbProduct.variantes } });
+                const newStock = Math.max(0, (dbProduct.variantes[varIndex].stock || 0) - (item.cantidad || 1));
+                await strapi.db.query('producto.variante').update({
+                  where: { id: dbProduct.variantes[varIndex].id },
+                  data: { stock: newStock }
+                });
               }
             } else {
               await strapi.entityService.update('api::producto.producto', dbProduct.id, { data: { stock: Math.max(0, (dbProduct.stock || 0) - (item.cantidad || 1)) } });
@@ -200,9 +216,31 @@ module.exports = {
               }
             }
             strapi.log.info(`[Pedido ${numero_pedido}] ${createdGCs.length} Gift Cards generadas: ${createdGCs.join(', ')}`);
+            
+            // Guardar los códigos en el pedido
+            if (createdGCs.length > 0) {
+              await strapi.entityService.update('api::pedido.pedido', pedido.id, {
+                data: { gift_cards_generadas: createdGCs }
+              });
+            }
           }
         } catch (err) {
           strapi.log.error(`[Pedido ${numero_pedido}] Error generando gift cards:`, err);
+        }
+
+        // ─── Enviar Correo de Confirmación ───
+        try {
+          const nombreCliente = direccion_envio?.nombre || user.username || user.nombre || 'Cliente';
+          await strapi.service('api::correo.correo').enviarConfirmacionPedido(
+            user.email,
+            nombreCliente,
+            pedido
+          );
+          
+          // Enviar alerta al administrador
+          await strapi.service('api::correo.correo').enviarAlertaNuevoPedidoAdmin(pedido, nombreCliente);
+        } catch (err) {
+          strapi.log.error(`[Pedido ${numero_pedido}] Error enviando email:`, err);
         }
       }
 
@@ -245,7 +283,54 @@ module.exports = {
 
   async adminUpdate(ctx) {
     if (!verificarAdminImportacion(ctx)) return ctx.unauthorized('No autenticado o sesión expirada');
-    return await strapi.controller('api::pedido.pedido').update(ctx);
+    
+    const { id } = ctx.params;
+
+    // Obtener pedido original antes de actualizar (usamos db.query para soportar documentId de Strapi 5)
+    const pedidoAntiguo = await strapi.db.query('api::pedido.pedido').findOne({
+      where: { documentId: id },
+      populate: ['usuario']
+    });
+
+    if (!pedidoAntiguo) {
+      return ctx.notFound('Pedido no encontrado');
+    }
+
+    // Actualizar el pedido mediante el controlador por defecto
+    const response = await strapi.controller('api::pedido.pedido').update(ctx);
+
+    // Si se actualizó correctamente, revisamos si cambió el estado
+    if (response && response.data) {
+      const pedidoActualizado = await strapi.db.query('api::pedido.pedido').findOne({
+        where: { documentId: id },
+        populate: ['usuario']
+      });
+
+      const estadoViejo = pedidoAntiguo.estado;
+      const estadoNuevo = pedidoActualizado.estado;
+
+      // Si el estado cambió, enviar el correo correspondiente
+      if (estadoViejo !== estadoNuevo) {
+        const nombreCliente = pedidoActualizado.direccion_envio?.nombre || pedidoActualizado.usuario?.username || pedidoActualizado.usuario?.nombre || 'Cliente';
+        const emailCliente = pedidoActualizado.cliente_email || pedidoActualizado.usuario?.email;
+
+        if (emailCliente) {
+          try {
+            if (estadoNuevo === 'Enviado') {
+              await strapi.service('api::correo.correo').enviarAvisoPedidoEnviado(emailCliente, nombreCliente, pedidoActualizado);
+            } else if (estadoNuevo === 'Completado') {
+              await strapi.service('api::correo.correo').enviarAvisoPedidoCompletado(emailCliente, nombreCliente, pedidoActualizado);
+            } else if (estadoNuevo === 'Cancelado') {
+              await strapi.service('api::correo.correo').enviarAvisoPedidoCancelado(emailCliente, nombreCliente, pedidoActualizado);
+            }
+          } catch (error) {
+            strapi.log.error(`Error enviando email de estado ${estadoNuevo} para pedido ${pedidoActualizado.numero_pedido}:`, error);
+          }
+        }
+      }
+    }
+
+    return response;
   },
 
   async adminDelete(ctx) {

@@ -210,26 +210,57 @@ const ProductsPreview = styled.div`
   margin-bottom: 25px;
 `;
 
-const ProductImagesRow = styled.div`
+const MiniProduct = styled.div`
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
 
   .img-wrapper {
     width: 45px;
     height: 45px;
-    border-radius: 50%;
+    border-radius: 8px;
     background-color: #f9f9f9;
     border: 1px solid #eee;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
-
+    flex-shrink: 0;
+    
     img {
       width: 100%;
       height: 100%;
       object-fit: contain;
     }
+  }
+
+  .details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    
+    .name {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #333;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    .meta {
+      font-size: 0.8rem;
+      color: #777;
+    }
+  }
+
+  .price {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #333;
   }
 `;
 
@@ -336,7 +367,9 @@ export default function Envio() {
 
   const getProductImage = (product) => {
     let imgUrl = '/placeholder.png';
-    if (product.portada?.data?.attributes?.url) {
+    if (product.portada?.local) {
+      imgUrl = product.portada.url;
+    } else if (product.portada?.data?.attributes?.url) {
       imgUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${product.portada.data.attributes.url}`;
     } else if (product.portada?.url) {
       imgUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${product.portada.url}`;
@@ -449,23 +482,25 @@ export default function Envio() {
           {/* Resumen de Pedido */}
           <div>
             <SummaryCard>
-              <SummaryTitle>Tu pedido</SummaryTitle>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <SummaryTitle style={{ marginBottom: 0 }}>Tu pedido</SummaryTitle>
+                <EditCartBtn to="/carrito">Editar Carrito</EditCartBtn>
+              </div>
 
-              <ProductsPreview>
-                <ProductImagesRow>
-                  {cartItems.slice(0, 4).map((item) => (
-                    <div className="img-wrapper" key={item.cartId}>
+              <div style={{ marginBottom: '25px' }}>
+                {cartItems.map((item) => (
+                  <MiniProduct key={item.cartId}>
+                    <div className="img-wrapper">
                       <img src={getProductImage(item.product)} alt={item.product.nombre} />
                     </div>
-                  ))}
-                  {cartItems.length > 4 && (
-                    <div className="img-wrapper" style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#555' }}>
-                      +{cartItems.length - 4}
+                    <div className="details">
+                      <span className="name">{item.product.nombre}</span>
+                      <span className="meta">Cant: {item.quantity}</span>
                     </div>
-                  )}
-                </ProductImagesRow>
-                <EditCartBtn to="/carrito">Editar Carrito</EditCartBtn>
-              </ProductsPreview>
+                    <div className="price">{formatPrice(item.price * item.quantity)}</div>
+                  </MiniProduct>
+                ))}
+              </div>
 
               <SummaryRow>
                 <span>Subtotal</span>

@@ -49,6 +49,12 @@
       "type": "relation",
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user"
+    },
+    "codigo_seguimiento": {
+      "type": "string"
+    },
+    "gift_cards_generadas": {
+      "type": "json"
     }
   }
 }

@@ -869,6 +869,7 @@ export interface ApiPedidoPedido extends Struct.CollectionTypeSchema {
   };
   attributes: {
     cliente_email: Schema.Attribute.Email;
+    codigo_seguimiento: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -878,6 +879,7 @@ export interface ApiPedidoPedido extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'Procesando'>;
+    gift_cards_generadas: Schema.Attribute.JSON;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
