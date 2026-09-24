@@ -404,9 +404,8 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
     setIsModalOpen(true);
   };
 
-  const endpoint = seccion === 'hogar'
-    ? `${process.env.REACT_APP_STRAPI_URL}/api/categoria-especifica-hogar?populate=*`
-    : `${process.env.REACT_APP_STRAPI_URL}/api/categoria-especifica?populate=*`;
+  const fieldName = seccion === 'hogar' ? 'categoria_especifica_hogar' : 'categoria_especifica_perfumeria';
+  const endpoint = `${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[${fieldName}][populate]=*`;
 
   // 1. Obtener configuración de Categoría Específica
   useEffect(() => {
@@ -418,7 +417,11 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
       .then(data => {
         if (data && data.data) {
           const attributes = data.data.attributes || data.data;
-          setConfig(attributes);
+          if (attributes[fieldName]) {
+            setConfig(attributes[fieldName]);
+          } else {
+            setLoading(false);
+          }
         } else {
           setLoading(false);
         }
@@ -427,7 +430,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
         console.error('Error fetching categoria-especifica config:', err);
         setLoading(false);
       });
-  }, [endpoint]);
+  }, [endpoint, fieldName]);
 
   // 2. Obtener productos de la categoría seleccionada
   useEffect(() => {
@@ -445,7 +448,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
       return;
     }
 
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[categoria][documentId][$eq]=${catDocId}&populate=*`)
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[categoria][documentId][$eq]=${catDocId}&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {

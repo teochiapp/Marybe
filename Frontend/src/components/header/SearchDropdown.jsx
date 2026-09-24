@@ -15,6 +15,7 @@ function buildProductQuery(q) {
     `&filters[$or][1][marca][$containsi]=${enc}` +
     `&filters[$or][2][subcategoria][$containsi]=${enc}` +
     `&filters[$or][3][tipo][$containsi]=${enc}` +
+    `&filters[publicado][$eq]=true` +
     `&pagination[pageSize]=20` +
     `&populate[portada]=true`
   );

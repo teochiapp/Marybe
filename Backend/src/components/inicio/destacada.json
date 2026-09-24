@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_inicio_destacadas",
+  "info": {
+    "displayName": "Configuración de Categoría Destacada",
+    "description": "Configura una categoría destacada y su título"
+  },
+  "options": {},
+  "attributes": {
+    "titulo": {
+      "type": "string",
+      "required": true
+    },
+    "categoria": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::categoria.categoria"
+    }
+  }
+}

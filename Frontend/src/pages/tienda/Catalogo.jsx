@@ -332,7 +332,7 @@ export default function Catalogo() {
         let hasMore = true;
 
         while (hasMore) {
-          const res = await fetch(`${STRAPI_URL}/api/productos?pagination[page]=${page}&pagination[pageSize]=100&populate=*`);
+          const res = await fetch(`${STRAPI_URL}/api/productos?pagination[page]=${page}&pagination[pageSize]=100&populate=*&filters[publicado][$eq]=true`);
           if (!res.ok) throw new Error('Error al cargar metadatos de filtros');
           const json = await res.json();
 
@@ -391,6 +391,7 @@ export default function Catalogo() {
         params.set('pagination[pageSize]', '500');
         // Queremos marca del producto base y las variantes para obtener los volumenes
         params.set('populate', 'variantes');
+        params.set('filters[publicado][$eq]', 'true');
 
         if (activeTipoParam) {
           activeTipoParam.split(',').forEach((t, i) =>
@@ -449,6 +450,7 @@ export default function Catalogo() {
       params.set('pagination[page]', activePage);
       params.set('pagination[pageSize]', PAGE_SIZE);
       params.set('populate', '*');
+      params.set('filters[publicado][$eq]', 'true');
 
       if (activeSort === 'precio:asc') {
         params.set('sort[0]', 'precio:asc');
@@ -588,15 +590,22 @@ export default function Catalogo() {
             activeBanner={activeBanner}
             activeDescuento={activeDescuentos}
             currentBannerTitle={currentBanner?.breadcrumbTitle || currentBanner?.title}
+            activeCategories={activeCategories}
             onGoToSeccion={() => updateUrlFilters({ banner: null, descuento: null, categoria: null, subcategoria: null, tipo: null, marca: null, tamano: null, precio: null })}
 
             onCategoryClick={(idx) => {
-              const nextCats = activeCategories.slice(0, idx + 1);
-              updateUrlFilters({ 
-                categoria: nextCats.length > 0 ? nextCats.join(',') : null, 
-                subcategoria: null, 
-                tipo: null 
-              });
+              const clickedName = activeCategories[idx];
+              const isCat = activeCatParam && activeCatParam.split(',').includes(clickedName);
+              const isSubcat = activeSubcatParam && activeSubcatParam.split(',').includes(clickedName);
+              const isTipo = activeTipoParam && activeTipoParam.split(',').includes(clickedName);
+
+              if (isCat) {
+                updateUrlFilters({ categoria: clickedName, subcategoria: null, tipo: null });
+              } else if (isSubcat) {
+                updateUrlFilters({ categoria: activeCatParam, subcategoria: clickedName, tipo: null });
+              } else if (isTipo) {
+                updateUrlFilters({ categoria: activeCatParam, subcategoria: activeSubcatParam, tipo: clickedName });
+              }
             }}
           />
         </FadeIn>

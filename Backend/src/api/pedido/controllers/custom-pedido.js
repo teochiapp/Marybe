@@ -289,7 +289,7 @@ module.exports = {
     // Obtener pedido original antes de actualizar (usamos db.query para soportar documentId de Strapi 5)
     const pedidoAntiguo = await strapi.db.query('api::pedido.pedido').findOne({
       where: { documentId: id },
-      populate: ['usuario']
+      populate: { usuario: true }
     });
 
     if (!pedidoAntiguo) {
@@ -303,7 +303,7 @@ module.exports = {
     if (response && response.data) {
       const pedidoActualizado = await strapi.db.query('api::pedido.pedido').findOne({
         where: { documentId: id },
-        populate: ['usuario']
+        populate: { usuario: true }
       });
 
       const estadoViejo = pedidoAntiguo.estado;

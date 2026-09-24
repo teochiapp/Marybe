@@ -1242,8 +1242,8 @@ export interface ApiSeccionPrincipalSeccionPrincipal
   extends Struct.SingleTypeSchema {
   collectionName: 'seccion_principal';
   info: {
-    description: "Textos e im\u00E1genes principales para 'Lo nuevo en Marybe'";
-    displayName: 'Secci\u00F3n Principal (Lo Nuevo)';
+    description: 'Configuraci\u00F3n de los elementos de la P\u00E1gina de Inicio';
+    displayName: 'P\u00E1gina de Inicio';
     pluralName: 'secciones-principales';
     singularName: 'seccion-principal';
   };
@@ -1251,9 +1251,34 @@ export interface ApiSeccionPrincipalSeccionPrincipal
     draftAndPublish: false;
   };
   attributes: {
+    categoria_especifica_hogar: Schema.Attribute.Component<
+      'inicio.categoria_especifica',
+      false
+    >;
+    categoria_especifica_perfumeria: Schema.Attribute.Component<
+      'inicio.categoria_especifica',
+      false
+    >;
+    categorias_destacadas: Schema.Attribute.Component<
+      'shared.banner-destacado',
+      true
+    > &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 2;
+        },
+        number
+      >;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    descuento_hogar: Schema.Attribute.Component<'inicio.descuentos', false>;
+    descuento_perfumeria: Schema.Attribute.Component<
+      'inicio.descuentos',
+      false
+    >;
+    destacada_hogar: Schema.Attribute.Component<'inicio.destacada', false>;
+    destacada_perfumeria: Schema.Attribute.Component<'inicio.destacada', false>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -1266,6 +1291,10 @@ export interface ApiSeccionPrincipalSeccionPrincipal
       true
     > &
       Schema.Attribute.Required;
+    texto_toggle_hogar: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Hogar'>;
+    texto_toggle_perfumeria: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Perfumer\u00EDa'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

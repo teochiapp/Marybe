@@ -4,19 +4,63 @@
   "info": {
     "singularName": "seccion-principal",
     "pluralName": "secciones-principales",
-    "displayName": "Sección Principal (Lo Nuevo)",
-    "description": "Textos e imágenes principales para 'Lo nuevo en Marybe'"
+    "displayName": "Página de Inicio",
+    "description": "Configuración de los elementos de la Página de Inicio"
   },
   "options": {
     "draftAndPublish": false
   },
   "pluginOptions": {},
   "attributes": {
+    "texto_toggle_perfumeria": {
+      "type": "string",
+      "default": "Perfumería"
+    },
+    "texto_toggle_hogar": {
+      "type": "string",
+      "default": "Hogar"
+    },
     "secciones": {
       "type": "component",
       "repeatable": true,
       "component": "shared.seccion-principal-item",
       "required": true
+    },
+    "categorias_destacadas": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.banner-destacado",
+      "max": 2
+    },
+    "descuento_perfumeria": {
+      "type": "component",
+      "repeatable": false,
+      "component": "inicio.descuentos"
+    },
+    "descuento_hogar": {
+      "type": "component",
+      "repeatable": false,
+      "component": "inicio.descuentos"
+    },
+    "destacada_perfumeria": {
+      "type": "component",
+      "repeatable": false,
+      "component": "inicio.destacada"
+    },
+    "destacada_hogar": {
+      "type": "component",
+      "repeatable": false,
+      "component": "inicio.destacada"
+    },
+    "categoria_especifica_perfumeria": {
+      "type": "component",
+      "repeatable": false,
+      "component": "inicio.categoria_especifica"
+    },
+    "categoria_especifica_hogar": {
+      "type": "component",
+      "repeatable": false,
+      "component": "inicio.categoria_especifica"
     }
   }
 }

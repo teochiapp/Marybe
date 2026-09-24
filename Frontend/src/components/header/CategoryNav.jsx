@@ -356,7 +356,7 @@ export default function CategoryNav() {
 
   useEffect(() => {
     // Cargar los últimos productos para la pestaña Lanzamientos
-    fetch(`${STRAPI_URL}/api/productos?sort=createdAt:desc&pagination[limit]=5`)
+    fetch(`${STRAPI_URL}/api/productos?filters[publicado][$eq]=true&sort=createdAt:desc&pagination[limit]=5`)
       .then((res) => res.json())
       .then((json) => {
         const prods = json?.data || [];
@@ -424,42 +424,48 @@ export default function CategoryNav() {
                 <MegaTitleText>{activeCategory}</MegaTitleText>
               </MegaTitle>
 
-              <MegaGrid>
-                {getMegaColumnsForCategory(activeCategory).map((col) => {
-                  // Detectar si la columna tiene un href de subcategoría (en el ítem "Ver todos")
-                  const verTodoItem = col.items?.find(i => typeof i === 'object' && i.isVerTodo);
-                  const colHref = verTodoItem?.href || null;
-                  return (
-                    <MegaColumn key={col.title}>
-                      <MegaColumnTitle
-                        onClick={colHref ? () => { setActiveCategory(null); navigate(colHref); } : undefined}
-                        style={colHref ? { cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: '3px' } : {}}
-                      >
-                        {col.title}
-                      </MegaColumnTitle>
-                      {col.items.map((item, idx) => {
-                        const label = typeof item === 'object' ? item.label : item;
-                        const href = typeof item === 'object' ? item.href : '#';
-                        const isVerTodo = typeof item === 'object' ? item.isVerTodo : false;
-                        return (
-                          <MegaLink
-                            key={`${label}-${idx}`}
-                            $isVerTodo={isVerTodo}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setActiveCategory(null);
-                              navigate(href);
-                            }}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            {label}
-                          </MegaLink>
-                        );
-                      })}
-                    </MegaColumn>
-                  );
-                })}
-              </MegaGrid>
+              {activeCategory === 'Ofertas' || activeCategory === 'Lanzamientos' ? (
+                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#555', fontSize: '1.8rem', fontWeight: 600, fontFamily: 'var(--font-family-secondary)', letterSpacing: '2px' }}>
+                  PRÓXIMAMENTE
+                </div>
+              ) : (
+                <MegaGrid>
+                  {getMegaColumnsForCategory(activeCategory).map((col) => {
+                    // Detectar si la columna tiene un href de subcategoría (en el ítem "Ver todos")
+                    const verTodoItem = col.items?.find(i => typeof i === 'object' && i.isVerTodo);
+                    const colHref = verTodoItem?.href || null;
+                    return (
+                      <MegaColumn key={col.title}>
+                        <MegaColumnTitle
+                          onClick={colHref ? () => { setActiveCategory(null); navigate(colHref); } : undefined}
+                          style={colHref ? { cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: '3px' } : {}}
+                        >
+                          {col.title}
+                        </MegaColumnTitle>
+                        {col.items.map((item, idx) => {
+                          const label = typeof item === 'object' ? item.label : item;
+                          const href = typeof item === 'object' ? item.href : '#';
+                          const isVerTodo = typeof item === 'object' ? item.isVerTodo : false;
+                          return (
+                            <MegaLink
+                              key={`${label}-${idx}`}
+                              $isVerTodo={isVerTodo}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setActiveCategory(null);
+                                navigate(href);
+                              }}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              {label}
+                            </MegaLink>
+                          );
+                        })}
+                      </MegaColumn>
+                    );
+                  })}
+                </MegaGrid>
+              )}
             </MegaMenuWrapper>
 
             {/* Panel 2: barra de acciones */}

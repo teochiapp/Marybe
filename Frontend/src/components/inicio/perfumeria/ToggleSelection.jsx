@@ -82,7 +82,7 @@ const ToggleOption = styled.button`
   }
 `;
 
-export default function ToggleSelection({ seccionActiva, onSeccionChange }) {
+export default function ToggleSelection({ seccionActiva, onSeccionChange, textoPerfumeria = 'Perfumería', textoHogar = 'Hogar' }) {
   const [visible, setVisible] = useState(false);
   const [sticky, setSticky] = useState(false);
   const lastScrollY = useRef(0);
@@ -121,13 +121,13 @@ export default function ToggleSelection({ seccionActiva, onSeccionChange }) {
         $active={seccionActiva === 'perfumeria'}
         onClick={() => onSeccionChange('perfumeria')}
       >
-        Perfumería
+        {textoPerfumeria}
       </ToggleOption>
       <ToggleOption
         $active={seccionActiva === 'hogar'}
         onClick={() => onSeccionChange('hogar')}
       >
-        Hogar
+        {textoHogar}
       </ToggleOption>
     </ToggleContainer>
   );

@@ -129,7 +129,11 @@ export default function ExportarProveedorAdmin() {
       const disposition = res.headers['content-disposition'] || '';
       const match       = disposition.match(/filename="?([^"]+)"?/);
       const fecha       = new Date().toISOString().slice(0, 10);
-      const filename    = match ? match[1] : `Exportacion_Proveedor_${fecha}.xlsx`;
+      const provsArr    = [...seleccionados];
+      const nombresCortos = provsArr.length <= 2
+        ? provsArr.map(p => p.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g, '-')).join('_')
+        : `${provsArr.length}-proveedores`;
+      const filename    = match ? match[1] : `Precios_Proveedores_${nombresCortos}_${fecha}.xlsx`;
 
       const totalProductos = parseInt(res.headers['x-total-productos'] || '0');
       const totalVariantes = parseInt(res.headers['x-total-variantes'] || '0');
@@ -303,8 +307,8 @@ export default function ExportarProveedorAdmin() {
             <span>
               Seleccioná uno o más proveedores y hacé clic en <strong>"Exportar"</strong>.
               El archivo <code>.xlsx</code> muestra cada producto con sus variantes indentadas abajo,
-              incluyendo <strong>Stock, Precio, Precio Oferta y % de Descuento</strong> para que
-              sea fácil visualizar y editar los precios por proveedor.
+              incluyendo <strong>SKU, Stock, Precio, Precio Oferta, Publicado y Destacado</strong> para que
+              sea fácil visualizar y editar desde la plantilla.
             </span>
           </div>
         </div>

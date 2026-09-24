@@ -215,15 +215,21 @@ export default function CatalogoProductGrid({
           animate="show"
         >
           {loading ? (
-            Array.from({ length: pageSize }).map((_, i) => (
-              <SkeletonCard key={i}>
-                <SkeletonBox $height="220px" $radius="16px" />
-                <SkeletonBox $width="40%" $height="14px" />
-                <SkeletonBox $width="80%" $height="18px" />
-                <SkeletonBox $width="60%" $height="20px" />
-                <SkeletonBox $width="100%" $height="40px" $radius="12px" />
-              </SkeletonCard>
-            ))
+            <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                border: '4px solid #f2f0eb',
+                borderTopColor: 'var(--color-bordo-secundario)',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+              <style>{`
+                @keyframes spin {
+                  to { transform: rotate(360deg); }
+                }
+              `}</style>
+            </div>
           ) : productos.length === 0 ? (
             activeBusqueda ? (
               <SearchEmptyWrapper>

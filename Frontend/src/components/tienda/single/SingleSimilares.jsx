@@ -5,6 +5,7 @@ import { generateProductUrl } from '../../../utils/productUrl';
 import { getProductPrice } from '../../../utils/productPrice';
 import AddToCartModal from '../../carrito/AddToCartModal';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
+import FavoriteButton from '../../shared/FavoriteButton';
 
 const SectionWrapper = styled.section`
   margin-top: 72px;
@@ -41,6 +42,7 @@ const ProductsGrid = styled.div`
   position: relative;
   z-index: 1;
   cursor: grab;
+  user-select: none;
   padding-bottom: 20px;
 
   &:active {
@@ -151,25 +153,69 @@ const HeartIcon = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--color-bordo-secundario);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  background-color: #f7f7f7;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #ffeaea;
+  }
 
   svg {
     width: 22px;
     height: 22px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-
-    @media (max-width: 600px) {
-      width: 20px;
-      height: 20px;
-    }
+    fill: #a5a5a5;
   }
 `;
+
+const ScrollWrapper = styled.div`
+  position: relative;
+`;
+
+const ArrowBtn = styled.button`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  ${({ $side }) => $side}: -55px;
+  z-index: 10;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  color: var(--color-marron-principal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    background-color: #fff;
+    transform: translateY(-50%) scale(1.08);
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
 
 const ProductBrand = styled.div`
   font-size: 0.85rem;
@@ -299,6 +345,13 @@ const AddButton = styled.button`
 `;
 
 // SVG Icons
+const ChevronLeft = () => (
+  <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+);
+const ChevronRight = () => (
+  <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
+);
+
 const HeartOutline = () => (
   <svg viewBox="0 0 24 24">
     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -347,11 +400,18 @@ export default function SingleSimilares({ producto, title = 'Similares', query, 
     if (!finalQuery) {
       if (!producto) return;
       finalQuery = `${process.env.REACT_APP_STRAPI_URL}/api/productos?populate=*`;
-      const catDocId = producto.categoria?.data?.documentId || producto.categoria?.documentId;
-      if (catDocId) {
-        finalQuery += `&filters[categoria][documentId][$eq]=${catDocId}`;
-      } else if (producto.marca) {
-        finalQuery += `&filters[marca][$eq]=${producto.marca}`;
+
+      if (producto.proveedor) {
+        finalQuery += `&filters[proveedor][$eq]=${encodeURIComponent(producto.proveedor)}`;
+        // Ordenamos por categoría como segunda jerarquía, y luego por nombre
+        finalQuery += `&sort[0]=categoria.nombre:asc&sort[1]=nombre:asc`;
+      } else {
+        const catDocId = producto.categoria?.data?.documentId || producto.categoria?.documentId;
+        if (catDocId) {
+          finalQuery += `&filters[categoria][documentId][$eq]=${catDocId}`;
+        } else if (producto.marca) {
+          finalQuery += `&filters[marca][$eq]=${encodeURIComponent(producto.marca)}`;
+        }
       }
     }
 
@@ -426,6 +486,15 @@ export default function SingleSimilares({ producto, title = 'Similares', query, 
     el.scrollLeft = scrollLeftVal.current - walk;
   }, []);
 
+  const scrollByStep = useCallback((dir) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const first = el.children[0];
+    const gap = 30;
+    const step = first ? first.getBoundingClientRect().width + gap : el.clientWidth;
+    el.scrollTo({ left: el.scrollLeft + dir * step, behavior: 'smooth' });
+  }, []);
+
   const handleProductClick = (id, nombre) => {
     if (!isDragging.current) {
       navigate(generateProductUrl(id, nombre));
@@ -457,74 +526,80 @@ export default function SingleSimilares({ producto, title = 'Similares', query, 
     <SectionWrapper>
       <SectionTitle>{title}</SectionTitle>
 
-      <ProductsGrid
-        ref={scrollRef}
-        onMouseDown={handleMouseDown}
-        onMouseLeave={handleMouseLeave}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-      >
-        {productos.map(item => {
-          const id = item.id || item.documentId;
-          const attrs = item.attributes || item;
+      <ScrollWrapper>
+        <ArrowBtn $side="left" type="button" aria-label="Anterior" onClick={() => scrollByStep(-1)}>
+          <ChevronLeft />
+        </ArrowBtn>
+        <ProductsGrid
+          ref={scrollRef}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+        >
+          {productos.map(item => {
+            const id = item.id || item.documentId;
+            const attrs = item.attributes || item;
 
-          const nombre = attrs.nombre;
-          const marca = attrs.marca;
-          const { price, offerPrice, calcDescuento: descuentoCalc } = getProductPrice(attrs);
+            const nombre = attrs.nombre;
+            const marca = attrs.marca;
+            const { price, offerPrice, calcDescuento: descuentoCalc } = getProductPrice(attrs);
 
-          let imgUrl = null;
-          if (attrs.portada?.data?.attributes?.url) {
-            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.data.attributes.url}`;
-          } else if (attrs.portada?.url) {
-            imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
-          }
+            let imgUrl = null;
+            if (attrs.portada?.data?.attributes?.url) {
+              imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.data.attributes.url}`;
+            } else if (attrs.portada?.url) {
+              imgUrl = `${process.env.REACT_APP_STRAPI_URL}${attrs.portada.url}`;
+            }
 
-          const stampVal = descuentoCalc > 0 ? getStampValue(descuentoCalc) : null;
+            const stampVal = descuentoCalc > 0 ? getStampValue(descuentoCalc) : null;
 
-          return (
-            <ProductCard key={id}>
-              <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
-                {descuentoCalc > 0 && stampVal && (
-                  <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
+            return (
+              <ProductCard key={id}>
+                <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
+                  {descuentoCalc > 0 && stampVal && (
+                    <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
+                  )}
+
+                  {imgUrl ? (
+                    <img className="product-img" src={imgUrl} alt={nombre} draggable="false" />
+                  ) : (
+                    <ImagePlaceholder />
+                  )}
+                  <HeartContainer>
+                    <FavoriteButton product={item} />
+                  </HeartContainer>
+                </CardImageContainer>
+
+                <ProductBrand>{marca}</ProductBrand>
+                <ProductName title={nombre} onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
+
+                <PriceRow>
+                  {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
+                  <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
+                  {descuentoCalc > 0 && <DiscountBadge>{descuentoCalc}% OFF</DiscountBadge>}
+                </PriceRow>
+
+                {config?.cuotas_activas && (
+                  <Installments>
+                    {config?.cuotas_texto_previo ? config.cuotas_texto_previo + ' ' : '3 cuotas sin interés de '}{formatPrice(Math.round((offerPrice || price) / (config?.cuotas_cantidad || 3)))}
+                  </Installments>
                 )}
+                <LegalText>
+                  Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
+                </LegalText>
 
-                {imgUrl ? (
-                  <img className="product-img" src={imgUrl} alt={nombre} draggable="false" />
-                ) : (
-                  <ImagePlaceholder />
-                )}
-                <HeartContainer>
-                  <HeartIcon aria-label="Agregar a favoritos" onClick={(e) => { e.stopPropagation(); }}>
-                    <HeartOutline />
-                  </HeartIcon>
-                </HeartContainer>
-              </CardImageContainer>
-
-              <ProductBrand>{marca}</ProductBrand>
-              <ProductName title={nombre} onClick={() => handleProductClick(id, nombre)}>{nombre}</ProductName>
-
-              <PriceRow>
-                {offerPrice && <OldPrice>{formatPrice(price)}</OldPrice>}
-                <CurrentPrice>{formatPrice(offerPrice || price)}</CurrentPrice>
-                {descuentoCalc > 0 && <DiscountBadge>{descuentoCalc}% OFF</DiscountBadge>}
-              </PriceRow>
-
-              {config?.cuotas_activas && (
-                <Installments>
-                  {config?.cuotas_texto_previo ? config.cuotas_texto_previo + ' ' : '3 cuotas sin interés de '}{formatPrice(Math.round((offerPrice || price) / (config?.cuotas_cantidad || 3)))}
-                </Installments>
-              )}
-              <LegalText>
-                Precio sin impuestos nacionales {formatPrice(Math.round((offerPrice || price) * 0.79))}
-              </LegalText>
-
-              <AddButton onClick={(e) => handleAddClick(item, e)}>
-                Agregar <CartIcon />
-              </AddButton>
-            </ProductCard>
-          );
-        })}
-      </ProductsGrid>
+                <AddButton onClick={(e) => handleAddClick(item, e)}>
+                  Agregar <CartIcon />
+                </AddButton>
+              </ProductCard>
+            );
+          })}
+        </ProductsGrid>
+        <ArrowBtn $side="right" type="button" aria-label="Siguiente" onClick={() => scrollByStep(1)}>
+          <ChevronRight />
+        </ArrowBtn>
+      </ScrollWrapper>
       {selectedProduct && (
         <AddToCartModal
           isOpen={isModalOpen}

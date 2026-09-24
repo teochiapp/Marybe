@@ -801,23 +801,28 @@ export default function NavBar() {
                     {/* ── Nivel 1: Categoría ── */}
                     <DrawerItem
                       onClick={() => {
-                        if (hasColumns) {
+                        if (cat === 'Ofertas' || cat === 'Lanzamientos') {
+                          toggleSection(cat);
+                        } else if (hasColumns) {
                           toggleSection(cat);
                         } else {
-                          if (cat === 'Ofertas') { closeDrawer(); navigate('/ofertas'); }
-                          else if (cat === 'Lanzamientos') { closeDrawer(); navigate('/tienda?lanzamientos=true'); }
-                          else { closeDrawer(); navigate(`/tienda?categoria=${encodeURIComponent(cat)}`); }
+                          closeDrawer(); 
+                          navigate(`/tienda?categoria=${encodeURIComponent(cat)}`);
                         }
                       }}
                     >
                       <span style={{ fontWeight: 500 }}>{cat}</span>
-                      {hasColumns && <ChevronIcon open={openSection === cat} />}
+                      {(hasColumns || cat === 'Ofertas' || cat === 'Lanzamientos') && <ChevronIcon open={openSection === cat} />}
                     </DrawerItem>
 
-                    {/* ── Nivel 2: Subcategorías ── */}
-                    {hasColumns && (
+                    {/* ── Nivel 2: Subcategorías o Próximamente ── */}
+                    {(hasColumns || cat === 'Ofertas' || cat === 'Lanzamientos') && (
                       <SubList $open={openSection === cat}>
-                        {columns.map((col) => {
+                        {(cat === 'Ofertas' || cat === 'Lanzamientos') ? (
+                          <div style={{ padding: '20px 0', textAlign: 'center', color: '#888', fontSize: '1.2rem', fontWeight: 600, letterSpacing: '1px', fontFamily: 'var(--font-family-secondary)' }}>
+                            PRÓXIMAMENTE
+                          </div>
+                        ) : columns.map((col) => {
                           const subKey = `${cat}::${col.title}`;
                           const verTodoItem = col.items?.find(
                             (i) => typeof i === 'object' && i.isVerTodo

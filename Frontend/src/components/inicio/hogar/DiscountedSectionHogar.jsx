@@ -517,10 +517,10 @@ export default function DiscountedSectionHogar() {
     setIsModalOpen(true);
   };
 
-  const singleTypeEndpoint = `${process.env.REACT_APP_STRAPI_URL}/api/seccion-descuento-hogar?populate[productos][populate]=*`;
+  const singleTypeEndpoint = `${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[descuento_hogar][populate]=*`;
 
   const fetchFallbackProducts = useCallback(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[descuento][$gt]=0&filters[seccion][$eq]=Hogar&populate=*`)
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[descuento][$gt]=0&filters[seccion][$eq]=Hogar&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
@@ -544,27 +544,33 @@ export default function DiscountedSectionHogar() {
       })
       .then(data => {
         if (data && data.data) {
-          const attrs = data.data.attributes || data.data;
-          if (attrs.titulo_cursiva) setTituloCursiva(attrs.titulo_cursiva);
-          if (attrs.titulo_normal) setTituloNormal(attrs.titulo_normal);
-          if (attrs.imagen_destacada?.data?.attributes?.url) {
-            let mediaUrl = attrs.imagen_destacada.data.attributes.url;
-            if (!mediaUrl.startsWith('http')) {
-              mediaUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${mediaUrl}`;
-            }
-            setImagenUrl(mediaUrl);
-          } else if (attrs.imagen_destacada?.url) {
-            let mediaUrl = attrs.imagen_destacada.url;
-            if (!mediaUrl.startsWith('http')) {
-              mediaUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${mediaUrl}`;
-            }
-            setImagenUrl(mediaUrl);
-          }
+          const mainAttrs = data.data.attributes || data.data;
+          const attrs = mainAttrs.descuento_hogar;
 
-          let prods = attrs.productos?.data || attrs.productos || [];
+          if (attrs) {
+            if (attrs.titulo_cursiva) setTituloCursiva(attrs.titulo_cursiva);
+            if (attrs.titulo_normal) setTituloNormal(attrs.titulo_normal);
+            if (attrs.imagen_destacada?.data?.attributes?.url) {
+              let mediaUrl = attrs.imagen_destacada.data.attributes.url;
+              if (!mediaUrl.startsWith('http')) {
+                mediaUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${mediaUrl}`;
+              }
+              setImagenUrl(mediaUrl);
+            } else if (attrs.imagen_destacada?.url) {
+              let mediaUrl = attrs.imagen_destacada.url;
+              if (!mediaUrl.startsWith('http')) {
+                mediaUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${mediaUrl}`;
+              }
+              setImagenUrl(mediaUrl);
+            }
 
-          if (Array.isArray(prods) && prods.length > 0) {
-            setProductos(prods);
+            let prods = attrs.productos?.data || attrs.productos || [];
+
+            if (Array.isArray(prods) && prods.length > 0) {
+              setProductos(prods);
+            } else {
+              fetchFallbackProducts();
+            }
           } else {
             fetchFallbackProducts();
           }

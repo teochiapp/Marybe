@@ -1,0 +1,31 @@
+{
+  "collectionName": "components_inicio_descuentos",
+  "info": {
+    "displayName": "Configuración de Descuentos",
+    "description": "Textos, productos e imagen para una sección de descuentos"
+  },
+  "options": {},
+  "attributes": {
+    "titulo_cursiva": {
+      "type": "string",
+      "required": true,
+      "default": "Descuentos"
+    },
+    "titulo_normal": {
+      "type": "string",
+      "required": true,
+      "default": "de Miércoles"
+    },
+    "productos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::producto.producto"
+    },
+    "imagen_destacada": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    }
+  }
+}

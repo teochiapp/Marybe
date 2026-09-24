@@ -577,7 +577,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
   const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[destacado][$eq]=true&filters[seccion][$eq]=${seccionName}&populate=*`)
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[destacado][$eq]=true&filters[seccion][$eq]=${seccionName}&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
@@ -586,8 +586,8 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
       })
       .catch(err => console.error('Error fetching productos:', err));
 
-    // Obtener la información de la Sección Principal
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[secciones][populate]=*`)
+    // Obtener la información de la Sección Principal y los banners de Categorías Destacadas
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[secciones][populate]=*&populate[categorias_destacadas][populate]=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
@@ -597,23 +597,13 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
           if (info) {
             setSeccionInfo(info);
           }
+          if (seccion !== 'hogar' && attrs.categorias_destacadas) {
+            setBannersDestacados(attrs.categorias_destacadas);
+          }
         }
       })
       .catch(err => console.error('Error fetching seccion-principal:', err));
 
-    if (seccion !== 'hogar') {
-      fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-categorias-destacadas?populate[banners][populate]=*`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.data) {
-            const attrs = data.data.attributes || data.data;
-            if (attrs.banners) {
-              setBannersDestacados(attrs.banners);
-            }
-          }
-        })
-        .catch(err => console.error('Error fetching banners destacados:', err));
-    }
   }, [seccionName, seccion]);
 
   const isDown = useRef(false);

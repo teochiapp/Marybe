@@ -218,6 +218,7 @@ async function leerExcel(rutaArchivo) {
       //   E(5) Sección  F(6) Categoría  G(7) Subcategoría  H(8) Tipo
       //   I(9) Publicado  J(10) Destacado  K(11) Tamaño  L(12) Stock
       //   M(13) Precio  N(14) Precio Oferta  O(15) % Desc.
+      const sku_raw       = cellVal(row, 2);
       const seccion       = cellVal(row, 5);
       const categoria     = cellVal(row, 6);
       const subcategoria  = cellVal(row, 7);
@@ -241,6 +242,7 @@ async function leerExcel(rutaArchivo) {
         currentPadreId = cleanId;
         filasRaw.push({
           id_original:   cleanId,
+          sku:           sku_raw,
           seccion:       seccion,
           categoria:     categoria,
           subcategoria:  subcategoria,
@@ -258,6 +260,7 @@ async function leerExcel(rutaArchivo) {
         variantes.push({
           id_original:       cleanId,
           producto_padre_id: currentPadreId,
+          sku_ean:           sku_raw,
           publicado:         publicado_raw,
           volumen:           volumen_raw,
           stock:             stock,
@@ -714,8 +717,36 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
   function dataHasChanges(newData, oldData) {
     const keys = Object.keys(newData);
     for (const key of keys) {
-      if (key === 'variantes') continue;
       if (key === 'clasificaciones') continue;
+      
+      // Chequear variantes detalladamente
+      if (key === 'variantes') {
+        if (!newData.variantes || !oldData.variantes) continue;
+        if (newData.variantes.length !== oldData.variantes.length) return true;
+        
+        // Comparar cada variante nueva con la existente
+        for (const vNew of newData.variantes) {
+          const vOld = oldData.variantes.find(v => v.id_original === vNew.id_original);
+          if (!vOld) return true; // Variante nueva añadida
+          
+          // Comparar campos relevantes de la variante
+          if (String(vNew.stock ?? '') !== String(vOld.stock ?? '')) return true;
+          if (String(vNew.precio ?? '') !== String(vOld.precio ?? '')) return true;
+          if (String(vNew.precio_oferta ?? '') !== String(vOld.precio_oferta ?? '')) return true;
+          
+          if (vNew.publicado !== undefined && vNew.publicado !== null) {
+            if (String(vNew.publicado) !== String(vOld.publicado ?? '')) return true;
+          }
+          if (vNew.sku_ean !== undefined && vNew.sku_ean !== null) {
+            if (String(vNew.sku_ean).trim() !== String(vOld.sku_ean ?? '').trim()) return true;
+          }
+          if (vNew.volumen !== undefined && vNew.volumen !== null) {
+            if (String(vNew.volumen).trim() !== String(vOld.volumen ?? '').trim()) return true;
+          }
+        }
+        continue; // Si pasamos todas las variantes, no hubo cambios en variantes
+      }
+      
       if (String(newData[key] ?? '') !== String(oldData[key] ?? '')) return true;
     }
     return false;
@@ -816,7 +847,7 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
         clasificaciones: clasificacionesData,
       };
 
-      // En MODO PROVEEDOR, también actualizamos los campos de categoría y visibilidad
+      // En MODO PROVEEDOR, también actualizamos los campos de categoría, visibilidad y SKU
       // si el usuario los completó en el Excel (celdas no vacías).
       if (isPartialUpdate) {
         // Actualizar campos planos desde la primera clasificación
@@ -826,11 +857,25 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
         // Categoría: vincular la relación si la celda tiene un nombre válido
         if (nombreCat1 && catDocId1) productoData.categoria = catDocId1;
 
-        // Publicado y Destacado: solo actualizar si la celda tiene un valor explícito SI/NO
-        const pubVal = (p.publicado || '').trim().toUpperCase();
-        if (pubVal === 'SI' || pubVal === 'NO') productoData.publicado = pubVal === 'SI';
-        const destVal = (p.destacado || '').trim().toUpperCase();
-        if (destVal === 'SI' || destVal === 'NO') productoData.destacado = destVal === 'SI';
+        // SKU: actualizar si la celda tiene valor (permite cambiar el SKU desde la plantilla)
+        const skuVal = (p.sku || '').trim();
+        if (skuVal) productoData.sku = skuVal;
+
+        // Publicado y Destacado: usar parseBoolean para manejar todos los formatos posibles
+        // (SI/NO, TRUE/FALSE, true/false, 1/0, SÍ, etc.)
+        const pubRaw = (p.publicado || '').trim();
+        if (pubRaw !== '') {
+          productoData.publicado = parseBoolean(pubRaw);
+        }
+        
+        const destRaw = (p.destacado || '').trim();
+        if (destRaw !== '') {
+          productoData.destacado = parseBoolean(destRaw);
+        }
+        
+        // LOG TEMPORAL PARA DEPURACIÓN
+        addLog(`[DEBUG] ID: ${idOriginal} | publicado_raw: "${p.publicado}" -> pubRaw: "${pubRaw}" -> parsed: ${productoData.publicado}`);
+        addLog(`[DEBUG] ID: ${idOriginal} | destacado_raw: "${p.destacado}" -> destRaw: "${destRaw}" -> parsed: ${productoData.destacado}`);
       }
 
       if (!isPartialUpdate) {
@@ -893,6 +938,8 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
                   };
                   // Volumen: solo sobreescribir si viene con valor (es string)
                   if (vExcel.volumen && String(vExcel.volumen).trim()) merged.volumen = String(vExcel.volumen).trim();
+                  // SKU/EAN: sobreescribir si viene con valor
+                  if (vExcel.sku_ean && String(vExcel.sku_ean).trim()) merged.sku_ean = String(vExcel.sku_ean).trim();
                   // Publicado: ya es boolean (convertido por parseBoolean en variantesData) — asignar directamente
                   if (vExcel.publicado !== null && vExcel.publicado !== undefined) merged.publicado = vExcel.publicado;
                   return merged;

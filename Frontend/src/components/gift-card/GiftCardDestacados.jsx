@@ -8,7 +8,7 @@ export default function GiftCardDestacados() {
   const seccionName = 'Perfumería';
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[destacado][$eq]=true&filters[seccion][$eq]=${seccionName}&populate=*`)
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[destacado][$eq]=true&filters[seccion][$eq]=${seccionName}&populate=*`)
       .then((res) => res.json())
       .then((data) => {
         if (data && data.data) {

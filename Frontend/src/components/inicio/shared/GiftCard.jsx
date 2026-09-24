@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -194,7 +195,7 @@ const FeatureDesc = styled.span`
 
 /* ─── Botón ──────────────────────────────────────────────────────────────── */
 
-const KnowMoreBtn = styled.a`
+const KnowMoreBtn = styled(Link)`
   align-self: flex-end;
   margin-right: 10%;
   background-color: var(--color-blanco);
@@ -290,7 +291,7 @@ export default function GiftCard({ seccion = 'perfumeria' }) {
           </Feature>
         </Features>
 
-        <KnowMoreBtn href="#">Conocer más</KnowMoreBtn>
+        <KnowMoreBtn to="/gift-card">Conocer más</KnowMoreBtn>
       </Content>
     </Banner>
   );

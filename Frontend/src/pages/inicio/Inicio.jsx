@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FadeIn, FadeInLeft, FadeInUp } from '../../components/animations/ScrollAnimations';
@@ -63,6 +63,21 @@ export default function Inicio() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const seccionActiva = searchParams.get('seccion') || 'perfumeria';
+  const [textoPerf, setTextoPerf] = useState('Perfumería');
+  const [textoHogar, setTextoHogar] = useState('Hogar');
+
+  useEffect(() => {
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          const attrs = data.data.attributes || data.data;
+          if (attrs.texto_toggle_perfumeria) setTextoPerf(attrs.texto_toggle_perfumeria);
+          if (attrs.texto_toggle_hogar) setTextoHogar(attrs.texto_toggle_hogar);
+        }
+      })
+      .catch(err => console.error('Error fetching toggle texts:', err));
+  }, []);
 
   const handleSeccionChange = (seccion) => {
     setSearchParams({ seccion });
@@ -73,6 +88,8 @@ export default function Inicio() {
       <ToggleSelection
         seccionActiva={seccionActiva}
         onSeccionChange={handleSeccionChange}
+        textoPerfumeria={textoPerf}
+        textoHogar={textoHogar}
       />
 
       {seccionActiva === 'perfumeria' && (

@@ -106,7 +106,7 @@ export default function ProductoSingle() {
     if (!actualId) return;
 
     // El slug usa el id numérico interno de Strapi (ej: /producto/200793-oral-b-kids → id=200793)
-    fetch(`${STRAPI_URL}/api/productos?filters[id][$eq]=${actualId}&populate[categoria][populate]=*&populate[portada][populate]=*&populate[galeria][populate]=*&populate[variantes][populate]=portada`)
+    fetch(`${STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[id][$eq]=${actualId}&populate[categoria][populate]=*&populate[portada][populate]=*&populate[galeria][populate]=*&populate[variantes][populate]=portada`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data && data.data.length > 0) {
@@ -117,7 +117,7 @@ export default function ProductoSingle() {
           });
         } else {
           // Fallback por documentId de Strapi si el id numérico no matchea
-          return fetch(`${STRAPI_URL}/api/productos?filters[documentId][$eq]=${actualId}&populate[categoria][populate]=*&populate[portada][populate]=*&populate[galeria][populate]=*&populate[variantes][populate]=portada`)
+          return fetch(`${STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[documentId][$eq]=${actualId}&populate[categoria][populate]=*&populate[portada][populate]=*&populate[galeria][populate]=*&populate[variantes][populate]=portada`)
             .then(res2 => res2.json())
             .then(data2 => {
               if (data2 && data2.data && data2.data.length > 0) {

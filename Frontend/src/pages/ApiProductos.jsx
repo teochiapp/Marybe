@@ -148,7 +148,7 @@ export default function ApiProductos() {
         params.set('filters[$or][3][sku][$containsi]',      debouncedBusqueda);
       }
 
-      const res = await fetch(`${STRAPI_URL}/api/productos?${params.toString()}`);
+      const res = await fetch(`${STRAPI_URL}/api/productos?filters[publicado][$eq]=true&${params.toString()}`);
 
       if (!res.ok) {
         const body = await res.text();

@@ -73,7 +73,7 @@ module.exports = ({ strapi }) => ({
     const htmlContent = generarAlertaNuevoPedidoAdmin(pedido, nombreCliente);
 
     return this.enviar({
-      to: 'teochiapps@gmail.com',
+      to: 'Aldana.marybe@gmail.com',
       subject: `¡Nueva Venta! Pedido #${pedido.numero_pedido} - $${pedido.total}`,
       html: htmlContent
     });

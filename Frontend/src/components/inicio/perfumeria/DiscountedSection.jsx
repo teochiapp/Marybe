@@ -538,14 +538,13 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
     setIsModalOpen(true);
   };
 
-  const singleTypeEndpoint = seccion === 'hogar'
-    ? `${process.env.REACT_APP_STRAPI_URL}/api/seccion-descuento-hogar?populate[productos][populate]=*`
-    : `${process.env.REACT_APP_STRAPI_URL}/api/seccion-descuento?populate[productos][populate]=*`;
+  const fieldName = seccion === 'hogar' ? 'descuento_hogar' : 'descuento_perfumeria';
+  const singleTypeEndpoint = `${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[${fieldName}][populate]=*`;
 
   const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
 
   const fetchFallbackProducts = useCallback(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[descuento][$gt]=0&filters[seccion][$eq]=${seccionName}&populate=*`)
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[descuento][$gt]=0&filters[seccion][$eq]=${seccionName}&populate=*`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
@@ -569,27 +568,33 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
       })
       .then(data => {
         if (data && data.data) {
-          const attrs = data.data.attributes || data.data;
-          if (attrs.titulo_cursiva) setTituloCursiva(attrs.titulo_cursiva);
-          if (attrs.titulo_normal) setTituloNormal(attrs.titulo_normal);
-          if (attrs.imagen_destacada?.data?.attributes?.url) {
-            let mediaUrl = attrs.imagen_destacada.data.attributes.url;
-            if (!mediaUrl.startsWith('http')) {
-              mediaUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${mediaUrl}`;
+          const mainAttrs = data.data.attributes || data.data;
+          const attrs = mainAttrs[fieldName];
+          
+          if (attrs) {
+            if (attrs.titulo_cursiva) setTituloCursiva(attrs.titulo_cursiva);
+            if (attrs.titulo_normal) setTituloNormal(attrs.titulo_normal);
+            if (attrs.imagen_destacada?.data?.attributes?.url) {
+              let mediaUrl = attrs.imagen_destacada.data.attributes.url;
+              if (!mediaUrl.startsWith('http')) {
+                mediaUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${mediaUrl}`;
+              }
+              setImagenUrl(mediaUrl);
+            } else if (attrs.imagen_destacada?.url) {
+              let mediaUrl = attrs.imagen_destacada.url;
+              if (!mediaUrl.startsWith('http')) {
+                mediaUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${mediaUrl}`;
+              }
+              setImagenUrl(mediaUrl);
             }
-            setImagenUrl(mediaUrl);
-          } else if (attrs.imagen_destacada?.url) {
-            let mediaUrl = attrs.imagen_destacada.url;
-            if (!mediaUrl.startsWith('http')) {
-              mediaUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${mediaUrl}`;
+
+            let prods = attrs.productos?.data || attrs.productos || [];
+
+            if (Array.isArray(prods) && prods.length > 0) {
+              setProductos(prods);
+            } else {
+              fetchFallbackProducts();
             }
-            setImagenUrl(mediaUrl);
-          }
-
-          let prods = attrs.productos?.data || attrs.productos || [];
-
-          if (Array.isArray(prods) && prods.length > 0) {
-            setProductos(prods);
           } else {
             fetchFallbackProducts();
           }
@@ -601,7 +606,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
         console.warn('Using fallback for discounted products:', err);
         fetchFallbackProducts();
       });
-  }, [singleTypeEndpoint, fetchFallbackProducts, seccion]);
+  }, [singleTypeEndpoint, fieldName, fetchFallbackProducts, seccion]);
 
   const [visibleCount, setVisibleCount] = useState(5);
   const isDown = useRef(false);

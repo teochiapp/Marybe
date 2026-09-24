@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_inicio_categoria_especifica",
+  "info": {
+    "displayName": "Configuración de Categoría Específica",
+    "description": "Título, ícono y categoría relacionada"
+  },
+  "options": {},
+  "attributes": {
+    "titulo": {
+      "type": "string",
+      "required": true
+    },
+    "icono": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "categoria": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::categoria.categoria"
+    }
+  }
+}

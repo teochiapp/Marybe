@@ -23,6 +23,55 @@ export interface CategoriaTipo extends Struct.ComponentSchema {
   };
 }
 
+export interface InicioCategoriaEspecifica extends Struct.ComponentSchema {
+  collectionName: 'components_inicio_categoria_especifica';
+  info: {
+    description: 'T\u00EDtulo, \u00EDcono y categor\u00EDa relacionada';
+    displayName: 'Configuraci\u00F3n de Categor\u00EDa Espec\u00EDfica';
+  };
+  attributes: {
+    categoria: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::categoria.categoria'
+    >;
+    icono: Schema.Attribute.Media<'images'>;
+    titulo: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface InicioDescuentos extends Struct.ComponentSchema {
+  collectionName: 'components_inicio_descuentos';
+  info: {
+    description: 'Textos, productos e imagen para una secci\u00F3n de descuentos';
+    displayName: 'Configuraci\u00F3n de Descuentos';
+  };
+  attributes: {
+    imagen_destacada: Schema.Attribute.Media<'images'>;
+    productos: Schema.Attribute.Relation<'oneToMany', 'api::producto.producto'>;
+    titulo_cursiva: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Descuentos'>;
+    titulo_normal: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'de Mi\u00E9rcoles'>;
+  };
+}
+
+export interface InicioDestacada extends Struct.ComponentSchema {
+  collectionName: 'components_inicio_destacadas';
+  info: {
+    description: 'Configura una categor\u00EDa destacada y su t\u00EDtulo';
+    displayName: 'Configuraci\u00F3n de Categor\u00EDa Destacada';
+  };
+  attributes: {
+    categoria: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::categoria.categoria'
+    >;
+    titulo: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
 export interface LayoutFila1Columna extends Struct.ComponentSchema {
   collectionName: 'components_layout_fila_1_columnas';
   info: {
@@ -245,6 +294,9 @@ declare module '@strapi/strapi' {
     export interface ComponentSchemas {
       'categoria.subcategoria': CategoriaSubcategoria;
       'categoria.tipo': CategoriaTipo;
+      'inicio.categoria_especifica': InicioCategoriaEspecifica;
+      'inicio.descuentos': InicioDescuentos;
+      'inicio.destacada': InicioDestacada;
       'layout.fila-1-columna': LayoutFila1Columna;
       'layout.fila-2-columnas': LayoutFila2Columnas;
       'layout.fila-4-columnas': LayoutFila4Columnas;
