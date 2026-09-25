@@ -172,7 +172,17 @@ export default function OfertasSection({ seccion }) {
 
   const handleSelectFilter = (val) => {
     if (hasDragged.current) return;
-    navigate(`/tienda?descuento=${val}`);
+    
+    let url = `/tienda?descuento=${val}`;
+    if (seccion === 'hogar') {
+      url += '&seccion=Hogar';
+    } else if (seccion === 'perfumeria') {
+      url += '&seccion=Perfumer%C3%ADa';
+    } else if (seccion) {
+      url += `&seccion=${seccion}`;
+    }
+    
+    navigate(url);
   };
 
   return (
