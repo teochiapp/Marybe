@@ -77,7 +77,8 @@ module.exports = ({ strapi }) => ({
     // Shipping cost logic
     let costoEnvioFinal = 0;
     try {
-      const siteConfig = await strapi.entityService.findMany('api::configuracion-general.configuracion-general');
+      const siteConfigList = await strapi.entityService.findMany('api::configuracion-general.configuracion-general');
+      const siteConfig = Array.isArray(siteConfigList) ? siteConfigList[0] : siteConfigList;
       if (siteConfig) {
         const configEnvio = siteConfig.costo_envio ?? 0;
         const envioGratisDesde = siteConfig.envio_gratis_desde ?? null;
@@ -89,7 +90,7 @@ module.exports = ({ strapi }) => ({
         if (Number(envioCostoFront) === 0) {
           costoEnvioFinal = 0;
         } else {
-          costoEnvioFinal = envioEsGratis ? 0 : configEnvio;
+          costoEnvioFinal = envioEsGratis ? 0 : Number(configEnvio);
         }
       }
     } catch (err) {

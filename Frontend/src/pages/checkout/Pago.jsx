@@ -626,6 +626,7 @@ export default function Pago() {
   const [selectedBranch, setSelectedBranch] = useState('Peatonal Tucuman 20, Santiago del Estero');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferFinalTotal, setTransferFinalTotal] = useState(0);
 
   // Si el método activo fue deshabilitado en Strapi, seleccionar el primero disponible
   useEffect(() => {
@@ -679,6 +680,7 @@ export default function Pago() {
     }
 
     if (paymentMethod === 'transferencia') {
+      setTransferFinalTotal(finalTotal); // Guardar el total ya calculado (con envío + GC)
       setShowTransferModal(true);
       return;
     }
@@ -889,7 +891,7 @@ export default function Pago() {
             </InfoBox>
             <ModalButtonGroup>
               <SecondaryBtn onClick={() => setShowTransferModal(false)}>Cancelar</SecondaryBtn>
-              <ConfirmBtn onClick={() => { setShowTransferModal(false); confirmOrder(); }}>Ya transferí, confirmar pedido</ConfirmBtn>
+              <ConfirmBtn onClick={() => { setShowTransferModal(false); confirmOrder(transferFinalTotal); }}>Ya transferí, confirmar pedido</ConfirmBtn>
             </ModalButtonGroup>
           </ModalCard>
         </ModalOverlay>
