@@ -507,14 +507,20 @@ export default function OrderSuccess() {
                   <div className="details">
                     <h4>{item.product?.nombre || item.producto}</h4>
                     <p>
-                      <span>Tamaño/Variante: {item.size || item.variante || 'N/A'}</span>
-                      {item.color && (
+                      <span>Tamaño/Variante: {
+                        item.variant?.volumen ||
+                        item.variant?.color_nombre ||
+                        item.size ||
+                        item.variante ||
+                        'N/A'
+                      }</span>
+                      {(item.variant?.color_nombre || item.color) && (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           Color: 
-                          {item.color.startsWith('#') || ['red','green','blue','black','white','yellow','gray','purple','pink','orange'].includes(item.color.toLowerCase()) ? (
-                            <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: item.color, border: '1px solid #ddd' }} title={item.color} />
+                          {(item.variant?.color_nombre || item.color)?.startsWith('#') || ['red','green','blue','black','white','yellow','gray','purple','pink','orange'].includes((item.variant?.color_nombre || item.color)?.toLowerCase()) ? (
+                            <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: item.variant?.color_nombre || item.color, border: '1px solid #ddd' }} title={item.variant?.color_nombre || item.color} />
                           ) : (
-                            item.color
+                            item.variant?.color_nombre || item.color
                           )}
                         </span>
                       )}
