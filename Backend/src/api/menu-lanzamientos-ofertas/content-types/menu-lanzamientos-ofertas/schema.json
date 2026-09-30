@@ -1,0 +1,26 @@
+{
+  "kind": "singleType",
+  "collectionName": "menu_lanzamientos_ofertas",
+  "info": {
+    "singularName": "menu-lanzamientos-ofertas",
+    "pluralName": "menus-lanzamientos-ofertas",
+    "displayName": "Ofertas y Lanzamientos (Menú)",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "ofertas": {
+      "type": "component",
+      "component": "menu.config-ofertas",
+      "repeatable": false
+    },
+    "lanzamientos": {
+      "type": "component",
+      "component": "menu.config-lanzamientos",
+      "repeatable": false
+    }
+  }
+}

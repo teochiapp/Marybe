@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_menu_columna_categorias",
+  "info": {
+    "displayName": "Columna Categoria",
+    "icon": "layer",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "titulo_columna": {
+      "type": "string"
+    },
+    "categorias": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::categoria.categoria"
+    }
+  }
+}

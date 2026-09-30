@@ -82,7 +82,7 @@ const ToggleOption = styled.button`
   }
 `;
 
-export default function ToggleSelection({ seccionActiva, onSeccionChange, textoPerfumeria = 'Perfumería', textoHogar = 'Hogar' }) {
+export default function ToggleSelection({ seccionActiva, onSeccionChange, textoPerfumeria, textoHogar }) {
   const [visible, setVisible] = useState(false);
   const [sticky, setSticky] = useState(false);
   const lastScrollY = useRef(0);

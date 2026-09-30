@@ -675,6 +675,37 @@ export interface ApiMenuBarraSuperiorMenuBarraSuperior
   };
 }
 
+export interface ApiMenuLanzamientosOfertasMenuLanzamientosOfertas
+  extends Struct.SingleTypeSchema {
+  collectionName: 'menu_lanzamientos_ofertas';
+  info: {
+    description: '';
+    displayName: 'Ofertas y Lanzamientos (Men\u00FA)';
+    pluralName: 'menus-lanzamientos-ofertas';
+    singularName: 'menu-lanzamientos-ofertas';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    lanzamientos: Schema.Attribute.Component<'menu.config-lanzamientos', false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::menu-lanzamientos-ofertas.menu-lanzamientos-ofertas'
+    > &
+      Schema.Attribute.Private;
+    ofertas: Schema.Attribute.Component<'menu.config-ofertas', false>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader
   extends Struct.SingleTypeSchema {
   collectionName: 'ordenamiento_menu_headers';
@@ -1553,6 +1584,7 @@ declare module '@strapi/strapi' {
       'api::evento.evento': ApiEventoEvento;
       'api::gift-card.gift-card': ApiGiftCardGiftCard;
       'api::menu-barra-superior.menu-barra-superior': ApiMenuBarraSuperiorMenuBarraSuperior;
+      'api::menu-lanzamientos-ofertas.menu-lanzamientos-ofertas': ApiMenuLanzamientosOfertasMenuLanzamientosOfertas;
       'api::ordenamiento-menu-header.ordenamiento-menu-header': ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader;
       'api::pagina-historia.pagina-historia': ApiPaginaHistoriaPaginaHistoria;
       'api::pagina-sucursales.pagina-sucursales': ApiPaginaSucursalesPaginaSucursales;

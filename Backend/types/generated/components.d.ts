@@ -160,6 +160,66 @@ export interface LayoutFilaMixta extends Struct.ComponentSchema {
   };
 }
 
+export interface MenuColumnaCategoria extends Struct.ComponentSchema {
+  collectionName: 'components_menu_columna_categorias';
+  info: {
+    description: '';
+    displayName: 'Columna Categoria';
+    icon: 'layer';
+  };
+  attributes: {
+    categorias: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::categoria.categoria'
+    >;
+    titulo_columna: Schema.Attribute.String;
+  };
+}
+
+export interface MenuConfigLanzamientos extends Struct.ComponentSchema {
+  collectionName: 'components_menu_config_lanzamientos';
+  info: {
+    description: '';
+    displayName: 'Configuracion Lanzamientos';
+    icon: 'rocket';
+  };
+  attributes: {
+    categorias: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::categoria.categoria'
+    >;
+    productos_destacados: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::producto.producto'
+    >;
+    titulo_categorias: Schema.Attribute.String;
+    titulo_destacados: Schema.Attribute.String;
+  };
+}
+
+export interface MenuConfigOfertas extends Struct.ComponentSchema {
+  collectionName: 'components_menu_config_ofertas';
+  info: {
+    description: '';
+    displayName: 'Configuracion Ofertas';
+    icon: 'star';
+  };
+  attributes: {
+    columnas_categorias: Schema.Attribute.Component<
+      'menu.columna-categoria',
+      true
+    >;
+    mostrar_columna_descuentos: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    productos_destacados: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::producto.producto'
+    >;
+    titulo_descuentos: Schema.Attribute.String;
+    titulo_destacados: Schema.Attribute.String;
+  };
+}
+
 export interface ProductoClasificacion extends Struct.ComponentSchema {
   collectionName: 'components_producto_clasificaciones';
   info: {
@@ -301,6 +361,9 @@ declare module '@strapi/strapi' {
       'layout.fila-2-columnas': LayoutFila2Columnas;
       'layout.fila-4-columnas': LayoutFila4Columnas;
       'layout.fila-mixta': LayoutFilaMixta;
+      'menu.columna-categoria': MenuColumnaCategoria;
+      'menu.config-lanzamientos': MenuConfigLanzamientos;
+      'menu.config-ofertas': MenuConfigOfertas;
       'producto.clasificacion': ProductoClasificacion;
       'producto.variante': ProductoVariante;
       'shared.banner': SharedBanner;

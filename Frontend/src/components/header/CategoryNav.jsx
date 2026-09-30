@@ -6,9 +6,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   MOBILE_FEATURED,
   STRAPI_URL,
-  MEGA_COLUMNS,
-  OFERTAS_PERFUMERIA,
-  OFERTAS_HOGAR,
 } from '../../data/megamenu';
 import { useMegaMenu } from '../../hooks/useMegaMenu';
 import { useMegaMenuContext } from '../../hooks/useMegaMenuContext';
@@ -297,7 +294,6 @@ const MobilePill = styled.a`
 
 export default function CategoryNav() {
   const [activeCategory, setActiveCategory] = useState(null);
-  const [latestProducts, setLatestProducts] = useState(['Cargando...']);
   const navRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -307,7 +303,7 @@ export default function CategoryNav() {
   const { context, getCategoriesForContext } = useMegaMenuContext();
 
   // Hook de megamenu solo para las columnas del dropdown (columnas/subcategorias)
-  const { getColumnsForCategory } = useMegaMenu();
+  const { getColumnsForCategory, menuLanzOfertas } = useMegaMenu();
 
   const dynamicCategories = getCategoriesForContext(context);
 
@@ -354,44 +350,84 @@ export default function CategoryNav() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    // Cargar los últimos productos para la pestaña Lanzamientos
-    fetch(`${STRAPI_URL}/api/productos?filters[publicado][$eq]=true&sort=createdAt:desc&pagination[limit]=5`)
-      .then((res) => res.json())
-      .then((json) => {
-        const prods = json?.data || [];
-        if (prods.length > 0) {
-          setLatestProducts(prods.map(p => p.attributes?.nombre || 'Producto Nuevo'));
-        } else {
-          setLatestProducts(['No hay productos recientes']);
-        }
-      })
-      .catch((err) => {
-        console.error('Error fetching latest products:', err);
-        setLatestProducts(['Error al cargar lanzamientos']);
-      });
-  }, []);
+
 
   // Columnas del MegaMenu según la categoría activa
   const getMegaColumnsForCategory = (cat) => {
-    // ── Estáticas ────────────────────────────────────────────────────────────
+    console.log('[DEBUG] Category:', cat, 'menuLanzOfertas:', menuLanzOfertas);
     if (cat === 'Ofertas') {
-      return [
-        OFERTAS_PERFUMERIA,
-        OFERTAS_HOGAR,
-        MEGA_COLUMNS[0],
-        MEGA_COLUMNS[1],
-      ];
+      const colData = [];
+      const ofertasConf = menuLanzOfertas?.ofertas;
+
+      if (ofertasConf) {
+        if (ofertasConf.mostrar_columna_descuentos) {
+           colData.push({
+             title: ofertasConf.titulo_descuentos || 'Descuentos',
+             items: [
+                { label: 'Hasta 60%', href: '/tienda?descuento=60' },
+                { label: 'Hasta 50%', href: '/tienda?descuento=50' },
+                { label: 'Hasta 40%', href: '/tienda?descuento=40' },
+                { label: 'Hasta 30%', href: '/tienda?descuento=30' },
+                { label: 'Hasta 20%', href: '/tienda?descuento=20' },
+                { label: 'Hasta 10%', href: '/tienda?descuento=10' },
+             ]
+           });
+        }
+        
+        if (ofertasConf.columnas_categorias && ofertasConf.columnas_categorias.length > 0) {
+          ofertasConf.columnas_categorias.forEach(col => {
+             const title = col.titulo_columna || 'Categorías';
+             const cats = col.categorias?.data || col.categorias || [];
+             const items = cats.map(c => {
+                 const catName = c.attributes?.nombre || c.nombre;
+                 return { label: catName, href: `/tienda?categoria=${encodeURIComponent(catName)}&ofertas=true` };
+             }).filter(c => c.label);
+             if (items.length > 0) colData.push({ title, items });
+          });
+        }
+
+        if (ofertasConf.productos_destacados && (ofertasConf.productos_destacados.data || ofertasConf.productos_destacados).length > 0) {
+           const prods = ofertasConf.productos_destacados.data || ofertasConf.productos_destacados || [];
+           const items = prods.map(p => {
+               const pName = p.attributes?.nombre || p.nombre;
+               const pSlug = p.attributes?.slug || p.slug || '';
+               return { label: pName, href: `/producto/${pSlug}` };
+           }).filter(p => p.label);
+           if (items.length > 0) colData.push({ title: ofertasConf.titulo_destacados || 'Destacados', items });
+        }
+      }
+
+      return colData;
     }
+    
     if (cat === 'Lanzamientos') {
-      return [
-        { title: 'Últimos productos', items: latestProducts },
-        MEGA_COLUMNS[3],
-        MEGA_COLUMNS[4],
-        MEGA_COLUMNS[5],
-      ];
+      const colData = [];
+      const lanzConf = menuLanzOfertas?.lanzamientos;
+      
+      if (lanzConf) {
+        if (lanzConf.categorias && (lanzConf.categorias.data || lanzConf.categorias).length > 0) {
+            const cats = lanzConf.categorias.data || lanzConf.categorias || [];
+            const items = cats.map(c => {
+                const catName = c.attributes?.nombre || c.nombre;
+                return { label: catName, href: `/tienda?categoria=${encodeURIComponent(catName)}&lanzamientos=true` };
+            }).filter(c => c.label);
+            if (items.length > 0) colData.push({ title: lanzConf.titulo_categorias || 'Novedades por Categoría', items });
+        }
+
+        if (lanzConf.productos_destacados && (lanzConf.productos_destacados.data || lanzConf.productos_destacados).length > 0) {
+           const prods = lanzConf.productos_destacados.data || lanzConf.productos_destacados || [];
+           const items = prods.map(p => {
+               const pName = p.attributes?.nombre || p.nombre;
+               const pSlug = p.attributes?.slug || p.slug || '';
+               return { label: pName, href: `/producto/${pSlug}` };
+           }).filter(p => p.label);
+           if (items.length > 0) colData.push({ title: lanzConf.titulo_destacados || 'Nuevos Lanzamientos', items });
+        }
+      }
+
+      return colData;
     }
-    // ── Dinámicas (Strapi) — fallback automático a [] si no hay datos
+    
     return getColumnsForCategory(cat, context) || [];
   };
 
@@ -424,48 +460,42 @@ export default function CategoryNav() {
                 <MegaTitleText>{activeCategory}</MegaTitleText>
               </MegaTitle>
 
-              {activeCategory === 'Ofertas' || activeCategory === 'Lanzamientos' ? (
-                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#555', fontSize: '1.8rem', fontWeight: 600, fontFamily: 'var(--font-family-secondary)', letterSpacing: '2px' }}>
-                  PRÓXIMAMENTE
-                </div>
-              ) : (
-                <MegaGrid>
-                  {getMegaColumnsForCategory(activeCategory).map((col) => {
-                    // Detectar si la columna tiene un href de subcategoría (en el ítem "Ver todos")
-                    const verTodoItem = col.items?.find(i => typeof i === 'object' && i.isVerTodo);
-                    const colHref = verTodoItem?.href || null;
-                    return (
-                      <MegaColumn key={col.title}>
-                        <MegaColumnTitle
-                          onClick={colHref ? () => { setActiveCategory(null); navigate(colHref); } : undefined}
-                          style={colHref ? { cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: '3px' } : {}}
-                        >
-                          {col.title}
-                        </MegaColumnTitle>
-                        {col.items.map((item, idx) => {
-                          const label = typeof item === 'object' ? item.label : item;
-                          const href = typeof item === 'object' ? item.href : '#';
-                          const isVerTodo = typeof item === 'object' ? item.isVerTodo : false;
-                          return (
-                            <MegaLink
-                              key={`${label}-${idx}`}
-                              $isVerTodo={isVerTodo}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setActiveCategory(null);
-                                navigate(href);
-                              }}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              {label}
-                            </MegaLink>
-                          );
-                        })}
-                      </MegaColumn>
-                    );
-                  })}
-                </MegaGrid>
-              )}
+              <MegaGrid>
+                {getMegaColumnsForCategory(activeCategory).map((col) => {
+                  // Detectar si la columna tiene un href de subcategoría (en el ítem "Ver todos")
+                  const verTodoItem = col.items?.find(i => typeof i === 'object' && i.isVerTodo);
+                  const colHref = verTodoItem?.href || null;
+                  return (
+                    <MegaColumn key={col.title}>
+                      <MegaColumnTitle
+                        onClick={colHref ? () => { setActiveCategory(null); navigate(colHref); } : undefined}
+                        style={colHref ? { cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: '3px' } : {}}
+                      >
+                        {col.title}
+                      </MegaColumnTitle>
+                      {col.items.map((item, idx) => {
+                        const label = typeof item === 'object' ? item.label : item;
+                        const href = typeof item === 'object' ? item.href : '#';
+                        const isVerTodo = typeof item === 'object' ? item.isVerTodo : false;
+                        return (
+                          <MegaLink
+                            key={`${label}-${idx}`}
+                            $isVerTodo={isVerTodo}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setActiveCategory(null);
+                              navigate(href);
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {label}
+                          </MegaLink>
+                        );
+                      })}
+                    </MegaColumn>
+                  );
+                })}
+              </MegaGrid>
             </MegaMenuWrapper>
 
             {/* Panel 2: barra de acciones */}

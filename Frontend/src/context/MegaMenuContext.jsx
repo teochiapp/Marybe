@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { STRAPI_URL, MEGA_COLUMNS, SECTION_MAP } from '../data/megamenu';
+import { STRAPI_URL, SECTION_MAP } from '../data/megamenu';
 
 const STATIC_CATEGORIES = new Set(['Ofertas', 'Lanzamientos']);
 
@@ -9,6 +9,7 @@ export function MegaMenuProvider({ children }) {
   const [megaMap, setMegaMap] = useState(new Map());
   const [categorySectionMap, setCategorySectionMap] = useState(new Map());
   const [menuArrays, setMenuArrays] = useState({ PERFUMERIA: [], HOGAR: [], GENERAL: [] });
+  const [menuLanzOfertas, setMenuLanzOfertas] = useState({ ofertas: null, lanzamientos: null });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -97,6 +98,21 @@ export function MegaMenuProvider({ children }) {
           HOGAR: addStatics(extractNames(menuData.categoriasHogar)),
           GENERAL: addStatics(extractNames(menuData.categoriasGeneral)),
         });
+
+        try {
+          const urlLanzOfertas = `${STRAPI_URL}/api/menu-lanzamientos-ofertas?populate[ofertas][populate][columnas_categorias][populate][0]=categorias&populate[ofertas][populate][productos_destacados]=true&populate[lanzamientos][populate][0]=categorias&populate[lanzamientos][populate][1]=productos_destacados`;
+          const resLanzOfertas = await fetch(urlLanzOfertas, { signal: controller.signal });
+          if (resLanzOfertas.ok) {
+            const jsonLanzOfertas = await resLanzOfertas.json();
+            const attrs = jsonLanzOfertas?.data?.attributes || jsonLanzOfertas?.data || {};
+            setMenuLanzOfertas({
+              ofertas: attrs.ofertas || null,
+              lanzamientos: attrs.lanzamientos || null
+            });
+          }
+        } catch (err) {
+          if (err.name !== 'AbortError') console.warn('[MegaMenu] Error al cargar Lanzamientos/Ofertas:', err.message);
+        }
       } catch (err) {
         if (err.name !== 'AbortError') console.warn('[MegaMenu] Error al cargar desde Strapi:', err.message);
       } finally {
@@ -128,7 +144,7 @@ export function MegaMenuProvider({ children }) {
   );
 
   return (
-    <MegaMenuCtx.Provider value={{ megaMap, categorySectionMap, menuArrays, loading, getColumnsForCategory, getSectionForCategory, getCategoriesForContext }}>
+    <MegaMenuCtx.Provider value={{ megaMap, categorySectionMap, menuArrays, loading, getColumnsForCategory, getSectionForCategory, getCategoriesForContext, menuLanzOfertas }}>
       {children}
     </MegaMenuCtx.Provider>
   );

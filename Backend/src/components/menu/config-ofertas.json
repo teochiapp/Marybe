@@ -1,0 +1,31 @@
+{
+  "collectionName": "components_menu_config_ofertas",
+  "info": {
+    "displayName": "Configuracion Ofertas",
+    "icon": "star",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "mostrar_columna_descuentos": {
+      "type": "boolean",
+      "default": false
+    },
+    "titulo_descuentos": {
+      "type": "string"
+    },
+    "columnas_categorias": {
+      "type": "component",
+      "repeatable": true,
+      "component": "menu.columna-categoria"
+    },
+    "titulo_destacados": {
+      "type": "string"
+    },
+    "productos_destacados": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::producto.producto"
+    }
+  }
+}
