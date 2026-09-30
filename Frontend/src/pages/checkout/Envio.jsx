@@ -394,7 +394,7 @@ export default function Envio() {
   const envioEsGratis = esSucursal || (totalFisico === 0) || (envioGratisDesde !== null && totalFisico >= envioGratisDesde);
   const shippingCost = envioEsGratis ? 0 : (costoEnvio ?? 0);
   
-  const finalTotal = cartTotal + shippingCost;
+  const finalTotal = Number(cartTotal) + Number(shippingCost);
 
   return (
     <PageContainer>

@@ -658,9 +658,9 @@ export default function Pago() {
     : 'Hacer pedido';
 
   const handlePayment = async () => {
-    let finalTotal = cartTotal + costoEnvioFinal;
+    let finalTotal = Number(cartTotal) + Number(costoEnvioFinal);
     if (appliedGiftCard) {
-      finalTotal = Math.max(0, finalTotal - appliedGiftCard.monto);
+      finalTotal = Math.max(0, finalTotal - Number(appliedGiftCard.monto));
     }
 
     if (paymentMethod === 'aconvenir') {
@@ -774,9 +774,9 @@ export default function Pago() {
   const confirmOrder = useCallback(async (overrideTotal) => {
     setIsProcessing(true);
     
-    let finalTotal = overrideTotal !== undefined ? overrideTotal : cartTotal;
+    let finalTotal = overrideTotal !== undefined ? Number(overrideTotal) : Number(cartTotal);
     if (overrideTotal === undefined && appliedGiftCard) {
-      finalTotal = Math.max(0, finalTotal - appliedGiftCard.monto);
+      finalTotal = Math.max(0, finalTotal - Number(appliedGiftCard.monto));
     }
 
     // Captura del carrito antes de limpiarlo
@@ -1119,7 +1119,7 @@ export default function Pago() {
 
               <TotalRow>
                 <span>Total</span>
-                <span className="val">{formatPrice(cartTotal + costoEnvioFinal - (appliedGiftCard ? appliedGiftCard.monto : 0))}</span>
+                <span className="val">{formatPrice(Number(cartTotal) + Number(costoEnvioFinal) - Number(appliedGiftCard ? appliedGiftCard.monto : 0))}</span>
               </TotalRow>
 
               <PrimaryBtn onClick={handlePayment} disabled={isProcessing}>

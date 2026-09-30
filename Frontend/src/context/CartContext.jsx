@@ -55,7 +55,7 @@ export const CartProvider = ({ children }) => {
       if (existingItemIndex >= 0) {
         // Item exists, update quantity
         const updatedItems = [...prevItems];
-        updatedItems[existingItemIndex].quantity += quantity;
+        updatedItems[existingItemIndex].quantity = Number(updatedItems[existingItemIndex].quantity) + Number(quantity);
         
         // Ensure we don't exceed stock if available
         const isGiftCard = product.id?.toString().startsWith('gift-card-') || product.nombre?.toLowerCase().includes('gift card');
@@ -109,7 +109,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const getCartTotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cartItems.reduce((total, item) => total + (Number(item.price) * Number(item.quantity)), 0);
   };
 
   const getCartCount = () => {
