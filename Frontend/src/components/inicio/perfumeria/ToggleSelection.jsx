@@ -61,12 +61,13 @@ const ToggleOption = styled.button`
   border: none;
   border-radius: 40px;
   padding: 12px 56px;
-  font-size: 1.1rem;
+  font-size: clamp(0.75rem, 2.2vw, 1.1rem);
   font-weight: 500;
   cursor: pointer;
   transition: color 0.3s ease, transform 0.2s ease;
   font-family: var(--font-family-secondary);
   white-space: nowrap;
+  line-height: 1.3;
 
   &:hover {
     color: ${({ $active }) => ($active ? 'var(--color-blanco)' : 'var(--color-bordo-secundario)')};
@@ -76,9 +77,22 @@ const ToggleOption = styled.button`
     transform: scale(0.96);
   }
 
+  @media (max-width: 768px) {
+    padding: 10px 20px;
+    white-space: normal;         /* Permite wrap en pantallas medianas si el texto es largo */
+    word-break: break-word;
+  }
+
   @media (max-width: 480px) {
-    padding: 8px 24px;
-    font-size: 0.9rem;
+    padding: 8px 12px;
+    font-size: clamp(0.7rem, 3.5vw, 0.88rem);
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  @media (max-width: 360px) {
+    padding: 7px 8px;
+    font-size: clamp(0.65rem, 3.8vw, 0.8rem);
   }
 `;
 
