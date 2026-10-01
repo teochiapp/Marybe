@@ -7,9 +7,7 @@ import CategoryNav from './CategoryNav';
 /* ── Styled Components ── */
 
 const HeaderWrapper = styled.header`
-  position: relative;
   width: 100%;
-  z-index: 500;
 `;
 
 const StickyShell = styled.div`

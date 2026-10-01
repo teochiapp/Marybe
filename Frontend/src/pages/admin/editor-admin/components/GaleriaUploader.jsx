@@ -59,8 +59,6 @@ export default function GaleriaUploader({ productoDocumentId, galeriaActual, tok
 
   // ── Eliminar imagen ───────────────────────────────────────────────────────
   const handleEliminar = async (img) => {
-    if (!window.confirm(`¿Eliminar "${img.name || 'esta imagen'}" de la galería?`)) return;
-
     const nuevaGaleria = galeriaActual.filter(i => i.id !== img.id);
     onGaleriaChange(nuevaGaleria); // optimista
 

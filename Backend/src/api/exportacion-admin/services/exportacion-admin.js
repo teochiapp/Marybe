@@ -194,6 +194,29 @@ async function generarExcel(strapi) {
   const productos = await fetchAllProductos(strapi);
   strapi.log.info(`[ExportAdmin] ${productos.length} productos obtenidos`);
 
+  // ── Ordenar: 1° Proveedor (A→Z, sin proveedor al final), 2° ID Original ──
+  productos.sort((a, b) => {
+    const provA = (a.proveedor || '').trim().toLowerCase();
+    const provB = (b.proveedor || '').trim().toLowerCase();
+
+    // Proveedores vacíos van al final
+    if (!provA && provB) return 1;
+    if (provA && !provB) return -1;
+
+    const cmpProv = provA.localeCompare(provB, 'es', { sensitivity: 'base' });
+    if (cmpProv !== 0) return cmpProv;
+
+    // Dentro del mismo proveedor → ordenar por id_original
+    const idA = a.id_original || String(a.id || '');
+    const idB = b.id_original || String(b.id || '');
+    const numA = parseFloat(idA);
+    const numB = parseFloat(idB);
+    const ambosSonNumericos = !isNaN(numA) && !isNaN(numB);
+    return ambosSonNumericos ? numA - numB : idA.localeCompare(idB, 'es', { numeric: true });
+  });
+
+  strapi.log.info('[ExportAdmin] Productos ordenados por Proveedor → ID Original');
+
   const wb   = new ExcelJS.Workbook();
   wb.creator = 'Marybe';
   wb.created = new Date();

@@ -393,6 +393,14 @@
   border-color: rgba(242, 220, 143, 0.6);
 }
 
+/* Wrapper relativo para mostrar botón ✕ en hover */
+.ea-img-thumb-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ea-img-thumb-wrap:hover .ea-galeria-del { opacity: 1; }
+
 .ea-img-thumb {
   width: 64px;
   height: 64px;

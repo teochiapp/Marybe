@@ -17,6 +17,14 @@ const slideOut = keyframes`
   from { transform: translateX(0); }
   to   { transform: translateX(-100%); }
 `;
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
+`;
+const fadeOut = keyframes`
+  from { opacity: 1; }
+  to   { opacity: 0; }
+`;
 
 /* ── NavBar ── */
 const NavBarWrapper = styled.nav`
@@ -289,11 +297,18 @@ const Overlay = styled.div`
   display: none;
 
   @media (max-width: 768px) {
-    display: ${({ $open }) => ($open ? 'block' : 'none')};
+    display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    z-index: 100;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 9999;
+    pointer-events: ${({ $open }) => ($open ? 'all' : 'none')};
+    animation: ${({ $open }) =>
+      $open
+        ? css`${fadeIn}  0.30s cubic-bezier(0.32, 0.72, 0, 1) forwards`
+        : css`${fadeOut} 0.22s cubic-bezier(0.4, 0, 1, 1) forwards`};
   }
 `;
 
@@ -310,12 +325,14 @@ const Drawer = styled.div`
     max-width: 320px;
     height: 100vh;
     background: var(--color-blanco);
-    z-index: 101;
+    z-index: 10000;
     overflow-y: auto;
+    will-change: transform;
+    box-shadow: ${({ $open }) => ($open ? '4px 0 32px rgba(0,0,0,0.18)' : 'none')};
     animation: ${({ $open }) =>
-    $open
-      ? css`${slideIn} 0.28s ease forwards`
-      : css`${slideOut} 0.28s ease forwards`};
+      $open
+        ? css`${slideIn}  0.38s cubic-bezier(0.32, 0.72, 0, 1) forwards`
+        : css`${slideOut} 0.26s cubic-bezier(0.4, 0, 0.8, 1)  forwards`};
   }
 `;
 
@@ -535,8 +552,72 @@ export default function NavBar() {
 
   // ─── Datos dinámicos del mega menu (mismos que desktop) ───
   const { context, getCategoriesForContext } = useMegaMenuContext();
-  const { getColumnsForCategory } = useMegaMenu();
+  const { getColumnsForCategory, menuLanzOfertas } = useMegaMenu();
   const dynamicCategories = getCategoriesForContext(context);
+
+  // ─── Columnas dinámicas para mobile (igual lógica que desktop CategoryNav) ───
+  const getMobileColumnsForCategory = (cat) => {
+    if (cat === 'Ofertas') {
+      const colData = [];
+      const ofertasConf = menuLanzOfertas?.ofertas;
+      if (ofertasConf) {
+        if (ofertasConf.mostrar_columna_descuentos) {
+          colData.push({
+            title: ofertasConf.titulo_descuentos || 'Descuentos',
+            items: [
+              { label: 'Hasta 60%', href: '/tienda?descuento=60' },
+              { label: 'Hasta 50%', href: '/tienda?descuento=50' },
+              { label: 'Hasta 40%', href: '/tienda?descuento=40' },
+              { label: 'Hasta 30%', href: '/tienda?descuento=30' },
+              { label: 'Hasta 20%', href: '/tienda?descuento=20' },
+              { label: 'Hasta 10%', href: '/tienda?descuento=10' },
+            ],
+          });
+        }
+        if (ofertasConf.columnas_categorias?.length > 0) {
+          ofertasConf.columnas_categorias.forEach((col) => {
+            const cats = col.categorias?.data || col.categorias || [];
+            const items = cats
+              .map((c) => { const n = c.attributes?.nombre || c.nombre; return n ? { label: n, href: `/tienda?categoria=${encodeURIComponent(n)}&ofertas=true` } : null; })
+              .filter(Boolean);
+            if (items.length > 0) colData.push({ title: col.titulo_columna || 'Categorías', items });
+          });
+        }
+        const prods = ofertasConf.productos_destacados?.data || ofertasConf.productos_destacados || [];
+        if (prods.length > 0) {
+          const items = prods
+            .map((p) => { const n = p.attributes?.nombre || p.nombre; const s = p.attributes?.slug || p.slug || ''; return n ? { label: n, href: `/producto/${s}` } : null; })
+            .filter(Boolean);
+          if (items.length > 0) colData.push({ title: ofertasConf.titulo_destacados || 'Destacados', items });
+        }
+      }
+      return colData;
+    }
+
+    if (cat === 'Lanzamientos') {
+      const colData = [];
+      const lanzConf = menuLanzOfertas?.lanzamientos;
+      if (lanzConf) {
+        const cats = lanzConf.categorias?.data || lanzConf.categorias || [];
+        if (cats.length > 0) {
+          const items = cats
+            .map((c) => { const n = c.attributes?.nombre || c.nombre; return n ? { label: n, href: `/tienda?categoria=${encodeURIComponent(n)}&lanzamientos=true` } : null; })
+            .filter(Boolean);
+          if (items.length > 0) colData.push({ title: lanzConf.titulo_categorias || 'Novedades por Categoría', items });
+        }
+        const prods = lanzConf.productos_destacados?.data || lanzConf.productos_destacados || [];
+        if (prods.length > 0) {
+          const items = prods
+            .map((p) => { const n = p.attributes?.nombre || p.nombre; const s = p.attributes?.slug || p.slug || ''; return n ? { label: n, href: `/producto/${s}` } : null; })
+            .filter(Boolean);
+          if (items.length > 0) colData.push({ title: lanzConf.titulo_destacados || 'Nuevos Lanzamientos', items });
+        }
+      }
+      return colData;
+    }
+
+    return getColumnsForCategory(cat, context) || [];
+  };
 
   // ─── Helper: navega al inicio y hace scroll suave a una sección por ID ───
   const scrollToHomeSection = (sectionId) => {
@@ -793,7 +874,7 @@ export default function NavBar() {
               </DrawerItem>
 
               {dynamicCategories.map((cat) => {
-                const columns = getColumnsForCategory(cat, context) || [];
+                const columns = getMobileColumnsForCategory(cat);
                 const hasColumns = columns.length > 0;
 
                 return (
@@ -801,28 +882,22 @@ export default function NavBar() {
                     {/* ── Nivel 1: Categoría ── */}
                     <DrawerItem
                       onClick={() => {
-                        if (cat === 'Ofertas' || cat === 'Lanzamientos') {
-                          toggleSection(cat);
-                        } else if (hasColumns) {
+                        if (hasColumns) {
                           toggleSection(cat);
                         } else {
-                          closeDrawer(); 
+                          closeDrawer();
                           navigate(`/tienda?categoria=${encodeURIComponent(cat)}`);
                         }
                       }}
                     >
                       <span style={{ fontWeight: 500 }}>{cat}</span>
-                      {(hasColumns || cat === 'Ofertas' || cat === 'Lanzamientos') && <ChevronIcon open={openSection === cat} />}
+                      {hasColumns && <ChevronIcon open={openSection === cat} />}
                     </DrawerItem>
 
-                    {/* ── Nivel 2: Subcategorías o Próximamente ── */}
-                    {(hasColumns || cat === 'Ofertas' || cat === 'Lanzamientos') && (
+                    {/* ── Nivel 2: Subcategorías ── */}
+                    {hasColumns && (
                       <SubList $open={openSection === cat}>
-                        {(cat === 'Ofertas' || cat === 'Lanzamientos') ? (
-                          <div style={{ padding: '20px 0', textAlign: 'center', color: '#888', fontSize: '1.2rem', fontWeight: 600, letterSpacing: '1px', fontFamily: 'var(--font-family-secondary)' }}>
-                            PRÓXIMAMENTE
-                          </div>
-                        ) : columns.map((col) => {
+                        {columns.map((col) => {
                           const subKey = `${cat}::${col.title}`;
                           const verTodoItem = col.items?.find(
                             (i) => typeof i === 'object' && i.isVerTodo

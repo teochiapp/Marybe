@@ -67,6 +67,26 @@ module.exports = {
       },
     },
     {
+      method: 'DELETE',
+      path: '/editor-admin/productos/:documentId/portada',
+      handler: 'editor-admin.eliminarPortada',
+      config: {
+        auth: false,
+        description: 'Elimina la imagen de portada del producto',
+        tags: ['Admin'],
+      },
+    },
+    {
+      method: 'DELETE',
+      path: '/editor-admin/productos/:documentId/variantes/:varianteId/portada',
+      handler: 'editor-admin.eliminarPortadaVariante',
+      config: {
+        auth: false,
+        description: 'Elimina la imagen de portada de una variante específica',
+        tags: ['Admin'],
+      },
+    },
+    {
       method: 'POST',
       path: '/editor-admin/productos/:documentId/galeria',
       handler: 'editor-admin.agregarGaleria',

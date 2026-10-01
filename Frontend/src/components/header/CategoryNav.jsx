@@ -132,6 +132,15 @@ const MegaTitleText = styled.h3`
   font-weight: 600;
   color: var(--color-bordo-secundario);
   margin: 0;
+  cursor: pointer;
+  transition: opacity 0.15s;
+
+  &:hover {
+    opacity: 0.75;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 4px;
+  }
 `;
 
 const MegaGrid = styled.div`
@@ -457,7 +466,15 @@ export default function CategoryNav() {
             <MegaMenuWrapper>
               <MegaTitle>
                 <HomeIcon />
-                <MegaTitleText>{activeCategory}</MegaTitleText>
+                <MegaTitleText
+                  onClick={() => {
+                    setActiveCategory(null);
+                    navigate(`/tienda?categoria=${encodeURIComponent(activeCategory)}`);
+                  }}
+                  title={`Ver todo en ${activeCategory}`}
+                >
+                  {activeCategory}
+                </MegaTitleText>
               </MegaTitle>
 
               <MegaGrid>

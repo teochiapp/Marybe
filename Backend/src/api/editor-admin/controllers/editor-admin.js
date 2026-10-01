@@ -375,4 +375,59 @@ module.exports = {
       return ctx.internalServerError(`Error al reordenar galería: ${err.message}`);
     }
   },
+
+  // ── DELETE /api/editor-admin/productos/:documentId/portada ────────────────
+  async eliminarPortada(ctx) {
+    if (!verificarAdmin(ctx)) return noAuth(ctx);
+
+    const { documentId } = ctx.params;
+
+    try {
+      await updatePublished(documentId, { portada: null });
+
+      strapi.log.info(`[EditorAdmin] ✅ Portada del producto ${documentId} eliminada (published)`);
+      return ctx.send({ ok: true });
+    } catch (err) {
+      strapi.log.error(`[EditorAdmin] eliminarPortada FAILED: documentId=${documentId} → ${err.message}`);
+      return ctx.internalServerError(`Error al eliminar portada: ${err.message}`);
+    }
+  },
+
+  // ── DELETE /api/editor-admin/productos/:documentId/variantes/:varianteId/portada ──
+  async eliminarPortadaVariante(ctx) {
+    if (!verificarAdmin(ctx)) return noAuth(ctx);
+
+    const { documentId, varianteId } = ctx.params;
+    const indexVariante = parseInt(varianteId, 10);
+
+    try {
+      const productoActual = await strapi.documents(UID_PRODUCTO).findOne({
+        documentId,
+        populate: ['variantes', 'variantes.portada'],
+        status: 'published',
+      });
+
+      if (!productoActual?.variantes?.length) {
+        return ctx.badRequest('El producto no tiene variantes.');
+      }
+
+      const variantes = productoActual.variantes.map((v, idx) => {
+        const item = { ...v };
+        // Extraer IDs de campos relacionales que Strapi necesita como número
+        if (item.portada && typeof item.portada === 'object') item.portada = item.portada.id;
+        if (item.color  && typeof item.color  === 'object') item.color  = item.color.id;
+        // Eliminar la portada de la variante objetivo
+        if (idx === indexVariante) item.portada = null;
+        return item;
+      });
+
+      await updatePublished(documentId, { variantes });
+
+      strapi.log.info(`[EditorAdmin] ✅ Portada de variante índice ${indexVariante} del producto ${documentId} eliminada (published)`);
+      return ctx.send({ ok: true });
+    } catch (err) {
+      strapi.log.error(`[EditorAdmin] eliminarPortadaVariante FAILED: documentId=${documentId} varianteIndex=${varianteId} → ${err.message}`);
+      return ctx.internalServerError(`Error al eliminar portada de variante: ${err.message}`);
+    }
+  },
 };

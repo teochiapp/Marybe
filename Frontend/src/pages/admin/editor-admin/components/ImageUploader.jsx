@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
@@ -9,7 +9,7 @@ const MAX_KB  = 200;
  * Muestra el thumbnail actual. Al hacer clic abre el file input.
  * Llama a onUploaded(mediaObj) cuando el upload es exitoso.
  */
-export default function ImageUploader({ productoDocumentId, varianteId, portadaActual, token, onUploaded }) {
+export default function ImageUploader({ productoDocumentId, varianteId, portadaActual, token, onUploaded, onDeleted }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError]         = useState('');
@@ -55,6 +55,22 @@ export default function ImageUploader({ productoDocumentId, varianteId, portadaA
     }
   };
 
+  // ── Eliminar portada ───────────────────────────────────────────────────────
+  const handleEliminar = useCallback(async () => {
+    const endpoint = varianteId !== undefined
+      ? `${API_URL}/api/editor-admin/productos/${productoDocumentId}/variantes/${varianteId}/portada`
+      : `${API_URL}/api/editor-admin/productos/${productoDocumentId}/portada`;
+
+    try {
+      await axios.delete(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+      onUploaded(null);
+      if (onDeleted) onDeleted();
+    } catch (err) {
+      const msg = err.response?.data?.error?.message || err.message || 'Error al eliminar portada';
+      setError(msg);
+    }
+  }, [productoDocumentId, varianteId, token, onUploaded, onDeleted]);
+
   const handleDropFile = (e) => {
     e.preventDefault();
     setDraggingOver(false);
@@ -78,13 +94,23 @@ export default function ImageUploader({ productoDocumentId, varianteId, portadaA
     >
       {/* Thumbnail */}
       {imgUrl ? (
-        <img
-          src={imgUrl}
-          alt="portada"
-          className="ea-img-thumb"
-          onClick={() => !uploading && inputRef.current?.click()}
-          title="Clic para cambiar portada"
-        />
+        <div className="ea-img-thumb-wrap">
+          <img
+            src={imgUrl}
+            alt="portada"
+            className="ea-img-thumb"
+            onClick={() => !uploading && inputRef.current?.click()}
+            title="Clic para cambiar portada"
+          />
+          <button
+            type="button"
+            className="ea-galeria-del"
+            onClick={handleEliminar}
+            title="Eliminar portada"
+          >
+            ✕
+          </button>
+        </div>
       ) : (
         <div className="ea-img-placeholder" title="Sin portada">
           <svg viewBox="0 0 20 20" fill="currentColor">
