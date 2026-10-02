@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
@@ -78,6 +78,43 @@ const InstagramBtn = styled.a`
   }
 `;
 
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 20px;
+
+  @media (max-width: 600px) {
+    width: 100%;
+    justify-content: space-between;
+  }
+`;
+
+const NavContainer = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+`;
+
+const NavButton = styled.button`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--color-blanco);
+  border: 1px solid #EAEAEA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  color: var(--color-marron-tercero);
+
+  &:hover {
+    background-color: var(--color-boton-promo);
+    color: var(--color-blanco);
+    border-color: var(--color-boton-promo);
+  }
+`;
+
 /* ─── Carousel ───────────────────────────────────────────────────────────── */
 
 const CarouselWrapper = styled.div`
@@ -90,9 +127,14 @@ const CarouselWrapper = styled.div`
   margin-bottom: 24px;
   padding-bottom: 8px;
   scrollbar-width: none;
+  cursor: grab;
 
   &::-webkit-scrollbar {
     display: none;
+  }
+
+  &:active {
+    cursor: grabbing;
   }
 
   @media (max-width: 992px) {
@@ -296,31 +338,11 @@ const ModalCard = styled.div`
   position: relative;
 `;
 
-const ModalEmbed = styled.div`
+const ModalImg = styled.img`
   width: 100%;
-  aspect-ratio: 9 / 16;
-  background: #000;
-  overflow: hidden;
-  position: relative;
-
-  iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-    display: block;
-  }
-`;
-
-const ModalLoading = styled.div`
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #111;
-  color: rgba(255,255,255,0.5);
-  font-family: var(--font-family-secondary);
-  font-size: 14px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
 `;
 
 const ModalBody = styled.div`
@@ -406,6 +428,18 @@ const WhatsAppIconDark = () => (
   </svg>
 );
 
+const ChevronLeft = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+
+const ChevronRight = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
 // ─── Config API ───────────────────────────────────────────────────────────────
 const RAPIDAPI_KEY = process.env.REACT_APP_RAPIDAPI_KEY;
 const RAPIDAPI_HOST = process.env.REACT_APP_RAPIDAPI_HOST;
@@ -414,9 +448,16 @@ const INSTAGRAM_USER_ID = process.env.REACT_APP_INSTAGRAM_USER_ID || 8213928671;
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function DescubriMas() {
-  const [videos, setVideos]       = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [modalPost, setModalPost] = useState(null); // post seleccionado para el lightbox
+
+  // Estados para Drag to Scroll
+  const [isDown, setIsDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const carouselRef = useRef(null);
 
   const CACHE_KEY = 'marybe_ig_feed';
   const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 horas en milisegundos
@@ -492,22 +533,91 @@ export default function DescubriMas() {
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
+  // ─── Controladores de Grab to Scroll ────────────────────────────────────────
+  const handleMouseDown = (e) => {
+    setIsDown(true);
+    setIsDragging(false);
+    if (carouselRef.current) {
+      carouselRef.current.style.scrollSnapType = 'none'; // desactiva snap durante el drag
+      setStartX(e.pageX - carouselRef.current.offsetLeft);
+      setScrollLeft(carouselRef.current.scrollLeft);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsDown(false);
+    if (carouselRef.current) {
+      carouselRef.current.style.scrollSnapType = 'x mandatory';
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDown(false);
+    if (carouselRef.current) {
+      carouselRef.current.style.scrollSnapType = 'x mandatory';
+    }
+    // Timeout para que el click detecte el estado isDragging correctamente antes de resetearlo
+    setTimeout(() => setIsDragging(false), 50);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    if (carouselRef.current) {
+      const x = e.pageX - carouselRef.current.offsetLeft;
+      const walk = (x - startX) * 2; // velocidad del scroll
+      if (Math.abs(walk) > 10) {
+        setIsDragging(true); // Se considera drag si se movió más de 10px
+      }
+      carouselRef.current.scrollLeft = scrollLeft - walk;
+    }
+  };
+
+  const scrollByAmount = (amount) => {
+    if (carouselRef.current) {
+      carouselRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+  };
+
   return (
     <Section>
       <Header>
         <Title>Descubrí más</Title>
-        <InstagramBtn href="https://www.instagram.com/perfumeriasmarybe/" target="_blank" rel="noopener noreferrer">
-          Seguinos en Instagram
-          <InstagramIcon />
-        </InstagramBtn>
+        <HeaderActions>
+          <InstagramBtn href="https://www.instagram.com/perfumeriasmarybe/" target="_blank" rel="noopener noreferrer">
+            Seguinos en Instagram
+            <InstagramIcon />
+          </InstagramBtn>
+
+          {/* Flechas de navegación */}
+          <NavContainer>
+            <NavButton onClick={() => scrollByAmount(-310)} aria-label="Anterior">
+              <ChevronLeft />
+            </NavButton>
+            <NavButton onClick={() => scrollByAmount(310)} aria-label="Siguiente">
+              <ChevronRight />
+            </NavButton>
+          </NavContainer>
+        </HeaderActions>
       </Header>
 
       {/* Carousel: solo se muestra si hay posts disponibles */}
       {!loading && videos.length > 0 && (
-        <CarouselWrapper>
+        <CarouselWrapper
+          ref={carouselRef}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+        >
           <CarouselTrack>
             {videos.map((v) => (
-              <Card key={v.id} onClick={() => setModalPost(v)}>
+              <Card
+                key={v.id}
+                onClick={() => {
+                  if (!isDragging) setModalPost(v);
+                }}
+              >
                 <CardImg src={v.img} alt={v.titulo} />
                 <CardOverlay />
                 <CardTitle>{v.titulo}</CardTitle>
@@ -537,16 +647,7 @@ export default function DescubriMas() {
       {modalPost && (
         <ModalBackdrop onClick={() => setModalPost(null)}>
           <ModalCard onClick={(e) => e.stopPropagation()}>
-            <ModalEmbed>
-              <ModalLoading>Cargando post…</ModalLoading>
-              <iframe
-                src={`https://www.instagram.com/p/${modalPost.code}/embed/`}
-                allowFullScreen
-                scrolling="no"
-                allow="autoplay; encrypted-media"
-                title={modalPost.titulo}
-              />
-            </ModalEmbed>
+            <ModalImg src={modalPost.img} alt={modalPost.titulo} />
             <ModalBody>
               <ModalActions>
                 <ModalIgBtn href={modalPost.link} target="_blank" rel="noopener noreferrer">
