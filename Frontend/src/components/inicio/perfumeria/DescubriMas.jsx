@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -9,13 +9,8 @@ const Section = styled.section`
   width: 100%;
   overflow: hidden;
 
-  @media (max-width: 992px) {
-    padding: 48px 24px;
-  }
-
-  @media (max-width: 600px) {
-    padding: 32px 16px;
-  }
+  @media (max-width: 992px) { padding: 48px 24px; }
+  @media (max-width: 600px)  { padding: 32px 16px; }
 `;
 
 const Header = styled.div`
@@ -41,14 +36,19 @@ const Title = styled.h2`
   color: var(--color-marron-tercero);
   margin: 0;
   line-height: 1.1;
-  letter-spacing: -2%;
 
-  @media (max-width: 992px) {
-    font-size: 40px;
-  }
+  @media (max-width: 992px) { font-size: 40px; }
+  @media (max-width: 600px)  { font-size: 32px; }
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 20px;
 
   @media (max-width: 600px) {
-    font-size: 32px;
+    width: 100%;
+    justify-content: space-between;
   }
 `;
 
@@ -67,26 +67,9 @@ const InstagramBtn = styled.a`
   cursor: pointer;
   transition: var(--transition-fast);
 
-  &:hover {
-    transform: translateY(-1px);
-    opacity: 0.92;
-  }
+  &:hover { transform: translateY(-1px); opacity: 0.92; }
 
-  @media (max-width: 600px) {
-    align-self: stretch;
-    justify-content: center;
-  }
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 20px;
-
-  @media (max-width: 600px) {
-    width: 100%;
-    justify-content: space-between;
-  }
+  @media (max-width: 600px) { align-self: stretch; justify-content: center; }
 `;
 
 const NavContainer = styled.div`
@@ -129,23 +112,11 @@ const CarouselWrapper = styled.div`
   scrollbar-width: none;
   cursor: grab;
 
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  &::-webkit-scrollbar { display: none; }
+  &:active { cursor: grabbing; }
 
-  &:active {
-    cursor: grabbing;
-  }
-
-  @media (max-width: 992px) {
-    width: calc(100% + 24px);
-    margin-right: -24px;
-  }
-
-  @media (max-width: 600px) {
-    width: calc(100% + 16px);
-    margin-right: -16px;
-  }
+  @media (max-width: 992px) { width: calc(100% + 24px); margin-right: -24px; }
+  @media (max-width: 600px)  { width: calc(100% + 16px); margin-right: -16px; }
 `;
 
 const CarouselTrack = styled.div`
@@ -157,7 +128,7 @@ const CarouselTrack = styled.div`
 
 /* ─── Card ───────────────────────────────────────────────────────────────── */
 
-const Card = styled.div`
+const Card = styled.a`
   flex: 0 0 290px;
   position: relative;
   height: 460px;
@@ -167,25 +138,18 @@ const Card = styled.div`
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;
+  text-decoration: none;
+  display: block;
 
-  &:hover {
-    transform: translateY(-4px);
-  }
+  &:hover { transform: translateY(-4px); }
 
   &:hover .play-icon {
     transform: translate(-50%, -50%) scale(1.1);
     background-color: rgba(255, 255, 255, 0.25);
   }
 
-  @media (max-width: 992px) {
-    flex: 0 0 260px;
-    height: 420px;
-  }
-
-  @media (max-width: 600px) {
-    flex: 0 0 220px;
-    height: 360px;
-  }
+  @media (max-width: 992px) { flex: 0 0 260px; height: 420px; }
+  @media (max-width: 600px)  { flex: 0 0 220px; height: 360px; }
 `;
 
 const CardImg = styled.img`
@@ -197,24 +161,25 @@ const CardImg = styled.img`
 const CardOverlay = styled.div`
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.45) 0%,
-    rgba(0, 0, 0, 0) 35%,
-    rgba(0, 0, 0, 0) 100%
-  );
+  background: linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0) 100%);
 `;
 
 const CardTitle = styled.h3`
   position: absolute;
   top: 16px;
   left: 16px;
+  right: 16px;
   margin: 0;
   font-family: var(--font-family-secondary);
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-blanco);
   z-index: 2;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 `;
 
 const PlayIcon = styled.div`
@@ -235,7 +200,7 @@ const PlayIcon = styled.div`
   z-index: 2;
 `;
 
-/* ─── Banner inferior ────────────────────────────────────────────────────── */
+/* ─── Banner ─────────────────────────────────────────────────────────────── */
 
 const Banner = styled.div`
   background-color: #280201;
@@ -247,11 +212,7 @@ const Banner = styled.div`
   gap: 24px;
   width: 100%;
 
-  @media (max-width: 600px) {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 20px;
-  }
+  @media (max-width: 600px) { flex-direction: column; align-items: flex-start; padding: 20px; }
 `;
 
 const BannerText = styled.div`
@@ -291,116 +252,9 @@ const UnirmeBtn = styled.a`
   white-space: nowrap;
   transition: var(--transition-fast);
 
-  &:hover {
-    transform: translateY(-1px);
-    background-color: var(--color-blanco-pero-no-tan-blanco);
-  }
+  &:hover { transform: translateY(-1px); background-color: var(--color-blanco-pero-no-tan-blanco); }
 
-  @media (max-width: 600px) {
-    align-self: stretch;
-    justify-content: center;
-  }
-`;
-
-/* ─── Modal / Lightbox ───────────────────────────────────────────────────── */
-
-const fadeIn = keyframes`
-  from { opacity: 0; }
-  to   { opacity: 1; }
-`;
-
-const slideUp = keyframes`
-  from { opacity: 0; transform: translateY(24px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)    scale(1);    }
-`;
-
-const ModalBackdrop = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(6px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  animation: ${fadeIn} 0.22s ease;
-`;
-
-const ModalCard = styled.div`
-  background: #fff;
-  border-radius: 20px;
-  overflow: hidden;
-  max-width: 420px;
-  width: 100%;
-  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.3);
-  animation: ${slideUp} 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-`;
-
-const ModalImg = styled.img`
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  display: block;
-`;
-
-const ModalBody = styled.div`
-  padding: 16px 20px 20px;
-`;
-
-const ModalCaption = styled.p`
-  font-family: var(--font-family-secondary);
-  font-size: 14px;
-  color: #444;
-  line-height: 1.6;
-  margin: 0 0 20px;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-`;
-
-const ModalActions = styled.div`
-  display: flex;
-  gap: 10px;
-`;
-
-const ModalIgBtn = styled.a`
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: var(--color-boton-promo);
-  color: #fff;
-  font-family: var(--font-family-secondary);
-  font-size: 14px;
-  font-weight: 600;
-  padding: 12px 20px;
-  border-radius: 10px;
-  text-decoration: none;
-  transition: opacity 0.2s ease;
-
-  &:hover { opacity: 0.88; }
-`;
-
-const ModalCloseBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #f2f2f2;
-  border: none;
-  border-radius: 10px;
-  width: 44px;
-  height: 44px;
-  cursor: pointer;
-  font-size: 18px;
-  color: #555;
-  transition: background 0.2s ease;
-  flex-shrink: 0;
-
-  &:hover { background: #e5e5e5; }
+  @media (max-width: 600px) { align-self: stretch; justify-content: center; }
 `;
 
 // ─── Íconos ───────────────────────────────────────────────────────────────────
@@ -421,10 +275,7 @@ const PlayArrow = () => (
 
 const WhatsAppIconDark = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="M17 2.91C16.0831 1.98 14.991 1.25 13.7875 0.75C12.584 0.25 11.2931 0 9.99 0C4.53 0 0.08 4.45 0.08 9.91C0.08 11.66 0.54 13.36 1.4 14.86L0 20L5.25 18.62C6.7 19.41 8.33 19.83 9.99 19.83C15.45 19.83 19.9 15.38 19.9 9.92C19.9 7.27 18.87 4.78 17 2.91ZM9.99 18.15C8.51 18.15 7.06 17.75 5.79 17L5.49 16.82L2.37 17.64L3.2 14.6L3 14.29C2.18 12.98 1.74 11.46 1.74 9.91C1.74 5.37 5.44 1.67 9.98 1.67C12.18 1.67 14.25 2.53 15.8 4.09C16.57 4.85 17.18 5.76 17.59 6.76C18 7.76 18.21 8.84 18.21 9.92C18.23 14.46 14.53 18.15 9.99 18.15ZM14.51 11.99C14.26 11.87 13.04 11.27 12.82 11.18C12.59 11.1 12.43 11.06 12.26 11.3C12.09 11.55 11.62 12.11 11.48 12.27C11.34 12.44 11.19 12.46 10.94 12.33C10.69 12.21 9.89 11.94 8.95 11.1C8.21 10.44 7.72 9.63 7.57 9.38C7.43 9.13 7.55 9 7.68 8.87C7.79 8.76 7.93 8.58 8.05 8.44C8.17 8.3 8.22 8.19 8.3 8.03C8.38 7.86 8.34 7.72 8.28 7.6C8.22 7.48 7.72 6.26 7.52 5.76C7.32 5.28 7.11 5.34 6.96 5.33H6.48C6.31 5.33 6.05 5.39 5.82 5.64C5.6 5.89 4.96 6.49 4.96 7.71C4.96 8.93 5.85 10.11 5.97 10.27C6.09 10.44 7.72 12.94 10.2 14.01C10.79 14.27 11.25 14.42 11.61 14.53C12.2 14.72 12.74 14.69 13.17 14.63C13.65 14.56 14.64 14.03 14.84 13.45C15.05 12.87 15.05 12.38 14.98 12.27C14.91 12.16 14.76 12.11 14.51 11.99Z"
-      fill="currentColor"
-    />
+    <path d="M17 2.91C16.0831 1.98 14.991 1.25 13.7875 0.75C12.584 0.25 11.2931 0 9.99 0C4.53 0 0.08 4.45 0.08 9.91C0.08 11.66 0.54 13.36 1.4 14.86L0 20L5.25 18.62C6.7 19.41 8.33 19.83 9.99 19.83C15.45 19.83 19.9 15.38 19.9 9.92C19.9 7.27 18.87 4.78 17 2.91ZM9.99 18.15C8.51 18.15 7.06 17.75 5.79 17L5.49 16.82L2.37 17.64L3.2 14.6L3 14.29C2.18 12.98 1.74 11.46 1.74 9.91C1.74 5.37 5.44 1.67 9.98 1.67C12.18 1.67 14.25 2.53 15.8 4.09C16.57 4.85 17.18 5.76 17.59 6.76C18 7.76 18.21 8.84 18.21 9.92C18.23 14.46 14.53 18.15 9.99 18.15ZM14.51 11.99C14.26 11.87 13.04 11.27 12.82 11.18C12.59 11.1 12.43 11.06 12.26 11.3C12.09 11.55 11.62 12.11 11.48 12.27C11.34 12.44 11.19 12.46 10.94 12.33C10.69 12.21 9.89 11.94 8.95 11.1C8.21 10.44 7.72 9.63 7.57 9.38C7.43 9.13 7.55 9 7.68 8.87C7.79 8.76 7.93 8.58 8.05 8.44C8.17 8.3 8.22 8.19 8.3 8.03C8.38 7.86 8.34 7.72 8.28 7.6C8.22 7.48 7.72 6.26 7.52 5.76C7.32 5.28 7.11 5.34 6.96 5.33H6.48C6.31 5.33 6.05 5.39 5.82 5.64C5.6 5.89 4.96 6.49 4.96 7.71C4.96 8.93 5.85 10.11 5.97 10.27C6.09 10.44 7.72 12.94 10.2 14.01C10.79 14.27 11.25 14.42 11.61 14.53C12.2 14.72 12.74 14.69 13.17 14.63C13.65 14.56 14.64 14.03 14.84 13.45C15.05 12.87 15.05 12.38 14.98 12.27C14.91 12.16 14.76 12.11 14.51 11.99Z" fill="currentColor" />
   </svg>
 );
 
@@ -441,66 +292,68 @@ const ChevronRight = () => (
 );
 
 // ─── Config API ───────────────────────────────────────────────────────────────
-const RAPIDAPI_KEY = process.env.REACT_APP_RAPIDAPI_KEY;
-const RAPIDAPI_HOST = process.env.REACT_APP_RAPIDAPI_HOST;
-const INSTAGRAM_USER_ID = process.env.REACT_APP_INSTAGRAM_USER_ID || 8213928671; // @perfumeriasmarybe
+const RAPIDAPI_KEY      = process.env.REACT_APP_RAPIDAPI_KEY;
+const RAPIDAPI_HOST     = process.env.REACT_APP_RAPIDAPI_HOST;
+const INSTAGRAM_USER_ID = process.env.REACT_APP_INSTAGRAM_USER_ID || '8213928671';
+const CACHE_KEY         = 'marybe_ig_feed';
+const CACHE_TTL         = 1000 * 60 * 60 * 24; // 24 horas
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function DescubriMas() {
-  const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modalPost, setModalPost] = useState(null); // post seleccionado para el lightbox
+  const [videos, setVideos]         = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const isFetching                  = useRef(false); // guard anti-doble llamada (React Strict Mode)
 
-  // Estados para Drag to Scroll
-  const [isDown, setIsDown] = useState(false);
-  const [startX, setStartX] = useState(0);
+  // Drag to Scroll
+  const [isDown, setIsDown]         = useState(false);
+  const [startX, setStartX]         = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const carouselRef = useRef(null);
-
-  const CACHE_KEY = 'marybe_ig_feed';
-  const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 horas en milisegundos
+  const carouselRef                 = useRef(null);
 
   useEffect(() => {
     const fetchInstagramFeed = async () => {
+      // ── Guard: evita doble fetch en React Strict Mode (dev) ───────────────
+      if (isFetching.current) return;
+      isFetching.current = true;
+
       try {
-        // ── 1. Revisar caché en localStorage ──────────────────────────────
+        // ── 1. Revisar caché ───────────────────────────────────────────────
         const cached = localStorage.getItem(CACHE_KEY);
         if (cached) {
           const { data: cachedData, timestamp } = JSON.parse(cached);
-          const isExpired = Date.now() - timestamp > CACHE_TTL;
-          if (!isExpired && cachedData.length > 0) {
+          if (Date.now() - timestamp <= CACHE_TTL && cachedData.length > 0) {
             setVideos(cachedData);
             setLoading(false);
-            return; // Usamos caché, no llamamos a la API
+            return;
           }
         }
 
-        // ── 2. Caché vacío o expirado: llamar a la API ────────────────────
-        const url = `https://${RAPIDAPI_HOST}/ig/posts/?id_user=${INSTAGRAM_USER_ID}`;
-        const options = {
-          method: 'GET',
-          headers: {
-            'x-rapidapi-key': RAPIDAPI_KEY,
-            'x-rapidapi-host': RAPIDAPI_HOST,
-          },
-        };
+        // ── 2. Llamar a la API ─────────────────────────────────────────────
+        const response = await fetch(
+          `https://${RAPIDAPI_HOST}/ig/posts/?id_user=${INSTAGRAM_USER_ID}`,
+          {
+            method: 'GET',
+            headers: {
+              'x-rapidapi-key': RAPIDAPI_KEY,
+              'x-rapidapi-host': RAPIDAPI_HOST,
+            },
+          }
+        );
 
-        const response = await fetch(url, options);
-        const data = await response.json();
+        if (!response.ok) return; // 429, 500, etc → falla silenciosa
 
+        const data  = await response.json();
         const items = data?.data?.items || data?.items || data?.data || [];
-
         if (!Array.isArray(items) || items.length === 0) return;
 
         const postsFormateados = items.slice(0, 8).map((post) => ({
-          id: post.id || post.pk,
-          code: post.code || post.shortcode,
+          id:     post.id || post.pk,
+          code:   post.code || post.shortcode,
           titulo: post.caption?.text
-            ? post.caption.text.substring(0, 30) + '...'
+            ? post.caption.text.substring(0, 50) + '...'
             : 'Ver en Instagram',
-          caption: post.caption?.text || '',
           img:
             post.thumbnail_url ||
             post.image_versions2?.candidates?.[0]?.url ||
@@ -509,7 +362,7 @@ export default function DescubriMas() {
           link: `https://www.instagram.com/p/${post.code || post.shortcode}/`,
         }));
 
-        // ── 3. Guardar en caché ───────────────────────────────────────────
+        // ── 3. Guardar en caché ────────────────────────────────────────────
         localStorage.setItem(CACHE_KEY, JSON.stringify({
           data: postsFormateados,
           timestamp: Date.now(),
@@ -517,7 +370,7 @@ export default function DescubriMas() {
 
         setVideos(postsFormateados);
       } catch (_) {
-        // Falla silenciosa: el carousel simplemente no se muestra
+        // Falla silenciosa — el carousel simplemente no aparece
       } finally {
         setLoading(false);
       }
@@ -526,57 +379,37 @@ export default function DescubriMas() {
     fetchInstagramFeed();
   }, []);
 
-  // Cerrar modal con Escape
-  useEffect(() => {
-    const handleKey = (e) => { if (e.key === 'Escape') setModalPost(null); };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, []);
-
-  // ─── Controladores de Grab to Scroll ────────────────────────────────────────
+  // ─── Grab to Scroll ──────────────────────────────────────────────────────────
   const handleMouseDown = (e) => {
     setIsDown(true);
     setIsDragging(false);
     if (carouselRef.current) {
-      carouselRef.current.style.scrollSnapType = 'none'; // desactiva snap durante el drag
+      carouselRef.current.style.scrollSnapType = 'none';
       setStartX(e.pageX - carouselRef.current.offsetLeft);
       setScrollLeft(carouselRef.current.scrollLeft);
     }
   };
-
   const handleMouseLeave = () => {
     setIsDown(false);
-    if (carouselRef.current) {
-      carouselRef.current.style.scrollSnapType = 'x mandatory';
-    }
+    if (carouselRef.current) carouselRef.current.style.scrollSnapType = 'x mandatory';
   };
-
   const handleMouseUp = () => {
     setIsDown(false);
-    if (carouselRef.current) {
-      carouselRef.current.style.scrollSnapType = 'x mandatory';
-    }
-    // Timeout para que el click detecte el estado isDragging correctamente antes de resetearlo
+    if (carouselRef.current) carouselRef.current.style.scrollSnapType = 'x mandatory';
     setTimeout(() => setIsDragging(false), 50);
   };
-
   const handleMouseMove = (e) => {
     if (!isDown) return;
     e.preventDefault();
     if (carouselRef.current) {
-      const x = e.pageX - carouselRef.current.offsetLeft;
-      const walk = (x - startX) * 2; // velocidad del scroll
-      if (Math.abs(walk) > 10) {
-        setIsDragging(true); // Se considera drag si se movió más de 10px
-      }
+      const x    = e.pageX - carouselRef.current.offsetLeft;
+      const walk = (x - startX) * 2;
+      if (Math.abs(walk) > 10) setIsDragging(true);
       carouselRef.current.scrollLeft = scrollLeft - walk;
     }
   };
-
   const scrollByAmount = (amount) => {
-    if (carouselRef.current) {
-      carouselRef.current.scrollBy({ left: amount, behavior: 'smooth' });
-    }
+    if (carouselRef.current) carouselRef.current.scrollBy({ left: amount, behavior: 'smooth' });
   };
 
   return (
@@ -584,12 +417,15 @@ export default function DescubriMas() {
       <Header>
         <Title>Descubrí más</Title>
         <HeaderActions>
-          <InstagramBtn href="https://www.instagram.com/perfumeriasmarybe/" target="_blank" rel="noopener noreferrer">
+          <InstagramBtn
+            href="https://www.instagram.com/perfumeriasmarybe/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Seguinos en Instagram
             <InstagramIcon />
           </InstagramBtn>
 
-          {/* Flechas de navegación */}
           <NavContainer>
             <NavButton onClick={() => scrollByAmount(-310)} aria-label="Anterior">
               <ChevronLeft />
@@ -601,7 +437,7 @@ export default function DescubriMas() {
         </HeaderActions>
       </Header>
 
-      {/* Carousel: solo se muestra si hay posts disponibles */}
+      {/* Carousel: solo visible cuando hay posts en caché o API disponible */}
       {!loading && videos.length > 0 && (
         <CarouselWrapper
           ref={carouselRef}
@@ -614,9 +450,10 @@ export default function DescubriMas() {
             {videos.map((v) => (
               <Card
                 key={v.id}
-                onClick={() => {
-                  if (!isDragging) setModalPost(v);
-                }}
+                href={v.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => { if (isDragging) e.preventDefault(); }}
               >
                 <CardImg src={v.img} alt={v.titulo} />
                 <CardOverlay />
@@ -642,26 +479,6 @@ export default function DescubriMas() {
           <WhatsAppIconDark />
         </UnirmeBtn>
       </Banner>
-
-      {/* ─── Modal / Lightbox ─────────────────────────────────────────────── */}
-      {modalPost && (
-        <ModalBackdrop onClick={() => setModalPost(null)}>
-          <ModalCard onClick={(e) => e.stopPropagation()}>
-            <ModalImg src={modalPost.img} alt={modalPost.titulo} />
-            <ModalBody>
-              <ModalActions>
-                <ModalIgBtn href={modalPost.link} target="_blank" rel="noopener noreferrer">
-                  <InstagramIcon />
-                  Ver en Instagram
-                </ModalIgBtn>
-                <ModalCloseBtn onClick={() => setModalPost(null)} aria-label="Cerrar">
-                  ✕
-                </ModalCloseBtn>
-              </ModalActions>
-            </ModalBody>
-          </ModalCard>
-        </ModalBackdrop>
-      )}
     </Section>
   );
 }
