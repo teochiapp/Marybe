@@ -348,7 +348,7 @@ export default function DescubriMas() {
         const items = data?.data?.items || data?.items || data?.data || [];
         if (!Array.isArray(items) || items.length === 0) return;
 
-        const postsFormateados = items.slice(0, 8).map((post) => ({
+        const postsFormateados = items.slice(0, 10).map((post) => ({
           id:     post.id || post.pk,
           code:   post.code || post.shortcode,
           titulo: post.caption?.text
