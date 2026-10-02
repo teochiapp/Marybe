@@ -128,18 +128,15 @@ const CarouselTrack = styled.div`
 
 /* ─── Card ───────────────────────────────────────────────────────────────── */
 
-const Card = styled.a`
+const Card = styled.div`
   flex: 0 0 290px;
   position: relative;
   height: 460px;
   border-radius: 16px;
   overflow: hidden;
   scroll-snap-align: start;
-  cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;
-  text-decoration: none;
-  display: block;
 
   &:hover { transform: translateY(-4px); }
 
@@ -182,7 +179,7 @@ const CardTitle = styled.h3`
   overflow: hidden;
 `;
 
-const PlayIcon = styled.div`
+const PlayIcon = styled.a`
   position: absolute;
   top: 50%;
   left: 50%;
@@ -198,6 +195,12 @@ const PlayIcon = styled.div`
   justify-content: center;
   transition: transform 0.3s ease, background-color 0.3s ease;
   z-index: 2;
+  cursor: pointer;
+  text-decoration: none;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
 `;
 
 /* ─── Banner ─────────────────────────────────────────────────────────────── */
@@ -292,11 +295,9 @@ const ChevronRight = () => (
 );
 
 // ─── Config API ───────────────────────────────────────────────────────────────
-const RAPIDAPI_KEY      = process.env.REACT_APP_RAPIDAPI_KEY;
-const RAPIDAPI_HOST     = process.env.REACT_APP_RAPIDAPI_HOST;
-const INSTAGRAM_USER_ID = process.env.REACT_APP_INSTAGRAM_USER_ID || '8213928671';
-const CACHE_KEY         = 'marybe_ig_feed';
-const CACHE_TTL         = 1000 * 60 * 60 * 24; // 24 horas
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:1337';
+const CACHE_KEY   = 'marybe_ig_feed';
+const CACHE_TTL   = 1000 * 60 * 60 * 24; // 24 horas
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
@@ -330,37 +331,15 @@ export default function DescubriMas() {
           }
         }
 
-        // ── 2. Llamar a la API ─────────────────────────────────────────────
-        const response = await fetch(
-          `https://${RAPIDAPI_HOST}/ig/posts/?id_user=${INSTAGRAM_USER_ID}`,
-          {
-            method: 'GET',
-            headers: {
-              'x-rapidapi-key': RAPIDAPI_KEY,
-              'x-rapidapi-host': RAPIDAPI_HOST,
-            },
-          }
-        );
+        // ── 2. Llamar a la API del Backend (Strapi proxy) ───────────────────
+        const response = await fetch(`${BACKEND_URL}/api/instagram/feed`, {
+          method: 'GET',
+        });
 
-        if (!response.ok) return; // 429, 500, etc → falla silenciosa
+        if (!response.ok) return; // falla silenciosa
 
-        const data  = await response.json();
-        const items = data?.data?.items || data?.items || data?.data || [];
-        if (!Array.isArray(items) || items.length === 0) return;
-
-        const postsFormateados = items.slice(0, 10).map((post) => ({
-          id:     post.id || post.pk,
-          code:   post.code || post.shortcode,
-          titulo: post.caption?.text
-            ? post.caption.text.substring(0, 50) + '...'
-            : 'Ver en Instagram',
-          img:
-            post.thumbnail_url ||
-            post.image_versions2?.candidates?.[0]?.url ||
-            post.display_url ||
-            '/inicio/teomaquillandose.webp',
-          link: `https://www.instagram.com/p/${post.code || post.shortcode}/`,
-        }));
+        const postsFormateados = await response.json();
+        if (!Array.isArray(postsFormateados) || postsFormateados.length === 0) return;
 
         // ── 3. Guardar en caché ────────────────────────────────────────────
         localStorage.setItem(CACHE_KEY, JSON.stringify({
@@ -448,17 +427,17 @@ export default function DescubriMas() {
         >
           <CarouselTrack>
             {videos.map((v) => (
-              <Card
-                key={v.id}
-                href={v.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => { if (isDragging) e.preventDefault(); }}
-              >
+              <Card key={v.id}>
                 <CardImg src={v.img} alt={v.titulo} />
                 <CardOverlay />
                 <CardTitle>{v.titulo}</CardTitle>
-                <PlayIcon className="play-icon">
+                <PlayIcon
+                  href={v.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="play-icon"
+                  onClick={(e) => { if (isDragging) e.preventDefault(); }}
+                >
                   <PlayArrow />
                 </PlayIcon>
               </Card>
