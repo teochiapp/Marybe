@@ -1,5 +1,5 @@
-import React from 'react';
-import styled from 'styled-components';
+import React, { useState, useEffect } from 'react';
+import styled, { keyframes } from 'styled-components';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -81,8 +81,6 @@ const InstagramBtn = styled.a`
 /* ─── Carousel ───────────────────────────────────────────────────────────── */
 
 const CarouselWrapper = styled.div`
-  /* Extiende el carousel hasta el borde derecho del viewport
-     para que la última tarjeta visible quede "cortada" */
   width: calc(100% + 64px);
   margin-right: -64px;
   overflow-x: auto;
@@ -262,6 +260,127 @@ const UnirmeBtn = styled.a`
   }
 `;
 
+/* ─── Modal / Lightbox ───────────────────────────────────────────────────── */
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
+`;
+
+const slideUp = keyframes`
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+`;
+
+const ModalBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: ${fadeIn} 0.22s ease;
+`;
+
+const ModalCard = styled.div`
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.3);
+  animation: ${slideUp} 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+`;
+
+const ModalEmbed = styled.div`
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  background: #000;
+  overflow: hidden;
+  position: relative;
+
+  iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+`;
+
+const ModalLoading = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+  color: rgba(255,255,255,0.5);
+  font-family: var(--font-family-secondary);
+  font-size: 14px;
+`;
+
+const ModalBody = styled.div`
+  padding: 16px 20px 20px;
+`;
+
+const ModalCaption = styled.p`
+  font-family: var(--font-family-secondary);
+  font-size: 14px;
+  color: #444;
+  line-height: 1.6;
+  margin: 0 0 20px;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  gap: 10px;
+`;
+
+const ModalIgBtn = styled.a`
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--color-boton-promo);
+  color: #fff;
+  font-family: var(--font-family-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+
+  &:hover { opacity: 0.88; }
+`;
+
+const ModalCloseBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f2f2f2;
+  border: none;
+  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #555;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover { background: #e5e5e5; }
+`;
+
 // ─── Íconos ───────────────────────────────────────────────────────────────────
 
 const InstagramIcon = () => (
@@ -287,20 +406,92 @@ const WhatsAppIconDark = () => (
   </svg>
 );
 
-// ─── Datos ────────────────────────────────────────────────────────────────────
-
-const videos = [
-  { id: 1, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.webp' },
-  { id: 2, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.webp' },
-  { id: 3, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.webp' },
-  { id: 4, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.webp' },
-  { id: 5, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.webp' },
-  { id: 6, titulo: 'Rutina Skincare', img: '/inicio/teomaquillandose.webp' },
-];
+// ─── Config API ───────────────────────────────────────────────────────────────
+const RAPIDAPI_KEY = process.env.REACT_APP_RAPIDAPI_KEY;
+const RAPIDAPI_HOST = process.env.REACT_APP_RAPIDAPI_HOST;
+const INSTAGRAM_USER_ID = process.env.REACT_APP_INSTAGRAM_USER_ID || 8213928671; // @perfumeriasmarybe
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function DescubriMas() {
+  const [videos, setVideos]       = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [modalPost, setModalPost] = useState(null); // post seleccionado para el lightbox
+
+  const CACHE_KEY = 'marybe_ig_feed';
+  const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 horas en milisegundos
+
+  useEffect(() => {
+    const fetchInstagramFeed = async () => {
+      try {
+        // ── 1. Revisar caché en localStorage ──────────────────────────────
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { data: cachedData, timestamp } = JSON.parse(cached);
+          const isExpired = Date.now() - timestamp > CACHE_TTL;
+          if (!isExpired && cachedData.length > 0) {
+            setVideos(cachedData);
+            setLoading(false);
+            return; // Usamos caché, no llamamos a la API
+          }
+        }
+
+        // ── 2. Caché vacío o expirado: llamar a la API ────────────────────
+        const url = `https://${RAPIDAPI_HOST}/ig/posts/?id_user=${INSTAGRAM_USER_ID}`;
+        const options = {
+          method: 'GET',
+          headers: {
+            'x-rapidapi-key': RAPIDAPI_KEY,
+            'x-rapidapi-host': RAPIDAPI_HOST,
+          },
+        };
+
+        const response = await fetch(url, options);
+        const data = await response.json();
+
+        const items = data?.data?.items || data?.items || data?.data || [];
+
+        if (!Array.isArray(items) || items.length === 0) return;
+
+        const postsFormateados = items.slice(0, 8).map((post) => ({
+          id: post.id || post.pk,
+          code: post.code || post.shortcode,
+          titulo: post.caption?.text
+            ? post.caption.text.substring(0, 30) + '...'
+            : 'Ver en Instagram',
+          caption: post.caption?.text || '',
+          img:
+            post.thumbnail_url ||
+            post.image_versions2?.candidates?.[0]?.url ||
+            post.display_url ||
+            '/inicio/teomaquillandose.webp',
+          link: `https://www.instagram.com/p/${post.code || post.shortcode}/`,
+        }));
+
+        // ── 3. Guardar en caché ───────────────────────────────────────────
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          data: postsFormateados,
+          timestamp: Date.now(),
+        }));
+
+        setVideos(postsFormateados);
+      } catch (_) {
+        // Falla silenciosa: el carousel simplemente no se muestra
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInstagramFeed();
+  }, []);
+
+  // Cerrar modal con Escape
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') setModalPost(null); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
   return (
     <Section>
       <Header>
@@ -311,20 +502,23 @@ export default function DescubriMas() {
         </InstagramBtn>
       </Header>
 
-      <CarouselWrapper>
-        <CarouselTrack>
-          {videos.map((v) => (
-            <Card key={v.id}>
-              <CardImg src={v.img} alt={v.titulo} />
-              <CardOverlay />
-              <CardTitle>{v.titulo}</CardTitle>
-              <PlayIcon className="play-icon">
-                <PlayArrow />
-              </PlayIcon>
-            </Card>
-          ))}
-        </CarouselTrack>
-      </CarouselWrapper>
+      {/* Carousel: solo se muestra si hay posts disponibles */}
+      {!loading && videos.length > 0 && (
+        <CarouselWrapper>
+          <CarouselTrack>
+            {videos.map((v) => (
+              <Card key={v.id} onClick={() => setModalPost(v)}>
+                <CardImg src={v.img} alt={v.titulo} />
+                <CardOverlay />
+                <CardTitle>{v.titulo}</CardTitle>
+                <PlayIcon className="play-icon">
+                  <PlayArrow />
+                </PlayIcon>
+              </Card>
+            ))}
+          </CarouselTrack>
+        </CarouselWrapper>
+      )}
 
       <Banner>
         <BannerText>
@@ -338,6 +532,35 @@ export default function DescubriMas() {
           <WhatsAppIconDark />
         </UnirmeBtn>
       </Banner>
+
+      {/* ─── Modal / Lightbox ─────────────────────────────────────────────── */}
+      {modalPost && (
+        <ModalBackdrop onClick={() => setModalPost(null)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalEmbed>
+              <ModalLoading>Cargando post…</ModalLoading>
+              <iframe
+                src={`https://www.instagram.com/p/${modalPost.code}/embed/`}
+                allowFullScreen
+                scrolling="no"
+                allow="autoplay; encrypted-media"
+                title={modalPost.titulo}
+              />
+            </ModalEmbed>
+            <ModalBody>
+              <ModalActions>
+                <ModalIgBtn href={modalPost.link} target="_blank" rel="noopener noreferrer">
+                  <InstagramIcon />
+                  Ver en Instagram
+                </ModalIgBtn>
+                <ModalCloseBtn onClick={() => setModalPost(null)} aria-label="Cerrar">
+                  ✕
+                </ModalCloseBtn>
+              </ModalActions>
+            </ModalBody>
+          </ModalCard>
+        </ModalBackdrop>
+      )}
     </Section>
   );
 }
