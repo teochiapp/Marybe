@@ -71,5 +71,13 @@ module.exports = ({ env }) => ({
       },
     },
   },
+
+  // ── Plugin de Upload (Subida de Imágenes) ──────────────────────────────────
+  upload: {
+    config: {
+      sizeOptimization: false,
+      responsiveDimensions: false,
+    },
+  },
 });
 
