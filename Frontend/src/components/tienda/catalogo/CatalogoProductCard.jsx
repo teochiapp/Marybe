@@ -6,6 +6,7 @@ import { getColorHex } from '../../../utils/colorMap';
 import AddToCartModal from '../../carrito/AddToCartModal';
 import VariantSelector from '../../shared/VariantSelector';
 import { getVariantPrice, variantesReales, getMainVariant, sortSizes } from '../../../utils/productPrice';
+import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -311,6 +312,7 @@ const AddButton = styled.button`
 
 export default function CatalogoProductCard({ product, strapiUrl }) {
   const navigate = useNavigate();
+  const { config } = useConfiguracionGeneral();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const id = product.id || product.documentId;
   const attrs = product.attributes || product;
@@ -448,8 +450,10 @@ export default function CatalogoProductCard({ product, strapiUrl }) {
         )}
       </PriceRow>
 
-      {attrs.especificaciones && (
-        <Installments>{attrs.especificaciones}</Installments>
+      {config?.cuotas_activas && (
+        <Installments>
+          {config?.cuotas_texto_previo ? config.cuotas_texto_previo + ' ' : '3 cuotas sin interés de '}{formatPrice(Math.round(currentPriceVal / (config?.cuotas_cantidad || 3)))}
+        </Installments>
       )}
       <LegalText>
         Precio sin impuestos nacionales {formatPrice(Math.round(currentPriceVal * 0.79))}
