@@ -9,6 +9,7 @@ import {
 } from '../../data/megamenu';
 import { useMegaMenu } from '../../hooks/useMegaMenu';
 import { useMegaMenuContext } from '../../hooks/useMegaMenuContext';
+import { generateProductUrl } from '../../utils/productUrl';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -399,8 +400,8 @@ export default function CategoryNav() {
            const prods = ofertasConf.productos_destacados.data || ofertasConf.productos_destacados || [];
            const items = prods.map(p => {
                const pName = p.attributes?.nombre || p.nombre;
-               const pSlug = p.attributes?.slug || p.slug || '';
-               return { label: pName, href: `/producto/${pSlug}` };
+               const pId = p.id || p.documentId;
+               return { label: pName, href: generateProductUrl(pId, pName) };
            }).filter(p => p.label);
            if (items.length > 0) colData.push({ title: ofertasConf.titulo_destacados || 'Destacados', items });
         }
@@ -427,8 +428,8 @@ export default function CategoryNav() {
            const prods = lanzConf.productos_destacados.data || lanzConf.productos_destacados || [];
            const items = prods.map(p => {
                const pName = p.attributes?.nombre || p.nombre;
-               const pSlug = p.attributes?.slug || p.slug || '';
-               return { label: pName, href: `/producto/${pSlug}` };
+               const pId = p.id || p.documentId;
+               return { label: pName, href: generateProductUrl(pId, pName) };
            }).filter(p => p.label);
            if (items.length > 0) colData.push({ title: lanzConf.titulo_destacados || 'Nuevos Lanzamientos', items });
         }

@@ -9,6 +9,7 @@ import CatalogoSidebar from '../../components/tienda/catalogo/CatalogoSidebar';
 import CatalogoControlsBar from '../../components/tienda/catalogo/CatalogoControlsBar';
 import CatalogoProductGrid from '../../components/tienda/catalogo/CatalogoProductGrid';
 import { FadeIn, FadeInLeft } from '../../components/animations/ScrollAnimations';
+import { getProductPrice } from '../../utils/productPrice';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -560,6 +561,25 @@ export default function Catalogo() {
     fetchProductos();
   }, [fetchProductos]);
 
+  // ── Sort client-side para garantizar orden numérico correcto ─────────────
+  // Strapi puede ordenar `precio` como string si el campo no es tipo number,
+  // lo que produce orden lexicográfico erróneo (ej: 1000 < 200 < 9000).
+  // Se usa el precio EFECTIVO: si hay oferta activa, se ordena por offerPrice
+  // (el precio que el cliente realmente paga), no por el precio base.
+  const sortedProductos = useMemo(() => {
+    if (activeSort !== 'precio:asc' && activeSort !== 'precio:desc') return productos;
+    return [...productos].sort((a, b) => {
+      const attrsA = a.attributes || a;
+      const attrsB = b.attributes || b;
+      const infoA = getProductPrice(attrsA);
+      const infoB = getProductPrice(attrsB);
+      // Precio efectivo = offerPrice si hay oferta activa, si no precio base
+      const effectivePriceA = parseFloat(infoA.tieneOferta ? infoA.offerPrice : infoA.price) || 0;
+      const effectivePriceB = parseFloat(infoB.tieneOferta ? infoB.offerPrice : infoB.price) || 0;
+      return activeSort === 'precio:asc' ? effectivePriceA - effectivePriceB : effectivePriceB - effectivePriceA;
+    });
+  }, [productos, activeSort]);
+
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
 
@@ -670,7 +690,7 @@ export default function Catalogo() {
           />
 
           <CatalogoProductGrid
-            productos={productos}
+            productos={sortedProductos}
             loading={loading}
             loadingMore={loadingMore}
             error={error}
