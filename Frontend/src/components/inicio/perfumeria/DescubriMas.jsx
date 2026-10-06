@@ -295,7 +295,7 @@ const ChevronRight = () => (
 );
 
 // ─── Config API ───────────────────────────────────────────────────────────────
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:1337';
+const BACKEND_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 const CACHE_KEY   = 'marybe_ig_feed';
 const CACHE_TTL   = 1000 * 60 * 60 * 24; // 24 horas
 

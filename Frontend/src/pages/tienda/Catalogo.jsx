@@ -539,8 +539,9 @@ export default function Catalogo() {
 
       if (activePriceParam) {
           // Filtro optimizado con denormalización de precios
-          params.set(`filters[$and][${andIndex}][precio_minimo_calculado][$lte]`, activePrice[1]);
-          params.set(`filters[$and][${andIndex}][precio_maximo_calculado][$gte]`, activePrice[0]);
+          const [min, max] = activePriceParam.split('-').map(Number);
+          params.set(`filters[$and][${andIndex}][precio_minimo_calculado][$lte]`, max);
+          params.set(`filters[$and][${andIndex}][precio_maximo_calculado][$gte]`, min);
           andIndex++;
         }
 
@@ -569,7 +570,7 @@ export default function Catalogo() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [activePage, activeSort, activeBusqueda, activeDescuentos, activeSeccion, activeBrands, activeSizes, activePrice, activePriceParam, activeCatParam, activeSubcatParam, activeTipoParam]);
+  }, [activePage, activeSort, activeBusqueda, activeDescuentos, activeSeccion, activeBrands, activeSizes, activePriceParam, activeCatParam, activeSubcatParam, activeTipoParam]);
 
   useEffect(() => {
     fetchProductos();
