@@ -40,7 +40,8 @@ module.exports = {
           strapi.log.warn(`Instagram API falló con status ${response.status}. Devolviendo caché vencido.`);
           return ctx.send(cachedFeed);
         }
-        return ctx.status(response.status).send({ error: 'Error al obtener el feed de Instagram' });
+        ctx.status = response.status;
+        return ctx.send({ error: 'Error al obtener el feed de Instagram' });
       }
 
       const data = await response.json();
