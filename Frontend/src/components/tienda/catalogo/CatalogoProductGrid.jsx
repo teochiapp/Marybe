@@ -23,6 +23,19 @@ const ProductsGrid = styled(motion.div)`
   }
 `;
 
+const ProductWrapper = styled(motion.div)`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+
+  &:hover,
+  &:focus-within {
+    z-index: 100;
+  }
+`;
+
 const SkeletonCard = styled.div`
   background-color: white;
   border-radius: 24px;
@@ -260,16 +273,15 @@ export default function CatalogoProductGrid({
             )
           ) : (
             productos.map((product) => (
-              <motion.div
+              <ProductWrapper
                 key={product.id || product.documentId}
                 variants={staggerItemFadeVariants}
-                style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
               >
                 <CatalogoProductCard
                   product={product}
                   strapiUrl={strapiUrl}
                 />
-              </motion.div>
+              </ProductWrapper>
             ))
           )}
         </ProductsGrid>

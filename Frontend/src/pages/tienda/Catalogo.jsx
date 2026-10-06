@@ -123,7 +123,7 @@ export default function Catalogo() {
   const [availableBrands, setAvailableBrands] = useState([]);
   const [availableCategories, setAvailableCategories] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
-  const [availablePriceRange, setAvailablePriceRange] = useState([0, 5000000]);
+  const [availablePriceRange, setAvailablePriceRange] = useState([0, 500000]);
 
 
   const [accordions, setAccordions] = useState({
@@ -412,22 +412,36 @@ export default function Catalogo() {
         
         const brands = new Set();
         const sizes = new Set();
+        let localMin = Infinity;
+        let localMax = -Infinity;
         
         (json.data || []).forEach(p => {
           const attrs = p.attributes || p;
           if (attrs.marca) brands.add(attrs.marca);
-          if (attrs.variantes) {
+          if (attrs.variantes && attrs.variantes.length > 0) {
             attrs.variantes.forEach(v => {
               // Filtrar solo tamaños reales (que contengan al menos un número), eliminando colores
               if (v.volumen && /\d/.test(v.volumen)) {
                 sizes.add(v.volumen);
               }
+              if (v.precio) {
+                const effectivePrice = v.precio_oferta || v.precio;
+                if (Math.floor(effectivePrice) < localMin) localMin = Math.floor(effectivePrice);
+                if (Math.ceil(effectivePrice) > localMax) localMax = Math.ceil(effectivePrice);
+              }
             });
+          } else if (attrs.precio) {
+            const effectivePrice = attrs.precio_oferta || attrs.precio;
+            if (Math.floor(effectivePrice) < localMin) localMin = Math.floor(effectivePrice);
+            if (Math.ceil(effectivePrice) > localMax) localMax = Math.ceil(effectivePrice);
           }
         });
 
         setAvailableBrands([...brands].sort());
         setAvailableSizes([...sizes].sort());
+        if (localMin !== Infinity && localMax !== -Infinity) {
+          setAvailablePriceRange([Math.floor(localMin), Math.ceil(localMax)]);
+        }
       } catch (err) {
         console.warn('[Catalogo] Error fetching dynamic filters:', err.message);
       }
