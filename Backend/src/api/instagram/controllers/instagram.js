@@ -3,7 +3,7 @@
 // Caché en memoria del servidor
 let cachedFeed = null;
 let lastFetchTime = null;
-const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 horas
+const CACHE_TTL = 1000 * 60 * 60 * 48; // 48 horas
 
 module.exports = {
   async getFeed(ctx) {
@@ -40,8 +40,9 @@ module.exports = {
           strapi.log.warn(`Instagram API falló con status ${response.status}. Devolviendo caché vencido.`);
           return ctx.send(cachedFeed);
         }
-        ctx.status = response.status;
-        return ctx.send({ error: 'Error al obtener el feed de Instagram' });
+        const errorBody = await response.text().catch(() => '');
+        strapi.log.error(`Instagram API falló con status ${response.status}. Body: ${errorBody}`);
+        return ctx.send({ error: 'Error al obtener el feed de Instagram' }, response.status);
       }
 
       const data = await response.json();

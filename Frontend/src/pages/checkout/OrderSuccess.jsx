@@ -479,12 +479,12 @@ export default function OrderSuccess() {
             </div>
             <div className="row">
               <span className="label">Envío</span>
-              <span className="value">Correo Argentino - 3 a 5 días hábiles</span>
+              <span className="value">{savedAddress?.metodo_envio === 'sucursal' ? 'Retiro en sucursal - Gratis' : 'Envío a domicilio'}</span>
             </div>
             <div className="row">
               <span className="label">Dirección</span>
               <span className="value">
-                {savedAddress ? `${savedAddress.calle} ${savedAddress.numero}, ${savedAddress.ciudad}` : 'Av. Dirección 1234, Ciudad, Provincia, CP 0000'}
+                {savedAddress?.metodo_envio === 'sucursal' ? `${savedAddress.sucursal}, ${savedAddress.provincia}` : savedAddress ? `${savedAddress.calle} ${savedAddress.numero}, ${savedAddress.ciudad}` : 'No especificada'}
               </span>
             </div>
 

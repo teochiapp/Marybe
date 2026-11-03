@@ -45,11 +45,3 @@ Las fallas y ajustes menores de mantenimiento no están incluidos. A continuaci�
 * **Disponibilidad garantizada:** Ambos módulos cuentan con hooks reactivos y textos/imágenes de respaldo (fallback) para garantizar que la web nunca quede vacía ante cualquier eventualidad de red.
 
 ---
-
-## ⏳ En Desarrollo / Próximas Implementaciones
-
-* **Integración de API de Instagram para Muro Social:**
-  Conexión automatizada con la API oficial de Instagram para mostrar el feed en vivo con las últimas publicaciones, reels y novedades de Marybe en la tienda online.
-
-* **Configuración de Brevo (Sendinblue) para Correos Transaccionales:**
-  Integración y configuración del proveedor de correo para el despacho automatizado y confiable de emails transaccionales (confirmación de compra, estados de pedido, recuperación de cuenta y notificaciones al cliente).

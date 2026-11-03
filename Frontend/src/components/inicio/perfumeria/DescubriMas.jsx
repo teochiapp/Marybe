@@ -297,7 +297,7 @@ const ChevronRight = () => (
 // ─── Config API ───────────────────────────────────────────────────────────────
 const BACKEND_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 const CACHE_KEY   = 'marybe_ig_feed';
-const CACHE_TTL   = 1000 * 60 * 60 * 24; // 24 horas
+const CACHE_TTL   = 1000 * 60 * 60 * 48; // 48 horas
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
@@ -336,7 +336,11 @@ export default function DescubriMas() {
           method: 'GET',
         });
 
-        if (!response.ok) return; // falla silenciosa
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Error desde el servidor de Instagram:', response.status, errorData);
+          return;
+        }
 
         const postsFormateados = await response.json();
         if (!Array.isArray(postsFormateados) || postsFormateados.length === 0) return;

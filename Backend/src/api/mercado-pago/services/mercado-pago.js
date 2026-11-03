@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = () => ({
-  async crearPreferencia({ productos = [], total = 0, userEmail = '', externalReference = '', frontendUrl = '', envio = 0, descuentoGiftCard = 0 }) {
+  async crearPreferencia({ productos = [], total = 0, userEmail = '', externalReference = '', frontendUrl = '', envio = 0, descuentoGiftCard = 0, metodo_envio = 'domicilio' }) {
     const accessToken = process.env.MP_ACCESS_TOKEN || 'APP_USR-691693310529160-062610-1056889f46d52fffc24ade8b643e4090-3499762458';
     if (!accessToken) {
       throw new Error('Mercado Pago Access Token no configurado en el backend');
@@ -16,7 +16,7 @@ module.exports = () => ({
     let costoEnvioFinal = 0;
     
     try {
-      const result = await customPedidoService.validateCartAndCalculateTotal(productos, envio, descuentoGiftCard);
+      const result = await customPedidoService.validateCartAndCalculateTotal(productos, envio, descuentoGiftCard, metodo_envio);
       finalTotal = result.finalTotal;
       validatedItems = result.validatedItems;
       costoEnvioFinal = result.costoEnvioFinal;

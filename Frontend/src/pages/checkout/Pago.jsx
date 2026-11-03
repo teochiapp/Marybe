@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
-import { sucursalesRetiro } from '../../data/checkout/paymentMethods';
+import { readDelivery, validDelivery, shippingCost } from '../../utils/checkoutDelivery';
 import { useConfiguracionGeneral } from '../../hooks/useConfiguracionGeneral';
 
 const PageContainer = styled.div`
@@ -399,28 +399,6 @@ const EnvioGrid = styled.div`
   gap: 20px;
 `;
 
-const SelectBranch = styled.select`
-  width: 100%;
-  padding: 14px 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  color: #333;
-  font-family: var(--font-family-secondary, sans-serif);
-  margin-bottom: 20px;
-  background-color: white;
-  cursor: pointer;
-
-  &:focus {
-    outline: none;
-    border-color: #5C0A0A;
-  }
-  
-  optgroup {
-    font-weight: 600;
-  }
-`;
-
 const PaymentTextInfo = styled.div`
   background-color: #f9f9f9;
   border: 1px solid #eee;
@@ -622,8 +600,8 @@ export default function Pago() {
 
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState('mercadopago');
-  const [savedAddress, setSavedAddress] = useState(null);
-  const [selectedBranch, setSelectedBranch] = useState('Peatonal Tucuman 20, Santiago del Estero');
+  const [savedAddress] = useState(readDelivery);
+  const esSucursal = savedAddress?.metodo_envio === 'sucursal';
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferFinalTotal, setTransferFinalTotal] = useState(0);
@@ -646,11 +624,10 @@ export default function Pago() {
     return esGiftCard ? acc : acc + ((item.price || item.product?.precio || 0) * (item.quantity || 1));
   }, 0);
 
-  // Efectivo = retiro en sucursal, sin costo de envío
-  const esEfectivo = paymentMethod === 'efectivo';
+  // Delivery determines shipping fees independently of the payment method.
   // El envío es gratis si es retiro, si solo se compraron Gift Cards (totalFisico === 0), o si superan el mínimo
-  const envioEsGratis = esEfectivo || (totalFisico === 0) || (envioGratisDesde !== null && totalFisico >= envioGratisDesde);
-  const costoEnvioFinal = envioEsGratis ? 0 : (costoEnvio ?? 0);
+  const costoEnvioFinal = shippingCost(savedAddress?.metodo_envio, totalFisico, siteConfig);
+  const envioEsGratis = costoEnvioFinal === 0;
 
   const buttonText = paymentMethod === 'mercadopago' || paymentMethod === 'credito' || paymentMethod === 'debito'
     ? 'Pagar'
@@ -659,6 +636,13 @@ export default function Pago() {
     : 'Hacer pedido';
 
   const handlePayment = async () => {
+    if (!validDelivery(savedAddress)) { navigate('/envio'); return; }
+    if (isProcessing) return;
+    if (!siteConfig || !metodosPago.some(method => method.id === paymentMethod)) return;
+    if (['credito', 'debito'].includes(paymentMethod)) {
+      alert('Elegí Mercado Pago para pagar con tarjeta.');
+      return;
+    }
     let finalTotal = Number(cartTotal) + Number(costoEnvioFinal);
     if (appliedGiftCard) {
       finalTotal = Math.max(0, finalTotal - Number(appliedGiftCard.monto));
@@ -667,7 +651,7 @@ export default function Pago() {
     if (paymentMethod === 'aconvenir') {
       const numero = siteConfig?.whatsapp_numero || '5493510000000';
       const lineasProductos = cartItems
-        .map((item) => `• ${item.product.nombre} (x${item.quantity}) - ${formatPrice(item.product.precio * item.quantity)}`)
+        .map((item) => `• ${item.product.nombre} (x${item.quantity}) - ${formatPrice(item.price * item.quantity)}`)
         .join('%0A');
       const totalTexto = formatPrice(finalTotal);
       const mensaje =
@@ -711,6 +695,7 @@ export default function Pago() {
             metodo_pago: paymentMethod,
             direccion_envio: savedAddress || {},
             envio: costoEnvioFinal,
+            metodo_envio: savedAddress.metodo_envio,
             descuento_gift_card: appliedGiftCard ? appliedGiftCard.monto : 0,
             codigo_gift_card: appliedGiftCard ? appliedGiftCard.codigo : null
           })
@@ -732,6 +717,7 @@ export default function Pago() {
             productos: cartItems,
             total: finalTotal, // Solo por fallback, el backend recalcula
             envio: costoEnvioFinal,
+            metodo_envio: savedAddress.metodo_envio,
             descuentoGiftCard: appliedGiftCard ? appliedGiftCard.monto : 0,
             userEmail: user?.email,
             externalReference: orderNumber,
@@ -774,9 +760,10 @@ export default function Pago() {
   };
 
   const confirmOrder = useCallback(async (overrideTotal) => {
+    if (!validDelivery(savedAddress)) { navigate('/envio'); return; }
     setIsProcessing(true);
     
-    let finalTotal = overrideTotal !== undefined ? Number(overrideTotal) : Number(cartTotal);
+    let finalTotal = overrideTotal !== undefined ? Number(overrideTotal) : Number(cartTotal) + Number(costoEnvioFinal);
     if (overrideTotal === undefined && appliedGiftCard) {
       finalTotal = Math.max(0, finalTotal - Number(appliedGiftCard.monto));
     }
@@ -799,11 +786,13 @@ export default function Pago() {
           metodo_pago: paymentMethod,
           direccion_envio: savedAddress || {},
           envio: costoEnvioFinal,
+          metodo_envio: savedAddress.metodo_envio,
           descuento_gift_card: appliedGiftCard ? appliedGiftCard.monto : 0,
           codigo_gift_card: appliedGiftCard ? appliedGiftCard.codigo : null
         })
       });
 
+      if (!response.ok) throw new Error('No se pudo registrar el pedido. Intentá nuevamente.');
       const json = await response.json();
       orderNumber = json.data?.numero_pedido || 'M-000000';
       // 2 y 3: La generación y consumo de Gift Cards ahora ocurre internamente en el backend al crear el pedido.
@@ -812,7 +801,9 @@ export default function Pago() {
       }
     } catch (err) {
       console.error('Error al registrar el pedido en Strapi (el pago ya fue procesado):', err);
-      // No bloqueamos la navegación — el pago de Mercado Pago ya se completó
+      setIsProcessing(false);
+      alert(err.message || 'No se pudo registrar el pedido.');
+      return;
     }
 
     // Limpiar carrito y navegar siempre al éxito
@@ -827,27 +818,11 @@ export default function Pago() {
         orderNumber 
       } 
     });
-  }, [cartItems, cartTotal, paymentMethod, savedAddress, appliedGiftCard, token, user, clearCart, navigate, setAppliedGiftCard]);
+  }, [cartItems, cartTotal, paymentMethod, savedAddress, appliedGiftCard, token, user, clearCart, navigate, setAppliedGiftCard, costoEnvioFinal]);
 
   useEffect(() => {
-    if (token) {
-      const fetchProfile = async () => {
-        try {
-          const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
-          const res = await fetch(`${apiUrl}/api/mi-perfil`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const json = await res.json();
-          if (json && json.data && json.data.direcciones && json.data.direcciones.length > 0) {
-            setSavedAddress(json.data.direcciones[0]);
-          }
-        } catch (err) {
-          console.error("Error al cargar perfil", err);
-        }
-      };
-      fetchProfile();
-    }
-  }, [token]);
+    if (!validDelivery(savedAddress)) navigate('/envio', { replace: true });
+  }, [savedAddress, navigate]);
 
   const getProductImage = (product) => {
     let imgUrl = '/placeholder.png';
@@ -932,7 +907,7 @@ export default function Pago() {
                   <input type="radio" checked={paymentMethod === opt.id} readOnly />
                   <div className="details">
                     <span className="title">{opt.title}</span>
-                    <span className="subtitle">{opt.subtitle}</span>
+                    <span className="subtitle">{opt.id === 'efectivo' ? (esSucursal ? 'Pagás al retirar en la sucursal elegida' : 'Pagás al recibir en tu domicilio') : opt.subtitle}</span>
                   </div>
                 </OptionInfo>
                 <OptionPrice>{opt.right}</OptionPrice>
@@ -1021,28 +996,13 @@ export default function Pago() {
               <>
                 <SectionTitle>Datos para Efectivo</SectionTitle>
 
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#535353', fontWeight: '500' }}>
-                    Selecciona la sucursal de retiro:
-                  </label>
-                  <SelectBranch value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)}>
-                    {sucursalesRetiro.map((grupo) => (
-                      <optgroup key={grupo.provincia} label={grupo.provincia}>
-                        {grupo.opciones.map((opt) => (
-                          <option key={opt.id} value={opt.id}>{opt.label}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </SelectBranch>
-                </div>
-
                 <InfoBox>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                   </svg>
                   <span>
-                    <strong>{selectedBranch}</strong> - {siteConfig?.ef_horario || 'Lun a vie de 09:00 a 20:00. Pagás al retirar.'}
+                    {esSucursal ? <><strong>{savedAddress.sucursal}, {savedAddress.provincia}</strong> - Pagás al retirar tu pedido.</> : 'Pagás al recibir el pedido en el domicilio elegido. Se mantiene el costo de envío correspondiente.'}
                   </span>
                 </InfoBox>
               </>
@@ -1079,9 +1039,9 @@ export default function Pago() {
               <SummaryRow>
                 <span>Envío:</span>
                 <span className="val" style={{ color: envioEsGratis ? '#27ae60' : '#333' }}>
-                  {costoEnvio === null && !esEfectivo
+                  {costoEnvio === null && !esSucursal
                     ? 'Calculando...'
-                    : esEfectivo
+                    : esSucursal
                     ? 'Gratis (retiro)'
                     : envioEsGratis
                     ? 'Gratis'
@@ -1121,10 +1081,10 @@ export default function Pago() {
 
               <TotalRow>
                 <span>Total</span>
-                <span className="val">{formatPrice(Number(cartTotal) + Number(costoEnvioFinal) - Number(appliedGiftCard ? appliedGiftCard.monto : 0))}</span>
+                <span className="val">{formatPrice(Math.max(0, Number(cartTotal) + Number(costoEnvioFinal) - Number(appliedGiftCard ? appliedGiftCard.monto : 0)))}</span>
               </TotalRow>
 
-              <PrimaryBtn onClick={handlePayment} disabled={isProcessing}>
+              <PrimaryBtn onClick={handlePayment} disabled={isProcessing || !validDelivery(savedAddress) || !metodosPago.some(m => m.id === paymentMethod) || cartItems.length === 0}>
                 {isProcessing ? 'Procesando...' : buttonText}
               </PrimaryBtn>
             </SummaryCard>
@@ -1133,16 +1093,17 @@ export default function Pago() {
               <SummaryTitle>Envío</SummaryTitle>
               <EnvioGrid>
                 <InfoCol>
-                  <span>Domicilio</span>
+                  <span>{esSucursal ? 'Retiro en sucursal' : 'Domicilio'}</span>
                 </InfoCol>
                 <InfoCol>
-                  {savedAddress ? (
+                  {esSucursal ? <span>{savedAddress.sucursal}, {savedAddress.provincia}</span> : savedAddress ? (
                     <span>{savedAddress.calle} {savedAddress.numero}, {savedAddress.ciudad}, {savedAddress.provincia}, CP {savedAddress.cp}</span>
                   ) : (
                     <span>Av. Dirección 1234, Ciudad, Provincia, CP 0000</span>
                   )}
                 </InfoCol>
               </EnvioGrid>
+              <Link to="/envio">Modificar método de entrega</Link>
             </SummaryCard>
           </div>
         </LayoutGrid>

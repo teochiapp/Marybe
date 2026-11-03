@@ -5,8 +5,63 @@ import { motion, AnimatePresence } from 'framer-motion';
 import './ImportacionAdmin.css';
 // Agregamos estilos específicos para la tabla de pedidos
 import './PedidosAdmin.css';
+import { getAddressLines, getOrderAttributes, getOrderDebugData, getOrderProduct } from '../../utils/orderDetails';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
+
+function printOrder(order) {
+  const previousTitle = document.title;
+  document.title = `Pedido-${order.numero_pedido || 'Marybe'}`;
+  window.print();
+  window.setTimeout(() => { document.title = previousTitle; }, 300);
+}
+
+function OrderDetailContent({ order, formatDate, formatPrice, onPrint }) {
+  const p = getOrderAttributes(order);
+  const products = (p.productos || []).map(getOrderProduct);
+  const addressLines = getAddressLines(p.direccion_envio);
+  const customer = p.usuario?.data?.attributes || p.usuario || {};
+
+  return (
+    <article className="pa-print-order">
+      <header className="pa-print-header">
+        <div className="pa-print-brand"><img src="/logo-marybe.png" alt="Marybe" className="pa-print-logo" /><span className="pa-print-kicker">Comprobante de pedido</span><h2>Pedido {p.numero_pedido}</h2></div>
+        <button className="pa-print-button" type="button" onClick={() => onPrint(p)}>Descargar / imprimir PDF</button>
+      </header>
+      <div className="pa-order-info">
+        <div><strong>Fecha de creación</strong>{formatDate(p.createdAt)}</div>
+        <div><strong>Última actualización</strong>{formatDate(p.updatedAt || p.createdAt)}</div>
+        <div><strong>Estado</strong><span className={`pa-badge pa-badge--${(p.estado || 'procesando').toLowerCase()}`}>{p.estado || 'Procesando'}</span></div>
+        <div><strong>Método de pago</strong>{p.metodo_pago || 'No especificado'}</div>
+        <div><strong>Correo del cliente</strong>{p.cliente_email || customer.email || 'No especificado'}</div>
+        <div><strong>Código de seguimiento</strong>{p.codigo_seguimiento || 'Aún no asignado'}</div>
+        <div><strong>ID de Strapi</strong>{p.documentId || p.id || 'No disponible'}</div>
+        <div><strong>Total</strong>{formatPrice(p.total)}</div>
+      </div>
+
+      <section><h3 className="pa-modal-section-title">Productos y SKU</h3>
+        <div className="pa-products-list">{products.map((item, index) => (
+          <div className="pa-product-item pa-product-item--complete" key={`${item.sku}-${index}`}>
+            <div className="pa-product-info"><span className="pa-product-name">{item.name}</span>
+              {item.brand && <span className="pa-product-meta">Marca: {item.brand}</span>}
+              <span className="pa-product-meta">Variante: {item.variant} | <strong className="pa-sku-highlight">SKU: {item.sku}</strong></span>
+              {(item.productId || item.variantId) && <span className="pa-product-meta">Producto: {item.productId || '-'} | Variante: {item.variantId || '-'}</span>}
+            </div>
+            <div className="pa-product-price">{item.quantity} x {formatPrice(item.unitPrice)}<small>Subtotal: {formatPrice(item.subtotal)}</small></div>
+          </div>
+        ))}</div>
+      </section>
+
+      <section><h3 className="pa-modal-section-title">Entrega y contacto</h3>
+        {addressLines.length ? <dl className="pa-address-list">{addressLines.map(({ label, value }) => <React.Fragment key={label}><dt>{label}</dt><dd>{value}</dd></React.Fragment>)}</dl> : <p className="pa-empty-detail">No se registró una dirección de envío.</p>}
+      </section>
+
+      {Array.isArray(p.gift_cards_generadas) && p.gift_cards_generadas.length > 0 && <section><h3 className="pa-modal-section-title">Gift cards generadas</h3><p className="pa-gift-cards">{p.gift_cards_generadas.join(', ')}</p></section>}
+      <details className="pa-raw-data"><summary>Todos los datos guardados en Strapi</summary><pre>{JSON.stringify(getOrderDebugData(order), null, 2)}</pre></details>
+      <footer className="pa-print-footer"><span>MARYBE SRL</span><span>Comprobante interno - {p.numero_pedido}</span></footer>
+    </article>
+  );
+}
 
 export default function PedidosAdmin() {
   // Auth state
@@ -31,6 +86,7 @@ export default function PedidosAdmin() {
 
   // Detalles Modal
   const [selectedPedido, setSelectedPedido] = useState(null);
+  const [printRequested, setPrintRequested] = useState(false);
   
   // Confirmar Eliminación Modal
   const [pedidoToDelete, setPedidoToDelete] = useState(null);
@@ -186,6 +242,20 @@ export default function PedidosAdmin() {
     const minutes = String(d.getMinutes()).padStart(2, '0');
     return `${day}/${month}/${year} ${hours}:${minutes}hs`;
   };
+
+  const openPrintOrder = (order) => {
+    setSelectedPedido(order);
+    setPrintRequested(true);
+  };
+
+  useEffect(() => {
+    if (!printRequested || !selectedPedido) return;
+    const timer = window.setTimeout(() => {
+      printOrder(selectedPedido);
+      setPrintRequested(false);
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [printRequested, selectedPedido]);
 
   // ─── Render: Login (Reutilizado de ImportacionAdmin) ─────────────────────────
   if (!token) {
@@ -358,6 +428,7 @@ export default function PedidosAdmin() {
                           {(p.productos || []).map((prod, idx) => (
                             <span key={idx} style={{ fontSize: '0.85rem', backgroundColor: '#f9f9f9', padding: '4px 8px', borderRadius: '4px', border: '1px solid #eee' }}>
                               <strong>{prod.cantidad}x</strong> {prod.producto} {prod.variante !== 'Única' && prod.variante !== 'Envío' && prod.variante !== 'Descuento' ? `(${prod.variante})` : ''}
+                              {prod.sku && <small className="pa-table-sku">SKU: {prod.sku}</small>}
                             </span>
                           ))}
                         </div>
@@ -366,7 +437,7 @@ export default function PedidosAdmin() {
                       <td data-label="Pago" style={{ textTransform: 'capitalize' }}>{p.metodo_pago}</td>
                       <td data-label="Estado">
                         <select 
-                          className="pa-select" 
+                          className={`pa-select pa-select--${estado.toLowerCase()}`}
                           value={estado} 
                           onChange={(e) => onStatusChangeRequest(pedido.documentId, e.target.value)}
                         >
@@ -380,6 +451,9 @@ export default function PedidosAdmin() {
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
                           <button className="pa-detail-btn" onClick={() => setSelectedPedido(p)} title="Ver detalles" style={{ padding: '6px' }}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                          </button>
+                          <button className="pa-detail-btn pa-pdf-btn" onClick={() => openPrintOrder(p)} title="Descargar o imprimir PDF" aria-label={`Descargar pedido ${p.numero_pedido} en PDF`} style={{ padding: '6px' }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                           </button>
                           <button className="pa-delete-btn" onClick={() => setPedidoToDelete(pedido.documentId)} title="Eliminar pedido">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -437,45 +511,7 @@ export default function PedidosAdmin() {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
               </button>
               
-              <h2 style={{ marginTop: 0, color: '#3E0102', fontFamily: 'var(--font-family-primary)' }}>Pedido {selectedPedido.numero_pedido}</h2>
-              
-              <div className="pa-order-info">
-                <div>
-                  <strong>Fecha:</strong> {formatDate(selectedPedido.createdAt)}
-                </div>
-                <div>
-                  <strong>Estado:</strong> <span className={`pa-badge pa-badge--${selectedPedido.estado?.toLowerCase()}`}>{selectedPedido.estado}</span>
-                </div>
-                <div>
-                  <strong>Pago:</strong> {selectedPedido.metodo_pago}
-                </div>
-                <div>
-                  <strong>Total:</strong> {formatPrice(selectedPedido.total)}
-                </div>
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <strong>Dirección de Envío:</strong><br/>
-                  {selectedPedido.direccion_envio?.calle ? (
-                    `${selectedPedido.direccion_envio.calle} ${selectedPedido.direccion_envio.numero || ''}, ${selectedPedido.direccion_envio.ciudad || ''}, ${selectedPedido.direccion_envio.provincia || ''} (CP ${selectedPedido.direccion_envio.cp || ''})`
-                  ) : 'No especificada'}
-                </div>
-              </div>
-
-              <h3 className="pa-modal-section-title">Productos</h3>
-              <div className="pa-products-list">
-                {Array.isArray(selectedPedido.productos) && selectedPedido.productos.map((prod, idx) => (
-                  <div className="pa-product-item" key={idx}>
-                    <div className="pa-product-info">
-                      <span className="pa-product-name">{prod.producto || prod.product?.nombre || 'Producto'}</span>
-                      <span className="pa-product-meta">
-                        Variante: {prod.variante || prod.size || prod.color || 'N/A'} | SKU: {prod.sku || 'N/A'}
-                      </span>
-                    </div>
-                    <div className="pa-product-price">
-                      {prod.cantidad || prod.quantity} x {formatPrice(prod.precio_unitario || prod.price)}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <OrderDetailContent order={selectedPedido} formatDate={formatDate} formatPrice={formatPrice} onPrint={printOrder} />
             </motion.div>
           </div>
         )}

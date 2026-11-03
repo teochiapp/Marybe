@@ -21,6 +21,11 @@ module.exports = {
   async createMyOrder(ctx) {
     try {
       const { productos, total, metodo_pago, direccion_envio, envio, descuento_gift_card, codigo_gift_card } = ctx.request.body;
+      const metodoEnvio = ctx.request.body.metodo_envio || direccion_envio?.metodo_envio || 'domicilio';
+      if (!['domicilio', 'sucursal'].includes(metodoEnvio)) return ctx.badRequest('Método de envío inválido.');
+      if (metodoEnvio === 'sucursal' && (!direccion_envio?.sucursal || !direccion_envio?.provincia)) {
+        return ctx.badRequest('Seleccioná una sucursal de retiro antes de pagar.');
+      }
 
       // Strapi's JWT populates ctx.state.user when the auth header is valid
       const user = ctx.state.user;
@@ -45,12 +50,14 @@ module.exports = {
       // ── Validar precios, stock y calcular total real ──
       const customPedidoService = strapi.service('api::pedido.custom-pedido');
       let finalTotal = total;
+      let validatedShipping = 0;
       
       try {
         const { finalTotal: calculatedTotal, costoEnvioFinal, validatedItems } = 
-          await customPedidoService.validateCartAndCalculateTotal(productos, envio, descuento_gift_card);
+          await customPedidoService.validateCartAndCalculateTotal(productos, envio, descuento_gift_card, metodoEnvio);
         
         finalTotal = calculatedTotal;
+        validatedShipping = costoEnvioFinal;
 
         if (finalTotal <= 0) {
           return ctx.badRequest('El total del pedido calculado en el servidor debe ser mayor a $0.');
@@ -96,14 +103,14 @@ module.exports = {
         };
       });
 
-      if (envio > 0) {
+      if (validatedShipping > 0) {
         productosLimpios.push({
           producto: 'Costo de Envío',
           marca: '',
           variante: 'Envío',
           cantidad: 1,
-          precio_unitario: envio,
-          subtotal: envio,
+          precio_unitario: validatedShipping,
+          subtotal: validatedShipping,
           sku: 'ENVIO',
           imagen: null
         });
@@ -131,7 +138,7 @@ module.exports = {
           total: finalTotal, // Usamos el total validado
           metodo_pago: metodo_pago || 'No especificado',
           estado: 'Procesando',
-          direccion_envio: direccion_envio || {},
+          direccion_envio: { ...direccion_envio, metodo_envio: metodoEnvio },
           cliente_email: user.email,
           usuario: user.documentId || user.id
         }

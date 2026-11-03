@@ -48,7 +48,9 @@ export const CartProvider = ({ children }) => {
       // Create a unique key for the cart item based on product id, size and color
       const sizeStr = variant?.volumen || 'Único';
       const colorStr = variant?.color_nombre || 'Único';
-      const uniqueId = `${product.id || product.documentId}-${sizeStr}-${colorStr}`;
+      const productId = product.id || product.documentId || product.attributes?.id || product.attributes?.documentId;
+      const variantId = variant?.id || variant?.documentId || `${sizeStr}-${colorStr}`;
+      const uniqueId = `${productId}-${variantId}`;
 
       const existingItemIndex = prevItems.findIndex(item => item.cartId === uniqueId);
 

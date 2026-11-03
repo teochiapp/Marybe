@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = ({ strapi }) => ({
-  async validateCartAndCalculateTotal(productos, envioCostoFront, descuentoGiftCardFront) {
+  async validateCartAndCalculateTotal(productos, envioCostoFront, descuentoGiftCardFront, metodoEnvio = 'domicilio') {
     let finalTotal = 0;
     const validatedItems = [];
     let totalFisico = 0;
@@ -79,6 +79,7 @@ module.exports = ({ strapi }) => ({
     try {
       const siteConfigList = await strapi.entityService.findMany('api::configuracion-general.configuracion-general');
       const siteConfig = Array.isArray(siteConfigList) ? siteConfigList[0] : siteConfigList;
+      if (!siteConfig) throw new Error('Configuración de envío no disponible.');
       if (siteConfig) {
         const configEnvio = siteConfig.costo_envio ?? 0;
         const envioGratisDesde = siteConfig.envio_gratis_desde ?? null;
@@ -86,8 +87,8 @@ module.exports = ({ strapi }) => ({
         // El envío es gratis si solo se compraron Gift Cards (totalFisico === 0), o si superan el mínimo
         const envioEsGratis = (totalFisico === 0) || (envioGratisDesde !== null && totalFisico >= envioGratisDesde);
         
-        // We also check if the frontend sent 0 for shipping (maybe it's in-store pickup)
-        if (Number(envioCostoFront) === 0) {
+        // Pickup is explicit: a client-supplied zero must not waive home delivery.
+        if (metodoEnvio === 'sucursal') {
           costoEnvioFinal = 0;
         } else {
           costoEnvioFinal = envioEsGratis ? 0 : Number(configEnvio);
@@ -95,7 +96,8 @@ module.exports = ({ strapi }) => ({
       }
     } catch (err) {
       console.warn("Could not load configuracion-general", err);
-      costoEnvioFinal = Number(envioCostoFront || 0); // fallback to frontend
+      if (metodoEnvio !== 'sucursal' && totalFisico > 0) throw new Error('No se pudo calcular el costo de envío. Intentá nuevamente.');
+      costoEnvioFinal = 0;
     }
 
     finalTotal += costoEnvioFinal;

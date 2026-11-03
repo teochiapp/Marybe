@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getVariantPrice, variantesReales, getMainVariant, sortSizes } from '../../utils/productPrice';
+import { getVariantPrice, variantesReales, sortSizes } from '../../utils/productPrice';
 import VariantSelector from '../shared/VariantSelector';
 
 // Styled Components
@@ -238,8 +238,9 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
   const sizes = sortSizes([...new Set(variantes.map(v => v.volumen || 'Único'))]);
   const tieneVariantesTam = sizes.length > 0 && (sizes.length > 1 || sizes[0] !== 'Único');
 
-  // Find active variant if not provided externally
-  let activeVariant = addedVariant;
+  // In selection mode, resolve from this modal's current choices. The success
+  // view instead reports the exact variant that was just added to the cart.
+  let activeVariant = mode === 'success' ? addedVariant : null;
   if (!activeVariant) {
     const currentSize = sizes[selectedSize] || sizes[0];
     activeVariant = variantes.find(v => {

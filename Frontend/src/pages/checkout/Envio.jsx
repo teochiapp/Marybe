@@ -4,6 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
 import { useConfiguracionGeneral } from '../../hooks/useConfiguracionGeneral';
+import PickupBranchSelector from '../../components/shared/PickupBranchSelector';
+import { DELIVERY_KEY, readDelivery, deliveryAddress, validDelivery, shippingCost as calculateShippingCost } from '../../utils/checkoutDelivery';
 
 // Styled Components
 const PageContainer = styled.div`
@@ -338,7 +340,11 @@ export default function Envio() {
   const { token } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [shippingMethod, setShippingMethod] = useState('domicilio');
+  const [shippingMethod, setShippingMethod] = useState(() => readDelivery()?.metodo_envio || 'domicilio');
+  const [selectedBranch, setSelectedBranch] = useState(() => {
+    const delivery = readDelivery();
+    return delivery?.sucursal ? { direccion: delivery.sucursal, provincia: delivery.provincia, telefono: delivery.telefono_sucursal } : null;
+  });
   const [address, setAddress] = useState('guardada');
   const [savedAddress, setSavedAddress] = useState(null);
 
@@ -395,6 +401,8 @@ export default function Envio() {
   const shippingCost = envioEsGratis ? 0 : (costoEnvio ?? 0);
   
   const finalTotal = Number(cartTotal) + Number(shippingCost);
+  const delivery = deliveryAddress(shippingMethod, savedAddress, selectedBranch);
+  const canContinue = validDelivery(delivery) && cartItems.length > 0 && (esSucursal || costoEnvio !== null);
 
   return (
     <PageContainer>
@@ -441,7 +449,7 @@ export default function Envio() {
               <OptionPrice>
                 {costoEnvio === null 
                   ? 'Calculando...' 
-                  : envioEsGratis
+                  : calculateShippingCost('domicilio', totalFisico, siteConfig) === 0
                   ? 'Gratis' 
                   : formatPrice(costoEnvio)}
               </OptionPrice>
@@ -457,6 +465,7 @@ export default function Envio() {
               <OptionPrice $isFree>Gratis</OptionPrice>
             </OptionCard>
 
+            {esSucursal ? <PickupBranchSelector selected={selectedBranch} onSelect={setSelectedBranch} /> : <>
             <SectionTitle>Dirección</SectionTitle>
 
             <OptionCard $selected={address === 'guardada'} onClick={() => setAddress('guardada')}>
@@ -476,6 +485,7 @@ export default function Envio() {
             <AddAddressBtn type="button" onClick={() => navigate('/login?edit=true')}>
               Modificar mi dirección <span>&gt;</span>
             </AddAddressBtn>
+            </>}
 
           </div>
 
@@ -533,7 +543,12 @@ export default function Envio() {
                 <span className="val">{formatPrice(finalTotal)}</span>
               </TotalRow>
 
-              <PrimaryBtn onClick={() => navigate('/pago')}>Ir a pagar</PrimaryBtn>
+              {!canContinue && <p role="status" style={{ color: '#560203' }}>{esSucursal ? 'Seleccioná una sucursal para continuar.' : 'Completá tu dirección para continuar.'}</p>}
+              <PrimaryBtn disabled={!canContinue} style={{ opacity: canContinue ? 1 : .5 }} onClick={() => {
+                if (!canContinue) return;
+                sessionStorage.setItem(DELIVERY_KEY, JSON.stringify(delivery));
+                navigate('/pago');
+              }}>Ir a pagar</PrimaryBtn>
 
             </SummaryCard>
           </div>
