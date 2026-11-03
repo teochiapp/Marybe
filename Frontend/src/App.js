@@ -61,6 +61,8 @@ const ComparacionAdmin = lazyWithRetry(() => import('./pages/admin/ComparacionAd
 const ExportarProveedorAdmin = lazyWithRetry(() => import('./pages/admin/ExportacionProveedoresAdmin'), 'ExportacionProveedoresAdmin');
 const PedidosAdmin = lazyWithRetry(() => import('./pages/admin/PedidosAdmin'), 'PedidosAdmin');
 const EditorAdmin  = lazyWithRetry(() => import('./pages/admin/editor-admin/EditorAdmin'), 'EditorAdmin');
+const BannersAdmin = lazyWithRetry(() => import('./pages/admin/BannersAdmin'), 'BannersAdmin');
+const BannersPreview = lazyWithRetry(() => import('./pages/admin/BannersPreview'), 'BannersPreview');
 
 // Página de Gift Card
 const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'), 'GiftCardPage');
@@ -76,10 +78,12 @@ function RootRoute() {
 }
 
 function App() {
+  const location = useLocation();
+  const bannerStudio = ['/banners-admin', '/banners-preview'].includes(location.pathname);
   return (
     <AuthProvider>
       <LazyMotion features={domAnimation}>
-        <Header />
+        {!bannerStudio && <Header />}
         <AuthModal />
         <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>Cargando...</div>}>
           <Routes>
@@ -127,6 +131,8 @@ function App() {
             <Route path="/exportacion-proveedores-admin" element={<ExportarProveedorAdmin />} />
             <Route path="/pedidos-admin" element={<PedidosAdmin />} />
             <Route path="/editor-admin" element={<EditorAdmin />} />
+            <Route path="/banners-admin" element={<BannersAdmin />} />
+            <Route path="/banners-preview" element={<BannersPreview />} />
 
             {/* Ruta de Gift Card */}
             <Route path="/gift-card" element={<GiftCardPage />} />
@@ -138,7 +144,7 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
-        <Footer />
+        {!bannerStudio && <Footer />}
       </LazyMotion>
     </AuthProvider>
   );

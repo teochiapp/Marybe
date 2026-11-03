@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import BannerSlot from '../../banners/BannerOverrides';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
@@ -253,7 +254,7 @@ const MoneyIcon = () => (
 
 export default function GiftCard({ seccion = 'perfumeria' }) {
   return (
-    <Banner $seccion={seccion}>
+    <BannerSlot name={`gift_${seccion}`}><Banner $seccion={seccion}>
       {/* Título solo mobile — arriba de todo */}
       <MobileTitle>
         <em>Regalá</em> Marybe
@@ -293,6 +294,6 @@ export default function GiftCard({ seccion = 'perfumeria' }) {
 
         <KnowMoreBtn to="/gift-card">Conocer más</KnowMoreBtn>
       </Content>
-    </Banner>
+    </Banner></BannerSlot>
   );
 }

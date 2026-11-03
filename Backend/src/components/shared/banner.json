@@ -7,6 +7,11 @@
   },
   "options": {},
   "attributes": {
+    "diseno": { "type": "json", "description": "Configuración visual por dispositivo del editor de banners" },
+    "subtitulo": { "type": "text" },
+    "texto_boton": { "type": "string" },
+    "mostrar_texto": { "type": "boolean", "default": false },
+    "activo": { "type": "boolean", "default": true },
     "titulo": {
       "type": "string"
     },

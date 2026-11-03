@@ -6,6 +6,8 @@ import { AuthContext } from '../../context/AuthContext';
 import { useConfiguracionGeneral } from '../../hooks/useConfiguracionGeneral';
 import PickupBranchSelector from '../../components/shared/PickupBranchSelector';
 import { DELIVERY_KEY, readDelivery, deliveryAddress, validDelivery, shippingCost as calculateShippingCost } from '../../utils/checkoutDelivery';
+import { readGuest, validGuest } from '../../utils/guestCheckout';
+import '../../components/shared/GuestCheckoutForm.css';
 
 // Styled Components
 const PageContainer = styled.div`
@@ -337,7 +339,7 @@ const formatPrice = (price) => {
 
 export default function Envio() {
   const { cartItems, cartTotal } = useContext(CartContext);
-  const { token } = useContext(AuthContext);
+  const { token, isLoading: authLoading } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [shippingMethod, setShippingMethod] = useState(() => readDelivery()?.metodo_envio || 'domicilio');
@@ -346,7 +348,14 @@ export default function Envio() {
     return delivery?.sucursal ? { direccion: delivery.sucursal, provincia: delivery.provincia, telefono: delivery.telefono_sucursal } : null;
   });
   const [address, setAddress] = useState('guardada');
-  const [savedAddress, setSavedAddress] = useState(null);
+  const [guest] = useState(readGuest);
+  const [savedAddress, setSavedAddress] = useState(() => {
+    const saved = readDelivery();
+    return !token && saved?.metodo_envio === 'domicilio' ? saved : null;
+  });
+  useEffect(() => {
+    if (!authLoading && !token && !validGuest(guest)) navigate('/login', { replace: true });
+  }, [token, guest, navigate, authLoading]);
 
   useEffect(() => {
     if (token) {
@@ -360,7 +369,7 @@ export default function Envio() {
           if (json && json.data) {
             const profile = json.data;
             if (profile.direcciones && profile.direcciones.length > 0) {
-              setSavedAddress(profile.direcciones[0]);
+              setSavedAddress({ ...profile.direcciones[0], nombre: profile.nombre || '', telefono: profile.telefono || '' });
             }
           }
         } catch (err) {
@@ -401,8 +410,9 @@ export default function Envio() {
   const shippingCost = envioEsGratis ? 0 : (costoEnvio ?? 0);
   
   const finalTotal = Number(cartTotal) + Number(shippingCost);
-  const delivery = deliveryAddress(shippingMethod, savedAddress, selectedBranch);
-  const canContinue = validDelivery(delivery) && cartItems.length > 0 && (esSucursal || costoEnvio !== null);
+  const contactAddress = !token && guest ? { ...savedAddress, nombre: `${guest.nombre} ${guest.apellido}`, telefono: guest.telefono, email: guest.email } : savedAddress;
+  const delivery = deliveryAddress(shippingMethod, contactAddress, selectedBranch);
+  const canContinue = !authLoading && validDelivery(delivery) && cartItems.length > 0 && (esSucursal || costoEnvio !== null);
 
   return (
     <PageContainer>
@@ -465,7 +475,11 @@ export default function Envio() {
               <OptionPrice $isFree>Gratis</OptionPrice>
             </OptionCard>
 
-            {esSucursal ? <PickupBranchSelector selected={selectedBranch} onSelect={setSelectedBranch} /> : <>
+            {!token && guest && <p>Compra como invitado: <strong>{guest.email}</strong> · <Link to="/login">Modificar contacto</Link></p>}
+            {esSucursal ? <PickupBranchSelector selected={selectedBranch} onSelect={setSelectedBranch} /> : !token ? <div className="guest-checkout">
+              <h3>Dirección de entrega</h3>
+              <div className="guest-checkout-fields">{[['calle', 'Calle'], ['numero', 'Número / Depto'], ['cp', 'Código postal'], ['ciudad', 'Ciudad'], ['provincia', 'Provincia']].map(([key, label]) => <label key={key} htmlFor={`delivery-${key}`}>{label}<input id={`delivery-${key}`} name={key} required maxLength={150} value={savedAddress?.[key] || ''} onChange={e => setSavedAddress(prev => ({ ...prev, [key]: e.target.value }))} /></label>)}</div>
+            </div> : <>
             <SectionTitle>Dirección</SectionTitle>
 
             <OptionCard $selected={address === 'guardada'} onClick={() => setAddress('guardada')}>

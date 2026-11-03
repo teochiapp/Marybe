@@ -355,6 +355,7 @@ export default function OrderSuccess() {
           cartTotal: pending.cartTotal,
           savedAddress: pending.savedAddress,
           email: pending.email,
+          isGuest: pending.isGuest,
           orderNumber,
         };
 
@@ -372,6 +373,7 @@ export default function OrderSuccess() {
           cartTotal: data.cartTotal || 0,
           savedAddress: data.savedAddress,
           email: data.email,
+          isGuest: data.isGuest,
           orderNumber: 'Pendiente',
         });
         return;
@@ -535,7 +537,7 @@ export default function OrderSuccess() {
             )})}
           </ProductsCard>
 
-          <OrdersBtn to="/mi-cuenta">Ir a mis pedidos</OrdersBtn>
+          {orderData.isGuest ? <><p>Compraste como invitado. La confirmación y las novedades del pedido se envían a {email}.</p><OrdersBtn to="/tienda">Seguir comprando</OrdersBtn></> : <OrdersBtn to="/mi-cuenta">Ir a mis pedidos</OrdersBtn>}
         </ConfirmationContainer>
       </ContentWrapper>
     </PageContainer>

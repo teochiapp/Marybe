@@ -5,9 +5,11 @@ module.exports = ({ strapi }) => ({
     let finalTotal = 0;
     const validatedItems = [];
     let totalFisico = 0;
+    const requestedStock = new Map();
 
     for (const item of productos) {
-      const qty = Number(item.quantity) || 1;
+      const qty = Number(item.quantity ?? 1);
+      if (!Number.isInteger(qty) || qty < 1) throw new Error('Cantidad de producto inválida.');
       let unitPrice = 0;
       
       // Check if it's a gift card purchase
@@ -34,20 +36,31 @@ module.exports = ({ strapi }) => ({
         }
 
         // Check for variant
-        if (item.variant && item.variant.id_original) {
-          const dbVariant = dbProduct.variantes?.find(v => v.id_original === item.variant.id_original);
+        if (item.variant && (item.variant.id_original != null || item.variant.id != null)) {
+          const dbVariant = dbProduct.variantes?.find(v => item.variant.id_original != null
+            ? String(v.id_original) === String(item.variant.id_original)
+            : String(v.id) === String(item.variant.id));
           if (!dbVariant) {
             throw new Error(`Variante no encontrada para el producto: ${dbProduct.nombre}`);
           }
           
           // Stock check
-          if (dbVariant.stock < qty) {
+          const stockKey = `${dbProduct.id}-variant-${dbVariant.id}`;
+          const required = (requestedStock.get(stockKey) || 0) + qty;
+          requestedStock.set(stockKey, required);
+          if (dbVariant.publicado === false) throw new Error(`Variante no disponible: ${dbProduct.nombre}`);
+          if (Number(dbVariant.stock || 0) < required) {
             throw new Error(`Sin stock suficiente para: ${dbProduct.nombre} (${dbVariant.volumen || dbVariant.color_nombre}). Disponible: ${dbVariant.stock}`);
           }
 
-          unitPrice = Number(dbVariant.precio_oferta || dbVariant.precio);
+          const basePrice = Number(dbVariant.precio ?? dbProduct.precio);
+          const offerPrice = Number(dbVariant.precio_oferta);
+          unitPrice = offerPrice > 0 && offerPrice < basePrice ? offerPrice : basePrice;
+          if (!Number.isFinite(unitPrice) || unitPrice <= 0) throw new Error(`Precio inválido: ${dbProduct.nombre}`);
           validatedItems.push({
             ...item,
+            product: { ...item.product, nombre: dbProduct.nombre, marca: dbProduct.marca, sku: dbProduct.sku },
+            variant: dbVariant,
             isGiftCard: false,
             validatedPrice: unitPrice,
             dbVariantId: dbVariant.id, // For stock deduction later
@@ -55,8 +68,12 @@ module.exports = ({ strapi }) => ({
             dbVariantIdOriginal: dbVariant.id_original
           });
         } else {
+          if (dbProduct.variantes?.some(v => v.volumen || v.color_nombre)) throw new Error(`Seleccioná una variante para: ${dbProduct.nombre}`);
           // No variant, check product stock directly
-          if (dbProduct.stock < qty) {
+          const stockKey = `${dbProduct.id}-product`;
+          const required = (requestedStock.get(stockKey) || 0) + qty;
+          requestedStock.set(stockKey, required);
+          if (Number(dbProduct.stock || 0) < required) {
             throw new Error(`Sin stock suficiente para: ${dbProduct.nombre}. Disponible: ${dbProduct.stock}`);
           }
 

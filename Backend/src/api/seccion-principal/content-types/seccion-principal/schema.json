@@ -12,6 +12,11 @@
   },
   "pluginOptions": {},
   "attributes": {
+    "banners_visuales": {
+      "type": "json",
+      "private": true,
+      "description": "Borrador y versión publicada de las piezas visuales del editor /banners-admin"
+    },
     "texto_toggle_perfumeria": {
       "type": "string",
       "default": "Perfumería"

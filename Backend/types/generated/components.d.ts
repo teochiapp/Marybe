@@ -46,6 +46,10 @@ export interface InicioDescuentos extends Struct.ComponentSchema {
     displayName: 'Configuraci\u00F3n de Descuentos';
   };
   attributes: {
+    color_titulo_cursiva: Schema.Attribute.String &
+      Schema.Attribute.CustomField<'global::paleta-color'>;
+    color_titulo_normal: Schema.Attribute.String &
+      Schema.Attribute.CustomField<'global::paleta-color'>;
     imagen_destacada: Schema.Attribute.Media<'images'>;
     productos: Schema.Attribute.Relation<'oneToMany', 'api::producto.producto'>;
     titulo_cursiva: Schema.Attribute.String &
@@ -88,6 +92,7 @@ export interface LayoutFila1Columna extends Struct.ComponentSchema {
         },
         number
       >;
+    diseno: Schema.Attribute.JSON;
     es_carrusel: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<false>;
@@ -110,6 +115,7 @@ export interface LayoutFila2Columnas extends Struct.ComponentSchema {
         },
         number
       >;
+    diseno: Schema.Attribute.JSON;
     es_carrusel: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<false>;
@@ -132,6 +138,7 @@ export interface LayoutFila4Columnas extends Struct.ComponentSchema {
         },
         number
       >;
+    diseno: Schema.Attribute.JSON;
     es_carrusel: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<false>;
@@ -154,6 +161,7 @@ export interface LayoutFilaMixta extends Struct.ComponentSchema {
         },
         number
       >;
+    diseno: Schema.Attribute.JSON;
     es_carrusel: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<false>;
@@ -263,6 +271,7 @@ export interface SharedBanner extends Struct.ComponentSchema {
     icon: 'picture';
   };
   attributes: {
+    activo: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     ancho_porcentaje: Schema.Attribute.Integer &
       Schema.Attribute.SetMinMax<
         {
@@ -272,11 +281,15 @@ export interface SharedBanner extends Struct.ComponentSchema {
         number
       > &
       Schema.Attribute.DefaultTo<100>;
+    diseno: Schema.Attribute.JSON;
     enlace: Schema.Attribute.String;
     imagen_desktop: Schema.Attribute.Media<'images'> &
       Schema.Attribute.Required;
     imagen_mobile: Schema.Attribute.Media<'images'>;
     imagen_tablet: Schema.Attribute.Media<'images'>;
+    mostrar_texto: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    subtitulo: Schema.Attribute.Text;
+    texto_boton: Schema.Attribute.String;
     titulo: Schema.Attribute.String;
   };
 }
@@ -306,6 +319,8 @@ export interface SharedItemBarraSuperior extends Struct.ComponentSchema {
     icon: 'link';
   };
   attributes: {
+    color_texto: Schema.Attribute.String &
+      Schema.Attribute.CustomField<'global::paleta-color'>;
     enlace: Schema.Attribute.String;
     icono: Schema.Attribute.Enumeration<['estrella', 'pin']> &
       Schema.Attribute.Required &
@@ -338,6 +353,10 @@ export interface SharedSeccionPrincipalItem extends Struct.ComponentSchema {
     icon: 'layout';
   };
   attributes: {
+    color_titulo_cursiva: Schema.Attribute.String &
+      Schema.Attribute.CustomField<'global::paleta-color'>;
+    color_titulo_normal: Schema.Attribute.String &
+      Schema.Attribute.CustomField<'global::paleta-color'>;
     imagen_desktop: Schema.Attribute.Media<'images'> &
       Schema.Attribute.Required;
     imagen_mobile: Schema.Attribute.Media<'images'>;

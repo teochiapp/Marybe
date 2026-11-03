@@ -835,6 +835,7 @@ export interface ApiPedidoPedido extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     direccion_envio: Schema.Attribute.JSON;
+    es_invitado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     estado: Schema.Attribute.Enumeration<
       ['Procesando', 'Enviado', 'Completado', 'Cancelado']
     > &
@@ -1017,6 +1018,7 @@ export interface ApiSeccionPrincipalSeccionPrincipal
     draftAndPublish: false;
   };
   attributes: {
+    banners_visuales: Schema.Attribute.JSON & Schema.Attribute.Private;
     categoria_especifica_hogar: Schema.Attribute.Component<
       'inicio.categoria_especifica',
       false

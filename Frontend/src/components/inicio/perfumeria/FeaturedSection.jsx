@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import BannerSlot from '../../banners/BannerOverrides';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
@@ -8,6 +9,7 @@ import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
 import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
+import { cmsColorStyle } from '../../../utils/cmsColor';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
@@ -708,10 +710,10 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
       <TopHeader>
         <TextBlock>
           <Title>
-            <span className="italic-text">
+            <span className="italic-text" style={cmsColorStyle(seccionInfo?.color_titulo_cursiva)}>
               {seccionInfo?.titulo_cursiva || 'Lo nuevo'}
             </span>
-            <span className="gold-text">
+            <span className="gold-text" style={cmsColorStyle(seccionInfo?.color_titulo_normal)}>
               {seccionInfo?.titulo_normal || 'en Marybe'}
             </span>
           </Title>
@@ -719,7 +721,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             {seccionInfo?.subtitulo || 'Intensidad, seducción y carácter en un solo lugar.'}
           </Subtitle>
         </TextBlock>
-        <FeaturedPicture>
+        <BannerSlot name="featured_perfumeria" side><FeaturedPicture>
           {seccion === 'hogar' ? (
             <img src="/inicio/hogar-featured.webp" alt="Hogar destacado" style={{ maxHeight: '42vh' }} loading="eager" decoding="sync" />
           ) : (
@@ -742,7 +744,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
               />
             </>
           )}
-        </FeaturedPicture>
+        </FeaturedPicture></BannerSlot>
       </TopHeader>
 
       <ScrollWrapper>
@@ -841,7 +843,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
                 imgUrl = getFullUrl(banner.imagen.url);
               }
               return (
-                <BottomBanner key={index}>
+                <BannerSlot key={index} name={`categoria_${index}`}><BottomBanner>
                   <BannerTitle>{banner.titulo}</BannerTitle>
                   {imgUrl && (
                     <BannerImageWrapper>
@@ -851,26 +853,26 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
                   <BannerButton onClick={() => handleBannerClick(banner.link_boton)}>
                     {banner.texto_boton}
                   </BannerButton>
-                </BottomBanner>
+                </BottomBanner></BannerSlot>
               );
             })
           ) : (
             <>
-              <BottomBanner>
+              <BannerSlot name="categoria_0"><BottomBanner>
                 <BannerTitle>El poder del elixir</BannerTitle>
                 <BannerImageWrapper>
                   <img src="/inicio/elixir.webp" alt="El poder del elixir" width="220" height="220" loading="eager" decoding="sync" />
                 </BannerImageWrapper>
                 <BannerButton onClick={() => { navigate('/tienda?banner=elixir&seccion=Perfumer%C3%ADa'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Conocer más</BannerButton>
-              </BottomBanner>
+              </BottomBanner></BannerSlot>
 
-              <BottomBanner>
+              <BannerSlot name="categoria_1"><BottomBanner>
                 <BannerTitle>Toda la línea de Azzaro</BannerTitle>
                 <BannerImageWrapper>
                   <img src="/inicio/azzaro.webp" alt="Línea Azzaro" width="220" height="220" loading="eager" decoding="sync" />
                 </BannerImageWrapper>
                 <BannerButton onClick={() => { navigate('/tienda?banner=azzaro&seccion=Perfumer%C3%ADa'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Conocer más</BannerButton>
-              </BottomBanner>
+              </BottomBanner></BannerSlot>
             </>
           )}
         </BannersRow>

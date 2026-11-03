@@ -1,11 +1,11 @@
+const { escapeHtml, deliveryDetails } = require('./delivery-details');
 module.exports = function generarAvisoPedidoEnviado(emailCliente, nombreCliente, pedido) {
+  nombreCliente = escapeHtml(nombreCliente);
   const { numero_pedido, direccion_envio, codigo_seguimiento } = pedido;
   
   let envioHtml = '';
   if (direccion_envio && Object.keys(direccion_envio).length > 0) {
-    const direccionTexto = direccion_envio.sucursal 
-      ? `<strong>Sucursal de retiro:</strong><br/>${direccion_envio.sucursal}` 
-      : `<strong>Dirección de entrega:</strong><br/>${direccion_envio.calle} ${direccion_envio.altura || ''} ${direccion_envio.piso_depto ? '(' + direccion_envio.piso_depto + ')' : ''}<br/>${direccion_envio.ciudad || ''}, ${direccion_envio.provincia || ''}`;
+    const direccionTexto = deliveryDetails(direccion_envio);
 
     envioHtml = `
       <div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin-top: 25px;">

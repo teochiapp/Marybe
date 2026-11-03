@@ -11,6 +11,12 @@
       "type": "string",
       "required": true
     },
+    "color_texto": {
+      "type": "customField",
+      "customField": "global::paleta-color",
+      "regex": "^#[0-9a-fA-F]{6}$",
+      "description": "Elegí el color de este mensaje. Vacío conserva el color original."
+    },
     "enlace": {
       "type": "string",
       "required": false

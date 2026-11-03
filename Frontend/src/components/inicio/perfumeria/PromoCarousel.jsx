@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import VisualBanners from '../../banners/VisualBanners';
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
@@ -439,6 +440,9 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
         // o si eso falla, usamos el objeto exacto de populate on fragments.
         const queryParams = new URLSearchParams();
         queryParams.append('filters[seccion][$eq]', seccionNameRaw);
+        queryParams.append('status', 'published');
+        queryParams.append('sort[0]', 'createdAt:asc');
+        queryParams.append('pagination[pageSize]', '100');
 
         // Populemos las imágenes de los banners internos usando sintaxis de fragmentos (on)
         queryParams.append('populate[Filas][on][layout.fila-1-columna][populate][banners][populate]', '*');
@@ -452,8 +456,7 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
 
         // Si es collectionType, json.data es un array. Tomamos el primero que coincida.
         if (json && json.data && json.data.length > 0) {
-          const entry = json.data[0];
-          const fetchedFilas = entry.Filas || entry.attributes?.Filas || [];
+          const fetchedFilas = json.data.flatMap(entry => entry.Filas || entry.attributes?.Filas || []);
           setFilas(fetchedFilas);
 
           // Optimización de LCP: Inyectar dinámicamente un preload en el <head> para el primer banner
@@ -464,7 +467,7 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
               const b = banners[0];
               const desktopUrl = b.imagen_desktop?.url || b.imagen_desktop?.data?.attributes?.url;
               if (desktopUrl) {
-                const fullUrl = `${STRAPI_URL}${desktopUrl}`;
+                const fullUrl = desktopUrl.startsWith('http') ? desktopUrl : `${STRAPI_URL}${desktopUrl}`;
                 if (!document.querySelector(`link[href="${fullUrl}"]`)) {
                   const link = document.createElement('link');
                   link.rel = 'preload';
@@ -500,6 +503,7 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
   }
 
   if (filas.length === 0) return null;
+  if (filas.some(row => Object.keys(row.diseno || {}).length || row.banners?.some(banner => Object.keys(banner.diseno || {}).length || banner.mostrar_texto || banner.activo === false))) return <VisualBanners rows={filas} />;
 
   return (
     <Wrapper>

@@ -10,6 +10,7 @@ import LazyViewport from '../../components/LazyViewport';
 import PromoCarousel from '../../components/inicio/perfumeria/PromoCarousel';
 import FeaturedSection from '../../components/inicio/perfumeria/FeaturedSection';
 import ScrollToTopButton from '../../components/ScrollToTopButton';
+import { BannerOverridesProvider } from '../../components/banners/BannerOverrides';
 
 // ─── Below the fold: lazy load con reintentos para evitar ChunkLoadError ─────
 const CategoriesSection       = lazyWithRetry(() => import('../../components/inicio/perfumeria/CategoriesSection'), 'CategoriesSection');
@@ -84,7 +85,7 @@ export default function Inicio() {
   };
 
   return (
-    <PageWrapper>
+    <BannerOverridesProvider><PageWrapper>
       <ToggleSelection
         seccionActiva={seccionActiva}
         onSeccionChange={handleSeccionChange}
@@ -222,6 +223,6 @@ export default function Inicio() {
       )}
 
       <ScrollToTopButton />
-    </PageWrapper>
+    </PageWrapper></BannerOverridesProvider>
   );
 }

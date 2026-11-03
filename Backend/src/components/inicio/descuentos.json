@@ -21,6 +21,18 @@
       "relation": "oneToMany",
       "target": "api::producto.producto"
     },
+    "color_titulo_cursiva": {
+      "type": "customField",
+      "customField": "global::paleta-color",
+      "regex": "^#[0-9a-fA-F]{6}$",
+      "description": "Elegí el color de la parte en cursiva del título. Vacío conserva el color original."
+    },
+    "color_titulo_normal": {
+      "type": "customField",
+      "customField": "global::paleta-color",
+      "regex": "^#[0-9a-fA-F]{6}$",
+      "description": "Elegí el color de la parte normal del título. Vacío conserva el color original."
+    },
     "imagen_destacada": {
       "type": "media",
       "multiple": false,

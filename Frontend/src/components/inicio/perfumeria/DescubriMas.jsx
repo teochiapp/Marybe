@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
+import BannerSlot from '../../banners/BannerOverrides';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -450,7 +451,7 @@ export default function DescubriMas() {
         </CarouselWrapper>
       )}
 
-      <Banner>
+      <BannerSlot name="whatsapp"><Banner>
         <BannerText>
           <BannerTitle>Sumate a nuestro canal de WhatsApp!</BannerTitle>
           <BannerDesc>
@@ -461,7 +462,7 @@ export default function DescubriMas() {
           Unirme
           <WhatsAppIconDark />
         </UnirmeBtn>
-      </Banner>
+      </Banner></BannerSlot>
     </Section>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import BannerSlot from '../../banners/BannerOverrides';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
@@ -7,6 +8,7 @@ import { getProductPrice } from '../../../utils/productPrice';
 import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
+import { cmsColorStyle } from '../../../utils/cmsColor';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-hogar);
@@ -599,10 +601,10 @@ export default function FeaturedSectionHogar() {
       <TopHeader>
         <TextBlock>
           <Title>
-            <span className="italic-text">
+            <span className="italic-text" style={cmsColorStyle(seccionInfo?.color_titulo_cursiva)}>
               {seccionInfo?.titulo_cursiva || 'Tu espacio,'}
             </span>
-            <span className="gold-text">
+            <span className="gold-text" style={cmsColorStyle(seccionInfo?.color_titulo_normal)}>
               {seccionInfo?.titulo_normal || 'tu hogar'}
             </span>
           </Title>
@@ -610,7 +612,7 @@ export default function FeaturedSectionHogar() {
             {seccionInfo?.subtitulo || 'Calidez, diseño y aromas para ambientar cada rincón.'}
           </Subtitle>
         </TextBlock>
-        <FeaturedPicture>
+        <BannerSlot name="featured_hogar" side><FeaturedPicture>
           <picture>
             {seccionInfo?.imagen_mobile?.url ? (
               <source media="(max-width: 768px)" srcSet={`${seccionInfo.imagen_mobile.url.startsWith('http') ? '' : process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${seccionInfo.imagen_mobile.url}`} />
@@ -626,7 +628,7 @@ export default function FeaturedSectionHogar() {
               decoding="sync"
             />
           </picture>
-        </FeaturedPicture>
+        </FeaturedPicture></BannerSlot>
       </TopHeader>
 
       <ScrollWrapper>

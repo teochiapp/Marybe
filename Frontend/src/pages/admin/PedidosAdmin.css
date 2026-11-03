@@ -397,18 +397,48 @@
   font-size: 0.95rem;
 }
 
-.pa-table-sku { background: #fff1ed; border: 1px solid #e7b8a8; border-radius: 4px; color: var(--color-bordo-secundario, #3e0102); display: inline-block; font-size: .74rem; font-weight: 800; letter-spacing: .025em; margin-top: 5px; padding: 2px 6px; }
+.pa-table-sku { background: #fff1ed; border: 1px solid #e7b8a8; border-radius: 4px; color: var(--color-bordo-secundario, #3e0102); display: block; width: fit-content; max-width: 100%; overflow-wrap: anywhere; font-size: .74rem; font-weight: 800; letter-spacing: .025em; margin-top: 5px; padding: 2px 6px; }
 .pa-sku-highlight { color: var(--color-bordo-secundario, #3e0102); font-weight: 800; }
-.pa-print-order { color: #2b211c; }
-.pa-print-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; border-bottom: 2px solid #3e0102; margin: 0 0 22px; padding: 0 38px 18px 0; }
-.pa-print-brand { position: relative; }
-.pa-print-logo { display: block; height: 32px; max-width: 170px; object-fit: contain; object-position: left center; margin-bottom: 13px; }
-.pa-print-header h2 { color: #3e0102; font-family: var(--font-family-primary); margin: 4px 0 0; }
-.pa-print-kicker { color: #a26045; font-size: .78rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+.pa-print-order { color: #352622; font-family: var(--font-family-secondary, Arial, sans-serif); }
+.pa-print-toolbar { display: flex; justify-content: flex-end; padding-right: 30px; margin-bottom: 24px; }
+.pa-print-header { display: grid; grid-template-columns: 1fr 1.2fr; align-items: center; gap: 24px; margin-bottom: 28px; }
+.pa-print-brand { position: relative; padding: 24px 0 16px 12px; isolation: isolate; }
+.pa-print-brand::before { content: ''; position: absolute; left: 0; top: 4px; width: 64px; height: 64px; border-radius: 50%; background: #f2d4d4; z-index: -1; }
+.pa-print-logo { display: block; width: 165px; max-width: 100%; height: auto; object-fit: contain; object-position: left center; margin-bottom: 18px; }
+.pa-print-company { color: #806963; font-size: .65rem; letter-spacing: .16em; }
+.pa-document-heading { background: #ead0ca; padding: 26px 24px; }
+.pa-print-header h2 { color: #3e0102; font-family: var(--font-family-secondary, Arial, sans-serif); font-size: 2rem; font-weight: 400; line-height: 1.1; margin: 10px 0 0; }
+.pa-print-header h2 span { display: block; font-size: 1rem; font-weight: 600; margin-top: 10px; overflow-wrap: anywhere; }
+.pa-print-kicker { color: #67433b; font-size: .6rem; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; }
 .pa-print-button { border: 0; border-radius: 8px; background: #3e0102; color: white; cursor: pointer; font: inherit; font-weight: 700; padding: 11px 14px; white-space: nowrap; }
 .pa-print-button:hover { background: #5c0a0a; }
 .pa-order-info > div { display: flex; flex-direction: column; gap: 5px; overflow-wrap: anywhere; }
 .pa-order-info > div > strong { color: #776d65; font-size: .73rem; letter-spacing: .04em; text-transform: uppercase; }
+.pa-print-order .pa-order-info { border: 0; border-radius: 0; box-shadow: none; padding: 0 0 22px; gap: 18px 24px; border-bottom: 1px solid #e9deda; font-size: .85rem; }
+.pa-print-order .pa-order-info > div > strong { font-size: .62rem; }
+.pa-print-order .pa-badge { align-self: flex-start; border-radius: 4px; padding: 4px 8px; font-size: .75rem; }
+.pa-print-order .pa-modal-section-title { border: 0; padding-bottom: 0; margin: 0 0 14px; font-family: var(--font-family-secondary, Arial, sans-serif); font-size: .72rem; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }
+.pa-receipt-table-wrap { width: 100%; overflow-x: auto; }
+.pa-receipt-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: .8rem; }
+.pa-receipt-description { width: 49%; }
+.pa-receipt-quantity { width: 9%; }
+.pa-receipt-amount { width: 21%; }
+.pa-receipt-table th { background: #eee8e5; padding: 12px 10px; text-align: left; font-size: .65rem; font-weight: 600; color: #67433b; }
+.pa-receipt-table td { padding: 14px 10px; vertical-align: top; border-bottom: 1px solid #ece6e2; overflow-wrap: anywhere; }
+.pa-receipt-table th:not(:first-child), .pa-receipt-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.pa-receipt-table tbody tr:nth-child(even) { background: #faf7f5; }
+.pa-receipt-table .pa-product-name { color: #352622; font-size: .85rem; font-weight: 600; }
+.pa-receipt-table .pa-product-meta { color: #7b6b65; font-size: .68rem; line-height: 1.4; }
+.pa-receipt-table .pa-sku-highlight { font-size: .68rem; }
+.pa-receipt-bottom { display: grid; grid-template-columns: 1.2fr 1fr; align-items: start; gap: 24px; margin-top: 28px; }
+.pa-receipt-bottom > section { min-width: 0; }
+.pa-receipt-summary { min-width: 0; break-inside: avoid; }
+.pa-receipt-total { display: flex; flex-direction: column; gap: 12px; padding: 20px; background: #ead0ca; color: #3e0102; break-inside: avoid; }
+.pa-receipt-total span { font-size: .65rem; letter-spacing: .1em; text-transform: uppercase; }
+.pa-receipt-total strong { font-size: 1.4rem; font-weight: 500; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.pa-receipt-bottom .pa-address-list { grid-template-columns: minmax(70px, .6fr) 1fr; gap: 7px 12px; padding: 0; border-radius: 0; background: none; font-size: .78rem; }
+.pa-receipt-bottom .pa-address-list dt { font-size: .68rem; font-weight: 500; }
+.pa-receipt-gifts { margin-top: 24px; }
 .pa-product-item--complete { align-items: flex-start; gap: 20px; }
 .pa-product-price { text-align: right; white-space: nowrap; }
 .pa-product-price small { display: block; color: #6b625a; font-size: .78rem; font-weight: 500; margin-top: 5px; }
@@ -420,12 +450,15 @@
 .pa-raw-data { margin-top: 24px; border-top: 1px solid #e8e1dc; padding-top: 16px; }
 .pa-raw-data summary { color: #3e0102; cursor: pointer; font-weight: 700; }
 .pa-raw-data pre { background: #231b18; border-radius: 8px; color: #f5eee8; font-size: .72rem; line-height: 1.45; max-height: 260px; overflow: auto; padding: 14px; white-space: pre-wrap; word-break: break-word; }
-.pa-print-footer { align-items: center; border-top: 1px solid #e8e1dc; color: #8b7b70; display: flex; font-size: .72rem; justify-content: space-between; letter-spacing: .03em; margin-top: 28px; padding-top: 13px; text-transform: uppercase; }
+.pa-print-footer { align-items: center; border-top: 1px solid #d8b7ad; color: #8b7b70; display: flex; gap: 16px; font-size: .62rem; justify-content: space-between; letter-spacing: .06em; margin-top: 32px; padding-top: 13px; text-transform: uppercase; }
 
-@media (max-width: 640px) {
-  .pa-print-header { flex-direction: column; padding-right: 0; }
+@media screen and (max-width: 640px) {
+  .pa-print-header { grid-template-columns: 1fr; gap: 12px; }
+  .pa-print-toolbar { padding-right: 30px; }
   .pa-print-button { width: 100%; }
-  .pa-print-logo { height: 27px; }
+  .pa-print-logo { width: 150px; }
+  .pa-receipt-table { min-width: 440px; }
+  .pa-receipt-bottom { grid-template-columns: 1fr; }
   .pa-product-item--complete { flex-direction: column; }
   .pa-product-price { text-align: left; }
   .pa-address-list { grid-template-columns: 1fr; gap: 2px; }
@@ -433,16 +466,38 @@
 }
 
 @media print {
-  body * { visibility: hidden !important; }
-  .pa-modal-overlay, .pa-modal-overlay * { visibility: visible !important; }
-  .pa-modal-overlay { align-items: flex-start; background: white !important; display: block; inset: 0; padding: 0; position: absolute; }
-  .pa-modal { box-shadow: none; max-height: none; max-width: none; overflow: visible; padding: 12mm; width: auto; }
-  .pa-modal-close, .pa-print-button, .pa-raw-data { display: none !important; }
-  .pa-print-logo { height: 10mm; margin-bottom: 5mm; max-width: 55mm; }
-  .pa-print-header { margin-bottom: 12px; }
-  .pa-order-info { box-shadow: none; break-inside: avoid; gap: 12px; margin-bottom: 18px; padding: 14px; }
-  .pa-product-item, .pa-address-list { break-inside: avoid; }
-  .pa-modal-section-title { break-after: avoid; margin-top: 18px; }
-  .pa-print-footer { break-inside: avoid; }
-  @page { margin: 10mm; size: A4; }
+  html:has(.pa-print-order), body:has(.pa-print-order), body:has(.pa-print-order) #root { height: auto; min-height: 0; max-width: none; overflow: visible; background: white; }
+  body:has(.pa-print-order) #root > :not(.pa-page), body:has(.pa-print-order) .pa-page > :not(.pa-modal-overlay) { display: none !important; }
+  .pa-page { display: block; min-height: 0; padding: 0 !important; position: static !important; overflow: visible; background: white; }
+  .pa-modal-overlay { background: white !important; display: block; inset: auto; padding: 0; position: static; }
+  .pa-modal { border-radius: 0; box-shadow: none; max-height: none; max-width: none; overflow: visible; padding: 0; width: auto; transform: none !important; opacity: 1 !important; }
+  .pa-modal-close, .pa-print-toolbar, .pa-print-button, .pa-raw-data { display: none !important; }
+  .pa-print-order { font-size: 10pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pa-print-logo { width: 46mm; max-width: 100%; margin-bottom: 6mm; }
+  .pa-print-header { margin-bottom: 6mm; break-inside: avoid; }
+  .pa-print-brand { padding-top: 7mm; }
+  .pa-document-heading { padding: 6mm 8mm; }
+  .pa-print-header h2 { font-size: 28pt; }
+  .pa-print-header h2 span { font-size: 12pt; }
+  .pa-print-order .pa-order-info { grid-template-columns: repeat(4, minmax(0, 1fr)); break-inside: avoid; gap: 3mm 5mm; margin-bottom: 6mm; padding-bottom: 5mm; font-size: 8pt; line-height: 1.35; }
+  .pa-print-order .pa-order-info > div > strong { font-size: 6.5pt; }
+  .pa-receipt-table-wrap { overflow: visible; }
+  .pa-receipt-table { font-size: 9pt; }
+  .pa-receipt-table th { padding: 3mm; font-size: 8pt; }
+  .pa-receipt-table td { padding: 2.5mm 3mm; }
+  .pa-receipt-table .pa-product-info { gap: 1px; line-height: 1.3; }
+  .pa-receipt-table .pa-product-name { font-size: 9pt; line-height: 1.3; }
+  .pa-receipt-table .pa-product-meta, .pa-receipt-table .pa-sku-highlight { font-size: 7.5pt; line-height: 1.3; }
+  .pa-receipt-table thead { display: table-header-group; }
+  .pa-receipt-table tr, .pa-product-item, .pa-address-list { break-inside: avoid; }
+  .pa-print-order .pa-modal-section-title { break-after: avoid; font-size: 8pt; }
+  .pa-receipt-bottom { margin-top: 6mm; grid-template-columns: 1.2fr 1fr; gap: 10mm; }
+  .pa-receipt-total { padding: 6mm; }
+  .pa-receipt-total strong { font-size: 20pt; }
+  .pa-receipt-bottom .pa-address-list { font-size: 8pt; line-height: 1.3; gap: 1.5mm 3mm; }
+  .pa-receipt-bottom .pa-address-list dt { font-size: 7pt; }
+  .pa-receipt-closing { break-inside: avoid; }
+  .pa-receipt-gifts { margin-top: 5mm; }
+  .pa-print-footer { break-inside: avoid; margin-top: 5mm; padding-top: 3mm; }
+  @page { margin: 15mm; size: A4; }
 }

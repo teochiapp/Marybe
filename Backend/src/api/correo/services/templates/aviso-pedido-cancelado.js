@@ -1,4 +1,6 @@
+const { escapeHtml } = require('./delivery-details');
 module.exports = function generarAvisoPedidoCancelado(emailCliente, nombreCliente, pedido) {
+  nombreCliente = escapeHtml(nombreCliente);
   const { numero_pedido } = pedido;
 
   return `

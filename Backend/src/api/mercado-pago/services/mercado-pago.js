@@ -26,11 +26,14 @@ module.exports = () => ({
 
     // Transformamos los productos validados al formato de Mercado Pago
     const items = validatedItems.map((item) => {
-      const title = (item.product?.nombre || 'Producto Marybe').slice(0, 250);
+      const variantLabel = [item.variant?.volumen, item.variant?.color_nombre].filter(Boolean).join(' / ');
+      const title = `${item.product?.nombre || 'Producto Marybe'}${variantLabel ? ` (${variantLabel})` : ''}`.slice(0, 250);
       const description = (item.product?.descripcion || 'Perfumería y cosmética').slice(0, 250);
       const quantity = Number(item.quantity) || 1;
 
       return {
+        id: `${item.dbProductId || item.product?.id}-${item.dbVariantId || 'unico'}`,
+        currency_id: 'ARS',
         title,
         description,
         category_id: 'others',
@@ -184,7 +187,7 @@ module.exports = () => ({
       const pedido = pedidos[0];
       
       // Si ya está pagado o completado, ignorar
-      if (pedido.estado !== 'Procesando') {
+      if (pedido.estado !== 'Procesando' || pedido.metodo_pago?.includes('Pagado - ID:')) {
         return;
       }
       
@@ -233,9 +236,9 @@ module.exports = () => ({
         });
 
         if (dbProduct) {
-          if (item.id_variante_original) {
+          if (item.id_variante || item.id_variante_original) {
             // Es una variante
-            const varIndex = dbProduct.variantes.findIndex(v => v.id_original === item.id_variante_original);
+            const varIndex = dbProduct.variantes.findIndex(v => item.id_variante ? String(v.id) === String(item.id_variante) : String(v.id_original) === String(item.id_variante_original));
             if (varIndex !== -1) {
               const newStock = Math.max(0, (dbProduct.variantes[varIndex].stock || 0) - (item.cantidad || 1));
               await strapi.db.query('producto.variante').update({

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
+import { cmsColorStyle } from '../../utils/cmsColor';
 
 const marquee = keyframes`
   0%   { transform: translateX(0); }
@@ -106,7 +107,8 @@ export default function TopBar() {
       .then(res => res.json())
       .then(data => {
         // Strapi v5: data.data.items || Strapi v4: data.data.attributes.items
-        const raw = data?.data?.items ?? data?.data?.attributes?.items;
+        const attrs = data?.data?.attributes || data?.data;
+        const raw = attrs?.items;
         if (Array.isArray(raw) && raw.length > 0) {
           // Respetar límite de 5
           setItems(raw.slice(0, 5));
@@ -125,7 +127,7 @@ export default function TopBar() {
     <TopBarWrapper>
       <DesktopItems>
         {items.map((item, i) => (
-          <Item key={i} to={item.enlace || '/'}>
+          <Item key={i} to={item.enlace || '/'} style={cmsColorStyle(item.color_texto)}>
             {renderIcon(item.icono)}
             <span>{item.texto}</span>
           </Item>
@@ -135,7 +137,7 @@ export default function TopBar() {
       {/* En mobile duplicamos la lista para el efecto marquee infinito */}
       <MobileTrack>
         {[...items, ...items].map((item, i) => (
-          <Item key={i} to={item.enlace || '/'}>
+          <Item key={i} to={item.enlace || '/'} style={cmsColorStyle(item.color_texto)}>
             {renderIcon(item.icono)}
             <span>{item.texto}</span>
           </Item>

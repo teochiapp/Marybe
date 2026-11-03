@@ -2,6 +2,12 @@ module.exports = {
   routes: [
     {
       method: 'POST',
+      path: '/pedidos-invitado',
+      handler: 'custom-pedido.createGuestOrder',
+      config: { auth: false },
+    },
+    {
+      method: 'POST',
       path: '/mis-pedidos',
       handler: 'custom-pedido.createMyOrder',
     },

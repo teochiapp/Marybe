@@ -205,6 +205,7 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
   const navigate = useNavigate();
   const [mode, setMode] = useState(initialMode); // 'select' or 'success'
   const [adding, setAdding] = useState(false);
+  const [submittedVariant, setSubmittedVariant] = useState(null);
   
   // States for selection
   const [selectedSize, setSelectedSize] = useState(0);
@@ -216,10 +217,14 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
     if (isOpen) {
       setMode(initialMode);
       setQty(addedQty || 1);
-      setSelectedSize(0);
-      setSelectedColor(null);
+      const variants = (product?.attributes || product)?.variantes || [];
+      const initialVariant = addedVariant || variantesReales(variants).find(v => v.publicado !== false && Number(v.stock) > 0) || variants[0];
+      const options = sortSizes([...new Set(variants.map(v => v.volumen || 'Único'))]);
+      setSelectedSize(Math.max(0, options.indexOf(initialVariant?.volumen || 'Único')));
+      setSelectedColor(initialVariant?.color_nombre || null);
+      setSubmittedVariant(null);
     }
-  }, [isOpen, initialMode, product, addedQty]);
+  }, [isOpen, initialMode, product, addedQty, addedVariant]);
 
   if (!isOpen || !product) return null;
 
@@ -240,7 +245,7 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
 
   // In selection mode, resolve from this modal's current choices. The success
   // view instead reports the exact variant that was just added to the cart.
-  let activeVariant = mode === 'success' ? addedVariant : null;
+  let activeVariant = mode === 'success' ? (submittedVariant || addedVariant) : null;
   if (!activeVariant) {
     const currentSize = sizes[selectedSize] || sizes[0];
     activeVariant = variantes.find(v => {
@@ -275,6 +280,7 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
     setAdding(true);
     setTimeout(() => {
       addToCart(product, qty, activeVariant);
+      setSubmittedVariant(activeVariant);
       setMode('success');
       setAdding(false);
     }, 850);
@@ -341,10 +347,10 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
         <VariantSelector
           coloresUnicos={coloresUnicos}
           selectedColor={selectedColor}
-          onColorSelect={setSelectedColor}
+          onColorSelect={color => { setSelectedColor(color); setQty(1); }}
           sizes={sizes}
           selectedSize={selectedSize}
-          onSizeSelect={setSelectedSize}
+          onSizeSelect={size => { setSelectedSize(size); setQty(1); }}
           tieneColores={tieneColores}
           tieneVariantesTam={tieneVariantesTam}
           variantes={variantes}

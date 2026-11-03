@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import BannerSlot from '../../banners/BannerOverrides';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
@@ -8,6 +9,7 @@ import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
 import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
+import { cmsColorStyle } from '../../../utils/cmsColor';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-hogar);
@@ -505,6 +507,7 @@ export default function DiscountedSectionHogar() {
   const [tituloCursiva, setTituloCursiva] = useState('Descuentos');
   const [tituloNormal, setTituloNormal] = useState('de Hogar');
   const [imagenUrl, setImagenUrl] = useState(null);
+  const [coloresTitulo, setColoresTitulo] = useState(null);
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
@@ -532,6 +535,7 @@ export default function DiscountedSectionHogar() {
 
   useEffect(() => {
     setProductos([]);
+    setColoresTitulo(null);
     setTituloCursiva('Descuentos');
     setTituloNormal('de Hogar');
 
@@ -548,6 +552,7 @@ export default function DiscountedSectionHogar() {
           const attrs = mainAttrs.descuento_hogar;
 
           if (attrs) {
+            setColoresTitulo(attrs);
             if (attrs.titulo_cursiva) setTituloCursiva(attrs.titulo_cursiva);
             if (attrs.titulo_normal) setTituloNormal(attrs.titulo_normal);
             if (attrs.imagen_destacada?.data?.attributes?.url) {
@@ -673,16 +678,16 @@ export default function DiscountedSectionHogar() {
             <TruckIcon /> Envíos a todo el país
           </DeliveryInfo>
           <Title>
-            <span className="italic-text">{tituloCursiva}</span>
-            <span className="regular-text">{tituloNormal}</span>
+            <span className="italic-text" style={cmsColorStyle(coloresTitulo?.color_titulo_cursiva)}>{tituloCursiva}</span>
+            <span className="regular-text" style={cmsColorStyle(coloresTitulo?.color_titulo_normal)}>{tituloNormal}</span>
           </Title>
         </TextBlock>
-        <FeaturedPicture>
+        <BannerSlot name="descuento_hogar" side><FeaturedPicture>
           <img
             src={imagenUrl || '/inicio/discountedSectionHogar.webp'}
             alt={`${tituloCursiva} ${tituloNormal}`}
           />
-        </FeaturedPicture>
+        </FeaturedPicture></BannerSlot>
       </TopHeader>
 
       <ScrollWrapper>

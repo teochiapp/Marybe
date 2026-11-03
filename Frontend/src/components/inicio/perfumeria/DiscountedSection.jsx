@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import BannerSlot from '../../banners/BannerOverrides';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
@@ -8,6 +9,7 @@ import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
 import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
+import { cmsColorStyle } from '../../../utils/cmsColor';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
@@ -526,6 +528,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
   const [tituloCursiva, setTituloCursiva] = useState('Descuentos');
   const [tituloNormal, setTituloNormal] = useState('de Miércoles');
   const [imagenUrl, setImagenUrl] = useState(null);
+  const [coloresTitulo, setColoresTitulo] = useState(null);
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
@@ -557,6 +560,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
   // Obtener configuración de la sección de descuentos
   useEffect(() => {
     setProductos([]);
+    setColoresTitulo(null);
     setTituloCursiva('Descuentos');
     setTituloNormal(seccion === 'hogar' ? 'de Hogar' : 'de Miércoles');
     fetch(singleTypeEndpoint)
@@ -572,6 +576,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
           const attrs = mainAttrs[fieldName];
           
           if (attrs) {
+            setColoresTitulo(attrs);
             if (attrs.titulo_cursiva) setTituloCursiva(attrs.titulo_cursiva);
             if (attrs.titulo_normal) setTituloNormal(attrs.titulo_normal);
             if (attrs.imagen_destacada?.data?.attributes?.url) {
@@ -694,11 +699,11 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
             <TruckIcon /> Envíos a todo el país
           </DeliveryInfo>
           <Title>
-            <span className="italic-text">{tituloCursiva}</span>
-            <span className="regular-text">{tituloNormal}</span>
+            <span className="italic-text" style={cmsColorStyle(coloresTitulo?.color_titulo_cursiva)}>{tituloCursiva}</span>
+            <span className="regular-text" style={cmsColorStyle(coloresTitulo?.color_titulo_normal)}>{tituloNormal}</span>
           </Title>
         </TextBlock>
-        <FeaturedPicture>
+        <BannerSlot name={`descuento_${seccion === 'hogar' ? 'hogar' : 'perfumeria'}`} side><FeaturedPicture>
           <img
             src={imagenUrl || '/inicio/discountedSection.webp'}
             alt={`${tituloCursiva} ${tituloNormal}`}
@@ -707,7 +712,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
             loading="eager"
             decoding="sync"
           />
-        </FeaturedPicture>
+        </FeaturedPicture></BannerSlot>
       </TopHeader>
 
       <ScrollWrapper>

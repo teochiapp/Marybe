@@ -16,7 +16,7 @@ export function getOrderProduct(item = {}) {
     unitPrice,
     subtotal: Number(item.subtotal ?? unitPrice * quantity) || 0,
     productId: item.id_producto || product.id || '',
-    variantId: item.id_variante_original || item.variant?.id_original || item.variant?.id || '',
+    variantId: item.id_variante_original || item.id_variante || item.variant?.id_original || item.variant?.id || '',
   };
 }
 

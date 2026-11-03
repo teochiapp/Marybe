@@ -45,6 +45,10 @@
     "cliente_email": {
       "type": "email"
     },
+    "es_invitado": {
+      "type": "boolean",
+      "default": false
+    },
     "usuario": {
       "type": "relation",
       "relation": "manyToOne",

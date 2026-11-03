@@ -4,11 +4,15 @@ const config = {
   ],
 };
 
-const bootstrap = (app) => {
-  console.log(app);
-};
-
 export default {
   config,
-  bootstrap,
+  register(app) {
+    app.customFields.register({
+      name: 'paleta-color',
+      type: 'string',
+      intlLabel: { id: 'marybe.palette.label', defaultMessage: 'Paleta de colores' },
+      intlDescription: { id: 'marybe.palette.description', defaultMessage: 'Elegí un color visualmente, sin escribir códigos.' },
+      components: { Input: () => import('./components/ColorPaletteInput') },
+    });
+  },
 };

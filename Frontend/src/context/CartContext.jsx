@@ -44,6 +44,11 @@ export const CartProvider = ({ children }) => {
   }, [appliedGiftCard]);
 
   const addToCart = (product, quantity = 1, variant = null) => {
+    const attrs = product.attributes || product;
+    const giftCard = product.id?.toString().startsWith('gift-card-') || attrs.nombre?.toLowerCase().includes('gift card');
+    const available = giftCard ? 99 : Number(variant?.stock ?? attrs.stock ?? 99);
+    const requested = Math.min(Math.floor(Number(quantity)), available);
+    if (!Number.isFinite(requested) || requested < 1) return;
     setCartItems(prevItems => {
       // Create a unique key for the cart item based on product id, size and color
       const sizeStr = variant?.volumen || 'Único';
@@ -57,7 +62,7 @@ export const CartProvider = ({ children }) => {
       if (existingItemIndex >= 0) {
         // Item exists, update quantity
         const updatedItems = [...prevItems];
-        updatedItems[existingItemIndex].quantity = Number(updatedItems[existingItemIndex].quantity) + Number(quantity);
+        updatedItems[existingItemIndex] = { ...updatedItems[existingItemIndex], quantity: Math.min(available, Number(updatedItems[existingItemIndex].quantity) + requested) };
         
         // Ensure we don't exceed stock if available
         const isGiftCard = product.id?.toString().startsWith('gift-card-') || product.nombre?.toLowerCase().includes('gift card');
@@ -82,7 +87,7 @@ export const CartProvider = ({ children }) => {
             stock: product.stock || product.attributes?.stock, // Added stock
           },
           variant: variant || {},
-          quantity: quantity,
+          quantity: requested,
           price: unitPrice,
         };
         return [...prevItems, newItem];
@@ -115,7 +120,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const getCartCount = () => {
-    return cartItems.reduce((count, item) => count + item.quantity, 0);
+    return cartItems.reduce((count, item) => count + Number(item.quantity), 0);
   };
 
   return (

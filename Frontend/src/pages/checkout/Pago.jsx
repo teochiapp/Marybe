@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
 import { readDelivery, validDelivery, shippingCost } from '../../utils/checkoutDelivery';
+import { readGuest, validGuest } from '../../utils/guestCheckout';
 import { useConfiguracionGeneral } from '../../hooks/useConfiguracionGeneral';
 
 const PageContainer = styled.div`
@@ -591,7 +592,7 @@ const ConfirmBtn = styled.button`
 
 export default function Pago() {
   const { cartItems, cartTotal, appliedGiftCard, setAppliedGiftCard, clearCart } = useContext(CartContext);
-  const { token, user } = useContext(AuthContext);
+  const { token, user, isLoading: authLoading } = useContext(AuthContext);
   const { config: siteConfig } = useConfiguracionGeneral();
 
   // Métodos de pago dinámicos desde Strapi (con fallback al archivo estático)
@@ -599,6 +600,9 @@ export default function Pago() {
   const infoTransf  = useMemo(() => siteConfig?.infoTransferencia ?? {}, [siteConfig]);
 
   const navigate = useNavigate();
+  const [guest] = useState(readGuest);
+  const customerEmail = token ? user?.email : guest?.email;
+  const orderEndpoint = token ? '/api/mis-pedidos' : '/api/pedidos-invitado';
   const [paymentMethod, setPaymentMethod] = useState('mercadopago');
   const [savedAddress] = useState(readDelivery);
   const esSucursal = savedAddress?.metodo_envio === 'sucursal';
@@ -636,6 +640,8 @@ export default function Pago() {
     : 'Hacer pedido';
 
   const handlePayment = async () => {
+    if (authLoading) return;
+    if (!token && !validGuest(guest)) { navigate('/login'); return; }
     if (!validDelivery(savedAddress)) { navigate('/envio'); return; }
     if (isProcessing) return;
     if (!siteConfig || !metodosPago.some(method => method.id === paymentMethod)) return;
@@ -659,7 +665,12 @@ export default function Pago() {
         `🛍 *Productos:*%0A${lineasProductos}%0A%0A` +
         `💰 *Total:%20${totalTexto}*%0A%0A` +
         `%C2%BFPodemos%20coordinar%20el%20pago?`;
-      window.open(`https://wa.me/${numero}?text=${mensaje}`, '_blank');
+      const popup = window.open('', '_blank');
+      const orderNumber = await confirmOrder(finalTotal);
+      if (!orderNumber) { popup?.close(); return; }
+      const url = `https://wa.me/${numero}?text=${mensaje}%0A%0APedido:%20${encodeURIComponent(orderNumber)}`;
+      if (popup) { popup.opener = null; popup.location.href = url; }
+      else window.location.href = url;
       return;
     }
 
@@ -683,14 +694,15 @@ export default function Pago() {
         const itemsSnapshot = [...cartItems];
         let orderNumber = 'M-000000';
 
-        const responseOrder = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/mis-pedidos`, {
+        const responseOrder = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${orderEndpoint}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
           },
           body: JSON.stringify({
             productos: cartItems,
+            ...(!token ? { cliente: guest } : {}),
             total: finalTotal,
             metodo_pago: paymentMethod,
             direccion_envio: savedAddress || {},
@@ -719,7 +731,7 @@ export default function Pago() {
             envio: costoEnvioFinal,
             metodo_envio: savedAddress.metodo_envio,
             descuentoGiftCard: appliedGiftCard ? appliedGiftCard.monto : 0,
-            userEmail: user?.email,
+            userEmail: customerEmail,
             externalReference: orderNumber,
             frontendUrl: window.location.origin,
           }),
@@ -734,7 +746,8 @@ export default function Pago() {
             cartTotal: finalTotal,
             paymentMethod: 'mercadopago',
             savedAddress: savedAddress || null,
-            email: user?.email || '',
+            email: customerEmail || '',
+            isGuest: !token,
             token: token || '',
             externalReference: orderNumber,
             appliedGiftCard: appliedGiftCard || null,
@@ -760,6 +773,8 @@ export default function Pago() {
   };
 
   const confirmOrder = useCallback(async (overrideTotal) => {
+    if (authLoading) return;
+    if (!token && !validGuest(guest)) { navigate('/login'); return; }
     if (!validDelivery(savedAddress)) { navigate('/envio'); return; }
     setIsProcessing(true);
     
@@ -774,14 +789,15 @@ export default function Pago() {
 
     try {
       // 1. Crear el pedido en Strapi
-      const response = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}/api/mis-pedidos`, {
+      const response = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${orderEndpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           productos: cartItems,
+          ...(!token ? { cliente: guest } : {}),
           total: finalTotal,
           metodo_pago: paymentMethod,
           direccion_envio: savedAddress || {},
@@ -814,15 +830,19 @@ export default function Pago() {
         cartItems: itemsSnapshot, 
         cartTotal: finalTotal, 
         savedAddress, 
-        email: user?.email,
+        email: customerEmail,
+        isGuest: !token,
         orderNumber 
       } 
     });
-  }, [cartItems, cartTotal, paymentMethod, savedAddress, appliedGiftCard, token, user, clearCart, navigate, setAppliedGiftCard, costoEnvioFinal]);
+    return orderNumber;
+  }, [cartItems, cartTotal, paymentMethod, savedAddress, appliedGiftCard, token, customerEmail, guest, orderEndpoint, clearCart, navigate, setAppliedGiftCard, costoEnvioFinal, authLoading]);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!token && !validGuest(guest)) { navigate('/login', { replace: true }); return; }
     if (!validDelivery(savedAddress)) navigate('/envio', { replace: true });
-  }, [savedAddress, navigate]);
+  }, [savedAddress, navigate, token, guest, authLoading]);
 
   const getProductImage = (product) => {
     let imgUrl = '/placeholder.png';
@@ -1084,7 +1104,7 @@ export default function Pago() {
                 <span className="val">{formatPrice(Math.max(0, Number(cartTotal) + Number(costoEnvioFinal) - Number(appliedGiftCard ? appliedGiftCard.monto : 0)))}</span>
               </TotalRow>
 
-              <PrimaryBtn onClick={handlePayment} disabled={isProcessing || !validDelivery(savedAddress) || !metodosPago.some(m => m.id === paymentMethod) || cartItems.length === 0}>
+              <PrimaryBtn onClick={handlePayment} disabled={authLoading || isProcessing || !validDelivery(savedAddress) || !metodosPago.some(m => m.id === paymentMethod) || cartItems.length === 0}>
                 {isProcessing ? 'Procesando...' : buttonText}
               </PrimaryBtn>
             </SummaryCard>

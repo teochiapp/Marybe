@@ -1,4 +1,6 @@
+const { escapeHtml } = require('./delivery-details');
 module.exports = function generarAvisoPedidoCompletado(emailCliente, nombreCliente, pedido) {
+  nombreCliente = escapeHtml(nombreCliente);
   const { numero_pedido, gift_cards_generadas } = pedido;
 
   let giftCardHtml = '';

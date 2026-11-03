@@ -1,4 +1,6 @@
+const { escapeHtml, deliveryDetails } = require('./delivery-details');
 module.exports = function generarAlertaNuevoPedidoAdmin(pedido, nombreCliente) {
+  nombreCliente = escapeHtml(nombreCliente);
   const { numero_pedido, total, metodo_pago, productos, direccion_envio, cliente_email } = pedido;
   
   // Generar filas de la tabla para cada producto
@@ -17,17 +19,15 @@ module.exports = function generarAlertaNuevoPedidoAdmin(pedido, nombreCliente) {
   // Generar bloque de dirección si existe
   let envioHtml = '';
   if (direccion_envio && Object.keys(direccion_envio).length > 0) {
-    const direccionTexto = direccion_envio.sucursal 
-      ? `<strong>Sucursal de retiro:</strong><br/>${direccion_envio.sucursal}` 
-      : `<strong>Dirección de envío:</strong><br/>${direccion_envio.calle} ${direccion_envio.altura || ''} ${direccion_envio.piso_depto ? '(' + direccion_envio.piso_depto + ')' : ''}<br/>${direccion_envio.ciudad || ''}, ${direccion_envio.provincia || ''}`;
+    const direccionTexto = deliveryDetails(direccion_envio);
 
     envioHtml = `
       <div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin-top: 25px;">
         <h3 style="color: #3E0102; margin-top: 0; font-size: 16px;">Datos del Cliente y Entrega</h3>
         <p style="margin: 0; color: #555; line-height: 1.5; font-size: 14px;">
           <strong>Cliente:</strong> ${nombreCliente}<br/>
-          <strong>Email:</strong> ${cliente_email}<br/>
-          <strong>Teléfono:</strong> ${direccion_envio.telefono || 'No proporcionado'}<br/>
+          <strong>Email:</strong> ${escapeHtml(cliente_email)}<br/>
+          <strong>Teléfono:</strong> ${escapeHtml(direccion_envio.telefono || 'No proporcionado')}<br/>
           <br/>
           ${direccionTexto}
         </p>

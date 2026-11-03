@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const guestCustomer = require('../utils/guest-customer');
 
 function verificarAdminImportacion(ctx) {
   const authHeader = ctx.request.header.authorization || '';
@@ -18,6 +19,10 @@ function verificarAdminImportacion(ctx) {
 }
 
 module.exports = {
+  async createGuestOrder(ctx) {
+    ctx.state.guestCheckout = true;
+    return module.exports.createMyOrder(ctx);
+  },
   async createMyOrder(ctx) {
     try {
       const { productos, total, metodo_pago, direccion_envio, envio, descuento_gift_card, codigo_gift_card } = ctx.request.body;
@@ -30,9 +35,21 @@ module.exports = {
       // Strapi's JWT populates ctx.state.user when the auth header is valid
       const user = ctx.state.user;
       
-      if (!user) {
+      if (!user && !ctx.state.guestCheckout) {
         return ctx.unauthorized('Debe iniciar sesión para realizar un pedido');
       }
+      let guest = null;
+      if (ctx.state.guestCheckout) {
+        if (!['mercadopago', 'transferencia', 'efectivo', 'aconvenir'].includes(metodo_pago)) return ctx.badRequest('Elegí un método de pago válido.');
+        try { guest = guestCustomer(ctx.request.body.cliente); }
+        catch (error) { return ctx.badRequest(error.message); }
+        if (metodoEnvio === 'domicilio' && !['calle', 'numero', 'ciudad', 'provincia', 'cp'].every(field => typeof direccion_envio?.[field] === 'string' && direccion_envio[field].trim())) {
+          return ctx.badRequest('Completá la dirección de entrega.');
+        }
+      }
+      const customerEmail = guest?.email || user?.email;
+      const customerName = guest ? `${guest.nombre} ${guest.apellido}` : (direccion_envio?.nombre || user?.username || 'Cliente');
+      const orderAddress = { ...direccion_envio, metodo_envio: metodoEnvio, ...(guest ? { nombre: customerName, email: guest.email, telefono: guest.telefono } : {}) };
 
       if (!productos || !Array.isArray(productos) || productos.length === 0) {
         return ctx.badRequest('El pedido no contiene productos.');
@@ -51,6 +68,7 @@ module.exports = {
       const customPedidoService = strapi.service('api::pedido.custom-pedido');
       let finalTotal = total;
       let validatedShipping = 0;
+      let validatedProducts = [];
       
       try {
         const { finalTotal: calculatedTotal, costoEnvioFinal, validatedItems } = 
@@ -58,6 +76,7 @@ module.exports = {
         
         finalTotal = calculatedTotal;
         validatedShipping = costoEnvioFinal;
+        validatedProducts = validatedItems;
 
         if (finalTotal <= 0) {
           return ctx.badRequest('El total del pedido calculado en el servidor debe ser mayor a $0.');
@@ -70,7 +89,7 @@ module.exports = {
       }
 
       // Limpiar el JSON de productos para que sea fácil de leer en el panel de administrador
-      const productosLimpios = productos.map(item => {
+      const productosLimpios = validatedProducts.map(item => {
         let imageUrl = null;
         if (item.product?.portada?.url) {
           imageUrl = item.product.portada.url;
@@ -78,28 +97,20 @@ module.exports = {
           imageUrl = item.product.portada.data.attributes.url;
         }
 
-        // Buscar el precio validado desde el backend si lo necesitamos, 
-        // pero aquí mapeamos el JSON final para guardar.
-        // Ya validamos que todo coincida, así que los guardamos. 
-        // Sin embargo, para mayor seguridad, usamos el precio que el frontend nos mandó,
-        // (que acabamos de validar) o directamente el validado.
-        
-        // El frontend envía el price y se validó en validateCartAndCalculateTotal, 
-        // usaremos el que validamos si quisiéramos, pero por compatibilidad guardamos el original
-        // con la salvedad de que sabemos que el `finalTotal` del pedido (el que se cobra) 
-        // ES correcto.
+        // Store the same authoritative variant and price used to calculate payment.
 
         return {
           producto: item.product?.nombre || 'Producto',
           marca: item.product?.marca || '',
-          variante: item.variant?.volumen || item.variant?.color_nombre || 'Única',
+          variante: [item.variant?.volumen, item.variant?.color_nombre].filter(Boolean).join(' / ') || 'Única',
           cantidad: item.quantity || 1,
-          precio_unitario: item.price || 0,
-          subtotal: (item.price || 0) * (item.quantity || 1),
-          sku: item.variant?.sku_ean || '',
+          precio_unitario: item.validatedPrice,
+          subtotal: item.validatedPrice * (Number(item.quantity) || 1),
+          sku: item.variant?.sku_ean || item.product?.sku || '',
           imagen: imageUrl,
           id_producto: item.product?.id,
-          id_variante_original: item.variant?.id_original
+          id_variante_original: item.variant?.id_original,
+          id_variante: item.dbVariantId
         };
       });
 
@@ -138,9 +149,10 @@ module.exports = {
           total: finalTotal, // Usamos el total validado
           metodo_pago: metodo_pago || 'No especificado',
           estado: 'Procesando',
-          direccion_envio: { ...direccion_envio, metodo_envio: metodoEnvio },
-          cliente_email: user.email,
-          usuario: user.documentId || user.id
+          direccion_envio: orderAddress,
+          cliente_email: customerEmail,
+          es_invitado: Boolean(guest),
+          ...(!guest && user ? { usuario: user.documentId || user.id } : {})
         }
       });
 
@@ -163,8 +175,8 @@ module.exports = {
           });
 
           if (dbProduct) {
-            if (item.id_variante_original) {
-              const varIndex = dbProduct.variantes.findIndex(v => v.id_original === item.id_variante_original);
+            if (item.id_variante || item.id_variante_original) {
+              const varIndex = dbProduct.variantes.findIndex(v => item.id_variante ? String(v.id) === String(item.id_variante) : String(v.id_original) === String(item.id_variante_original));
               if (varIndex !== -1) {
                 const newStock = Math.max(0, (dbProduct.variantes[varIndex].stock || 0) - (item.cantidad || 1));
                 await strapi.db.query('producto.variante').update({
@@ -237,9 +249,9 @@ module.exports = {
 
         // ─── Enviar Correo de Confirmación ───
         try {
-          const nombreCliente = direccion_envio?.nombre || user.username || user.nombre || 'Cliente';
+          const nombreCliente = customerName;
           await strapi.service('api::correo.correo').enviarConfirmacionPedido(
-            user.email,
+            customerEmail,
             nombreCliente,
             pedido
           );

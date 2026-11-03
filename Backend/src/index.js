@@ -130,6 +130,11 @@ async function grantPublicPermission(strapi, action) {
 
 module.exports = {
   register({ strapi }) {
+    strapi.customFields.register({
+      name: 'paleta-color',
+      type: 'string',
+      inputSize: { default: 6, isResizable: true },
+    });
     strapi.server.app.proxy = true;
     strapi.server.use(async (ctx, next) => {
       // FORZAR ABSOLUTAMENTE a Koa y a la librería Cookies a saber que estamos en HTTPS

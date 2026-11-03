@@ -1,8 +1,7 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import styled from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
-import { AuthContext } from '../../context/AuthContext';
 import { useConfiguracionGeneral } from '../../hooks/useConfiguracionGeneral';
 
 // Styled Components
@@ -559,11 +558,9 @@ const formatPrice = (price) => {
 
 export default function Carrito() {
   const { cartItems, updateQuantity, removeFromCart, cartTotal, appliedGiftCard, setAppliedGiftCard } = useContext(CartContext);
-  const { isAuthenticated, openAuthModal } = useContext(AuthContext);
   const { config: siteConfig } = useConfiguracionGeneral();
   const navigate = useNavigate();
 
-  const [waitingForAuth, setWaitingForAuth] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [couponMessage, setCouponMessage] = useState({ text: '', isError: false });
   const [isLoadingCoupon, setIsLoadingCoupon] = useState(false);
@@ -622,20 +619,8 @@ export default function Carrito() {
   const discountAmount = appliedGiftCard ? appliedGiftCard.monto : 0;
   const finalTotal = Math.max(0, cartTotal - discountAmount + costoEnvioFinal);
 
-  // Auto-redirigir al checkout si el usuario se acaba de loguear desde este botón
-  useEffect(() => {
-    if (isAuthenticated && waitingForAuth) {
-      navigate('/login');
-    }
-  }, [isAuthenticated, waitingForAuth, navigate]);
-
   const handleContinuar = () => {
-    if (isAuthenticated) {
-      navigate('/login');
-    } else {
-      setWaitingForAuth(true);
-      openAuthModal();
-    }
+    navigate('/login');
   };
 
   return (

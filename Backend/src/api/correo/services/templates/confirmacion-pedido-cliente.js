@@ -1,4 +1,6 @@
+const { escapeHtml, deliveryDetails } = require('./delivery-details');
 module.exports = function generarConfirmacionPedidoCliente(emailCliente, nombreCliente, pedido) {
+  nombreCliente = escapeHtml(nombreCliente);
   const { numero_pedido, total, metodo_pago, productos, direccion_envio } = pedido;
   
   // Generar filas de la tabla para cada producto
@@ -17,9 +19,7 @@ module.exports = function generarConfirmacionPedidoCliente(emailCliente, nombreC
   // Generar bloque de dirección si existe
   let envioHtml = '';
   if (direccion_envio && Object.keys(direccion_envio).length > 0) {
-    const direccionTexto = direccion_envio.sucursal 
-      ? `<strong>Sucursal de retiro:</strong><br/>${direccion_envio.sucursal}` 
-      : `<strong>Dirección de envío:</strong><br/>${direccion_envio.calle} ${direccion_envio.altura || ''} ${direccion_envio.piso_depto ? '(' + direccion_envio.piso_depto + ')' : ''}<br/>${direccion_envio.ciudad || ''}, ${direccion_envio.provincia || ''}`;
+    const direccionTexto = deliveryDetails(direccion_envio);
 
     envioHtml = `
       <div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin-top: 25px;">

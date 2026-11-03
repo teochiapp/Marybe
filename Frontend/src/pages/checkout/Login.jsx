@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
+import GuestCheckoutForm from '../../components/shared/GuestCheckoutForm';
 
 // Styled Components (Shared with Envio)
 const PageContainer = styled.div`
@@ -453,11 +454,12 @@ export default function Login() {
             {!token ? (
               <div style={{ padding: '30px 0', textAlign: 'center' }}>
                 <p style={{ fontSize: '1.05rem', color: '#555', marginBottom: '20px' }}>
-                  Para continuar con tu compra, inicia sesión o crea una cuenta rápida.
+                  Elegí cómo continuar: con tu cuenta o como invitado.
                 </p>
                 <PrimaryBtn type="button" onClick={() => openAuthModal('/envio')}>
                   Iniciar Sesión / Registrarse
                 </PrimaryBtn>
+                <GuestCheckoutForm onContinue={() => navigate('/envio')} />
               </div>
             ) : isLoadingProfile ? (
               <div style={{ padding: '30px 0', textAlign: 'center', color: '#666' }}>
