@@ -7,7 +7,7 @@ export function readDelivery() {
 
 export function deliveryAddress(method, address, branch) {
   if (method === 'sucursal') {
-    return { ...(address?.nombre ? { nombre: address.nombre } : {}), ...(address?.telefono ? { telefono: address.telefono } : {}), ...(address?.email ? { email: address.email } : {}), metodo_envio: 'sucursal', sucursal: branch?.direccion || '', provincia: branch?.provincia || '', telefono_sucursal: branch?.telefono || '' };
+    return { ...(address?.nombre ? { nombre: address.nombre } : {}), ...(address?.telefono ? { telefono: address.telefono } : {}), ...(address?.email ? { email: address.email } : {}), metodo_envio: 'sucursal', sucursal: branch?.direccion || '', ...(branch?.ciudad ? { ciudad: branch.ciudad } : {}), provincia: branch?.provincia || '', telefono_sucursal: branch?.telefono || '' };
   }
   return { ...address, metodo_envio: 'domicilio' };
 }

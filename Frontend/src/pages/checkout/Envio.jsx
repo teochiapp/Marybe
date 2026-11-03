@@ -345,7 +345,7 @@ export default function Envio() {
   const [shippingMethod, setShippingMethod] = useState(() => readDelivery()?.metodo_envio || 'domicilio');
   const [selectedBranch, setSelectedBranch] = useState(() => {
     const delivery = readDelivery();
-    return delivery?.sucursal ? { direccion: delivery.sucursal, provincia: delivery.provincia, telefono: delivery.telefono_sucursal } : null;
+    return delivery?.sucursal ? { direccion: delivery.sucursal, ciudad: delivery.ciudad, provincia: delivery.provincia, telefono: delivery.telefono_sucursal } : null;
   });
   const [address, setAddress] = useState('guardada');
   const [guest] = useState(readGuest);

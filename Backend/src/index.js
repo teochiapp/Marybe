@@ -240,6 +240,7 @@ module.exports = {
             sucursales: [
               {
                 provincia: 'Santiago del Estero',
+                ciudad: 'Santiago del Estero',
                 calle: 'Absalón Rojas 55',
                 numero_celular: '+54 9 3854 73-5731',
                 numero_fijo: '(0385) 4214890',
@@ -247,6 +248,7 @@ module.exports = {
               },
               {
                 provincia: 'Santiago del Estero',
+                ciudad: 'Santiago del Estero',
                 calle: 'Absalón Rojas 20',
                 numero_celular: '+54 9 3854 71-4936',
                 numero_fijo: '',
@@ -254,6 +256,7 @@ module.exports = {
               },
               {
                 provincia: 'Santiago del Estero',
+                ciudad: 'Santiago del Estero',
                 calle: 'Pellegrini 141',
                 numero_celular: '+54 9 3854 71-4941',
                 numero_fijo: '(0385) 4211687',
@@ -261,6 +264,7 @@ module.exports = {
               },
               {
                 provincia: 'Santiago del Estero',
+                ciudad: 'Santiago del Estero',
                 calle: 'Tucumán 20',
                 numero_celular: '+54 9 3855 18-9775',
                 numero_fijo: '(0385) 4227000',
@@ -268,6 +272,7 @@ module.exports = {
               },
               {
                 provincia: 'Santiago del Estero',
+                ciudad: 'La Banda',
                 calle: 'España 99 - La Banda',
                 numero_celular: '+54 9 3855 99-6408',
                 numero_fijo: '(0385) 4221300',
@@ -275,6 +280,7 @@ module.exports = {
               },
               {
                 provincia: 'Tucumán',
+                ciudad: 'San Miguel de Tucumán',
                 calle: '25 de Mayo 256',
                 numero_celular: '+54 9 3814 01-1551',
                 numero_fijo: '(0381) 4310500',
@@ -282,6 +288,7 @@ module.exports = {
               },
               {
                 provincia: 'Tucumán',
+                ciudad: 'San Miguel de Tucumán',
                 calle: 'Maipú 164',
                 numero_celular: '+54 9 3854 71-4926',
                 numero_fijo: '',

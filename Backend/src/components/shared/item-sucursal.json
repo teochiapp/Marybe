@@ -11,6 +11,9 @@
       "type": "string",
       "required": true
     },
+    "ciudad": {
+      "type": "string"
+    },
     "calle": {
       "type": "string",
       "required": true

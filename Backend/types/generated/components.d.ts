@@ -338,6 +338,7 @@ export interface SharedItemSucursal extends Struct.ComponentSchema {
   };
   attributes: {
     calle: Schema.Attribute.String & Schema.Attribute.Required;
+    ciudad: Schema.Attribute.String;
     embed_google_maps: Schema.Attribute.Text;
     numero_celular: Schema.Attribute.String;
     numero_fijo: Schema.Attribute.String;

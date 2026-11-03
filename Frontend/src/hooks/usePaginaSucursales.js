@@ -37,6 +37,7 @@ export function usePaginaSucursales() {
             if (!groupedMap.has(prov)) groupedMap.set(prov, []);
             groupedMap.get(prov).push({
               direccion: item.calle || item.direccion || '',
+              ciudad: item.ciudad || '',
               telefono: item.numero_celular || item.telefono || '',
               telefonoFijo: item.numero_fijo || item.telefonoFijo || '',
               mapa: item.embed_google_maps || item.mapa || '',

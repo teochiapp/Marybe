@@ -144,3 +144,13 @@ Cambios realizados:
 - Los ítems enviados a Mercado Pago incluyen identificadores diferenciados y el volumen/color en el título, usando sus precios validados.
 - Se probó el envío desde Pago de un carrito con cuatro variantes, el total con envío y la conservación del pedido pendiente antes de redirigir a Mercado Pago.
 - Validación: 83 pruebas de frontend y 8 de backend aprobadas. Las llamadas a Mercado Pago se simulan, sin generar preferencias ni cobros reales.
+
+
+En el Single Type de Sucursales (página de sucursales) agregar un campo extra al componente repetible que sea Ciudad ✅
+
+Cambios realizados:
+- Se agregó el campo opcional `ciudad` al componente repetible de cada sucursal en el Single Type Página de Sucursales de Strapi. Queda disponible junto a provincia, calle y teléfonos en las siete sucursales.
+- El hook de la página incorpora la ciudad recibida desde Strapi y el respaldo local ya incluye las ciudades de las sucursales existentes, para que el selector mantenga la información aun cuando falle la carga remota.
+- En el desplegable de Retiro por sucursal del carrito, cada opción se presenta como `calle - ciudad`, por ejemplo `Pellegrini 141 - Santiago del Estero`, facilitando distinguir locales de una misma provincia. Si una sucursal aún no tiene ciudad cargada, su opción sigue siendo seleccionable y se muestra solo con la calle.
+- La ciudad elegida se conserva dentro de los datos de entrega al continuar a Pago o volver al paso de Envío.
+- Validación: pruebas focalizadas de Envío y datos de entrega aprobadas (4 pruebas); compilación de producción de Frontend y panel de Strapi completadas correctamente. Se mantienen advertencias preexistentes de Browserslist y ESLint.
