@@ -104,6 +104,13 @@ module.exports = ({ strapi }) => ({
     if (body.publish === true) await strapi.documents(PROMO).publish({ documentId: saved.documentId });
     return strapi.documents(PROMO).findOne({ documentId: saved.documentId, status: 'draft', populate });
   },
+  async deletePromotion(documentId, body = {}) {
+    const current = await strapi.documents(PROMO).findOne({ documentId, status: 'draft', populate });
+    if (!current) fail('La sección de banners no existe.', 404);
+    if (current.updatedAt !== body.version) fail('Otro administrador modificó estos banners. Recargá antes de eliminar.', 409);
+    await strapi.documents(PROMO).delete({ documentId });
+    return { documentId };
+  },
   async saveSlots(body) {
     const current = await strapi.documents(MAIN).findFirst();
     if (!current) fail('Primero configurá la Página de Inicio en Strapi.', 404);

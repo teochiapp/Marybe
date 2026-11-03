@@ -76,6 +76,12 @@ Acceso de Banners Admin:
 - Se reutilizan las clases y la hoja de estilos de Importación Admin; el acceso mantiene la ruta de autenticación de administración, el token compartido y la protección de permisos de Banners Admin.
 - Validación: se agregó una prueba del panel compartido, credenciales y almacenamiento del token.
 
+Eliminación de secciones:
+- Se agregó “Eliminar sección” al menú de tres puntos de cada sección de banners. Pide confirmación antes de ejecutar la acción.
+- La eliminación borra la sección en Strapi con autenticación y control de versión, evitando eliminar cambios que otra persona haya actualizado. Las secciones nuevas que aún no se guardaron se retiran solo del borrador local.
+- Tras borrar una sección se selecciona la siguiente disponible; si era la última, queda disponible el estado para crear una nueva sección.
+- Validación: pruebas de frontend y backend cubren la confirmación, la llamada protegida y el control de conflictos.
+
 Tener la capacidad de elegir si registrarse o comprar como INVITADO ✅
 
 Cambios realizados:

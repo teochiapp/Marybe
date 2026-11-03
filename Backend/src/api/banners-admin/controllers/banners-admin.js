@@ -17,6 +17,7 @@ async function run(ctx, action) {
 module.exports = {
   list: ctx => run(ctx, service => service.list()),
   save: ctx => run(ctx, service => service.savePromotion(ctx.params.id, ctx.request.body)),
+  remove: ctx => run(ctx, service => service.deletePromotion(ctx.params.id, ctx.request.body)),
   slots: ctx => run(ctx, service => service.saveSlots(ctx.request.body)),
   async publicSlots(ctx) { ctx.set('Cache-Control', 'no-cache'); return ctx.send({ data: await strapi.service('api::banners-admin.banners-admin').publicSlots() }); },
   media: ctx => run(ctx, () => strapi.db.query('plugin::upload.file').findMany({

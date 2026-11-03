@@ -59,7 +59,7 @@ export default function BannerStructure({ documents, source, selected, inspect, 
   const activeRow = active?.Filas?.[menu?.row];
   const activeBanner = activeRow?.banners?.[menu?.banner];
   const actions = menu?.type === 'section' ? [
-    ['rename-section', 'Renombrar sección'], ['duplicate-section', 'Duplicar sección'], ['add-distribution', 'Agregar distribución'],
+    ['rename-section', 'Renombrar sección'], ['duplicate-section', 'Duplicar sección'], ['add-distribution', 'Agregar distribución'], ['delete-section', 'Eliminar sección'],
   ] : menu?.type === 'distribution' ? [
     ['duplicate-distribution', 'Duplicar distribución'], ['up-distribution', 'Mover arriba', menu.row === 0], ['down-distribution', 'Mover abajo', menu.row >= (active?.Filas?.length || 0) - 1],
     ['hide-distribution', deviceDesign(activeRow?.diseno, device, {}).hidden ? 'Mostrar en este dispositivo' : 'Ocultar en este dispositivo'], ['delete-distribution', 'Eliminar distribución', active?.Filas?.length <= 1],

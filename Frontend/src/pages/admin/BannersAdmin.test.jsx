@@ -255,3 +255,15 @@ test('banners uses the shared administrative login panel', async () => {
   await waitFor(() => expect(axios.post).toHaveBeenCalledWith(expect.stringMatching(/\/api\/importacion-admin\/login$/), { identifier: 'admin@marybe.com', password: 'clave-segura' }));
   expect(localStorage.getItem('admin_jwt')).toBe('new-admin-token');
 });
+
+test('the section menu deletes a saved section after confirmation', async () => {
+  const confirm = jest.spyOn(window, 'confirm').mockReturnValue(true);
+  axios.delete.mockResolvedValue({ data: { data: { documentId: 'promo-1' } } });
+  render(<BannersAdmin />);
+  await screen.findByRole('spinbutton', { name: 'Alto' });
+  fireEvent.click(screen.getByRole('button', { name: 'Acciones de sección: Campaña inicial' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Eliminar sección' }));
+  await waitFor(() => expect(axios.delete).toHaveBeenCalledWith(expect.stringMatching(/\/api\/banners-admin\/promociones\/promo-1$/), expect.objectContaining({ data: { version: 'v1' } })));
+  expect(screen.getByRole('heading', { name: 'Creá tu primera sección de banners' })).toBeTruthy();
+  confirm.mockRestore();
+});

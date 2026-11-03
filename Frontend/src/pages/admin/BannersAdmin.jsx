@@ -229,6 +229,28 @@ export default function BannersAdmin() {
     navigation.current.set(key, { draft: document, baseline: JSON.stringify(document), history: [document], historyIndex: 0, selected: { row: 0, banner: 0 } });
     setSource(key); setInspect('banner'); setInitial(document);
   }
+  async function deleteSection(position) {
+    const entry = documents.find(item => item.key === position.key);
+    const target = entry?.document || draft;
+    if (!target || busy || !window.confirm(`¿Eliminar la sección "${target.titulo || 'sin nombre'}"? Esta acción no se puede deshacer.`)) return;
+    setBusy(true); setError(''); setMessage('');
+    try {
+      if (target.documentId) await axios.delete(`${API}/api/banners-admin/promociones/${target.documentId}`, { ...auth, data: { version: target.updatedAt } });
+      navigation.current.delete(position.key);
+      if (target.documentId) setPromotions(previous => previous.filter(item => item.documentId !== target.documentId));
+      const next = documents.find(item => item.key !== position.key);
+      if (!next) {
+        setSource(''); setDraft(null); setHistory([]); setHistoryIndex(0); setSelected({ row: 0, banner: 0 }); setInspect('banner');
+      } else {
+        const cached = navigation.current.get(next.key);
+        const nextDraft = structuredCopy(cached?.draft || normalized(next.document));
+        setSource(next.key); setArea(nextDraft.seccion); setInspect(cached?.inspect || 'banner');
+        baseline.current = cached?.baseline || JSON.stringify(nextDraft);
+        setDraft(nextDraft); setHistory(cached?.history || [nextDraft]); setHistoryIndex(cached?.historyIndex || 0); setSelected(cached?.selected || { row: 0, banner: 0 });
+      }
+      setMessage('Sección eliminada.');
+    } catch (error) { handleError(error); } finally { setBusy(false); }
+  }
   function selectElement(row, banner, mode) { setSelected({ row, banner }); setInspect(mode); }
   function addBanner(rowIndex) {
     if (busy) return;
@@ -248,6 +270,7 @@ export default function BannersAdmin() {
       requestAnimationFrame(() => { const input = document.getElementById(action === 'rename-section' ? 'ba-section-name' : 'ba-banner-name'); input?.focus(); input?.select(); });
     }
     if (action === 'duplicate-section') createPromotion({ titulo: `${draft.titulo} (copia)`, seccion: area, Filas: rows.map(duplicateRow) });
+    if (action === 'delete-section') deleteSection(position);
     if (action === 'add-distribution') addDistribution();
     if (action === 'duplicate-distribution') { change(copy => copy.Filas.splice(ri + 1, 0, duplicateRow(rows[ri]))); selectElement(ri + 1, 0, 'row'); }
     if (action === 'up-distribution' || action === 'down-distribution') { moveRow(ri, action === 'up-distribution' ? -1 : 1); setInspect('row'); }

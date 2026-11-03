@@ -18,6 +18,7 @@ function fixture() {
         create: async ({ data }) => { promotion = { ...data, documentId: 'new-1', updatedAt: 'v2' }; return promotion; },
         update: async ({ data }) => { events.push(['update', uid, data]); if (isMain) { main = { ...main, ...data, updatedAt: 'm2' }; return main; } promotion = { ...promotion, ...data, updatedAt: 'v2' }; return promotion; },
         publish: async ({ documentId }) => events.push(['publish', documentId]),
+        delete: async ({ documentId }) => { events.push(['delete', documentId]); promotion = null; },
       };
     },
     db: { query: () => ({ findOne: async ({ where }) => where.id === 3 ? { id: 3, mime: 'image/webp' } : null }) },
@@ -45,6 +46,12 @@ test('publicación usa update de borrador y publish explícito de Strapi', async
   const { service, events } = fixture();
   await service.savePromotion('promo-1', { ...promoBody(), publish: true });
   assert.deepEqual(events.map(e => e[0]), ['update', 'publish']);
+});
+test('deleting a section requires the current version and removes the document', async () => {
+  const { service, events } = fixture();
+  await assert.rejects(service.deletePromotion('promo-1', { version: 'old' }), error => error.status === 409);
+  assert.deepEqual(await service.deletePromotion('promo-1', { version: 'v1' }), { documentId: 'promo-1' });
+  assert.deepEqual(events.filter(event => event[0] === 'delete'), [['delete', 'promo-1']]);
 });
 test('conflictos, filas desconocidas, imágenes inexistentes y enlaces ejecutables son rechazados', async () => {
   const { service } = fixture();
