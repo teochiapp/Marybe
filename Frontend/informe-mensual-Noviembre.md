@@ -65,6 +65,12 @@ Rediseño de navegación y jerarquía visual:
 - Validación: 131 pruebas de frontend aprobadas, revisión automatizada en navegador de áreas, árbol, selección bidireccional, menús con teclado, conservación de borradores, biblioteca y vista previa responsive. La compilación de producción finalizó correctamente con advertencias preexistentes. La revisión usa datos simulados y no modifica el CMS real. La documentación de uso quedó actualizada en docs/banners-admin.md.
 
 
+Mejoras de ajuste directo y color del editor:
+- En el lienzo "VISTA PREVIA" ahora el banner seleccionado muestra un control en su borde derecho. Se puede arrastrar con mouse o pantalla táctil para cambiar su ancho directamente; también responde a las flechas izquierda/derecha para uso con teclado.
+- El nuevo ancho se guarda solo en el dispositivo que se está editando (computadora, tablet o celular), respeta el rango de 10 a 100 % y queda como cambio local hasta guardar borrador o publicar.
+- Los indicadores de selección, controles de rango, pestañas y acentos del editor se unificaron con el rojo principal de Marybe, reemplazando los detalles violetas heredados.
+- Validación: se agregó cobertura para la comunicación segura del ajuste de ancho desde la vista previa y para conservar la independencia por dispositivo.
+
 Tener la capacidad de elegir si registrarse o comprar como INVITADO ✅
 
 Cambios realizados:

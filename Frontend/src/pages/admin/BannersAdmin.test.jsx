@@ -228,3 +228,17 @@ test('vuelve a la última sección del área y permite ajustar el alto de toda l
     expect(banner.diseno.desktop.height).toBe(480);
   });
 });
+
+test('the preview edge updates the active device width', async () => {
+  render(<BannersAdmin />);
+  await screen.findByRole('spinbutton', { name: 'Alto' });
+  fireEvent.click(screen.getByRole('button', { name: 'Celular' }));
+  const frame = screen.getByTitle('Vista previa de banners');
+  fireEvent(window, new MessageEvent('message', { origin: window.location.origin, source: frame.contentWindow, data: { type: 'MARYBE_BANNERS_RESIZE', row: 0, banner: 0, value: 64 } }));
+  expect(screen.getByRole('spinbutton', { name: 'Ancho del banner' }).value).toBe('64');
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar borrador' }));
+  await waitFor(() => expect(axios.put).toHaveBeenCalledTimes(1));
+  const design = axios.put.mock.calls[0][1].data.Filas[0].banners[0].diseno;
+  expect(design.mobile.width).toBe(64);
+  expect(design.desktop.width).toBeUndefined();
+});

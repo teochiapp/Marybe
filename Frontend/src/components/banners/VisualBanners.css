@@ -29,9 +29,12 @@
 .vb-content p { font-size: calc(var(--ss) * 1px); line-height: 1.45; color: inherit; white-space: pre-wrap; margin: 0 0 18px; }
 .vb-button { pointer-events: auto; display: inline-block; text-decoration: none; border: 0; border-radius: calc(var(--button-radius) * 1px); padding: 12px 22px; font-size: calc(var(--bs) * 1px); font-weight: 700; background: var(--bb); color: var(--bc); }
 .vb-empty { margin: auto; padding: 30px; color: #7c675c; text-align: center; }
-.vb-banner--selected { outline: 3px solid #a456df; outline-offset: -3px; }
+.vb-banner--selected { outline: 3px solid #5c0a0a; outline-offset: -3px; }
 .vb-edit-label { position: absolute; z-index: 3; top: 8px; left: 8px; max-width: 90%; padding: 4px 8px; border-radius: 4px; background: #24172de6; color: white; font: 11px/1.4 Arial, sans-serif; pointer-events: none; }
 .vb-content--drag { cursor: move; touch-action: none; pointer-events: auto; user-select: none; }
+.vb-width-handle { position: absolute; z-index: 4; top: 50%; right: -9px; width: 18px; height: 42px; transform: translateY(-50%); border: 2px solid #5c0a0a; border-radius: 10px; background: #fff; box-shadow: 0 1px 5px #5c0a0a33; cursor: ew-resize; touch-action: none; }
+.vb-width-handle::before { content: ''; display: block; width: 2px; height: 16px; margin: auto; border-inline: 2px dotted #5c0a0a; }
+.vb-width-handle:focus-visible { outline: 3px solid #d46a6a; outline-offset: 2px; }
 @media (max-width: 1023px) {
   .vb-banner { --zoom: var(--vb-imageScale-1); --font: var(--vb-fontFamily-1); --weight: var(--vb-fontWeight-1); --line: var(--vb-lineHeight-1); --letter: var(--vb-letterSpacing-1); --button-radius: var(--vb-buttonRadius-1); }
   .vb-cell { display: var(--vc-hidden-1, flex); }

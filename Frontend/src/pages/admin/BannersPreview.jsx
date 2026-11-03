@@ -35,5 +35,6 @@ export default function BannersPreview() {
     if (readOnly && event.target.closest('a')) event.preventDefault();
   }}><VisualBanners rows={rows} selected={readOnly ? null : preview.selected} device={preview.device}
     onSelect={readOnly ? undefined : (row, banner) => send({ type: 'MARYBE_BANNERS_SELECT', row, banner })}
-    onMove={readOnly ? undefined : (row, banner, value) => send({ type: 'MARYBE_BANNERS_MOVE', row, banner, value })} /></main>;
+    onMove={readOnly ? undefined : (row, banner, value) => send({ type: 'MARYBE_BANNERS_MOVE', row, banner, value })}
+    onResize={readOnly ? undefined : (row, banner, value) => send({ type: 'MARYBE_BANNERS_RESIZE', row, banner, value })} /></main>;
 }

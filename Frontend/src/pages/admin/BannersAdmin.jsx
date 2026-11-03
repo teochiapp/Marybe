@@ -166,6 +166,12 @@ export default function BannersAdmin() {
           target.diseno = { ...target.diseno, [device]: { ...target.diseno?.[device], textX: Math.max(0, Math.min(90, data.value.textX)), textY: Math.max(5, Math.min(95, data.value.textY)) } };
         });
       }
+      if (data?.type === 'MARYBE_BANNERS_RESIZE' && rows[data.row]?.banners?.[data.banner] && Number.isFinite(data.value)) {
+        change(copy => {
+          const target = copy.Filas[data.row].banners[data.banner];
+          target.diseno = { ...target.diseno, [device]: { ...target.diseno?.[device], width: Math.max(10, Math.min(100, Math.round(data.value))) } };
+        });
+      }
     };
     window.addEventListener('message', receive);
     return () => window.removeEventListener('message', receive);
