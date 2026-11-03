@@ -71,6 +71,11 @@ Mejoras de ajuste directo y color del editor:
 - Los indicadores de selección, controles de rango, pestañas y acentos del editor se unificaron con el rojo principal de Marybe, reemplazando los detalles violetas heredados.
 - Validación: se agregó cobertura para la comunicación segura del ajuste de ancho desde la vista previa y para conservar la independencia por dispositivo.
 
+Acceso de Banners Admin:
+- /banners-admin ahora usa el mismo panel de inicio de sesión visual de los demás administradores: fondo, tarjeta, campos con iconos, opción de mostrar/ocultar contraseña, mensajes de error, indicador de carga y aviso de acceso restringido.
+- Se reutilizan las clases y la hoja de estilos de Importación Admin; el acceso mantiene la ruta de autenticación de administración, el token compartido y la protección de permisos de Banners Admin.
+- Validación: se agregó una prueba del panel compartido, credenciales y almacenamiento del token.
+
 Tener la capacidad de elegir si registrarse o comprar como INVITADO ✅
 
 Cambios realizados:

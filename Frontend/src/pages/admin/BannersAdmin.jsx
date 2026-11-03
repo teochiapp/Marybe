@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
 import { BANNER_DEFAULTS, DEVICES, DEVICE_WIDTHS, ROW_TYPES, deviceDesign, duplicateRow, imageUrl, newBanner, structuredCopy } from '../../utils/bannerDesign';
 import './BannersAdmin.css';
+import './ImportacionAdmin.css';
 import BannerPreviewDialog from '../../components/banners/BannerPreviewDialog';
 import BannerStructure from '../../components/banners/BannerStructure';
 
@@ -18,6 +18,7 @@ function NumberControl({ label, value, min = 0, max = 100, step = 1, onChange, s
 export default function BannersAdmin() {
   const [token, setToken] = useState(() => localStorage.getItem('admin_jwt') || '');
   const [credentials, setCredentials] = useState({ identifier: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [promotions, setPromotions] = useState([]);
   const [area, setArea] = useState('Perfumería');
   const [source, setSource] = useState('');
@@ -279,7 +280,25 @@ export default function BannersAdmin() {
   const number = (key, label, min, max, suffix = 'px', step = 1) => <NumberControl key={key} label={label} value={values[key]} min={min} max={max} suffix={suffix} step={step} onChange={value => updateDesign({ [key]: value })} />;
   const color = (key, label) => <label className="ba-control ba-color" key={key}><span>{label}</span><input aria-label={label} type="color" value={values[key]} onChange={event => updateDesign({ [key]: event.target.value })} /><code>{values[key]}</code></label>;
 
-  if (!token) return <main className="ba-login"><form onSubmit={login}><img src="/logo-marybe.png" alt="Marybe" /><p className="ba-eyebrow">ESTUDIO DE BANNERS</p><h1>Diseñá el próximo inicio.</h1><p>Ingresá con el acceso de administración de Marybe.</p><label>Email<input type="email" autoComplete="username" required value={credentials.identifier} onChange={e => setCredentials({ ...credentials, identifier: e.target.value })} /></label><label>Contraseña<input type="password" autoComplete="current-password" required value={credentials.password} onChange={e => setCredentials({ ...credentials, password: e.target.value })} /></label>{error && <p role="alert">{error}</p>}<button className="ba-primary" disabled={busy}>{busy ? 'Ingresando…' : 'Abrir editor'}</button><Link to="/inicio">Volver a la tienda</Link></form></main>;
+  if (!token) return <main className="ia-wrapper">
+    <div className="ia-bg-particles">{[...Array(12)].map((_, index) => <div key={index} className={`ia-particle ia-particle--${index + 1}`} />)}</div>
+    <section className="ia-login-card" aria-labelledby="banners-login-title">
+      <div className="ia-login-brand">
+        <div className="ia-brand-icon">
+          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M24 4L44 14V34L24 44L4 34V14L24 4Z" stroke="currentColor" strokeWidth="2" /><path d="M24 12L36 18V30L24 36L12 30V18L24 12Z" fill="currentColor" opacity=".2" /><path d="M24 20L30 23V29L24 32L18 29V23L24 20Z" fill="currentColor" /></svg>
+        </div>
+        <h1 id="banners-login-title" className="ia-brand-title">Marybe</h1>
+        <p className="ia-brand-sub">Panel de Banners</p>
+      </div>
+      <form className="ia-login-form" onSubmit={login} noValidate>
+        <div className="ia-field"><label htmlFor="banners-admin-email" className="ia-label">Email administrador</label><div className="ia-input-wrap"><span className="ia-input-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg></span><input id="banners-admin-email" type="email" className="ia-input" placeholder="admin@marybe.com" autoComplete="email" required value={credentials.identifier} onChange={event => setCredentials({ ...credentials, identifier: event.target.value })} /></div></div>
+        <div className="ia-field"><label htmlFor="banners-admin-password" className="ia-label">Contraseña</label><div className="ia-input-wrap"><span className="ia-input-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a7 7 0 0114 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg></span><input id="banners-admin-password" type={showPassword ? 'text' : 'password'} className="ia-input" placeholder="••••••••••••" autoComplete="current-password" required value={credentials.password} onChange={event => setCredentials({ ...credentials, password: event.target.value })} /><button type="button" className="ia-show-pass" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{showPassword ? '◉' : '◌'}</button></div></div>
+        {error && <div className="ia-alert ia-alert--error" role="alert">{error}</div>}
+        <button id="btn-login-banners" type="submit" className="ia-btn ia-btn--primary" disabled={busy || !credentials.identifier || !credentials.password}>{busy ? <><span className="ia-spinner" aria-hidden="true" /> Iniciando sesión...</> : 'Iniciar sesión'}</button>
+      </form>
+      <p className="ia-login-hint">Acceso restringido · Solo administradores</p>
+    </section>
+  </main>;
 
   return <main className="ba-app" inert={showPreview}>
     {showPreview && draft && <BannerPreviewDialog rows={rows} title={draft.titulo} initialDevice={device} onClose={closePreview} />}

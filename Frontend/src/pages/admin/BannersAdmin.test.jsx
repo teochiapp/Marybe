@@ -242,3 +242,16 @@ test('the preview edge updates the active device width', async () => {
   expect(design.mobile.width).toBe(64);
   expect(design.desktop.width).toBeUndefined();
 });
+
+test('banners uses the shared administrative login panel', async () => {
+  localStorage.removeItem('admin_jwt');
+  axios.post.mockResolvedValue({ data: { jwt: 'new-admin-token' } });
+  const { container } = render(<BannersAdmin />);
+  expect(container.querySelector('.ia-login-card')).toBeTruthy();
+  expect(screen.getByText('Panel de Banners')).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Email administrador'), { target: { value: 'admin@marybe.com' } });
+  fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'clave-segura' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
+  await waitFor(() => expect(axios.post).toHaveBeenCalledWith(expect.stringMatching(/\/api\/importacion-admin\/login$/), { identifier: 'admin@marybe.com', password: 'clave-segura' }));
+  expect(localStorage.getItem('admin_jwt')).toBe('new-admin-token');
+});
