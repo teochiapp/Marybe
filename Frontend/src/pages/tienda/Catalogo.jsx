@@ -10,6 +10,7 @@ import CatalogoControlsBar from '../../components/tienda/catalogo/CatalogoContro
 import CatalogoProductGrid from '../../components/tienda/catalogo/CatalogoProductGrid';
 import { FadeIn, FadeInLeft } from '../../components/animations/ScrollAnimations';
 import { getProductPrice } from '../../utils/productPrice';
+import { addClassificationFilters } from '../../utils/catalogClassificationFilters';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -394,18 +395,12 @@ export default function Catalogo() {
         params.set('populate', 'variantes');
         params.set('filters[publicado][$eq]', 'true');
 
-        if (activeTipoParam) {
-          activeTipoParam.split(',').forEach((t, i) =>
-            params.set(`filters[$or][${i}][tipo][$eq]`, t));
-        } else if (activeSubcatParam) {
-          activeSubcatParam.split(',').forEach((s, i) =>
-            params.set(`filters[$or][${i}][subcategoria][$eq]`, s));
-        } else if (activeCatParam) {
-          activeCatParam.split(',').forEach((c, i) =>
-            params.set(`filters[$or][${i}][categoria][nombre][$eq]`, c));
-        } else if (activeSeccion) {
-          params.set('filters[seccion][$eq]', activeSeccion);
-        }
+        addClassificationFilters(params, {
+          seccion: activeSeccion,
+          categoria: activeCatParam,
+          subcategoria: activeSubcatParam,
+          tipo: activeTipoParam,
+        });
 
         const res = await fetch(`${STRAPI_URL}/api/productos?${params.toString()}`);
         const json = await res.json();
@@ -478,8 +473,6 @@ export default function Catalogo() {
 
       if (activeBusqueda) {
         params.set('filters[nombre][$containsi]', activeBusqueda);
-      } else if (activeSeccion) {
-        params.set('filters[seccion][$eq]', activeSeccion);
       }
 
       if (activeDescuentos.length > 0) {
@@ -495,47 +488,12 @@ export default function Catalogo() {
       activeBrands.forEach((brand, idx) => params.set(`filters[marca][$in][${idx}]`, brand));
       activeSizes.forEach((sz, idx) => params.set(`filters[variantes][volumen][$in][${idx}]`, sz));
 
-      let andIndex = 0;
-
-      // ── Filtro jerárquico por categoría / subcategoría / tipo ──────────────
-      // Jerarquía: Categoría > Subcategoría > Tipo
-      //
-      // Si hay ?tipo=X        → filtrar SOLO productos con tipo = X
-      // Si hay ?subcategoria=Y (sin tipo) → filtrar productos con subcategoria = Y
-      //                                     O con tipo que pertenece a esa subcategoría
-      //                                     (Strapi: campo tipo puede existir como sub-nivel)
-      // Si hay ?categoria=Z (sin subcat ni tipo) → filtrar productos con categoría = Z
-      //                                            (incluye todos sus niveles inferiores)
-      //
-      // El campo real en Strapi para productos puede ser:
-      //   - categoria (relación o string)
-      //   - subcategoria (string)
-      //   - tipo (string)
-
-      if (activeTipoParam) {
-        const tipos = activeTipoParam.split(',');
-        tipos.forEach((tipo, idx) => {
-          params.set(`filters[$and][${andIndex}][$or][${idx * 2}][tipo][$eq]`, tipo);
-          params.set(`filters[$and][${andIndex}][$or][${idx * 2 + 1}][clasificaciones][tipo][$eq]`, tipo);
-        });
-        andIndex++;
-      }
-      if (activeSubcatParam) {
-        const subcats = activeSubcatParam.split(',');
-        subcats.forEach((subcat, idx) => {
-          params.set(`filters[$and][${andIndex}][$or][${idx * 2}][subcategoria][$eq]`, subcat);
-          params.set(`filters[$and][${andIndex}][$or][${idx * 2 + 1}][clasificaciones][subcategoria][$eq]`, subcat);
-        });
-        andIndex++;
-      }
-      if (activeCatParam) {
-        const cats = activeCatParam.split(',');
-        cats.forEach((cat, idx) => {
-          params.set(`filters[$and][${andIndex}][$or][${idx * 2}][categoria][nombre][$eq]`, cat);
-          params.set(`filters[$and][${andIndex}][$or][${idx * 2 + 1}][clasificaciones][categoria][$eq]`, cat);
-        });
-        andIndex++;
-      }
+      let andIndex = addClassificationFilters(params, {
+        seccion: activeSeccion,
+        categoria: activeCatParam,
+        subcategoria: activeSubcatParam,
+        tipo: activeTipoParam,
+      });
 
       if (activePriceParam) {
           // Filtro optimizado con denormalización de precios
@@ -599,7 +557,7 @@ export default function Catalogo() {
 
 
   // Handlers de drill-down de categorias
-  const handleSelectCategory = (nombre) => updateUrlFilters({ categoria: nombre, subcategoria: null, tipo: null });
+  const handleSelectCategory = (nombre, seccion) => updateUrlFilters({ categoria: nombre, seccion: seccion || activeSeccion, subcategoria: null, tipo: null });
   const handleSelectSubcategory = (nombre) => updateUrlFilters({ subcategoria: nombre, tipo: null });
   const handleSelectTipo = (nombre) => updateUrlFilters({ tipo: nombre });
   const handleClearCategory = () => updateUrlFilters({ categoria: null, subcategoria: null, tipo: null });

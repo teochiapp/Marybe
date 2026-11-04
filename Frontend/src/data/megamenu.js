@@ -134,6 +134,11 @@ export const SECTION_MAP = {
   Hogar: 'HOGAR',
 };
 
+export function categoryUrl(nombre, context, extra = '') {
+  const seccion = context === 'HOGAR' ? 'Hogar' : context === 'PERFUMERIA' ? 'Perfumería' : '';
+  return `/tienda?categoria=${encodeURIComponent(nombre)}${seccion ? `&seccion=${encodeURIComponent(seccion)}` : ''}${extra}`;
+}
+
 /**
  * URL base de Strapi (se puede sobreescribir con la variable de entorno).
  */

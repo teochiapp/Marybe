@@ -208,3 +208,13 @@ Cambios realizados:
 - Los errores de validación de valores permitidos de Strapi se muestran en español en el registro y en el detalle del producto; se verificó que una categoría inválida no modifica el producto.
 - El diagnóstico identifica los productos actualizados por fila, ID y nombre, conserva el detalle de los errores y reemplaza las líneas repetitivas de progreso por un resumen final. Para mantenerlo breve muestra hasta 50 actualizados e indica cuántos quedan sin listar. Validación: 14 pruebas de importación y exportación aprobadas.
 - Validación: 13 pruebas nuevas de Excel, 73 pruebas de backend y 163 de frontend aprobadas; prueba adicional con Strapi y SQLite aislada para verificar componentes y `-v1`. Compilaciones de producción de Frontend y Backend correctas, con advertencias preexistentes.
+
+
+Distinguir categorías con el mismo nombre entre Hogar y Perfumería en el menú y catálogo ✅
+
+Cambios realizados:
+- Los enlaces a la categoría principal del header, tanto en escritorio como en móvil, incluyen la sección. El enlace desde el breadcrumb de producto también la conserva.
+- El catálogo aplica sección, categoría, subcategoría y tipo a una misma clasificación del producto. Esto incluye clasificaciones adicionales y evita mezclar los datos de distintas filas.
+- El menú obtiene las categorías publicadas aunque solo se usen como clasificación adicional y consulta sus columnas por sección y nombre. Los nombres ambiguos ya no toman por defecto las columnas de la otra sección.
+- El filtro lateral mantiene separados los árboles de categorías homónimas de Hogar y Perfumería; al elegir una categoría sin sección activa, agrega la sección correspondiente a la URL.
+- Validación: 165 pruebas de frontend aprobadas, compilación de producción correcta con advertencias preexistentes y prueba de Strapi con SQLite aislada que distingue productos de ambas secciones y descarta coincidencias repartidas entre distintas clasificaciones.

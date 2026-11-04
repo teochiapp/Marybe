@@ -97,7 +97,7 @@ export default function SingleBreadcrumb({ seccion, categoria, nombre }) {
   const crumbs = [
     { label: 'Inicio', onClick: () => navigate('/inicio') },
     ...(seccion ? [{ label: seccion, onClick: () => navigate(`/tienda?seccion=${encodeURIComponent(seccion)}`) }] : []),
-    ...(categoria ? [{ label: categoria, onClick: () => navigate(`/tienda?categoria=${encodeURIComponent(categoria)}`) }] : []),
+    ...(categoria ? [{ label: categoria, onClick: () => navigate(`/tienda?categoria=${encodeURIComponent(categoria)}${seccion ? `&seccion=${encodeURIComponent(seccion)}` : ''}`) }] : []),
     ...(nombre ? [{ label: nombre }] : []),
   ];
 

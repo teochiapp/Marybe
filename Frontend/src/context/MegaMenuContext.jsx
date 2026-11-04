@@ -19,7 +19,6 @@ export function MegaMenuProvider({ children }) {
         const urlCats =
           `${STRAPI_URL}/api/categorias` +
           `?populate[subcategorias][populate][tipos]=*` +
-          `&filters[productos][id][$notNull]=true` +
           `&pagination[pageSize]=100` +
           `&publicationState=live`;
         const resCats = await fetch(urlCats, { signal: controller.signal });
@@ -28,6 +27,7 @@ export function MegaMenuProvider({ children }) {
         const categorias = jsonCats?.data || [];
         const colMap = new Map();
         const secMap = new Map();
+        const ambiguousNames = new Set();
         categorias.forEach((entry) => {
           const attrs = entry.attributes || entry;
           const nombre = attrs.nombre;
@@ -35,7 +35,8 @@ export function MegaMenuProvider({ children }) {
           const seccionMapped = attrs.seccion ? (SECTION_MAP[attrs.seccion] || 'GENERAL') : 'GENERAL';
           const key = `${seccionMapped}-${nombre}`;
           secMap.set(key, seccionMapped);
-          secMap.set(nombre, seccionMapped); // Fallback
+          if (secMap.has(nombre) && secMap.get(nombre) !== seccionMapped) ambiguousNames.add(nombre);
+          else secMap.set(nombre, seccionMapped);
           
           if (STATIC_CATEGORIES.has(nombre)) return;
           const subcats = attrs.subcategorias || [];
@@ -62,8 +63,12 @@ export function MegaMenuProvider({ children }) {
           }).filter(Boolean);
           if (columns.length > 0) {
             colMap.set(key, columns);
-            colMap.set(nombre, columns); // Fallback
+            colMap.set(nombre, columns);
           }
+        });
+        ambiguousNames.forEach((name) => {
+          secMap.delete(name);
+          colMap.delete(name);
         });
         setMegaMap(colMap);
         setCategorySectionMap(secMap);
@@ -128,9 +133,9 @@ export function MegaMenuProvider({ children }) {
       if (STATIC_CATEGORIES.has(catName)) return null; 
       if (context) {
         const key = `${context}-${catName}`;
-        if (megaMap.has(key)) return megaMap.get(key);
+        return megaMap.get(key) || (context === 'GENERAL' ? megaMap.get(catName) || [] : []);
       }
-      return megaMap.get(catName) || []; 
+      return megaMap.get(catName) || [];
     },
     [megaMap]
   );

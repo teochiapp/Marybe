@@ -7,6 +7,7 @@ import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
 import { useMegaMenu } from '../../hooks/useMegaMenu';
 import { useMegaMenuContext } from '../../hooks/useMegaMenuContext';
+import { categoryUrl } from '../../data/megamenu';
 
 /* ── Animaciones ── */
 const slideIn = keyframes`
@@ -585,7 +586,7 @@ export default function NavBar() {
           ofertasConf.columnas_categorias.forEach((col) => {
             const cats = col.categorias?.data || col.categorias || [];
             const items = cats
-              .map((c) => { const n = c.attributes?.nombre || c.nombre; return n ? { label: n, href: `/tienda?categoria=${encodeURIComponent(n)}&ofertas=true` } : null; })
+              .map((c) => { const n = c.attributes?.nombre || c.nombre; return n ? { label: n, href: categoryUrl(n, context, '&ofertas=true') } : null; })
               .filter(Boolean);
             if (items.length > 0) colData.push({ title: col.titulo_columna || 'Categorías', items });
           });
@@ -608,7 +609,7 @@ export default function NavBar() {
         const cats = lanzConf.categorias?.data || lanzConf.categorias || [];
         if (cats.length > 0) {
           const items = cats
-            .map((c) => { const n = c.attributes?.nombre || c.nombre; return n ? { label: n, href: `/tienda?categoria=${encodeURIComponent(n)}&lanzamientos=true` } : null; })
+            .map((c) => { const n = c.attributes?.nombre || c.nombre; return n ? { label: n, href: categoryUrl(n, context, '&lanzamientos=true') } : null; })
             .filter(Boolean);
           if (items.length > 0) colData.push({ title: lanzConf.titulo_categorias || 'Novedades por Categoría', items });
         }
@@ -893,7 +894,7 @@ export default function NavBar() {
                           toggleSection(cat);
                         } else {
                           closeDrawer();
-                          navigate(`/tienda?categoria=${encodeURIComponent(cat)}`);
+                          navigate(categoryUrl(cat, context));
                         }
                       }}
                     >

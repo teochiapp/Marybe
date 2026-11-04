@@ -5,7 +5,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 // ─── Datos (ver src/data/megamenu.js) ────────────────────────────────────────
 import {
   MOBILE_FEATURED,
-  STRAPI_URL,
+  categoryUrl,
 } from '../../data/megamenu';
 import { useMegaMenu } from '../../hooks/useMegaMenu';
 import { useMegaMenuContext } from '../../hooks/useMegaMenuContext';
@@ -390,7 +390,7 @@ export default function CategoryNav() {
              const cats = col.categorias?.data || col.categorias || [];
              const items = cats.map(c => {
                  const catName = c.attributes?.nombre || c.nombre;
-                 return { label: catName, href: `/tienda?categoria=${encodeURIComponent(catName)}&ofertas=true` };
+                 return { label: catName, href: categoryUrl(catName, context, '&ofertas=true') };
              }).filter(c => c.label);
              if (items.length > 0) colData.push({ title, items });
           });
@@ -419,7 +419,7 @@ export default function CategoryNav() {
             const cats = lanzConf.categorias.data || lanzConf.categorias || [];
             const items = cats.map(c => {
                 const catName = c.attributes?.nombre || c.nombre;
-                return { label: catName, href: `/tienda?categoria=${encodeURIComponent(catName)}&lanzamientos=true` };
+                return { label: catName, href: categoryUrl(catName, context, '&lanzamientos=true') };
             }).filter(c => c.label);
             if (items.length > 0) colData.push({ title: lanzConf.titulo_categorias || 'Novedades por Categoría', items });
         }
@@ -470,7 +470,7 @@ export default function CategoryNav() {
                 <MegaTitleText
                   onClick={() => {
                     setActiveCategory(null);
-                    navigate(`/tienda?categoria=${encodeURIComponent(activeCategory)}`);
+                    navigate(categoryUrl(activeCategory, context));
                   }}
                   title={`Ver todo en ${activeCategory}`}
                 >

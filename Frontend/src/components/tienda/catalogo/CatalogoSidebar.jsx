@@ -343,13 +343,11 @@ export default function CatalogoSidebar({
             })
             .filter(s => s.nombre);
 
-          if (!treeMap.has(catName)) {
-            treeMap.set(catName, { nombre: catName, secciones: [], subcategorias: [] });
+          const key = `${a.seccion || ''}::${catName}`;
+          if (!treeMap.has(key)) {
+            treeMap.set(key, { nombre: catName, seccion: a.seccion || '', subcategorias: [] });
           }
-          const existing = treeMap.get(catName);
-          if (a.seccion && !existing.secciones.includes(a.seccion)) {
-            existing.secciones.push(a.seccion);
-          }
+          const existing = treeMap.get(key);
           
           subcategorias.forEach(sub => {
             const extSub = existing.subcategorias.find(s => s.nombre === sub.nombre);
@@ -434,21 +432,21 @@ export default function CatalogoSidebar({
 
       const filteredTree = activeSeccion 
         ? categoryTree.filter(cat => {
-            if (!cat.secciones || cat.secciones.length === 0) return true;
+            if (!cat.seccion) return true;
             const normalize = str => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
             const normalizedActive = normalize(activeSeccion);
-            return cat.secciones.some(sec => normalize(sec) === normalizedActive);
+            return normalize(cat.seccion) === normalizedActive;
           })
         : categoryTree;
 
       return filteredTree.map(cat => (
-        <CheckboxLabel key={cat.nombre}>
+        <CheckboxLabel key={`${cat.seccion}::${cat.nombre}`}>
           <input
             type="checkbox"
             checked={false}
-            onChange={() => onSelectCategory(cat.nombre)}
+            onChange={() => onSelectCategory(cat.nombre, cat.seccion)}
           />
-          {cat.nombre}
+          {cat.nombre}{!activeSeccion && cat.seccion ? ` · ${cat.seccion}` : ''}
         </CheckboxLabel>
       ));
     }
