@@ -472,11 +472,17 @@ export default function ImportacionAdmin() {
 
         {/* Resultado */}
         {resultado && (
-          <div className="ia-resultado" role="status">
+          <div className="ia-resultado" role={resultado.parcial || resultado.ok === false ? 'alert' : 'status'}>
             <div className="ia-resultado-header">
-              <svg className="ia-resultado-icon ia-resultado-icon--ok" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-              <h2 className="ia-resultado-title">¡Importación exitosa!</h2>
+              <svg className={`ia-resultado-icon ${resultado.parcial || resultado.ok === false ? 'ia-resultado-icon--warning' : 'ia-resultado-icon--ok'}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+              <h2 className="ia-resultado-title">{resultado.parcial || resultado.ok === false ? 'Importación parcial: revisá los errores' : '¡Importación exitosa!'}</h2>
             </div>
+            {resultado.datos?.erroresList?.length > 0 && (
+              <div className="ia-alert ia-alert--error">
+                <div><strong>Productos con error:</strong></div>
+                <ul>{resultado.datos.erroresList.map((error, index) => <li key={index}>{error}</li>)}</ul>
+              </div>
+            )}
 
             <div className="ia-stats-grid">
               <div className="ia-stat">

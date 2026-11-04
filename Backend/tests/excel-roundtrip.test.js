@@ -1,0 +1,319 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const ExcelJS = require('exceljs');
+const jwt = require('jsonwebtoken');
+
+const importar = require('../src/api/importacion-admin/services/importacion-admin')();
+const exportarGeneral = require('../src/api/exportacion-admin/services/exportacion-admin')();
+const exportarProveedor = require('../src/api/exportacion-proveedores-admin/services/exportacion-proveedores-admin')();
+const PRODUCTO = 'api::producto.producto';
+const CATEGORIA = 'api::categoria.categoria';
+
+function fixture(options = {}) {
+  const product = {
+    id: 1, documentId: 'doc-p2', id_original: 'P2', sku: 'SKU-P2', nombre: 'Producto prueba',
+    marca: 'Marca', proveedor: 'Proveedor, S.A.', descripcion: 'Descripción', especificaciones: '',
+    seccion: 'Perfumería', subcategoria: 'Mujer', tipo: 'Eau de Parfum',
+    caracteristicas: '', publicado: true, destacado: false, stock: 17, precio: 1250.75,
+    precio_oferta: 1000, descuento: 20,
+    clasificaciones: [
+      { id: 11, seccion: 'Perfumería', categoria: 'Fragancias', subcategoria: 'Mujer', tipo: 'Eau de Parfum' },
+      { id: 12, seccion: 'Perfumería', categoria: 'Regalos', subcategoria: 'Sets', tipo: 'Cofres' },
+    ],
+    variantes: [
+      { id: 21, id_original: 'P2-100', sku_ean: 'EAN-100', volumen: '100 ml', color_nombre: 'Rojo', stock: 8, precio: 1250.75, precio_oferta: 1000, publicado: true, envio: '1' },
+      { id: 22, id_original: 'P2-50', sku_ean: 'EAN-50', volumen: '50 ml', color_nombre: 'Azul', stock: 6, precio: 900, precio_oferta: null, publicado: true, envio: '1' },
+    ],
+    categoria: { id: 31, documentId: 'cat-fragancias', nombre: 'Fragancias', seccion: 'Perfumería' },
+    ...options,
+  };
+  const state = { product: structuredClone(product), updates: [], creates: [], categories: [] };
+  const log = { info() {}, error() {} };
+  const strapi = {
+    log,
+    db: { query(uid) {
+      assert.equal(uid, PRODUCTO);
+      return { async findOne({ where }) {
+        return where.id_original === state.product.id_original ? structuredClone(state.product) : null;
+      } };
+    } },
+    documents(uid) {
+      if (uid === PRODUCTO) return {
+        async findMany({ filters, start = 0, limit = 100 }) {
+          return (!filters || filters.proveedor?.$in.includes(state.product.proveedor))
+            ? [structuredClone(state.product)].slice(start, start + limit) : [];
+        },
+        async update({ data }) {
+          state.updates.push(structuredClone(data));
+          state.product = { ...state.product, ...structuredClone(data) };
+          return state.product;
+        },
+        async create({ data }) { state.creates.push(data); return data; },
+      };
+      if (uid === CATEGORIA) return {
+        async findMany({ filters }) {
+          return state.categories.filter(c => c.nombre === filters.nombre.$eq && c.seccion === filters.seccion.$eq);
+        },
+        async create({ data }) {
+          const c = { ...data, documentId: `cat-${data.nombre.toLowerCase()}` };
+          state.categories.push(c);
+          return c;
+        },
+        async update() {},
+        async publish() {},
+      };
+      throw new Error(`Unexpected UID ${uid}`);
+    },
+  };
+  return { state, strapi };
+}
+
+async function workbookFrom(buffer) {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buffer);
+  return wb;
+}
+
+async function importWorkbook(strapi, wb) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'marybe-excel-test-'));
+  const filename = path.join(dir, 'copia.xlsx');
+  try {
+    await wb.xlsx.writeFile(filename);
+    return await importar.procesarImportacion(strapi, filename);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+async function supplierWorkbook(strapi) {
+  const { buffer } = await exportarProveedor.generarExcelProveedor(strapi, ['Proveedor, S.A.']);
+  return workbookFrom(buffer);
+}
+
+async function generalWorkbook(strapi) {
+  const { buffer } = await exportarGeneral.generarExcel(strapi);
+  return workbookFrom(buffer);
+}
+
+test('el error de validación de categoría se muestra en español y no modifica el producto', async () => {
+  const { state, strapi } = fixture();
+  const wb = await generalWorkbook(strapi);
+  const documents = strapi.documents;
+  strapi.documents = uid => {
+    const api = documents(uid);
+    if (uid === CATEGORIA) api.create = async () => {
+      throw new Error('seccion must be one of the following values: Perfumería, Hogar, ');
+    };
+    return api;
+  };
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errores, 1);
+  assert.match(result.erroresList[0], /La sección debe ser uno de los siguientes valores: Perfumería, Hogar/);
+  assert.match(result.erroresList[0], /El producto quedó sin cambios/);
+  assert.ok(result.log.some(line => line.includes(result.erroresList[0])));
+  assert.equal(state.updates.length, 0);
+  assert.equal(state.creates.length, 0);
+});
+
+test('exportación e importación de proveedor sin editar conserva stock, clasificaciones y atributos', async () => {
+  const { state, strapi } = fixture();
+  const wb = await supplierWorkbook(strapi);
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errores, 0, result.erroresList.join('; '));
+  assert.equal(state.updates.length, 0, JSON.stringify(state.updates[0]));
+  assert.equal(state.product.stock, 17);
+  assert.equal(state.product.clasificaciones.length, 2);
+  assert.equal(state.product.variantes.length, 2);
+  assert.equal(state.product.variantes[0].volumen, '100 ml');
+  assert.equal(state.product.variantes[0].color_nombre, 'Rojo');
+  assert.equal(state.product.descuento, 20);
+});
+
+test('omitir una fila de variante en la hoja de proveedor no borra la variante', async () => {
+  const { state, strapi } = fixture();
+  const wb = await supplierWorkbook(strapi);
+  const ws = wb.getWorksheet('💲 Precios por Proveedor');
+  const row = ws._rows.findIndex(r => r && String(r.getCell(1).value).includes('P2-50')) + 1;
+  assert.ok(row > 3);
+  ws.spliceRows(row, 1);
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errores, 0, result.erroresList.join('; '));
+  assert.equal(state.product.variantes.length, 2);
+  assert.ok(state.product.variantes.some(v => v.id_original === 'P2-50'));
+});
+
+test('precio con separadores españoles se importa completo', async () => {
+  const { state, strapi } = fixture();
+  const wb = await supplierWorkbook(strapi);
+  wb.getWorksheet('💲 Precios por Proveedor').getCell(4, 13).value = '1.250,75';
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errores, 0, result.erroresList.join('; '));
+  assert.equal(state.product.precio, 1250.75);
+});
+
+test('quitar oferta limpia el precio de oferta aunque persista el porcentaje calculado', async () => {
+  const { state, strapi } = fixture();
+  const wb = await supplierWorkbook(strapi);
+  wb.getWorksheet('💲 Precios por Proveedor').getCell(4, 14).value = null;
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errores, 0);
+  assert.equal(state.product.precio_oferta, null);
+  assert.ok(result.log.some(line => /Fila 4 · producto P2/.test(line)));
+  assert.ok(!result.log.some(line => line.startsWith('Progreso:')));
+});
+
+test('variante -v1 oculta del Excel general se conserva', async () => {
+  const { state, strapi } = fixture({ variantes: [
+    { id: 21, id_original: 'P2-v1', sku_ean: 'EAN', volumen: '', color_nombre: null, stock: 17, precio: 1250.75, precio_oferta: null, publicado: true, envio: '1' },
+  ] });
+  const wb = await generalWorkbook(strapi);
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errores, 0);
+  assert.equal(state.updates.length, 0, JSON.stringify(state.updates[0]));
+  assert.equal(state.product.variantes.length, 1);
+  assert.equal(state.product.variantes[0].id_original, 'P2-v1');
+});
+
+test('Excel general mantiene vacía la oferta del producto aunque una variante esté en oferta', async () => {
+  const { state, strapi } = fixture({ precio_oferta: null });
+  const wb = await generalWorkbook(strapi);
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errores, 0, result.erroresList.join('; '));
+  assert.equal(state.product.precio_oferta, null);
+});
+
+test('Excel general sin una variante comercial rechaza ese producto y registra su ID', async () => {
+  const { state, strapi } = fixture();
+  const wb = await generalWorkbook(strapi);
+  const ws = wb.getWorksheet('🔗 Variantes');
+  const row = ws._rows.findIndex(r => r && r.getCell(1).value === 'P2-50') + 1;
+  assert.ok(row > 3);
+  ws.spliceRows(row, 1);
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errores, 1);
+  assert.match(result.erroresList[0], /Fila .*producto P2.*P2-50/);
+  assert.equal(state.updates.length, 0);
+});
+
+test('Excel general detecta cambio exclusivo de color', async () => {
+  const { state, strapi } = fixture();
+  const wb = await generalWorkbook(strapi);
+  const ws = wb.getWorksheet('🔗 Variantes');
+  const row = ws._rows.findIndex(r => r && r.getCell(1).value === 'P2-100') + 1;
+  ws.getCell(row, 12).value = 'Verde';
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errores, 0);
+  assert.equal(state.product.variantes.find(v => v.id_original === 'P2-100').color_nombre, 'Verde');
+});
+
+test('plantilla de alta con ID existente se rechaza sin escrituras', async () => {
+  const { state, strapi } = fixture();
+  const { buffer } = await exportarGeneral.generarExcelVacio(strapi);
+  const wb = await workbookFrom(buffer);
+  const ws = wb.getWorksheet('📦 Productos');
+  ws.getCell(4, 1).value = 'P2';
+  ws.getCell(4, 3).value = 'Duplicado';
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errorModoAlta, true);
+  assert.equal(state.updates.length, 0);
+  assert.equal(state.creates.length, 0);
+});
+
+test('archivo dañado y libro ajeno se rechazan sin escrituras', async () => {
+  const { state, strapi } = fixture();
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'marybe-excel-invalid-'));
+  try {
+    const invalid = path.join(dir, 'invalid.xlsx');
+    fs.writeFileSync(invalid, 'esto no es un Excel');
+    await assert.rejects(importar.procesarImportacion(strapi, invalid), /Excel .xlsx válido/);
+    const other = new ExcelJS.Workbook();
+    other.addWorksheet('Comparación').getCell('A4').value = 'P2';
+    await assert.rejects(importWorkbook(strapi, other), /Formato de Excel no reconocido/);
+    assert.equal(state.updates.length, 0);
+    assert.equal(state.creates.length, 0);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('importe ilegible informa fila y columna antes de guardar', async () => {
+  const { state, strapi } = fixture();
+  const wb = await supplierWorkbook(strapi);
+  wb.getWorksheet('💲 Precios por Proveedor').getCell(4, 13).value = '1.250,75xx';
+  await assert.rejects(importWorkbook(strapi, wb), /Fila 4: Precio.*no es un número válido/);
+  assert.equal(state.updates.length, 0);
+});
+
+test('controlador preserva proveedor con coma y acepta varios parámetros', async () => {
+  const previous = global.strapi;
+  const calls = [];
+  global.strapi = {
+    config: { get: () => 'test-secret' },
+    log: { info() {}, error() {} },
+    service: () => ({ async generarExcelProveedor(_strapi, proveedores) {
+      calls.push(proveedores);
+      return { buffer: Buffer.from('excel'), totalProductos: 1, totalVariantes: 0 };
+    } }),
+  };
+  const controller = require('../src/api/exportacion-proveedores-admin/controllers/exportacion-proveedores-admin');
+  const token = jwt.sign({ isAdminImport: true }, 'test-secret');
+  try {
+    for (const proveedores of ['Proveedor, S.A.', ['Proveedor, S.A.', 'Otro']]) {
+      const headers = {};
+      const ctx = {
+        request: { header: { authorization: `Bearer ${token}` } },
+        query: { proveedores },
+        set: (key, value) => { headers[key] = value; },
+      };
+      await controller.exportar(ctx);
+      assert.equal(ctx.body.toString(), 'excel');
+      assert.equal(headers['X-Total-Productos'], '1');
+    }
+    assert.deepEqual(calls, [['Proveedor, S.A.'], ['Proveedor, S.A.', 'Otro']]);
+  } finally {
+    global.strapi = previous;
+  }
+});
+
+test('controlador de importación informa éxito parcial con detalle de la fila', async () => {
+  const previous = global.strapi;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'marybe-excel-controller-'));
+  const file = path.join(dir, 'copia.xlsx');
+  fs.writeFileSync(file, 'archivo simulado');
+  global.strapi = {
+    config: { get: () => 'test-secret' },
+    log: { info() {}, error() {} },
+    service: () => ({ async procesarImportacion() {
+      return {
+        totalProductos: 2, productosSinId: 0, variantesOmitidasSinPadre: 0,
+        variantesOmitidasSinId: 0, creados: 0, actualizados: 1, sinCambios: 0,
+        errores: 1, erroresList: ['Fila 7 · producto P2: falta P2-50'],
+        tiempoSegundos: 0.2, log: [],
+      };
+    } }),
+  };
+  const controller = require('../src/api/importacion-admin/controllers/importacion-admin');
+  const token = jwt.sign({ isAdminImport: true }, 'test-secret');
+  try {
+    const ctx = {
+      request: {
+        header: { authorization: `Bearer ${token}` },
+        files: { archivo: { name: 'copia.xlsx', path: file, size: 16 } },
+      },
+      send(data) { return data; },
+    };
+    const response = await controller.upload(ctx);
+    assert.equal(response.ok, false);
+    assert.equal(response.parcial, true);
+    assert.equal(response.datos.errores, 1);
+    assert.match(response.datos.erroresList[0], /Fila 7.*P2-50/);
+  } finally {
+    global.strapi = previous;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

@@ -608,6 +608,13 @@
   flex-shrink: 0;
 }
 
+.ia-resultado-icon--warning {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
 .ia-resultado-title {
   font-family: var(--font-family-primary, "Brygada 1918", serif);
   font-size: 1.1rem;

@@ -102,9 +102,14 @@ module.exports = {
         );
       }
 
+      const parcial = resultado.errores > 0 || resultado.productosSinId > 0 ||
+        resultado.variantesOmitidasSinPadre > 0 || resultado.variantesOmitidasSinId > 0;
       return ctx.send({
-        ok: true,
-        mensaje: `Importación completada en ${resultado.tiempoSegundos}s`,
+        ok: !parcial,
+        parcial,
+        mensaje: parcial
+          ? `Importación parcial: revisá los errores y las filas omitidas (${resultado.tiempoSegundos}s).`
+          : `Importación completada en ${resultado.tiempoSegundos}s`,
         datos: {
           totalProductos:          resultado.totalProductos,
           productosSinId:          resultado.productosSinId,
@@ -120,7 +125,10 @@ module.exports = {
         },
       });
     } catch (err) {
-      strapi.log.error(`[ImportAdmin] Error durante importación: ${err.message}`);
+      strapi.log.error(`[ImportAdmin] Error durante importación: ${err.stack || err.message}`);
+      if (err.code === 'INVALID_EXCEL' || /^Fila \d+:|^Formato de Excel no reconocido/.test(err.message)) {
+        return ctx.badRequest(err.message);
+      }
       return ctx.internalServerError(`Error al importar: ${err.message}`);
     } finally {
       // Limpiar archivo temporal si sigue existiendo

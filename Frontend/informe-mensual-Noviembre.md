@@ -154,6 +154,8 @@ Cambios realizados:
 - Los ítems enviados a Mercado Pago incluyen identificadores diferenciados y el volumen/color en el título, usando sus precios validados.
 - Se probó el envío desde Pago de un carrito con cuatro variantes, el total con envío y la conservación del pedido pendiente antes de redirigir a Mercado Pago.
 - Validación: 83 pruebas de frontend y 8 de backend aprobadas. Las llamadas a Mercado Pago se simulan, sin generar preferencias ni cobros reales.
+- Revisión adicional del recorrido completo: se incorporaron pruebas desde catálogo con envío a domicilio y desde la ficha con retiro, pasando por carrito, identificación de invitado, entrega y pago en efectivo. Comprueban variante, SKU, precio de oferta, cantidad, límite de stock, costo de envío, total y contenido enviado al pedido. Se verificó además la selección conjunta de tamaño y color en ambas entradas. Se repitieron los recorridos de compra en Chrome de escritorio y celular con el CMS y la creación del pedido simulados.
+- Falla detectada pendiente de corrección: en la ficha, si se aumenta la cantidad y luego se cambia a una variante con menos stock, la confirmación muestra la cantidad anterior aunque el carrito limite la cantidad agregada al stock. Reproducido en Chrome: se muestran 4 unidades agregadas pero se guardan 3. No se modificó el comportamiento en esta revisión.
 
 
 En el Single Type de Sucursales (página de sucursales) agregar un campo extra al componente repetible que sea Ciudad ✅
@@ -192,3 +194,17 @@ Cambios realizados:
 - Strapi incorpora una copia idéntica del archivo nuevo en el panel compilado, configurada como logo de autenticación, y estilos para respetar el formato horizontal en el login.
 - Validación en Chrome: cabecera, footer, recuperación y menú en 1440, 768, 390 y 320 px; Banners Admin, correo y login compilado de Strapi en escritorio y celular. Se verificaron las dimensiones naturales 629 × 168, proporción, tamaños y ausencia de superposición. La revisión usa respuestas simuladas y no guarda ni publica datos reales.
 - Las compilaciones de Frontend y panel de Strapi se verificaron. Para aplicar el login en el entorno remoto hay que desplegar el Backend con el panel reconstruido; para la web y correos se deben desplegar los cambios correspondientes.
+
+
+Corregir la importación y exportación de Excel de administración y proveedores ✅
+
+Cambios realizados:
+- La importación de una planilla de proveedor conserva el stock del producto cuando su celda está vacía, las clasificaciones adicionales y las variantes que no figuran en el archivo. La columna de tamaño/color de proveedor queda identificada como referencia y no modifica esos atributos.
+- La importación general preserva las variantes internas `-v1` que la exportación oculta. Si falta una variante comercial existente, rechaza ese producto e informa su ID y fila, sin borrarla.
+- Los precios en texto con formato español, como `1.250,75`, se interpretan correctamente; los importes ilegibles y el stock inválido muestran la fila y el campo. Borrar Precio Oferta elimina la oferta aunque la columna calculada de porcentaje aún tenga un valor.
+- Una planilla de proveedor sin cambios no reescribe el producto para completar una relación de categoría ausente. La importación general tampoco reconstruye una oferta vacía del producto a partir de una variante que sí está en oferta.
+- Se detectan cambios de color en variantes. La exportación de proveedores admite nombres con coma y mantiene la selección múltiple por parámetros repetidos.
+- El resultado de una importación parcial se muestra como tal en la API y el panel, con los errores por producto visibles. Los Excel dañados y los libros con hojas ajenas se rechazan antes de modificar productos.
+- Los errores de validación de valores permitidos de Strapi se muestran en español en el registro y en el detalle del producto; se verificó que una categoría inválida no modifica el producto.
+- El diagnóstico identifica los productos actualizados por fila, ID y nombre, conserva el detalle de los errores y reemplaza las líneas repetitivas de progreso por un resumen final. Para mantenerlo breve muestra hasta 50 actualizados e indica cuántos quedan sin listar. Validación: 14 pruebas de importación y exportación aprobadas.
+- Validación: 13 pruebas nuevas de Excel, 73 pruebas de backend y 163 de frontend aprobadas; prueba adicional con Strapi y SQLite aislada para verificar componentes y `-v1`. Compilaciones de producción de Frontend y Backend correctas, con advertencias preexistentes.

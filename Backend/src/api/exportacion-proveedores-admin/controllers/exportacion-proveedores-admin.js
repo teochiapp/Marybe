@@ -72,7 +72,7 @@ module.exports = {
     if (Array.isArray(rawProveedores)) {
       proveedores = rawProveedores.map(p => p.trim()).filter(p => p.length > 0);
     } else if (typeof rawProveedores === 'string' && rawProveedores.trim()) {
-      proveedores = rawProveedores.split(',').map(p => p.trim()).filter(p => p.length > 0);
+      proveedores = [rawProveedores.trim()].filter(Boolean);
     }
 
     if (proveedores.length === 0) {

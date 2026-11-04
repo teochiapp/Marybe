@@ -234,7 +234,7 @@ async function generarExcelProveedor(strapi, proveedores) {
     { header: 'Tipo',                         width: 22,  group: 'cat'    }, // H  (8)
     { header: 'Publicado',                    width: 12,  group: 'bool'   }, // I  (9)
     { header: 'Destacado',                    width: 12,  group: 'bool'   }, // J  (10)
-    { header: 'Tamaño / Variante',            width: 20,  group: 'base'   }, // K  (11)
+    { header: 'Tamaño / Variante (referencia)', width: 30, group: 'base' }, // K  (11)
     { header: 'Stock',                        width: 10,  group: 'base'   }, // L  (12)
     { header: 'Precio',                       width: 14,  group: 'precio' }, // M  (13)
     { header: 'Precio Oferta',                width: 14,  group: 'precio' }, // N  (14)
@@ -255,7 +255,7 @@ async function generarExcelProveedor(strapi, proveedores) {
   // ── Fila 2: Instrucción ───────────────────────────────────────────────────
   ws.mergeCells('A2:O2');
   const instr = ws.getCell('A2');
-  instr.value = `⚠ Generado el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Las variantes aparecen indentadas (↳) debajo de su producto padre. Columnas E–J tienen listas desplegables. Columnas en verde: Precio / Precio Oferta.`;
+  instr.value = `⚠ Generado el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Variantes indentadas (↳). Tamaño / Variante es solo referencia: se edita desde la planilla general. Precio Oferta vacío quita la oferta; % Desc. es informativo.`;
   applyStyle(instr, noteStyle());
   ws.getRow(2).height = 28;
 
