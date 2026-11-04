@@ -36,7 +36,6 @@ export function MegaMenuProvider({ children }) {
         const colMap = new Map();
         const secMap = new Map();
         const ambiguousNames = new Set();
-        const generalGroups = new Map();
         categorias.forEach((entry) => {
           const attrs = entry.attributes || entry;
           const nombre = attrs.nombre;
@@ -72,50 +71,80 @@ export function MegaMenuProvider({ children }) {
           }).filter(Boolean);
           if (columns.length > 0) {
             colMap.set(key, mergeColumns(colMap.get(key) || [], columns));
-            const group = generalGroups.get(nombre) || [];
-            group.push({ seccion: seccionMapped, label: attrs.seccion || 'General', columns });
-            generalGroups.set(nombre, group);
+            if (!colMap.has(nombre)) colMap.set(nombre, columns);
           }
         });
-        generalGroups.forEach((groups, name) => {
-          const sections = new Map();
-          groups.forEach(group => {
-            const current = sections.get(group.seccion) || { label: group.label, columns: [] };
-            current.columns = mergeColumns(current.columns, group.columns);
-            sections.set(group.seccion, current);
-          });
-          const columns = [...sections.values()].flatMap(group => group.columns.map(col => ({
-            ...col, title: sections.size > 1 ? `${col.title} · ${group.label}` : col.title,
-          })));
-          colMap.set(`GENERAL-${name}`, columns);
-          if (!ambiguousNames.has(name)) colMap.set(name, columns);
-        });
+
         ambiguousNames.forEach((name) => {
           secMap.delete(name);
           colMap.delete(name);
         });
-        setMegaMap(colMap);
-        setCategorySectionMap(secMap);
 
         const urlMenu =
           `${STRAPI_URL}/api/ordenamiento-menu-header` +
           `?populate[categoriasPerfumeria][fields][0]=nombre` +
+          `&populate[categoriasPerfumeria][fields][1]=seccion` +
           `&populate[categoriasHogar][fields][0]=nombre` +
-          `&populate[categoriasGeneral][fields][0]=nombre`;
+          `&populate[categoriasHogar][fields][1]=seccion` +
+          `&populate[categoriasGeneral][fields][0]=nombre` +
+          `&populate[categoriasGeneral][fields][1]=seccion`;
         const resMenu = await fetch(urlMenu, { signal: controller.signal });
         if (!resMenu.ok) throw new Error(`HTTP ${resMenu.status}`);
         const jsonMenu = await resMenu.json();
         const menuData = jsonMenu?.data || {};
 
-        const extractNames = (catArray) => {
+        const resolveCategoryItems = (catArray, targetContext = null) => {
           const arr = catArray?.data || catArray || [];
           const seen = new Set();
-          return arr.map((c) => (c.attributes || c).nombre).filter((n) => {
-            if (!n || seen.has(n)) return false;
-            seen.add(n);
-            return true;
-          });
+          const items = [];
+          for (const c of arr) {
+            const attrs = c.attributes || c;
+            const nombre = attrs.nombre;
+            if (!nombre || seen.has(nombre)) continue;
+            seen.add(nombre);
+
+            let seccion = attrs.seccion || null;
+            if (!seccion) {
+              const docId = c.documentId || attrs.documentId;
+              const numId = c.id || attrs.id;
+              const match = categorias.find(cat => {
+                const cAttrs = cat.attributes || cat;
+                return (docId && (cat.documentId === docId || cAttrs.documentId === docId)) ||
+                       (numId && (cat.id === numId || cAttrs.id === numId));
+              });
+              if (match) seccion = (match.attributes || match).seccion;
+            }
+
+            const seccionMapped = seccion ? (SECTION_MAP[seccion] || null) : targetContext;
+            items.push({ nombre, seccion, seccionMapped });
+          }
+          return items;
         };
+
+        const listPerfumeria = resolveCategoryItems(menuData.categoriasPerfumeria, 'PERFUMERIA');
+        const listHogar = resolveCategoryItems(menuData.categoriasHogar, 'HOGAR');
+        const listGeneral = resolveCategoryItems(menuData.categoriasGeneral, null);
+
+        // Para categoriasGeneral, tomar exactamente la categoría seleccionada en Strapi sin mezclar secciones
+        listGeneral.forEach(({ nombre, seccionMapped }) => {
+          let targetSection = seccionMapped;
+          if (!targetSection) {
+            targetSection = secMap.get(`HOGAR-${nombre}`) ? 'HOGAR' : secMap.get(`PERFUMERIA-${nombre}`) ? 'PERFUMERIA' : null;
+          }
+          let columns = [];
+          if (targetSection) {
+            columns = colMap.get(`${targetSection}-${nombre}`) || [];
+            secMap.set(`GENERAL-${nombre}`, targetSection);
+            secMap.set(nombre, targetSection);
+          } else {
+            columns = colMap.get(nombre) || [];
+          }
+          colMap.set(`GENERAL-${nombre}`, columns);
+        });
+
+        setMegaMap(colMap);
+        setCategorySectionMap(secMap);
+
         const addStatics = (list) => {
           if (list.length === 0) return [];
           const filtered = list.filter((c) => c !== 'Ofertas' && c !== 'Lanzamientos');
@@ -123,9 +152,9 @@ export function MegaMenuProvider({ children }) {
         };
 
         setMenuArrays({
-          PERFUMERIA: addStatics(extractNames(menuData.categoriasPerfumeria)),
-          HOGAR: addStatics(extractNames(menuData.categoriasHogar)),
-          GENERAL: addStatics(extractNames(menuData.categoriasGeneral)),
+          PERFUMERIA: addStatics(listPerfumeria.map(i => i.nombre)),
+          HOGAR: addStatics(listHogar.map(i => i.nombre)),
+          GENERAL: addStatics(listGeneral.map(i => i.nombre)),
         });
 
         try {
@@ -164,7 +193,13 @@ export function MegaMenuProvider({ children }) {
     [megaMap]
   );
   const getSectionForCategory = useCallback(
-    (catName) => categorySectionMap.get(catName) || null,
+    (catName, context) => {
+      if (context) {
+        const key = `${context}-${catName}`;
+        if (categorySectionMap.has(key)) return categorySectionMap.get(key);
+      }
+      return categorySectionMap.get(catName) || null;
+    },
     [categorySectionMap]
   );
   const getCategoriesForContext = useCallback(

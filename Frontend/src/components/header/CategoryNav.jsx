@@ -316,7 +316,7 @@ export default function CategoryNav() {
   const { context, getCategoriesForContext } = useMegaMenuContext();
 
   // Hook de megamenu solo para las columnas del dropdown (columnas/subcategorias)
-  const { getColumnsForCategory, menuLanzOfertas } = useMegaMenu();
+  const { getColumnsForCategory, getSectionForCategory, menuLanzOfertas } = useMegaMenu();
 
   const dynamicCategories = getCategoriesForContext(context);
 
@@ -469,7 +469,8 @@ export default function CategoryNav() {
                 <MegaTitleText
                   onClick={() => {
                     setActiveCategory(null);
-                    navigate(menuCategoryUrl(activeCategory, context));
+                    const catContext = (context === 'GENERAL' ? getSectionForCategory(activeCategory, context) : context) || context;
+                    navigate(menuCategoryUrl(activeCategory, catContext));
                   }}
                   title={`Ver todo en ${activeCategory}`}
                 >

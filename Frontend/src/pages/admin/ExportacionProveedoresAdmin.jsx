@@ -465,7 +465,7 @@ export default function ExportacionProveedoresAdmin() {
         <button type="button" className="ia-btn ia-btn--yellow ia-btn--full"
           style={{ marginTop: '12px' }} onClick={prepararBorrado}
           disabled={exporting || cargandoBorrado || seleccionados.size === 0}>
-          {cargandoBorrado && !vistaBorrado ? 'Cargando productos...' : 'BORRAR productos'}
+          {cargandoBorrado && !vistaBorrado ? 'Cargando productos...' : 'Seleccionar productos para borrar'}
         </button>
         {seleccionados.size === 0 && <p className="ia-delete-hint">Seleccioná uno o más proveedores para buscar productos.</p>}
 

@@ -29,9 +29,9 @@ beforeEach(() => {
       { nombre: 'Cuidado Personal', seccion: 'Perfumería', subcategorias: [{ nombre: 'Rostro', tipos: [{ nombre: 'Crema' }] }, { nombre: 'Baño', tipos: [{ nombre: 'Gel' }] }] },
     ], meta: { pagination: { pageCount: 1 } } }) };
     if (url.includes('/api/ordenamiento-menu-header')) return { ok: true, json: async () => ({ data: {
-      categoriasHogar: [{ nombre: 'Cuidado Personal' }, { nombre: 'Cuidado Personal' }],
-      categoriasPerfumeria: [{ nombre: 'Cuidado Personal' }, { nombre: 'Cuidado Personal' }],
-      categoriasGeneral: [{ nombre: 'Cuidado Personal' }],
+      categoriasHogar: [{ nombre: 'Cuidado Personal', seccion: 'Hogar' }, { nombre: 'Cuidado Personal', seccion: 'Hogar' }],
+      categoriasPerfumeria: [{ nombre: 'Cuidado Personal', seccion: 'Perfumería' }, { nombre: 'Cuidado Personal', seccion: 'Perfumería' }],
+      categoriasGeneral: [{ nombre: 'Cuidado Personal', seccion: 'Hogar' }],
     } }) };
     return { ok: true, json: async () => ({ data: {} }) };
   });
@@ -81,37 +81,39 @@ test('Perfumería usa sus subcategorías aunque el ordenamiento contenga nombres
   expect(new URL(mockNavigate.mock.calls[0][0], 'http://localhost').searchParams.get('seccion')).toBe('Perfumería');
 });
 
-test('General reúne ambas secciones y distingue subcategorías homónimas con enlaces correctos', async () => {
+test('General toma exactamente la categoría seleccionada en Strapi sin aclarar sección ni mostrar ambas', async () => {
   mockPath = '/contacto';
   mockSearch = '';
   render(<MegaMenuProvider><CategoryNav /></MegaMenuProvider>);
   fireEvent.click(await screen.findByRole('button', { name: 'Cuidado Personal' }));
-  expect(await screen.findByText('Baño · Hogar')).toBeInTheDocument();
-  expect(screen.getByText('Baño · Perfumería')).toBeInTheDocument();
-  expect(screen.getByText('Rostro · Perfumería')).toBeInTheDocument();
-  fireEvent.click(screen.getByText('Baño · Hogar'));
+  expect(await screen.findByText('Baño')).toBeInTheDocument();
+  expect(screen.queryByText(/Baño ·/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Rostro/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Gel/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByText('Baño'));
   let url = new URL(mockNavigate.mock.calls[0][0], 'http://localhost');
   expect(Object.fromEntries(url.searchParams)).toEqual({ categoria: 'Cuidado Personal', subcategoria: 'Baño', seccion: 'Hogar' });
   fireEvent.click(screen.getByRole('button', { name: 'Cuidado Personal' }));
-  fireEvent.click(screen.getByText('Baño · Perfumería'));
-  url = new URL(mockNavigate.mock.calls[1][0], 'http://localhost');
-  expect(Object.fromEntries(url.searchParams)).toEqual({ categoria: 'Cuidado Personal', subcategoria: 'Baño', seccion: 'Perfumería' });
-  fireEvent.click(screen.getByRole('button', { name: 'Cuidado Personal' }));
   fireEvent.click(screen.getByTitle('Ver todo en Cuidado Personal'));
-  url = new URL(mockNavigate.mock.calls[2][0], 'http://localhost');
-  expect(Object.fromEntries(url.searchParams)).toEqual({ categoria: 'Cuidado Personal' });
+  url = new URL(mockNavigate.mock.calls[1][0], 'http://localhost');
+  expect(Object.fromEntries(url.searchParams)).toEqual({ categoria: 'Cuidado Personal', seccion: 'Hogar' });
 });
 
-test('el menú móvil general conserva los enlaces de ambas secciones', async () => {
+test('el menú móvil general usa únicamente la categoría seleccionada en Strapi', async () => {
   mockPath = '/contacto';
   mockSearch = '';
   render(<CartContext.Provider value={{ itemCount: 0 }}><AuthContext.Provider value={{ isAuthenticated: false }}><MegaMenuProvider><NavBar /></MegaMenuProvider></AuthContext.Provider></CartContext.Provider>);
   fireEvent.click(screen.getByLabelText('Menú'));
   fireEvent.click(await screen.findByText('Cuidado Personal'));
-  fireEvent.click(await screen.findByText('Baño · Perfumería'));
-  fireEvent.click(screen.getByText('Gel'));
-  const url = new URL(mockNavigate.mock.calls[0][0], 'http://localhost');
-  expect(Object.fromEntries(url.searchParams)).toEqual({ categoria: 'Cuidado Personal', subcategoria: 'Baño', seccion: 'Perfumería', tipo: 'Gel' });
+  expect(screen.queryByText(/Baño ·/)).not.toBeInTheDocument();
+  expect(screen.queryByText('Rostro')).not.toBeInTheDocument();
+  fireEvent.click(await screen.findByText('Baño'));
+  fireEvent.click(screen.getByText('Jabón'));
+  let url = new URL(mockNavigate.mock.calls[0][0], 'http://localhost');
+  expect(Object.fromEntries(url.searchParams)).toEqual({ categoria: 'Cuidado Personal', subcategoria: 'Baño', seccion: 'Hogar', tipo: 'Jabón' });
+  fireEvent.click(screen.getByText('Ver todos en Cuidado Personal'));
+  url = new URL(mockNavigate.mock.calls[1][0], 'http://localhost');
+  expect(Object.fromEntries(url.searchParams)).toEqual({ categoria: 'Cuidado Personal', seccion: 'Hogar' });
 });
 
 test('las categorías del menú se leen en todas las páginas de Strapi', async () => {

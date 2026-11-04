@@ -561,7 +561,7 @@ export default function NavBar() {
 
   // ─── Datos dinámicos del mega menu (mismos que desktop) ───
   const { context, getCategoriesForContext } = useMegaMenuContext();
-  const { getColumnsForCategory, menuLanzOfertas } = useMegaMenu();
+  const { getColumnsForCategory, getSectionForCategory, menuLanzOfertas } = useMegaMenu();
   const dynamicCategories = getCategoriesForContext(context);
 
   // ─── Columnas dinámicas para mobile (igual lógica que desktop CategoryNav) ───
@@ -890,7 +890,8 @@ export default function NavBar() {
                           toggleSection(cat);
                         } else {
                           closeDrawer();
-                          navigate(menuCategoryUrl(cat, context));
+                          const catContext = (context === 'GENERAL' ? getSectionForCategory(cat, context) : context) || context;
+                          navigate(menuCategoryUrl(cat, catContext));
                         }
                       }}
                     >
@@ -901,7 +902,11 @@ export default function NavBar() {
                     {/* ── Nivel 2: Subcategorías ── */}
                     {hasColumns && (
                       <SubList $open={openSection === cat}>
-                        <DrawerSubItem onClick={() => { closeDrawer(); navigate(menuCategoryUrl(cat, context)); }}>
+                        <DrawerSubItem onClick={() => {
+                          closeDrawer();
+                          const catContext = (context === 'GENERAL' ? getSectionForCategory(cat, context) : context) || context;
+                          navigate(menuCategoryUrl(cat, catContext));
+                        }}>
                           Ver todos en {cat}
                         </DrawerSubItem>
                         {columns.map((col) => {

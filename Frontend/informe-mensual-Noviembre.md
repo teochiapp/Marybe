@@ -235,3 +235,13 @@ Cambios realizados:
 - El borrado elimina el documento de Strapi, sus versiones y variantes; informa los productos borrados y los errores individuales. Las categorías, medios y pedidos permanecen. Los pedidos contienen una copia de sus productos.
 - La confirmación advierte que un pago pendiente acreditado después puede requerir revisión del descuento de stock, pues ese proceso necesita el producto en Strapi.
 - Validación: pruebas del panel y de la API para varios proveedores, búsqueda, selección parcial, IDs ajenos, confirmación, autorización, vista previa vencida o modificada y errores parciales; prueba con Strapi y SQLite aislada para versiones, variantes, productos no seleccionados y pedido histórico. La compilación de frontend pasó con advertencias preexistentes. No se borraron productos reales.
+
+
+Ajustar botón de borrado de productos y selección exacta en Categorías General del Header ✅
+
+Cambios realizados:
+- Se renombró el botón de la pantalla de Exportación Proveedores Admin a "Seleccionar productos para borrar", reflejando con exactitud que la acción abre el selector interactivo antes de cualquier confirmación de borrado.
+- Ordenamiento Menú Header (`categoriasGeneral`): al consultar Strapi se obtienen tanto el nombre como la sección del registro elegido. El menú toma únicamente la categoría y estructura de la sección efectivamente seleccionada en Strapi (por ejemplo, si se eligió Cuidado Personal de Hogar, solo se cargan sus subcategorías de Hogar, sin combinar ramas homónimas de Perfumería ni mostrar ambas).
+- Se eliminaron los sufijos de sección en títulos de subcategorías y filtros laterales (ya no se añade ` · Hogar` o ` · Perfumería`), manteniendo nombres limpios sin aclaraciones en pantalla.
+- Los enlaces de navegación (tanto al ver todo en la categoría como al seleccionar una subcategoría) transmiten la sección configurada en Strapi (`&seccion=Hogar`), asegurando que el catálogo filtre exactamente los productos de dicha sección.
+- Validación: 177 pruebas de frontend aprobadas (incluyendo tests de navegación en escritorio y menú móvil para categorías homónimas en vista General y panel de borrado) y compilación de producción de frontend completada exitosamente.

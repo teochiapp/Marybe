@@ -446,7 +446,7 @@ export default function CatalogoSidebar({
             checked={false}
             onChange={() => onSelectCategory(cat.nombre, cat.seccion)}
           />
-          {cat.nombre}{!activeSeccion && cat.seccion ? ` · ${cat.seccion}` : ''}
+          {cat.nombre}
         </CheckboxLabel>
       ));
     }

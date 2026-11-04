@@ -22,7 +22,7 @@ test('selecciona productos de varios proveedores y busca SKU, variantes y nombre
   axios.post.mockResolvedValueOnce({ data: vista });
   axios.post.mockResolvedValueOnce({ data: { ok: true, borrados: [{ id_original: 'P1', nombre: 'Crema' }, { id_original: 'P2', nombre: 'Jabón' }], errores: [] } });
   render(<ExportacionProveedoresAdmin />);
-  const borrar = screen.getByRole('button', { name: 'BORRAR productos' });
+  const borrar = screen.getByRole('button', { name: 'Seleccionar productos para borrar' });
   expect(borrar).toBeDisabled();
   expect(borrar.compareDocumentPosition(screen.getByRole('button', { name: /Seleccioná al menos un proveedor/ })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   fireEvent.click(await screen.findByRole('checkbox', { name: 'A, SA' }));
@@ -53,7 +53,7 @@ test('seleccionar visibles respeta la búsqueda y muestra errores parciales', as
   render(<ExportacionProveedoresAdmin />);
   fireEvent.click(await screen.findByRole('checkbox', { name: 'A, SA' }));
   fireEvent.click(screen.getByRole('checkbox', { name: 'Otro' }));
-  fireEvent.click(screen.getByRole('button', { name: 'BORRAR productos' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Seleccionar productos para borrar' }));
   const dialog = await screen.findByRole('dialog');
   fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'SKU2' } });
   fireEvent.click(within(dialog).getByRole('button', { name: 'Seleccionar visibles' }));

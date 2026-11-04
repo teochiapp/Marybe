@@ -134,17 +134,23 @@ export const SECTION_MAP = {
   Hogar: 'HOGAR',
 };
 
-export function categoryUrl(nombre, context, extra = '') {
-  const seccion = context === 'HOGAR' ? 'Hogar' : context === 'PERFUMERIA' ? 'Perfumería' : '';
+export function categoryUrl(nombre, context, extra = '', seccionOverride = '') {
+  let seccion = seccionOverride;
+  if (!seccion) {
+    seccion = context === 'HOGAR' ? 'Hogar' : context === 'PERFUMERIA' ? 'Perfumería' : (SECTION_MAP[context] ? (context === 'Hogar' ? 'Hogar' : 'Perfumería') : '');
+  }
   return `/tienda?categoria=${encodeURIComponent(nombre)}${seccion ? `&seccion=${encodeURIComponent(seccion)}` : ''}${extra}`;
 }
 
-export function menuCategoryUrl(nombre, context) {
-  const seccion = context === 'HOGAR' ? 'Hogar' : context === 'PERFUMERIA' ? 'Perfumería' : '';
+export function menuCategoryUrl(nombre, context, seccionOverride = '') {
+  let seccion = seccionOverride;
+  if (!seccion) {
+    seccion = context === 'HOGAR' ? 'Hogar' : context === 'PERFUMERIA' ? 'Perfumería' : (SECTION_MAP[context] ? (context === 'Hogar' ? 'Hogar' : 'Perfumería') : '');
+  }
   const suffix = seccion ? `&seccion=${encodeURIComponent(seccion)}` : '';
   if (nombre === 'Ofertas') return `/tienda?descuento=todas${suffix}`;
   if (nombre === 'Lanzamientos') return `/tienda?orden=createdAt%3Adesc${suffix}`;
-  return categoryUrl(nombre, context);
+  return categoryUrl(nombre, context, '', seccion);
 }
 
 export function discountUrl(percent, context) {
