@@ -1,338 +1,144 @@
 'use strict';
 
+const life = require('./checkout-lifecycle');
+
+async function request(path, options = {}) {
+  const token = process.env.MP_ACCESS_TOKEN;
+  if (!token) throw new Error('Mercado Pago Access Token no configurado en el backend');
+  const response = await fetch(`https://api.mercadopago.com${path}`, {
+    ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw new Error(`Mercado Pago no pudo verificar la operación (HTTP ${response.status}).`);
+  return response.json();
+}
+
 module.exports = () => ({
-  async crearPreferencia({ productos = [], total = 0, userEmail = '', externalReference = '', frontendUrl = '', envio = 0, descuentoGiftCard = 0, metodo_envio = 'domicilio' }) {
-    const accessToken = process.env.MP_ACCESS_TOKEN || 'APP_USR-691693310529160-062610-1056889f46d52fffc24ade8b643e4090-3499762458';
-    if (!accessToken) {
-      throw new Error('Mercado Pago Access Token no configurado en el backend');
-    }
-
-    const baseFrontendUrl = frontendUrl || process.env.FRONTEND_URL || 'https://marybe.surcodes.com';
-
-    // ── Validar con el servicio centralizado de Pedidos ──
-    const customPedidoService = strapi.service('api::pedido.custom-pedido');
-    let finalTotal = 0;
-    let validatedItems = [];
-    let costoEnvioFinal = 0;
-    
-    try {
-      const result = await customPedidoService.validateCartAndCalculateTotal(productos, envio, descuentoGiftCard, metodo_envio);
-      finalTotal = result.finalTotal;
-      validatedItems = result.validatedItems;
-      costoEnvioFinal = result.costoEnvioFinal;
-    } catch (err) {
-      throw new Error(err.message || 'Error validando los productos para Mercado Pago');
-    }
-
-    // Transformamos los productos validados al formato de Mercado Pago
-    const items = validatedItems.map((item) => {
-      const variantLabel = [item.variant?.volumen, item.variant?.color_nombre].filter(Boolean).join(' / ');
-      const title = `${item.product?.nombre || 'Producto Marybe'}${variantLabel ? ` (${variantLabel})` : ''}`.slice(0, 250);
-      const description = (item.product?.descripcion || 'Perfumería y cosmética').slice(0, 250);
-      const quantity = Number(item.quantity) || 1;
-
-      return {
-        id: `${item.dbProductId || item.product?.id}-${item.dbVariantId || 'unico'}`,
-        currency_id: 'ARS',
-        title,
-        description,
-        category_id: 'others',
-        quantity,
-        unit_price: item.validatedPrice, // Ya validado desde BD
-      };
+  async crearPreferencia({ externalReference, checkoutToken }) {
+    return life.withOrder(externalReference, async order => {
+      life.authorize(order, checkoutToken);
+      const meta = order.pago_mercadopago;
+      if (life.isPaid(order) || ['Cancelado', 'Abortado'].includes(order.estado) || Date.parse(meta.expiresAt) <= Date.now()) throw new Error('El intento de pago ya finalizó. Iniciá uno nuevo.');
+      if (meta.preferenceId) return request(`/checkout/preferences/${encodeURIComponent(meta.preferenceId)}`);
+      const frontend = new URL(process.env.FRONTEND_URL || 'https://marybe.surcodes.com').origin;
+      const backend = process.env.PUBLIC_URL || strapi.config.get('server.url');
+      const reference = encodeURIComponent(order.numero_pedido);
+      const items = order.productos.filter(item => item.sku !== 'DESCUENTO-GC').map(item => ({
+        id: `${item.id_producto || item.sku}-${item.id_variante || 'unico'}`,
+        currency_id: 'ARS', title: `${item.producto}${item.variante ? ` (${item.variante})` : ''}`.slice(0, 250),
+        quantity: Number(item.cantidad), unit_price: Number(item.precio_unitario),
+      }));
+      const hasDiscount = order.productos.some(item => item.sku === 'DESCUENTO-GC');
+      if (!Number.isFinite(Number(order.total)) || Number(order.total) <= 0) throw new Error('Total de pedido inválido.');
+      if (!hasDiscount && Math.round(items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0) * 100) !== Math.round(Number(order.total) * 100)) throw new Error('Los productos no coinciden con el total del pedido.');
+      const preference = await request('/checkout/preferences', { method: 'POST', body: JSON.stringify({
+        items: hasDiscount ? [{ id: order.numero_pedido, currency_id: 'ARS', title: `Pedido Marybe ${order.numero_pedido} (con Gift Card)`, quantity: 1, unit_price: Number(order.total) }] : items,
+        payer: { email: order.cliente_email }, external_reference: order.numero_pedido,
+        metadata: { marybe_order: order.numero_pedido },
+        back_urls: { success: `${frontend}/order-success?reference=${reference}`, pending: `${frontend}/order-success?reference=${reference}`, failure: `${frontend}/order-error?reference=${reference}` },
+        ...(backend?.startsWith('https://') ? { notification_url: `${backend.replace(/\/$/, '')}/api/mercado-pago/webhook` } : {}),
+        ...(frontend.startsWith('https://') ? { auto_return: 'approved' } : {}),
+        expires: true, expiration_date_from: new Date(Date.now() - 60000).toISOString(), expiration_date_to: meta.expiresAt, binary_mode: true, statement_descriptor: 'MARYBE PERFUMERIA',
+      }) });
+      await strapi.entityService.update(life.UID, order.id, { data: { pago_mercadopago: { ...meta, preferenceId: preference.id } } });
+      return preference;
     });
-
-    let finalItems = items;
-
-    if (costoEnvioFinal > 0) {
-      finalItems.push({
-        title: 'Costo de Envío',
-        description: 'Envío de pedido a domicilio o sucursal',
-        category_id: 'others',
-        quantity: 1,
-        unit_price: costoEnvioFinal,
-      });
-    }
-
-    const descuentoGcNum = Number(descuentoGiftCard || 0);
-    if (descuentoGcNum > 0) {
-      // Mercado Pago doesn't support negative items.
-      // We must pass a single total item or apply a discount. 
-      // A common workaround is to send a single item with the final price if there's a discount,
-      // because unit_price cannot be negative.
-      finalItems = [
-        {
-          title: 'Pedido Marybe (con Gift Card)',
-          description: 'Compra en tienda Marybe',
-          category_id: 'others',
-          quantity: 1,
-          unit_price: finalTotal,
-        }
-      ];
-    }
-
-
-    const body = {
-      items: finalItems,
-      payer: {
-        email: userEmail || 'invitado@marybe.com',
-      },
-      back_urls: {
-        success: `${baseFrontendUrl}/order-success`,
-        pending: `${baseFrontendUrl}/order-success`,
-        failure: `${baseFrontendUrl}/order-error`,
-      },
-      // auto_return: 'approved',
-      binary_mode: true,
-      external_reference: externalReference || `MARYBE-${Date.now()}`,
-      statement_descriptor: 'MARYBE PERFUMERIA',
-    };
-
-    try {
-      const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('Error detallado de Mercado Pago:', JSON.stringify(data, null, 2));
-        throw new Error(data.message || data.error || 'Error al crear preferencia en Mercado Pago');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en el servicio de Mercado Pago:', error);
-      throw error;
-    }
   },
 
-  async consultarPago({ externalReference }) {
-    const accessToken = process.env.MP_ACCESS_TOKEN || 'APP_USR-691693310529160-062610-1056889f46d52fffc24ade8b643e4090-3499762458';
-    if (!accessToken) {
-      throw new Error('Mercado Pago Access Token no configurado en el backend');
-    }
+  async pagos(reference) {
+    const data = await request(`/v1/payments/search?external_reference=${encodeURIComponent(reference)}&sort=date_created&criteria=desc&limit=50`);
+    if (!Array.isArray(data.results)) throw new Error('Respuesta de pagos inválida.');
+    if (Number(data.paging?.total || 0) > data.results.length) throw new Error('El pedido requiere conciliación manual: demasiados intentos.');
+    return data.results.filter(payment => payment.external_reference === reference);
+  },
 
-    if (!externalReference) {
-      return { pagado: false };
-    }
-
-    try {
-      const response = await fetch(`https://api.mercadopago.com/v1/payments/search?external_reference=${externalReference}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('Error al consultar pago en Mercado Pago:', data);
-        return { pagado: false };
+  async sincronizar({ externalReference, checkoutToken, abort = false, internal = false }) {
+    const initial = await life.findOrder(externalReference);
+    if (!internal) life.authorize(initial, checkoutToken);
+    const payments = await this.pagos(externalReference);
+    const approved = payments.find(p => p.status === 'approved');
+    const active = payments.find(p => ['pending', 'in_process', 'authorized', 'in_mediation'].includes(p.status));
+    const payment = approved || active || payments[0];
+    let notify;
+    const result = await life.withOrder(externalReference, async (order, trx) => {
+      const meta = order.pago_mercadopago || {};
+      if (life.isPaid(order)) {
+        const recordedId = meta.paymentId || order.metodo_pago.match(/Pagado - ID:\s*(\d+)/)?.[1];
+        const reversal = payments.find(p => String(p.id) === String(recordedId) && ['refunded', 'charged_back'].includes(p.status));
+        if (reversal) {
+          await strapi.entityService.update(life.UID, order.id, { data: { estado_pago: reversal.status, pago_mercadopago: { ...meta, status: reversal.status, checkedAt: new Date().toISOString() } } });
+          strapi.log.error(`Pago ${order.numero_pedido}: ${reversal.status}. Requiere revisión manual; no se modifica stock ni entrega automáticamente.`);
+          return life.publicStatus({ ...order, pago_mercadopago: { ...meta, status: reversal.status } });
+        }
+        return life.publicStatus(order);
       }
-
-      // Buscamos si hay algún pago aprobado en los resultados devueltos por MP
-      const pagosAprobados = (data.results || []).filter(p => p.status === 'approved');
-
-      if (pagosAprobados.length > 0) {
-        return {
-          pagado: true,
-          paymentId: pagosAprobados[0].id,
-          status: pagosAprobados[0].status,
-        };
+      if (payment && !life.validPayment(order, payment)) throw new Error('El importe, moneda o referencia del pago no coincide con el pedido. Revisión requerida.');
+      let status = payment?.status || (order.estado === 'Abortado' ? meta.status || 'aborted' : 'not_started');
+      let estado = order.estado;
+      let codes;
+      if (status === 'approved') {
+        if (!['Pendiente de pago', 'Abortado', 'Procesando'].includes(estado)) throw new Error('Pago recibido para pedido cerrado. Revisión manual requerida.');
+        codes = await life.fulfill(order, trx);
+        estado = 'Procesando';
+      } else if (['pending', 'in_process', 'authorized', 'in_mediation'].includes(status)) {
+        if (['Pendiente de pago', 'Abortado', 'Procesando'].includes(estado)) estado = 'Pendiente de pago';
+      } else if (['rejected', 'cancelled'].includes(status) || (!payment && (abort || Date.parse(meta.expiresAt || new Date(Date.parse(order.createdAt) + 3600000).toISOString()) <= Date.now()))) {
+        // Close an unfinished preference before allowing the customer to start another checkout.
+        if (abort && !payment && meta.preferenceId && Date.parse(meta.expiresAt) > Date.now()) {
+          await request(`/checkout/preferences/${encodeURIComponent(meta.preferenceId)}`, { method: 'PUT', body: JSON.stringify({ expires: true, expiration_date_from: new Date(Date.now() - 86400000).toISOString(), expiration_date_to: new Date(Date.now() - 1000).toISOString() }) });
+        }
+        if (['Pendiente de pago', 'Procesando'].includes(estado)) estado = 'Abortado';
+        if (!payment) status = abort ? 'aborted' : 'expired';
+      } else if (['refunded', 'charged_back'].includes(status)) {
+        throw new Error('Reembolso o contracargo requiere revisión manual.');
       }
-
-      return { pagado: false };
-    } catch (error) {
-      console.error('Error en consultarPago service:', error);
-      return { pagado: false };
+      const data = { estado, estado_pago: status, pago_mercadopago: { ...meta, status, paymentId: payment?.id || meta.paymentId, checkedAt: new Date().toISOString(), ...(status === 'approved' ? { processedAt: new Date().toISOString() } : {}) },
+        ...(status === 'approved' ? { metodo_pago: `mercadopago (Pagado - ID: ${payment.id})`, ...(codes?.length ? { gift_cards_generadas: codes } : {}) } : {}) };
+      await strapi.entityService.update(life.UID, order.id, { data });
+      if (status === 'approved') notify = { ...order, ...data };
+      return life.publicStatus({ ...order, ...data });
+    }).catch(async error => {
+      if (approved) {
+        const current = await life.findOrder(externalReference);
+        if (!life.isPaid(current)) {
+          await strapi.entityService.update(life.UID, current.id, { data: { estado_pago: 'requires_review' } });
+          strapi.log.error(`Pago aprobado ${externalReference} requiere revisión: ${error.message}`);
+        }
+      }
+      throw error;
+    });
+    if (notify) {
+      const name = notify.direccion_envio?.nombre || notify.usuario?.username || 'Cliente';
+      const correo = strapi.service('api::correo.correo');
+      for (const send of [() => correo.enviarConfirmacionPedido(notify.cliente_email, name, notify), () => correo.enviarAlertaNuevoPedidoAdmin(notify, name)]) {
+        try { await send(); } catch (error) { strapi.log.error(`Correo de pago ${notify.numero_pedido}: ${error.message}`); }
+      }
     }
+    return result;
+  },
+
+  async consultarPago({ externalReference, checkoutToken }) {
+    return this.sincronizar({ externalReference, checkoutToken });
   },
 
   async procesarWebhookDePago(paymentId) {
-    const accessToken = process.env.MP_ACCESS_TOKEN || 'APP_USR-691693310529160-062610-1056889f46d52fffc24ade8b643e4090-3499762458';
-    
-    // Obtener info del pago
-    const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: { 'Authorization': `Bearer ${accessToken}` },
-    });
-    
-    if (!response.ok) {
-      throw new Error('No se pudo obtener información del pago de Mercado Pago');
+    if (!/^\d+$/.test(String(paymentId))) throw new Error('ID de pago inválido.');
+    const payment = await request(`/v1/payments/${encodeURIComponent(paymentId)}`);
+    return this.sincronizar({ externalReference: payment.external_reference, internal: true });
+  },
+
+  async reconciliarPendientes() {
+    let lastId = 0;
+    while (true) {
+      const orders = await strapi.entityService.findMany(life.UID, { filters: { $and: [{ $or: [{ estado: 'Pendiente de pago' }, { estado: 'Procesando', metodo_pago: 'mercadopago' }] }, { id: { $gt: lastId } }] }, sort: { id: 'asc' }, limit: 100 });
+      if (!orders.length) break;
+      // Snapshot pages before changes: use an ID cursor rather than a shifting offset.
+      for (const order of orders) {
+        try { await this.sincronizar({ externalReference: order.numero_pedido, internal: true }); }
+        catch (error) { strapi.log.error(`Conciliación MP ${order.numero_pedido}: ${error.message}`); }
+      }
+      if (orders.length < 100) break;
+      lastId = orders[orders.length - 1].id;
     }
-    
-    const payment = await response.json();
-    
-    if (payment.status === 'approved') {
-      const orderNumber = payment.external_reference;
-      
-      // Buscar pedido en Strapi
-      const pedidos = await strapi.entityService.findMany('api::pedido.pedido', {
-        filters: { numero_pedido: orderNumber },
-        populate: ['usuario'],
-        limit: 1
-      });
-      
-      if (!pedidos || pedidos.length === 0) {
-        console.error(`Pedido ${orderNumber} no encontrado para procesar pago.`);
-        return;
-      }
-      
-      const pedido = pedidos[0];
-      
-      // Si ya está pagado o completado, ignorar
-      if (pedido.estado !== 'Procesando' || pedido.metodo_pago?.includes('Pagado - ID:')) {
-        return;
-      }
-      
-      // Actualizar estado del pedido a Pagado/Completado (usamos Completado para reflejar que está listo, o Enviado)
-      // Como solo hay: Procesando, Enviado, Completado, Cancelado, lo ponemos en "Completado" o un estado custom.
-      // El esquema tiene: "Procesando", "Enviado", "Completado", "Cancelado"
-      // Asumamos "Completado" (o si quieres mantener Procesando pero enviar un email? Lo marcaremos como Pagado agregando un flag, pero 'Completado' es más seguro si es digital, o lo dejamos como 'Procesando' y anotamos pagado).
-      // Actualizaremos el método_pago si era QR o similar para dejar registro del Payment ID.
-      
-      await strapi.entityService.update('api::pedido.pedido', pedido.id, {
-        data: {
-          estado: 'Procesando', // Lo dejamos en Procesando para la preparación física, pero marcamos que pagó.
-          metodo_pago: `mercadopago (Pagado - ID: ${paymentId})`
-        }
-      });
-      
-      console.log(`Pedido ${orderNumber} marcado como pagado. Descontando stock...`);
-
-      // ─── Enviar Correo de Confirmación ───
-      try {
-        const nombreCliente = pedido.direccion_envio?.nombre || pedido.usuario?.username || pedido.usuario?.nombre || 'Cliente';
-        await strapi.service('api::correo.correo').enviarConfirmacionPedido(
-          pedido.cliente_email,
-          nombreCliente,
-          pedido
-        );
-
-        // Enviar alerta al administrador
-        await strapi.service('api::correo.correo').enviarAlertaNuevoPedidoAdmin(pedido, nombreCliente);
-      } catch (err) {
-        console.error(`[Webhook MP ${orderNumber}] Error enviando email:`, err);
-      }
-
-      // ─── Lógica de Stock ───
-      const productos = pedido.productos || [];
-      for (const item of productos) {
-        if (!item.id_producto) continue;
-
-        const filterCriteria = isNaN(Number(item.id_producto)) 
-          ? { documentId: item.id_producto } 
-          : { id: item.id_producto };
-
-        const dbProduct = await strapi.db.query('api::producto.producto').findOne({
-          where: filterCriteria,
-          populate: ['variantes']
-        });
-
-        if (dbProduct) {
-          if (item.id_variante || item.id_variante_original) {
-            // Es una variante
-            const varIndex = dbProduct.variantes.findIndex(v => item.id_variante ? String(v.id) === String(item.id_variante) : String(v.id_original) === String(item.id_variante_original));
-            if (varIndex !== -1) {
-              const newStock = Math.max(0, (dbProduct.variantes[varIndex].stock || 0) - (item.cantidad || 1));
-              await strapi.db.query('producto.variante').update({
-                where: { id: dbProduct.variantes[varIndex].id },
-                data: { stock: newStock }
-              });
-            }
-          } else {
-            // Producto simple
-            await strapi.entityService.update('api::producto.producto', dbProduct.id, {
-              data: { stock: Math.max(0, (dbProduct.stock || 0) - (item.cantidad || 1)) }
-            });
-          }
-        }
-      }
-
-      // ─── Consumo y Generación de Gift Cards ───
-      const crypto = require('crypto');
-      
-      // Buscar si consumió alguna
-      const descuentoGc = productos.find(p => p.sku === 'DESCUENTO-GC');
-      if (descuentoGc) {
-        const regex = /\(([^)]+)\)/;
-        const match = descuentoGc.producto.match(regex);
-        if (match && match[1]) {
-          const codigo_gift_card = match[1];
-          try {
-            const gcs = await strapi.entityService.findMany('api::gift-card.gift-card', {
-              filters: { codigo: codigo_gift_card },
-              limit: 1,
-            });
-            if (gcs && gcs.length > 0) {
-              await strapi.entityService.update('api::gift-card.gift-card', gcs[0].id, {
-                data: { activa: false }
-              });
-              strapi.log.info(`[Webhook MP ${orderNumber}] Gift card consumida: ${codigo_gift_card}`);
-            }
-          } catch (e) {
-            console.error(`Error consumiendo GC ${codigo_gift_card}`, e);
-          }
-        }
-      }
-      
-      // Generación
-      const giftCardItems = productos.filter(item => 
-        item.producto?.toLowerCase().includes('gift card') && item.sku !== 'DESCUENTO-GC'
-      );
-
-      if (giftCardItems.length > 0) {
-        const createdGCs = [];
-        for (const item of giftCardItems) {
-          const monto = item.precio_unitario || 0;
-          const cantidad = item.cantidad || 1;
-
-          for (let i = 0; i < cantidad; i++) {
-            let codigo;
-            let attempts = 0;
-            while (attempts < 10) {
-              const candidato = 'GC-' + crypto.randomBytes(4).toString('hex').toUpperCase();
-              const existente = await strapi.entityService.findMany('api::gift-card.gift-card', {
-                filters: { codigo: candidato },
-                limit: 1,
-              });
-              if (!existente || existente.length === 0) {
-                codigo = candidato;
-                break;
-              }
-              attempts++;
-            }
-
-            if (codigo) {
-              const fechaExpiracion = new Date();
-              fechaExpiracion.setFullYear(fechaExpiracion.getFullYear() + 1);
-
-              await strapi.entityService.create('api::gift-card.gift-card', {
-                data: {
-                  codigo,
-                  monto,
-                  activa: true,
-                  fecha_expiracion: fechaExpiracion.toISOString(),
-                },
-              });
-              createdGCs.push(codigo);
-            }
-          }
-        }
-        strapi.log.info(`[Webhook MP ${orderNumber}] ${createdGCs.length} Gift Cards generadas: ${createdGCs.join(', ')}`);
-        
-        if (createdGCs.length > 0) {
-          await strapi.entityService.update('api::pedido.pedido', pedido.id, {
-            data: { gift_cards_generadas: createdGCs }
-          });
-        }
-      }
-    }
-  }
+  },
 });

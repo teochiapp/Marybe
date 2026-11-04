@@ -39,7 +39,7 @@ module.exports = function generarAlertaNuevoPedidoAdmin(pedido, nombreCliente) {
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden; background-color: #ffffff;">
       <!-- Header -->
       <div style="padding: 20px; text-align: center; border-bottom: 1px solid #eee;">
-        <img src="https://marybe.surcodes.com/logo-marybe.png" alt="Marybe" style="max-height: 40px; width: auto; margin-bottom: 10px;" />
+        <img src="https://marybe.surcodes.com/logo-marybe.png" alt="Marybe" width="323" style="width: 323px; max-width: 100%; height: auto; margin-bottom: 10px;" />
         <h2 style="color: #3E0102; margin: 0; font-size: 16px; letter-spacing: 1px; text-transform: uppercase;">Notificación de Administrador</h2>
       </div>
       

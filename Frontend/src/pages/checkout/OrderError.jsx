@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Link, useLocation, Navigate } from 'react-router-dom';
+import MercadoPagoReturn from '../../components/shared/MercadoPagoReturn';
 
 const PageContainer = styled.div`
   min-height: 80vh;
@@ -219,6 +220,12 @@ const formatPrice = (price) => {
 };
 
 export default function OrderError() {
+  const location = useLocation();
+  return location.search || sessionStorage.getItem('mp_pending_order')
+    ? <MercadoPagoReturn /> : <OrderErrorContent />;
+}
+
+function OrderErrorContent() {
   const location = useLocation();
 
   // Al regresar de Mercado Pago por URL, location.state estará vacío, pero tenemos sessionStorage

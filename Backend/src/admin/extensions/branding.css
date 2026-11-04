@@ -1,0 +1,8 @@
+/* Override Strapi's fixed 7.2rem auth-logo height for the wide Marybe artwork. */
+main img[aria-hidden="true"][src*="logo-marybe"],
+main:has(input[name="email"]):has(input[name="password"]) img[aria-hidden="true"] {
+  width: 28rem;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}

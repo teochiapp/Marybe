@@ -23,7 +23,10 @@ const Card = styled.div`
 
 const Logo = styled.img`
   display: block;
-  height: 36px;
+  width: 314px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 629 / 168;
   margin: 0 auto 28px;
 `;
 
@@ -143,7 +146,7 @@ export default function RecuperarContrasena() {
   return (
     <Page>
       <Card>
-        <Logo src="/logo-marybe.png" alt="Marybe" />
+        <Logo src="/logo-marybe.png" alt="Marybe" width="629" height="168" />
         <Title>Nueva contraseña</Title>
         <Subtitle>Ingresá tu nueva contraseña para recuperar el acceso a tu cuenta.</Subtitle>
 

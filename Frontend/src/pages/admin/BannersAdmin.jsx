@@ -326,7 +326,7 @@ export default function BannersAdmin() {
   return <main className="ba-app" inert={showPreview}>
     {showPreview && draft && <BannerPreviewDialog rows={rows} title={draft.titulo} initialDevice={device} onClose={closePreview} />}
     <header className="ba-topbar">
-      <div className="ba-brand"><img src="/logo-marybe.png" alt="Marybe" /><span>Editor de banners</span></div>
+      <div className="ba-brand"><img src="/logo-marybe.png" alt="Marybe" width="629" height="168" /><span>Editor de banners</span></div>
       <span className={`ba-status ${hasUnsaved ? 'ba-status--dirty' : ''}`}>{!draft?.documentId && draft ? '○ Sección nueva' : dirty ? '● Cambios sin guardar' : hasUnsaved ? '● Otros cambios pendientes' : '● Todo guardado'}</span>
       <div className="ba-top-actions">
         <details className="ba-top-more"><summary>Más opciones</summary><div><button onClick={recover} disabled={!draft || busy}>Recuperar copia</button><button disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Salir con cambios sin guardar?')) { localStorage.removeItem('admin_jwt'); setToken(''); } }}>Salir</button></div></details>

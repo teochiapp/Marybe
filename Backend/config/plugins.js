@@ -32,7 +32,7 @@ module.exports = ({ env }) => ({
             message: `
 <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden; background-color: #ffffff;">
   <div style="padding: 25px; text-align: center; border-bottom: 1px solid #eee;">
-    <img src="https://marybe.surcodes.com/logo-marybe.png" alt="Marybe" style="display: block; margin: 0 auto; max-height: 40px; width: auto;" />
+    <img src="https://marybe.surcodes.com/logo-marybe.png" alt="Marybe" width="323" style="display: block; margin: 0 auto; width: 323px; max-width: 100%; height: auto;" />
   </div>
   <div style="padding: 35px 30px; text-align: center;">
     <h2 style="color: #3E0102; margin-top: 0; font-size: 22px;">Recuperar contraseña</h2>

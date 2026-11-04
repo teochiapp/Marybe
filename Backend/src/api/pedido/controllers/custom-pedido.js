@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const guestCustomer = require('../utils/guest-customer');
+const { newCheckout } = require('../../mercado-pago/services/checkout-lifecycle');
 
 function verificarAdminImportacion(ctx) {
   const authHeader = ctx.request.header.authorization || '';
@@ -26,6 +27,7 @@ module.exports = {
   async createMyOrder(ctx) {
     try {
       const { productos, total, metodo_pago, direccion_envio, envio, descuento_gift_card, codigo_gift_card } = ctx.request.body;
+      if (!['mercadopago', 'transferencia', 'efectivo', 'aconvenir'].includes(metodo_pago)) return ctx.badRequest('Elegí un método de pago válido.');
       const metodoEnvio = ctx.request.body.metodo_envio || direccion_envio?.metodo_envio || 'domicilio';
       if (!['domicilio', 'sucursal'].includes(metodoEnvio)) return ctx.badRequest('Método de envío inválido.');
       if (metodoEnvio === 'sucursal' && (!direccion_envio?.sucursal || !direccion_envio?.provincia)) {
@@ -72,7 +74,7 @@ module.exports = {
       
       try {
         const { finalTotal: calculatedTotal, costoEnvioFinal, validatedItems } = 
-          await customPedidoService.validateCartAndCalculateTotal(productos, envio, descuento_gift_card, metodoEnvio);
+          await customPedidoService.validateCartAndCalculateTotal(productos, envio, descuento_gift_card, metodoEnvio, codigo_gift_card);
         
         finalTotal = calculatedTotal;
         validatedShipping = costoEnvioFinal;
@@ -106,7 +108,7 @@ module.exports = {
           cantidad: item.quantity || 1,
           precio_unitario: item.validatedPrice,
           subtotal: item.validatedPrice * (Number(item.quantity) || 1),
-          sku: item.variant?.sku_ean || item.product?.sku || '',
+          sku: item.isGiftCard ? 'GIFT-CARD' : item.variant?.sku_ean || item.product?.sku || '',
           imagen: imageUrl,
           id_producto: item.product?.id,
           id_variante_original: item.variant?.id_original,
@@ -141,6 +143,7 @@ module.exports = {
       }
 
       const numero_pedido = `M-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+      const checkout = ['mercadopago', 'qr'].includes(metodo_pago) ? newCheckout() : null;
 
       const pedido = await strapi.entityService.create('api::pedido.pedido', {
         data: {
@@ -148,7 +151,9 @@ module.exports = {
           productos: productosLimpios,
           total: finalTotal, // Usamos el total validado
           metodo_pago: metodo_pago || 'No especificado',
-          estado: 'Procesando',
+          estado: checkout ? 'Pendiente de pago' : 'Procesando',
+          ...(checkout ? { pago_mercadopago: checkout.metadata } : {}),
+          ...(checkout ? { estado_pago: 'not_started' } : {}),
           direccion_envio: orderAddress,
           cliente_email: customerEmail,
           es_invitado: Boolean(guest),
@@ -191,7 +196,7 @@ module.exports = {
         }
 
         // ─── Consumo de Gift Card Aplicada ───
-        if (codigo_gift_card) {
+        if (codigo_gift_card && Number(descuento_gift_card) > 0) {
           try {
             const gcs = await strapi.entityService.findMany('api::gift-card.gift-card', { filters: { codigo: codigo_gift_card }, limit: 1 });
             if (gcs && gcs.length > 0) {
@@ -205,14 +210,11 @@ module.exports = {
 
         // ─── Generación de Nuevas Gift Cards ───
         try {
-          const giftCardItems = productos.filter(item => 
-            item.product?.id?.toString().startsWith('gift-card-') ||
-            item.product?.nombre?.toLowerCase().includes('gift card')
-          );
+          const giftCardItems = validatedProducts.filter(item => item.isGiftCard);
           if (giftCardItems.length > 0) {
             const createdGCs = [];
             for (const item of giftCardItems) {
-              const monto = item.price || item.product?.precio || 0;
+              const monto = item.validatedPrice;
               const cantidad = item.quantity || 1;
               for (let i = 0; i < cantidad; i++) {
                 let codigo;
@@ -266,7 +268,8 @@ module.exports = {
       // ─── NOTA: Para Mercado Pago, el consumo y generación de Gift Cards y el descuento de stock 
       // se procesa en el Webhook de Mercado Pago (webhook.js / mercado-pago.js) solo cuando el pago es Aprobado.
 
-      return ctx.send({ data: pedido });
+      const { pago_mercadopago, ...publicOrder } = pedido;
+      return ctx.send({ data: publicOrder, ...(checkout ? { checkoutToken: checkout.token } : {}) });
     } catch (err) {
       console.error(err);
       return ctx.internalServerError('Error al crear el pedido');
@@ -286,7 +289,7 @@ module.exports = {
         sort: { createdAt: 'desc' },
       });
 
-      return ctx.send({ data: pedidos });
+      return ctx.send({ data: pedidos.map(({ pago_mercadopago, ...pedido }) => pedido) });
     } catch (err) {
       console.error(err);
       return ctx.internalServerError('Error al obtener los pedidos');

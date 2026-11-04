@@ -2,6 +2,10 @@ export function getOrderAttributes(order = {}) {
   return order.attributes || order;
 }
 
+export function getPaymentStatusLabel(status) {
+  return ({ not_started: 'Sin completar', pending: 'Pendiente', in_process: 'En revisión', authorized: 'Autorizado, pendiente de captura', in_mediation: 'En mediación', approved: 'Aprobado', rejected: 'Rechazado', cancelled: 'Cancelado en Mercado Pago', aborted: 'Abortado', expired: 'Intento vencido', refunded: 'Reembolsado — revisar', charged_back: 'Contracargo — revisar', requires_review: 'Pago recibido — revisar acreditación del pedido' })[status] || status || 'No informado';
+}
+
 export function getOrderProduct(item = {}) {
   const product = item.product || {};
   const quantity = Number(item.cantidad ?? item.quantity ?? 1) || 1;

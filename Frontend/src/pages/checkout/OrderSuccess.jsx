@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { CartContext } from '../../context/CartContext';
+import { Link, useLocation, Navigate } from 'react-router-dom';
+import MercadoPagoReturn from '../../components/shared/MercadoPagoReturn';
 
 const PageContainer = styled.div`
   min-height: 80vh;
@@ -315,85 +315,22 @@ const getProductImage = (item) => {
 
 export default function OrderSuccess() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const [orderData, setOrderData] = useState(location.state || null);
-  const [loading, setLoading] = useState(false);
-  const { clearCart, setAppliedGiftCard } = useContext(CartContext);
+  return location.search
+    ? <MercadoPagoReturn renderApproved={order => <OrderSuccessContent verifiedOrder={order} />} />
+    : <OrderSuccessContent />;
+}
+
+function OrderSuccessContent({ verifiedOrder }) {
+  const location = useLocation();
+  const [orderData, setOrderData] = useState(verifiedOrder || location.state || null);
+  const loading = false;
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const mpStatus = searchParams.get('status');
-    const mpPaymentId = searchParams.get('payment_id');
-    const mpExternalRef = searchParams.get('external_reference');
+    if (verifiedOrder) { setOrderData(verifiedOrder); return; }
+    if (location.state) setOrderData(location.state);
+  }, [location.state, verifiedOrder]);
 
-    // ── Flujo MP Checkout Pro: llegamos del redirect de Mercado Pago ──
-    if (mpStatus && mpPaymentId) {
-      const pending = JSON.parse(sessionStorage.getItem('mp_pending_order') || 'null');
-
-      if (mpStatus === 'failure') {
-        navigate('/order-error', { replace: true });
-        return;
-      }
-
-      if (pending && mpStatus === 'approved') {
-        const cacheKey = `mp_order_created_${mpPaymentId}`;
-        const alreadyCreated = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
-
-        if (alreadyCreated) {
-          setOrderData(alreadyCreated);
-          return;
-        }
-
-        setLoading(true);
-        // Ya no creamos el pedido, fue creado en Pago.jsx
-        // Solo mostramos los datos del pedido que teníamos en pendiente.
-        const orderNumber = pending.externalReference || 'M-000000';
-
-        const newOrderData = {
-          paymentMethod: 'mercadopago',
-          cartItems: pending.cartItems,
-          cartTotal: pending.cartTotal,
-          savedAddress: pending.savedAddress,
-          email: pending.email,
-          isGuest: pending.isGuest,
-          orderNumber,
-        };
-
-        sessionStorage.setItem(cacheKey, JSON.stringify(newOrderData));
-        setOrderData(newOrderData);
-        setLoading(false);
-        clearCart();
-        setAppliedGiftCard(null);
-        return;
-      } else if (mpStatus === 'pending') {
-        const data = pending || {};
-        setOrderData({
-          paymentMethod: 'mercadopago',
-          cartItems: data.cartItems || [],
-          cartTotal: data.cartTotal || 0,
-          savedAddress: data.savedAddress,
-          email: data.email,
-          isGuest: data.isGuest,
-          orderNumber: 'Pendiente',
-        });
-        return;
-      }
-    }
-
-    // ── Flujo normal (React Router state) ──
-    if (location.state) {
-      setOrderData(location.state);
-    }
-  }, [location, navigate]);
-
-  // Redirigir si no hay datos ni params de MP
-  if (!loading && !orderData) {
-    const searchParams = new URLSearchParams(location.search);
-    if (!searchParams.get('payment_id')) {
-      return <Navigate to="/carrito" replace />;
-    }
-    return null; // Esperando procesamiento de MP
-  }
+  if (!orderData) return <Navigate to="/carrito" replace />;
 
   if (loading) {
     return (

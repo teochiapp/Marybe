@@ -63,7 +63,7 @@ test.each([false, true])('Mercado Pago conserva carrito y pedido pendiente; invi
     { product: { id: 2, nombre: 'Perfume B' }, variant: { id: 21, volumen: '100 ml' }, price: 3000, quantity: 1, cartId: '2-21' },
     { product: { id: 2, nombre: 'Perfume B' }, variant: { id: 22, volumen: '200 ml' }, price: 4000, quantity: 1, cartId: '2-22' },
   ];
-  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { numero_pedido: 'M-MULTI' } }) })
+  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { numero_pedido: 'M-MULTI' }, checkoutToken: 'qa-checkout-token' }) })
     .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, init_point: 'https://example.test/checkout' }) });
   try {
     const guest = { nombre: 'Ana', apellido: 'Pérez', email: 'ana@example.com', telefono: '3851234567' };
@@ -78,9 +78,8 @@ test.each([false, true])('Mercado Pago conserva carrito y pedido pendiente; invi
     if (isGuest) {
       expect(order.cliente).toEqual(guest);
       expect(global.fetch.mock.calls[0][1].headers.Authorization).toBeUndefined();
-      expect(preference.userEmail).toBe(guest.email);
     }
-    expect(preference).toEqual(expect.objectContaining({ productos: items, total: 17000, envio: 6000, externalReference: 'M-MULTI' }));
+    expect(preference).toEqual({ externalReference: 'M-MULTI', checkoutToken: 'qa-checkout-token' });
     expect(JSON.parse(sessionStorage.getItem('mp_pending_order'))).toEqual(expect.objectContaining({ cartItems: items, isGuest }));
     expect(mockClearCart).not.toHaveBeenCalled();
   } finally { window.location = location; }
@@ -117,4 +116,33 @@ test('espera a restaurar la sesión de un cliente registrado antes de redirigir 
   mount(home, undefined, { token: null, user: null, isLoading: true });
   expect(mockNavigate).not.toHaveBeenCalled();
   expect(screen.getByRole('button', { name: 'Pagar' }).disabled).toBe(true);
+});
+
+test('volver atrás desde MP concilia el intento sin completar antes de permitir otro pago', async () => {
+  sessionStorage.setItem('mp_pending_order', JSON.stringify({ externalReference: 'M-ABC123', checkoutToken: 'qa-token' }));
+  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ reference: 'M-ABC123', pagado: false, estado: 'Abortado', status: 'aborted' }) });
+  mount(home);
+  expect(screen.getByRole('button', { name: 'Pagar' }).disabled).toBe(true);
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Pagar' }).disabled).toBe(false));
+  expect(JSON.parse(global.fetch.mock.calls[0][1].body).abort).toBe(true);
+  expect(sessionStorage.getItem('mp_pending_order')).toBeNull(); expect(mockClearCart).not.toHaveBeenCalled();
+});
+
+test.each([false, true])('volver a Pago con intento pendiente o aprobado evita otro pago; pagado=%s', async pagado => {
+  sessionStorage.setItem('mp_pending_order', JSON.stringify({ externalReference: 'M-ABC123', checkoutToken: 'qa-token' }));
+  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ reference: 'M-ABC123', pagado, estado: pagado ? 'Procesando' : 'Pendiente de pago' }) });
+  mount(home);
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/order-success?reference=M-ABC123', { replace: true }));
+  expect(screen.getByRole('button', { name: 'Pagar' }).disabled).toBe(true);
+});
+
+test('error al crear preferencia concilia como Abortado y conserva carrito', async () => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { numero_pedido: 'M-ABC123' }, checkoutToken: 'qa-token' }) })
+    .mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'MP down' }) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ reference: 'M-ABC123', pagado: false, estado: 'Abortado', status: 'aborted' }) });
+  mount(home); fireEvent.click(screen.getByRole('button', { name: 'Pagar' }));
+  await waitFor(() => expect(window.alert).toHaveBeenCalled());
+  expect(global.fetch.mock.calls[2][0]).toContain('/consultar-pago'); expect(mockClearCart).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem('mp_pending_order')).toBeNull();
 });

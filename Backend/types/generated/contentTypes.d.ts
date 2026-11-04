@@ -837,10 +837,18 @@ export interface ApiPedidoPedido extends Struct.CollectionTypeSchema {
     direccion_envio: Schema.Attribute.JSON;
     es_invitado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     estado: Schema.Attribute.Enumeration<
-      ['Procesando', 'Enviado', 'Completado', 'Cancelado']
+      [
+        'Pendiente de pago',
+        'Abortado',
+        'Procesando',
+        'Enviado',
+        'Completado',
+        'Cancelado',
+      ]
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'Procesando'>;
+    estado_pago: Schema.Attribute.String;
     gift_cards_generadas: Schema.Attribute.JSON;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -852,6 +860,7 @@ export interface ApiPedidoPedido extends Struct.CollectionTypeSchema {
     numero_pedido: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
+    pago_mercadopago: Schema.Attribute.JSON & Schema.Attribute.Private;
     productos: Schema.Attribute.JSON & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
     total: Schema.Attribute.Decimal & Schema.Attribute.Required;

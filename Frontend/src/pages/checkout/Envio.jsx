@@ -351,7 +351,7 @@ export default function Envio() {
   const [guest] = useState(readGuest);
   const [savedAddress, setSavedAddress] = useState(() => {
     const saved = readDelivery();
-    return !token && saved?.metodo_envio === 'domicilio' ? saved : null;
+    return !token ? (saved?.metodo_envio === 'domicilio' ? saved : saved?.facturacion || null) : null;
   });
   useEffect(() => {
     if (!authLoading && !token && !validGuest(guest)) navigate('/login', { replace: true });

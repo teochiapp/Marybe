@@ -16,7 +16,10 @@ const BrandColumn = styled.div`
 `;
 
 const FooterLogo = styled.img`
-  height: 36px;
+  width: 200px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 629 / 168;
   object-fit: contain;
   align-self: flex-start;
   filter: brightness(0) invert(1);
@@ -85,7 +88,7 @@ const CopyrightText = styled.p`
 export default function FooterBrand() {
   return (
     <BrandColumn>
-      <FooterLogo src="/logo-marybe.png" alt="Marybe" width="200" height="40" />
+      <FooterLogo src="/logo-marybe.png" alt="Marybe" width="629" height="168" />
 
       <Tagline>
         Tu perfumería de confianza desde hace <strong>más de 50 años.</strong>

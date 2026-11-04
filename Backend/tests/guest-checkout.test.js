@@ -12,7 +12,11 @@ function fixture(method = 'efectivo', delivery = pickup) {
   const events = { orders: [], stock: [], emails: [] };
   const product = { id: 1, nombre: 'Perfume', stock: 5, precio: 1000, variantes: [] };
   const api = {
-    db: { query: () => ({ findOne: async () => product }) },
+    db: {
+      query: () => ({ findOne: async () => product }),
+      metadata: { get: () => ({ tableName: 'qa' }) },
+      transaction: async fn => fn({ trx: () => ({ where() { return this; }, forUpdate() { return this; }, first: async () => ({}) }) }),
+    },
     entityService: {
       create: async (uid, { data }) => { assert.equal(uid, 'api::pedido.pedido'); const order = { id: 7, ...data }; events.orders.push(order); return order; },
       findMany: async uid => uid === 'api::pedido.pedido' ? events.orders : { costo_envio: 6000 },
@@ -89,10 +93,12 @@ test('Mercado Pago: invitado pendiente pasa por webhook, envía correos y descue
     await controller.createGuestOrder(ctx);
     assert.equal(events.stock.length, 0);
     assert.equal(events.emails.length, 0);
-    global.fetch = async () => ({ ok: true, json: async () => ({ status: 'approved', external_reference: events.orders[0].numero_pedido }) });
+    process.env.MP_ACCESS_TOKEN = 'TEST-ONLY';
+    const payment = { id: 7, status: 'approved', external_reference: events.orders[0].numero_pedido, transaction_amount: 2000, currency_id: 'ARS' };
+    global.fetch = async url => ({ ok: true, json: async () => url.includes('/search') ? { results: [payment] } : payment });
     const service = createMPService();
-    await service.procesarWebhookDePago('TEST-7');
-    await service.procesarWebhookDePago('TEST-7');
+    await service.procesarWebhookDePago('7');
+    await service.procesarWebhookDePago('7');
     assert.deepEqual(events.stock, [3]);
     assert.equal(events.emails.length, 2);
     assert.equal(events.emails[0][1], 'ana@example.com');

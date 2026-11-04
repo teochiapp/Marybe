@@ -1,4 +1,8 @@
+import marybeLogo from './extensions/logo-marybe.png';
+import './extensions/branding.css';
+
 const config = {
+  auth: { logo: marybeLogo },
   locales: [
     'es',
   ],

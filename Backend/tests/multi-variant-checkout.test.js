@@ -44,6 +44,17 @@ test('Mercado Pago recibe cuatro ítems identificados por producto y variante co
   const previousFetch = global.fetch;
   const { api } = setup();
   global.strapi = api;
+  const { newCheckout } = require('../src/api/mercado-pago/services/checkout-lifecycle');
+  const checkout = newCheckout();
+  const validated = await api.service().validateCartAndCalculateTotal(cart, 6000, 0, 'domicilio');
+  const order = { id: 1, numero_pedido: 'M-ABC123', estado: 'Pendiente de pago', metodo_pago: 'mercadopago', cliente_email: 'qa@example.test', total: 17000, pago_mercadopago: checkout.metadata,
+    productos: [...validated.validatedItems.map(item => ({ producto: item.product.nombre, variante: item.variant.volumen, id_producto: item.product.id, id_variante: item.variant.id, cantidad: item.quantity, precio_unitario: item.validatedPrice, sku: item.variant.sku_ean })), { producto: 'Costo de Envío', sku: 'ENVIO', cantidad: 1, precio_unitario: 6000 }] };
+  api.entityService.findMany = async () => [order];
+  api.entityService.update = async () => {};
+  api.config = { get: () => 'https://cms.example.test' };
+  api.db.metadata = { get: () => ({ tableName: 'qa' }) };
+  api.db.transaction = async fn => fn({ trx: () => ({ where() { return this; }, forUpdate() { return this; }, first: async () => ({}) }) });
+  process.env.MP_ACCESS_TOKEN = 'TEST-ONLY';
   let payload;
   global.fetch = async (url, request) => {
     assert.equal(url, 'https://api.mercadopago.com/checkout/preferences');
@@ -51,13 +62,13 @@ test('Mercado Pago recibe cuatro ítems identificados por producto y variante co
     return { ok: true, json: async () => ({ id: 'TEST', init_point: 'https://example.test/checkout' }) };
   };
   try {
-    await createMPService().crearPreferencia({ productos: cart, metodo_envio: 'domicilio', envio: 6000, externalReference: 'TEST-ORDER' });
+    await createMPService().crearPreferencia({ externalReference: order.numero_pedido, checkoutToken: checkout.token });
     assert.equal(payload.items.length, 5);
     assert.equal(new Set(payload.items.slice(0, 4).map(item => item.id)).size, 4);
     assert.deepEqual(payload.items.slice(0, 4).map(item => [item.quantity, item.unit_price]), [[1, 1000], [2, 1500], [1, 3000], [1, 4000]]);
     assert.ok(payload.items[1].title.includes('200 ml'));
     assert.equal(payload.items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0), 17000);
-    assert.equal(payload.external_reference, 'TEST-ORDER');
+    assert.equal(payload.external_reference, order.numero_pedido);
   } finally { global.strapi = previousStrapi; global.fetch = previousFetch; }
 });
 

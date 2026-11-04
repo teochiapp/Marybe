@@ -45,7 +45,9 @@ const NavBarWrapper = styled.nav`
 
 /* Desktop */
 const Logo = styled.img`
-  height: 30px;
+  width: 200px;
+  height: auto;
+  aspect-ratio: 629 / 168;
   object-fit: contain;
   flex-shrink: 0;
   cursor: pointer;
@@ -56,7 +58,7 @@ const Logo = styled.img`
   }
 
   @media (max-width: 768px) {
-    height: 24px;
+    width: clamp(128px, 43vw, 180px);
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -340,12 +342,17 @@ const DrawerHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 16px 20px;
   border-bottom: 1px solid var(--color-fondo-beneficio-tarjeta);
 `;
 
 const DrawerLogo = styled.img`
-  height: 22px;
+  width: 192px;
+  max-width: calc(100% - 72px);
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 629 / 168;
   object-fit: contain;
   cursor: pointer;
 `;
@@ -756,7 +763,7 @@ export default function NavBar() {
         </MobileLeft>
 
         {/* Logo */}
-        <Logo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} width="200" height="40" />
+        <Logo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} width="629" height="168" />
 
         {/* Desktop: centro */}
         <CenterGroup>
@@ -859,7 +866,7 @@ export default function NavBar() {
               <IconButton onClick={closeDrawer} aria-label="Cerrar">
                 <CloseIcon />
               </IconButton>
-              <DrawerLogo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} width="200" height="40" />
+              <DrawerLogo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} width="629" height="168" />
               <CartButton aria-label="Carrito" onClick={() => { closeDrawer(); navigate('/carrito'); window.scrollTo(0, 0); }}>
                 <CartIconSvg />
                 {itemCount > 0 && <CartBadge>{itemCount}</CartBadge>}

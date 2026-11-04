@@ -6,6 +6,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { readDelivery, validDelivery, shippingCost } from '../../utils/checkoutDelivery';
 import { readGuest, validGuest } from '../../utils/guestCheckout';
 import { useConfiguracionGeneral } from '../../hooks/useConfiguracionGeneral';
+import { readPendingCheckout, syncCheckout } from '../../utils/mercadoPagoCheckout';
 
 const PageContainer = styled.div`
   min-height: 80vh;
@@ -607,6 +608,23 @@ export default function Pago() {
   const [savedAddress] = useState(readDelivery);
   const esSucursal = savedAddress?.metodo_envio === 'sucursal';
   const [isProcessing, setIsProcessing] = useState(false);
+  const [checkingPrevious, setCheckingPrevious] = useState(() => Boolean(readPendingCheckout()));
+  const [previousPaymentError, setPreviousPaymentError] = useState('');
+  useEffect(() => {
+    let active = true;
+    const pending = readPendingCheckout();
+    if (!pending) return undefined;
+    syncCheckout(pending, true).then(result => {
+      if (!active) return;
+      if (result.pagado || result.estado === 'Pendiente de pago') {
+        navigate(`/order-success?reference=${encodeURIComponent(pending.externalReference)}`, { replace: true });
+      } else {
+        sessionStorage.removeItem('mp_pending_order');
+        setCheckingPrevious(false);
+      }
+    }).catch(error => { if (active) { setPreviousPaymentError(error.message); setCheckingPrevious(false); } });
+    return () => { active = false; };
+  }, [navigate]);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferFinalTotal, setTransferFinalTotal] = useState(0);
 
@@ -640,6 +658,7 @@ export default function Pago() {
     : 'Hacer pedido';
 
   const handlePayment = async () => {
+    if (checkingPrevious || previousPaymentError) return;
     if (authLoading) return;
     if (!token && !validGuest(guest)) { navigate('/login'); return; }
     if (!validDelivery(savedAddress)) { navigate('/envio'); return; }
@@ -689,9 +708,8 @@ export default function Pago() {
       }
 
       try {
-        // 1. Primero creamos el pedido en Strapi como "Procesando" para obtener el número de pedido real
+        // Primero registramos un intento pendiente; el servidor confirma el pago.
         // Captura del carrito antes de limpiarlo
-        const itemsSnapshot = [...cartItems];
         let orderNumber = 'M-000000';
 
         const responseOrder = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${orderEndpoint}`, {
@@ -719,6 +737,9 @@ export default function Pago() {
 
         const json = await responseOrder.json();
         orderNumber = json.data?.numero_pedido || 'M-000000';
+        if (!json.checkoutToken) throw new Error('No se pudo iniciar la sesión de pago.');
+        // Save before requesting MP: a network failure must not lose the order reference.
+        sessionStorage.setItem('mp_pending_order', JSON.stringify({ cartItems, cartTotal: finalTotal, paymentMethod: 'mercadopago', savedAddress, email: customerEmail || '', isGuest: !token, externalReference: orderNumber, checkoutToken: json.checkoutToken }));
 
         // 2. Ahora sí generamos la preferencia de Mercado Pago usando el número de pedido como externalReference
         const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
@@ -726,20 +747,14 @@ export default function Pago() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            productos: cartItems,
-            total: finalTotal, // Solo por fallback, el backend recalcula
-            envio: costoEnvioFinal,
-            metodo_envio: savedAddress.metodo_envio,
-            descuentoGiftCard: appliedGiftCard ? appliedGiftCard.monto : 0,
-            userEmail: customerEmail,
             externalReference: orderNumber,
-            frontendUrl: window.location.origin,
+            checkoutToken: json.checkoutToken,
           }),
         });
 
         const data = await res.json();
 
-        if (data.success && (data.init_point || data.sandbox_init_point)) {
+        if (res.ok && data.success && (data.init_point || data.sandbox_init_point)) {
           // ── Guardar datos del carrito en sessionStorage por si vuelve atrás ──
           sessionStorage.setItem('mp_pending_order', JSON.stringify({
             cartItems,
@@ -748,8 +763,8 @@ export default function Pago() {
             savedAddress: savedAddress || null,
             email: customerEmail || '',
             isGuest: !token,
-            token: token || '',
             externalReference: orderNumber,
+            checkoutToken: json.checkoutToken,
             appliedGiftCard: appliedGiftCard || null,
             costoEnvioFinal
           }));
@@ -763,6 +778,15 @@ export default function Pago() {
         }
       } catch (error) {
         console.error('Error al generar pedido o preferencia MP:', error);
+        const pending = readPendingCheckout();
+        if (pending) {
+          try {
+            const result = await syncCheckout(pending, true);
+            if (result.pagado || result.estado === 'Pendiente de pago') {
+              navigate(`/order-success?reference=${encodeURIComponent(pending.externalReference)}`, { replace: true });
+            } else sessionStorage.removeItem('mp_pending_order');
+          } catch (verifyError) { setPreviousPaymentError(verifyError.message); }
+        }
         setIsProcessing(false);
         alert('Hubo un error al conectar con Mercado Pago. Intenta nuevamente.');
         return;
@@ -1104,7 +1128,9 @@ export default function Pago() {
                 <span className="val">{formatPrice(Math.max(0, Number(cartTotal) + Number(costoEnvioFinal) - Number(appliedGiftCard ? appliedGiftCard.monto : 0)))}</span>
               </TotalRow>
 
-              <PrimaryBtn onClick={handlePayment} disabled={authLoading || isProcessing || !validDelivery(savedAddress) || !metodosPago.some(m => m.id === paymentMethod) || cartItems.length === 0}>
+              {previousPaymentError && <p role="alert">{previousPaymentError} <Link to="/order-error">Consultar el intento anterior</Link></p>}
+              {checkingPrevious && <p role="status">Verificando el intento de pago anterior…</p>}
+              <PrimaryBtn onClick={handlePayment} disabled={checkingPrevious || Boolean(previousPaymentError) || authLoading || isProcessing || !validDelivery(savedAddress) || !metodosPago.some(m => m.id === paymentMethod) || cartItems.length === 0}>
                 {isProcessing ? 'Procesando...' : buttonText}
               </PrimaryBtn>
             </SummaryCard>

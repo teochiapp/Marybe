@@ -21,3 +21,11 @@ test('recupera el retiro al recargar y tolera datos de sesión dañados', () => 
   expect(readDelivery()).toBeNull();
   sessionStorage.clear();
 });
+
+test('retiro conserva el domicilio de facturación como snapshot independiente de la sucursal', () => {
+  const address = { nombre: 'Cliente QA', calle: 'Mitre', numero: '221', ciudad: 'La Banda', provincia: 'Santiago del Estero', cp: '4200' };
+  const delivery = deliveryAddress('sucursal', address, { direccion: 'Maipú 164', ciudad: 'San Miguel de Tucumán', provincia: 'Tucumán' });
+  expect(delivery.facturacion).toEqual(address);
+  expect(delivery.calle).toBeUndefined(); expect(delivery.ciudad).toBe('San Miguel de Tucumán');
+  expect(deliveryAddress('sucursal', delivery, { direccion: 'Otra', provincia: 'Tucumán' }).facturacion).toEqual(address);
+});

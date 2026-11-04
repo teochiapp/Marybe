@@ -119,6 +119,16 @@ Actualización visual del comprobante:
 - Se ajustaron márgenes A4, espaciados y saltos de página; la tabla repite sus encabezados cuando ocupa más de una hoja. La impresión excluye el fondo y la estructura del panel para evitar recortes y hojas vacías.
 - Validación visual y de contenido con PDFs reales generados desde el navegador usando pedidos ficticios: 3 productos en una hoja y 30 productos en cuatro hojas. Se verificaron SKUs, variantes, cantidades, precios, subtotales, total, fechas, estado, pago, correo, seguimiento, ID de Strapi, entrega/contacto y gift cards; también ambos accesos a imprimir y el detalle móvil. Las 125 pruebas de frontend pasaron y la compilación de producción finalizó correctamente, con advertencias preexistentes.
 
+Datos comerciales y de facturación del comprobante (referencia anterior de Marybe):
+- Se incorporaron ventas@marybe.com.ar, +54 385 4211687 y Pellegrini 141, Santiago del Estero en el encabezado y pie del comprobante.
+- Se agregaron los bloques Método de pago, Método de envío y Datos de facturación, junto con subtotal, envío/descuentos cuando corresponden, total destacado y Nota. Los productos conservan descripción, variante, SKU, cantidad, precio unitario y subtotal.
+- El ID de Strapi y los identificadores internos de producto/variante se excluyen de la impresión/PDF. Siguen disponibles en el detalle administrativo; también se conserva allí el bloque de datos completos.
+- Las instrucciones se adaptan al pago y a la entrega: el pago en la entrega muestra la indicación del ejemplo, el retiro recuerda llevar número de compra y DNI, y Maipú 164 de Tucumán incluye el horario informado de lunes a sábado de 9 a 21 hs. No se aplica ese horario a otros locales.
+- Los datos personales se toman de cada pedido. Para compras nuevas con retiro, se conserva por separado el domicilio disponible de facturación sin mezclarlo con la dirección de la sucursal. Los pedidos anteriores o invitados sin ese domicilio muestran únicamente los datos realmente guardados, sin inventar información.
+- Se ajustó el diseño A4 para que los comprobantes de uno y tres productos entren en una hoja; el caso de 30 productos se verificó en cuatro hojas con encabezados repetidos y sin filas cortadas. Se generaron y revisaron visualmente tres PDFs de prueba, con extracción de texto para comprobar campos y ausencia de identificadores internos; también se verificó el detalle móvil y ambos accesos a imprimir.
+- Se añadieron pruebas de datos comerciales, facturación independiente, pago, entrega, horarios por sucursal, notas y desglose de importes.
+- Validación final conjunta del comprobante y logo: 157 pruebas de Frontend y 60 de Backend aprobadas; compilaciones de producción de ambos proyectos correctas con advertencias preexistentes. Se revisaron tres PDFs reales de prueba y los tamaños responsive en Chrome, incluido el login compilado de Strapi. Ejemplo basado en la referencia suministrada: output/pdf/comprobante-referencia.pdf.
+
 Revisar la opcion de pago de Retiro en Sucursal, ya que avanza al PAgo sin elegir sucursal ✅
 
 Cambios realizados: 
@@ -154,3 +164,31 @@ Cambios realizados:
 - En el desplegable de Retiro por sucursal del carrito, cada opción se presenta como `calle - ciudad`, por ejemplo `Pellegrini 141 - Santiago del Estero`, facilitando distinguir locales de una misma provincia. Si una sucursal aún no tiene ciudad cargada, su opción sigue siendo seleccionable y se muestra solo con la calle.
 - La ciudad elegida se conserva dentro de los datos de entrega al continuar a Pago o volver al paso de Envío.
 - Validación: pruebas focalizadas de Envío y datos de entrega aprobadas (4 pruebas); compilación de producción de Frontend y panel de Strapi completadas correctamente. Se mantienen advertencias preexistentes de Browserslist y ESLint.
+
+
+Revisar intensivamente los procesos de pago, especialmente Mercado Pago: al abortar sin terminar el proceso, el pedido debe quedar como Abortado y no Procesando ✅
+
+Investigación y cambios realizados:
+- Se confirmó la causa: el pedido se creaba como Procesando antes de salir a Mercado Pago; el webhook solo atendía pagos aprobados y el retorno de error no actualizaba Strapi.
+- Los intentos nuevos de Mercado Pago ahora nacen como Pendiente de pago. El regreso sin completar, el rechazo y la cancelación del pago se registran como Abortado. Cancelado se conserva para las decisiones administrativas.
+- Los estados reales pending, in_process, authorized e in_mediation permanecen pendientes aunque el comprador vuelva al sitio. Una aprobación confirmada deja el pedido en Procesando para su preparación, incluso si llega después de un aborto local.
+- Se agregó conciliación protegida en ambos retornos, incluso sin payment_id, y al volver atrás al paso de Pago. La web consulta al servidor antes de mostrar éxito o limpiar el carrito. Una URL manipulada no acredita compras; un fallo de red tampoco se interpreta como aborto.
+- Cada intento usa un token aleatorio propio, compatible con clientes registrados e invitados. La preferencia se vincula al pedido validado de Strapi, reutiliza la existente y toma productos, variantes, precios, total, correo y URLs del servidor.
+- Se incorporaron vencimiento de preferencia y conciliación cada cinco minutos para cierres de pestaña sin retorno. El plazo predeterminado es de 60 minutos, configurable; solo vence localmente un intento sin pago. Al abortar explícitamente se cierra la preferencia antes de permitir otro intento.
+- El webhook valida la firma de Mercado Pago y admite data.id. Stock, consumo y emisión de gift cards y marca de procesamiento se confirman en una transacción con bloqueo, para soportar avisos simultáneos, duplicados y reintentos tras errores.
+- Se validan referencia, importe y moneda del pago, además de actividad, vencimiento y monto de los descuentos por gift card. Se impide disfrazar un producto de gift card usando solo su nombre. Se retiró una credencial incrustada como respaldo del servicio.
+- Pedidos Admin incorpora Pendiente de pago y Abortado, y muestra por separado el estado financiero en tabla, detalle y comprobante. Reembolsos, contracargos y errores de acreditación quedan identificados para revisión administrativa.
+- Validación: 152 pruebas de frontend y 60 de backend aprobadas; se incluyen transacciones y concurrencia con SQLite real en memoria. Revisión en Chrome de ocho escenarios simulados (aborto, pendiente, aprobado y error de conexión en escritorio y celular), comprobando carrito y errores de ejecución. Compilación de Frontend y panel de Strapi verificadas con advertencias preexistentes. No se realizaron cobros, preferencias, devoluciones ni correos reales.
+- Documentación del diagnóstico, matriz de estados, configuración, pruebas y límites: docs/pagos-mercado-pago.md. Para desplegar deben configurarse MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET y las URLs públicas, desplegar ambos proyectos y reiniciar Strapi; falta la aceptación con cuentas de prueba y notificaciones reales del entorno remoto.
+- Quedaron explícitamente documentadas mejoras adicionales fuera del caso de aborto: confirmación de cobros offline antes de habilitar gift cards, canje que cubra el 100 % de la compra, cola persistente de correos y reserva de inventario mientras se paga. Esos comportamientos no se presentan como resueltos por esta corrección.
+
+
+Ajustar las apariciones del logo al nuevo archivo de 629 × 168, incluido el login de Strapi ✅
+
+Cambios realizados:
+- Se revisaron las referencias al logo en cabecera, menú móvil, pie de página, recuperación de contraseña, Banners Admin, comprobantes, correos y metadatos sociales.
+- Se reemplazaron los límites de alto que achicaban el logo nuevo por anchos controlados y alto proporcional. Se declararon sus dimensiones reales para reservar el espacio sin deformarlo; el menú móvil se adapta también a pantallas de 320 px.
+- Se mantuvieron los anchos útiles de la marca en los comprobantes y se ajustaron las ocho apariciones en plantillas/configuración de correo, con ancho adaptable al espacio disponible.
+- Strapi incorpora una copia idéntica del archivo nuevo en el panel compilado, configurada como logo de autenticación, y estilos para respetar el formato horizontal en el login.
+- Validación en Chrome: cabecera, footer, recuperación y menú en 1440, 768, 390 y 320 px; Banners Admin, correo y login compilado de Strapi en escritorio y celular. Se verificaron las dimensiones naturales 629 × 168, proporción, tamaños y ausencia de superposición. La revisión usa respuestas simuladas y no guarda ni publica datos reales.
+- Las compilaciones de Frontend y panel de Strapi se verificaron. Para aplicar el login en el entorno remoto hay que desplegar el Backend con el panel reconstruido; para la web y correos se deben desplegar los cambios correspondientes.

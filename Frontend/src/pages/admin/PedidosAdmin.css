@@ -216,6 +216,8 @@
 .pa-select--enviado { background-color: #e9f4ff !important; border-color: #9dc9ee; color: #07568f !important; }
 .pa-select--completado { background-color: #eaf7ee !important; border-color: #9bcea8; color: #176437 !important; }
 .pa-select--cancelado { background-color: #fff0f0 !important; border-color: #efabab; color: #9b2525 !important; }
+.pa-select--abortado, .pa-badge--abortado { background-color: #f5eeee !important; border-color: #d6aaaa; color: #803c3c !important; }
+.pa-select--pendiente, .pa-badge--pendiente { background-color: #fff8df !important; border-color: #ead188; color: #7b5a00 !important; }
 
 .pa-detail-btn {
   background: none;
@@ -406,6 +408,16 @@
 .pa-print-brand::before { content: ''; position: absolute; left: 0; top: 4px; width: 64px; height: 64px; border-radius: 50%; background: #f2d4d4; z-index: -1; }
 .pa-print-logo { display: block; width: 165px; max-width: 100%; height: auto; object-fit: contain; object-position: left center; margin-bottom: 18px; }
 .pa-print-company { color: #806963; font-size: .65rem; letter-spacing: .16em; }
+.pa-company-contact { display: grid; gap: 4px; font-size: .74rem; font-style: normal; line-height: 1.4; margin-top: 12px; overflow-wrap: anywhere; }
+.pa-receipt-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 24px; font-size: .8rem; line-height: 1.45; }
+.pa-receipt-methods section { min-width: 0; padding: 16px; border: 1px solid #eadeda; border-radius: 8px; overflow-wrap: anywhere; }
+.pa-receipt-methods p, .pa-billing-lines p { margin: 5px 0 0; }
+.pa-billing-lines { font-size: .8rem; line-height: 1.5; overflow-wrap: anywhere; }
+.pa-receipt-totals { margin: 0 0 12px; font-size: .8rem; }
+.pa-receipt-totals > div { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.pa-receipt-totals dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.pa-receipt-note { margin-top: 24px; padding: 16px 0; border-top: 1px solid #e9deda; font-size: .8rem; line-height: 1.45; overflow-wrap: anywhere; }
+.pa-receipt-note p { margin: 0; white-space: pre-wrap; }
 .pa-document-heading { background: #ead0ca; padding: 26px 24px; }
 .pa-print-header h2 { color: #3e0102; font-family: var(--font-family-secondary, Arial, sans-serif); font-size: 2rem; font-weight: 400; line-height: 1.1; margin: 10px 0 0; }
 .pa-print-header h2 span { display: block; font-size: 1rem; font-weight: 600; margin-top: 10px; overflow-wrap: anywhere; }
@@ -453,6 +465,7 @@
 .pa-print-footer { align-items: center; border-top: 1px solid #d8b7ad; color: #8b7b70; display: flex; gap: 16px; font-size: .62rem; justify-content: space-between; letter-spacing: .06em; margin-top: 32px; padding-top: 13px; text-transform: uppercase; }
 
 @media screen and (max-width: 640px) {
+  .pa-receipt-methods { grid-template-columns: 1fr; }
   .pa-print-header { grid-template-columns: 1fr; gap: 12px; }
   .pa-print-toolbar { padding-right: 30px; }
   .pa-print-button { width: 100%; }
@@ -471,33 +484,38 @@
   .pa-page { display: block; min-height: 0; padding: 0 !important; position: static !important; overflow: visible; background: white; }
   .pa-modal-overlay { background: white !important; display: block; inset: auto; padding: 0; position: static; }
   .pa-modal { border-radius: 0; box-shadow: none; max-height: none; max-width: none; overflow: visible; padding: 0; width: auto; transform: none !important; opacity: 1 !important; }
-  .pa-modal-close, .pa-print-toolbar, .pa-print-button, .pa-raw-data { display: none !important; }
+  .pa-modal-close, .pa-print-toolbar, .pa-print-button, .pa-raw-data, .pa-internal-only { display: none !important; }
   .pa-print-order { font-size: 10pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pa-print-logo { width: 46mm; max-width: 100%; margin-bottom: 6mm; }
-  .pa-print-header { margin-bottom: 6mm; break-inside: avoid; }
-  .pa-print-brand { padding-top: 7mm; }
-  .pa-document-heading { padding: 6mm 8mm; }
-  .pa-print-header h2 { font-size: 28pt; }
+  .pa-print-logo { width: 46mm; max-width: 100%; margin-bottom: 3mm; }
+  .pa-print-header { margin-bottom: 4mm; break-inside: avoid; }
+  .pa-print-brand { padding-top: 4mm; padding-bottom: 0; }
+  .pa-document-heading { padding: 4mm 6mm; }
+  .pa-print-header h2 { font-size: 24pt; }
   .pa-print-header h2 span { font-size: 12pt; }
-  .pa-print-order .pa-order-info { grid-template-columns: repeat(4, minmax(0, 1fr)); break-inside: avoid; gap: 3mm 5mm; margin-bottom: 6mm; padding-bottom: 5mm; font-size: 8pt; line-height: 1.35; }
+  .pa-company-contact { font-size: 7.5pt; gap: .5mm; margin-top: 2mm; }
+  .pa-print-order .pa-order-info { grid-template-columns: repeat(4, minmax(0, 1fr)); break-inside: avoid; gap: 2mm 4mm; margin-bottom: 4mm; padding-bottom: 4mm; font-size: 8pt; line-height: 1.35; }
   .pa-print-order .pa-order-info > div > strong { font-size: 6.5pt; }
+  .pa-print-order .pa-modal-section-title { break-after: avoid; font-size: 8pt; margin-bottom: 2.5mm; }
+  .pa-receipt-methods { font-size: 8pt; gap: 4mm; margin-bottom: 4mm; line-height: 1.3; }
+  .pa-receipt-methods section { padding: 2.5mm; break-inside: avoid; }
+  .pa-receipt-methods p { margin-top: 1mm; }
   .pa-receipt-table-wrap { overflow: visible; }
   .pa-receipt-table { font-size: 9pt; }
   .pa-receipt-table th { padding: 3mm; font-size: 8pt; }
-  .pa-receipt-table td { padding: 2.5mm 3mm; }
+  .pa-receipt-table td { padding: 1.5mm 3mm; }
   .pa-receipt-table .pa-product-info { gap: 1px; line-height: 1.3; }
   .pa-receipt-table .pa-product-name { font-size: 9pt; line-height: 1.3; }
   .pa-receipt-table .pa-product-meta, .pa-receipt-table .pa-sku-highlight { font-size: 7.5pt; line-height: 1.3; }
   .pa-receipt-table thead { display: table-header-group; }
   .pa-receipt-table tr, .pa-product-item, .pa-address-list { break-inside: avoid; }
-  .pa-print-order .pa-modal-section-title { break-after: avoid; font-size: 8pt; }
-  .pa-receipt-bottom { margin-top: 6mm; grid-template-columns: 1.2fr 1fr; gap: 10mm; }
-  .pa-receipt-total { padding: 6mm; }
-  .pa-receipt-total strong { font-size: 20pt; }
-  .pa-receipt-bottom .pa-address-list { font-size: 8pt; line-height: 1.3; gap: 1.5mm 3mm; }
-  .pa-receipt-bottom .pa-address-list dt { font-size: 7pt; }
+  .pa-receipt-bottom { margin-top: 4mm; grid-template-columns: 1.2fr 1fr; gap: 10mm; }
+  .pa-billing-lines, .pa-receipt-totals, .pa-receipt-note { font-size: 8pt; }
+  .pa-receipt-total { padding: 4mm; gap: 2mm; }
+  .pa-receipt-total strong { font-size: 18pt; }
+  .pa-receipt-gifts { margin-top: 3mm; }
+  .pa-gift-cards { padding: 2mm; }
+  .pa-receipt-note { margin-top: 3mm; padding: 2mm 0; }
   .pa-receipt-closing { break-inside: avoid; }
-  .pa-receipt-gifts { margin-top: 5mm; }
-  .pa-print-footer { break-inside: avoid; margin-top: 5mm; padding-top: 3mm; }
+  .pa-print-footer { break-inside: avoid; margin-top: 4mm; padding-top: 2mm; }
   @page { margin: 15mm; size: A4; }
 }

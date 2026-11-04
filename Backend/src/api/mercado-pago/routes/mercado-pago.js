@@ -9,11 +9,11 @@ module.exports = {
       },
     },
     {
-      method: 'GET',
+      method: 'POST',
       path: '/mercado-pago/consultar-pago',
       handler: 'mercado-pago.consultarPago',
       config: {
-        auth: false, // Permitir consulta pública desde el temporizador del modal
+        auth: false, // El token aleatorio de checkout autoriza únicamente este pedido.
       },
     },
     {

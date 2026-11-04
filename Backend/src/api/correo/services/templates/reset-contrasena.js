@@ -4,7 +4,7 @@ module.exports = function generarResetContrasena(enlace) {
       
       <!-- Header -->
       <div style="padding: 25px; text-align: center; border-bottom: 1px solid #eee;">
-        <img src="https://marybe.surcodes.com/logo-marybe.png" alt="Marybe" style="display: block; margin: 0 auto; max-height: 40px; width: auto;" />
+        <img src="https://marybe.surcodes.com/logo-marybe.png" alt="Marybe" width="323" style="display: block; margin: 0 auto; width: 323px; max-width: 100%; height: auto;" />
       </div>
 
       <!-- Body -->

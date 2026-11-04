@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import './ImportacionAdmin.css';
 // Agregamos estilos específicos para la tabla de pedidos
 import './PedidosAdmin.css';
-import { getAddressLines, getOrderAttributes, getOrderDebugData, getOrderProduct } from '../../utils/orderDetails';
+import { getAddressLines, getOrderAttributes, getOrderDebugData, getPaymentStatusLabel } from '../../utils/orderDetails';
+import { getReceiptDetails, RECEIPT_BUSINESS } from '../../utils/orderReceipt';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
 
@@ -18,7 +19,8 @@ function printOrder(order) {
 
 function OrderDetailContent({ order, formatDate, formatPrice, onPrint }) {
   const p = getOrderAttributes(order);
-  const products = (p.productos || []).map(getOrderProduct);
+  const receipt = getReceiptDetails(order);
+  const { products } = receipt;
   const addressLines = getAddressLines(p.direccion_envio);
   const customer = p.usuario?.data?.attributes || p.usuario || {};
 
@@ -26,18 +28,24 @@ function OrderDetailContent({ order, formatDate, formatPrice, onPrint }) {
     <article className="pa-print-order">
       <div className="pa-print-toolbar"><button className="pa-print-button" type="button" onClick={() => onPrint(p)}>Descargar / imprimir PDF</button></div>
       <header className="pa-print-header">
-        <div className="pa-print-brand"><img src="/logo-marybe.png" alt="Marybe" className="pa-print-logo" /><span className="pa-print-company">MARYBE SRL</span></div>
+        <div className="pa-print-brand"><img src="/logo-marybe.png" alt="Marybe" width="629" height="168" className="pa-print-logo" /><span className="pa-print-company">{RECEIPT_BUSINESS.name}</span><address className="pa-company-contact"><span>{RECEIPT_BUSINESS.email}</span><span>{RECEIPT_BUSINESS.address}</span><span>{RECEIPT_BUSINESS.phone}</span></address></div>
         <div className="pa-document-heading"><span className="pa-print-kicker">Comprobante de pedido</span><h2>Pedido <span>{p.numero_pedido}</span></h2></div>
       </header>
       <div className="pa-order-info">
         <div><strong>Fecha de creación</strong>{formatDate(p.createdAt)}</div>
-        <div><strong>Última actualización</strong>{formatDate(p.updatedAt || p.createdAt)}</div>
+        <div className="pa-internal-only"><strong>Última actualización</strong>{formatDate(p.updatedAt || p.createdAt)}</div>
         <div><strong>Estado</strong><span className={`pa-badge pa-badge--${(p.estado || 'procesando').toLowerCase()}`}>{p.estado || 'Procesando'}</span></div>
-        <div><strong>Método de pago</strong>{p.metodo_pago || 'No especificado'}</div>
+        <div className="pa-internal-only"><strong>Método de pago</strong>{receipt.paymentLabel}</div>
+        {p.estado_pago && <div><strong>Estado del pago</strong>{getPaymentStatusLabel(p.estado_pago)}</div>}
         <div><strong>Correo del cliente</strong>{p.cliente_email || customer.email || 'No especificado'}</div>
-        <div><strong>Tipo de cliente</strong>{p.es_invitado ? 'Invitado' : 'Cliente registrado'}</div>
+        <div className="pa-internal-only"><strong>Tipo de cliente</strong>{p.es_invitado ? 'Invitado' : 'Cliente registrado'}</div>
         <div><strong>Código de seguimiento</strong>{p.codigo_seguimiento || 'Aún no asignado'}</div>
-        <div><strong>ID de Strapi</strong>{p.documentId || p.id || 'No disponible'}</div>
+        <div className="pa-internal-only"><strong>ID de Strapi</strong>{p.documentId || p.id || 'No disponible'}</div>
+      </div>
+
+      <div className="pa-receipt-methods">
+        <section><h3 className="pa-modal-section-title">Método de pago</h3><strong>{receipt.paymentLabel}</strong>{receipt.paymentInstructions && <p>{receipt.paymentInstructions}</p>}</section>
+        <section><h3 className="pa-modal-section-title">Método de envío</h3><strong>{receipt.deliveryLabel}</strong>{receipt.deliveryLines.map((line, index) => <p key={index}>{line}</p>)}</section>
       </div>
 
       <section><h3 className="pa-modal-section-title">Productos y SKU</h3>
@@ -50,7 +58,7 @@ function OrderDetailContent({ order, formatDate, formatPrice, onPrint }) {
               {item.brand && <span className="pa-product-meta">Marca: {item.brand}</span>}
               <span className="pa-product-meta">Variante: {item.variant}</span>
               <strong className="pa-sku-highlight">SKU: {item.sku}</strong>
-              {(item.productId || item.variantId) && <span className="pa-product-meta">Producto: {item.productId || '-'} | Variante: {item.variantId || '-'}</span>}
+              {(item.productId || item.variantId) && <span className="pa-product-meta pa-internal-only">Producto: {item.productId || '-'} | Variante: {item.variantId || '-'}</span>}
             </div></td>
             <td>{item.quantity}</td><td>{formatPrice(item.unitPrice)}</td><td>{formatPrice(item.subtotal)}</td>
           </tr>
@@ -58,18 +66,21 @@ function OrderDetailContent({ order, formatDate, formatPrice, onPrint }) {
       </section>
 
       <div className="pa-receipt-bottom">
-      <section><h3 className="pa-modal-section-title">Entrega y contacto</h3>
-        {addressLines.length ? <dl className="pa-address-list">{addressLines.map(({ label, value }) => <React.Fragment key={label}><dt>{label}</dt><dd>{value}</dd></React.Fragment>)}</dl> : <p className="pa-empty-detail">No se registró una dirección de envío.</p>}
+      <section><h3 className="pa-modal-section-title">Datos de facturación</h3>
+        {receipt.billingLines.length ? <div className="pa-billing-lines">{receipt.billingLines.map((line, index) => <p key={index}>{line}</p>)}</div> : <p className="pa-empty-detail">No se registraron datos de facturación.</p>}
+        <div className="pa-internal-only"><h3 className="pa-modal-section-title">Datos adicionales de entrega</h3>{addressLines.length > 0 && <dl className="pa-address-list">{addressLines.map(({ label, value }) => <React.Fragment key={label}><dt>{label}</dt><dd>{value}</dd></React.Fragment>)}</dl>}</div>
       </section>
       <div className="pa-receipt-summary">
-        <div className="pa-receipt-total"><span>Total del pedido</span><strong>{formatPrice(p.total)}</strong></div>
+        <dl className="pa-receipt-totals"><div><dt>Subtotal</dt><dd>{formatPrice(receipt.subtotal)}</dd></div>{receipt.shipping !== 0 && <div><dt>Envío</dt><dd>{formatPrice(receipt.shipping)}</dd></div>}{receipt.discount !== 0 && <div><dt>Descuento Gift Card</dt><dd>{formatPrice(receipt.discount)}</dd></div>}</dl>
+        <div className="pa-receipt-total"><span>Pagás - Total del pedido</span><strong>{formatPrice(p.total)}</strong></div>
         {Array.isArray(p.gift_cards_generadas) && p.gift_cards_generadas.length > 0 && <section className="pa-receipt-gifts"><h3 className="pa-modal-section-title">Gift cards generadas</h3><p className="pa-gift-cards">{p.gift_cards_generadas.join(', ')}</p></section>}
       </div>
       </div>
 
       <div className="pa-receipt-closing">
+      <section className="pa-receipt-note"><h3 className="pa-modal-section-title">Nota</h3><p>{receipt.note || 'Sin observaciones.'}</p></section>
       <details className="pa-raw-data"><summary>Todos los datos guardados en Strapi</summary><pre>{JSON.stringify(getOrderDebugData(order), null, 2)}</pre></details>
-      <footer className="pa-print-footer"><span>MARYBE SRL</span><span>Comprobante interno - {p.numero_pedido}</span></footer>
+      <footer className="pa-print-footer"><span>{RECEIPT_BUSINESS.email}<br />{RECEIPT_BUSINESS.address}<br />{RECEIPT_BUSINESS.phone}</span><span>Comprobante de pedido - {p.numero_pedido}</span></footer>
       </div>
     </article>
   );
@@ -446,13 +457,15 @@ export default function PedidosAdmin() {
                         </div>
                       </td>
                       <td data-label="Total" style={{ fontWeight: 600 }}>{formatPrice(p.total)}</td>
-                      <td data-label="Pago" style={{ textTransform: 'capitalize' }}>{p.metodo_pago}</td>
+                      <td data-label="Pago" style={{ textTransform: 'capitalize' }}>{p.metodo_pago}{p.estado_pago && <small style={{ display: 'block', marginTop: 6 }}>{getPaymentStatusLabel(p.estado_pago)}</small>}</td>
                       <td data-label="Estado">
                         <select 
                           className={`pa-select pa-select--${estado.toLowerCase()}`}
                           value={estado} 
                           onChange={(e) => onStatusChangeRequest(pedido.documentId, e.target.value)}
                         >
+                          <option value="Pendiente de pago">Pendiente de pago</option>
+                          <option value="Abortado">Abortado</option>
                           <option value="Procesando">Procesando</option>
                           <option value="Enviado">Enviado</option>
                           <option value="Completado">Completado</option>

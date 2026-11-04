@@ -31,6 +31,8 @@
     "estado": {
       "type": "enumeration",
       "enum": [
+        "Pendiente de pago",
+        "Abortado",
         "Procesando",
         "Enviado",
         "Completado",
@@ -41,6 +43,13 @@
     },
     "direccion_envio": {
       "type": "json"
+    },
+    "pago_mercadopago": {
+      "type": "json",
+      "private": true
+    },
+    "estado_pago": {
+      "type": "string"
     },
     "cliente_email": {
       "type": "email"

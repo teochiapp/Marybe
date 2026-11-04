@@ -5,7 +5,7 @@ const createService = require('../src/api/pedido/services/custom-pedido');
 function service(config = { costo_envio: 6000, envio_gratis_desde: 50000 }) {
   return createService({ strapi: {
     db: { query: () => ({ findOne: async () => ({ id: 1, stock: 10, precio: 1000, variantes: [] }) }) },
-    entityService: { findMany: async () => config },
+    entityService: { findMany: async uid => uid.includes('gift-card') ? [{ activa: true, monto: 500 }] : config },
   } });
 }
 const items = [{ product: { id: 1, nombre: 'Shampoo' }, quantity: 2 }];
@@ -20,7 +20,7 @@ test('retiro gratuito, incluyendo transferencia o Mercado Pago', async () => {
   assert.equal(result.finalTotal, 2000);
 });
 test('domicilio respeta umbral de envío gratis y descuento', async () => {
-  const result = await service({ costo_envio: 6000, envio_gratis_desde: 2000 }).validateCartAndCalculateTotal(items, 6000, 500, 'domicilio');
+  const result = await service({ costo_envio: 6000, envio_gratis_desde: 2000 }).validateCartAndCalculateTotal(items, 6000, 500, 'domicilio', 'GC-QA');
   assert.equal(result.costoEnvioFinal, 0);
   assert.equal(result.finalTotal, 1500);
 });

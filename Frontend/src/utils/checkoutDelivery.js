@@ -7,7 +7,10 @@ export function readDelivery() {
 
 export function deliveryAddress(method, address, branch) {
   if (method === 'sucursal') {
-    return { ...(address?.nombre ? { nombre: address.nombre } : {}), ...(address?.telefono ? { telefono: address.telefono } : {}), ...(address?.email ? { email: address.email } : {}), metodo_envio: 'sucursal', sucursal: branch?.direccion || '', ...(branch?.ciudad ? { ciudad: branch.ciudad } : {}), provincia: branch?.provincia || '', telefono_sucursal: branch?.telefono || '' };
+    const billingSource = address?.facturacion || address;
+    const billing = ['calle', 'numero', 'ciudad', 'provincia', 'cp'].every(field => billingSource?.[field])
+      ? Object.fromEntries(['nombre', 'apellido', 'telefono', 'email', 'calle', 'numero', 'piso', 'departamento', 'ciudad', 'provincia', 'cp', 'dni', 'cuit'].filter(field => billingSource[field]).map(field => [field, billingSource[field]])) : null;
+    return { ...(address?.nombre ? { nombre: address.nombre } : {}), ...(address?.telefono ? { telefono: address.telefono } : {}), ...(address?.email ? { email: address.email } : {}), metodo_envio: 'sucursal', sucursal: branch?.direccion || '', ...(branch?.ciudad ? { ciudad: branch.ciudad } : {}), provincia: branch?.provincia || '', telefono_sucursal: branch?.telefono || '', ...(billing ? { facturacion: billing } : {}) };
   }
   return { ...address, metodo_envio: 'domicilio' };
 }

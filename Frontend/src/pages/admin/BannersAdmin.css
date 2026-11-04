@@ -31,7 +31,7 @@
 }
 .ba-topbar { min-height: 76px; padding: 14px 24px; display: flex; align-items: center; gap: 26px; background: white; border-bottom: 1px solid var(--ba-line); position: sticky; top: 0; z-index: 30; }
 .ba-brand { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
-.ba-brand img { width: 122px; height: 27px; object-fit: contain; }
+.ba-brand img { width: 122px; height: auto; aspect-ratio: 629 / 168; object-fit: contain; }
 .ba-brand span { border-left: 1px solid var(--ba-line); padding-left: 18px; font-weight: 700; font-size: 14px; }
 .ba-status { font-size: 11px; color: #56836c; white-space: nowrap; }
 .ba-status--dirty { color: #aa7736; }
