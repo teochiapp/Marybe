@@ -218,3 +218,20 @@ Cambios realizados:
 - El menú obtiene las categorías publicadas aunque solo se usen como clasificación adicional y consulta sus columnas por sección y nombre. Los nombres ambiguos ya no toman por defecto las columnas de la otra sección.
 - El filtro lateral mantiene separados los árboles de categorías homónimas de Hogar y Perfumería; al elegir una categoría sin sección activa, agrega la sección correspondiente a la URL.
 - Validación: 165 pruebas de frontend aprobadas, compilación de producción correcta con advertencias preexistentes y prueba de Strapi con SQLite aislada que distingue productos de ambas secciones y descarta coincidencias repartidas entre distintas clasificaciones.
+- Testeo adicional del megamenú y el catálogo: se verificaron las URL de categoría, subcategoría y tipo, los totales y dos páginas mediante la API HTTP real de Strapi con SQLite aislada. Se comprobó que las clasificaciones adicionales no duplican el total ni combinan datos de distintas filas.
+- El menú y el filtro lateral ahora recorren todas las páginas de categorías; las marcas, tamaños y precios del catálogo recorren todas las páginas de productos y respetan la sección y los descuentos. Al cambiar de URL se vuelve a la primera página y se descartan respuestas anteriores.
+- Los enlaces de Ofertas aplican el descuento y la sección elegidos; Lanzamientos ordena por fecha de creación descendente, ya que el producto no tiene un indicador específico de lanzamiento. En móvil se agregó acceso a todos los productos de una categoría y se corrigieron los enlaces de productos destacados.
+- La prueba combinada de sección, categoría, subcategoría, tipo, oferta, marca, tamaño y precio respondió con el producto esperado. Límite detectado: el filtro de precio usa el mínimo y el máximo del producto, por lo que puede incluir un rango situado entre dos precios reales sin que ninguna variante tenga ese precio.
+- Ordenamiento Menú Header: Hogar y Perfumería priorizan la categoría de su sección aunque haya relaciones homónimas. En General se presenta una sola entrada por nombre configurado y se reúnen las ramas de todas las secciones; las subcategorías homónimas indican su sección y sus enlaces la conservan. El catálogo general reúne también las opciones del filtro lateral.
+- Validación adicional: pruebas de encabezado en escritorio y móvil, categorías y subcategorías repetidas, filtro lateral y consulta HTTP de Strapi con el total general de ambas secciones, sin duplicar productos.
+
+
+Agregar borrado de productos por proveedor en Exportación Proveedores Admin ✅
+
+Cambios realizados:
+- La pantalla de exportación incorpora el botón amarillo BORRAR productos antes del de exportar. Se pueden elegir uno o varios proveedores, buscar por nombre, SKU o SKU de variante, y marcar únicamente los productos deseados. La selección comienza vacía y permite seleccionar los resultados visibles.
+- Una segunda vista muestra solo los productos elegidos y exige escribir BORRAR. El servidor usa el mismo conjunto de productos publicados que el Excel, valida que cada ID pertenezca a los proveedores seleccionados y protege la operación con la sesión administrativa.
+- La vista previa vence a los diez minutos; si cambian los productos o sus borradores, se rechaza y debe generarse nuevamente. También se impide seleccionar un documento cuyo borrador pertenece a otro proveedor.
+- El borrado elimina el documento de Strapi, sus versiones y variantes; informa los productos borrados y los errores individuales. Las categorías, medios y pedidos permanecen. Los pedidos contienen una copia de sus productos.
+- La confirmación advierte que un pago pendiente acreditado después puede requerir revisión del descuento de stock, pues ese proceso necesita el producto en Strapi.
+- Validación: pruebas del panel y de la API para varios proveedores, búsqueda, selección parcial, IDs ajenos, confirmación, autorización, vista previa vencida o modificada y errores parciales; prueba con Strapi y SQLite aislada para versiones, variantes, productos no seleccionados y pedido histórico. La compilación de frontend pasó con advertencias preexistentes. No se borraron productos reales.

@@ -1,9 +1,25 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { STRAPI_URL, SECTION_MAP } from '../data/megamenu';
+import { STRAPI_URL, SECTION_MAP, fetchCategoryTree } from '../data/megamenu';
 
 const STATIC_CATEGORIES = new Set(['Ofertas', 'Lanzamientos']);
 
 const MegaMenuCtx = createContext(null);
+
+function mergeColumns(existing, incoming) {
+  const result = existing.map(column => ({ ...column, items: [...column.items] }));
+  incoming.forEach(column => {
+    const href = column.items.find(item => item.isVerTodo)?.href;
+    const match = result.find(item => item.title === column.title && item.items.find(link => link.isVerTodo)?.href === href);
+    if (!match) {
+      result.push({ ...column, items: [...column.items] });
+      return;
+    }
+    const links = [...match.items, ...column.items];
+    const unique = links.filter((item, index) => links.findIndex(other => other.href === item.href && other.label === item.label) === index);
+    match.items = [...unique.filter(item => !item.isVerTodo), ...unique.filter(item => item.isVerTodo)];
+  });
+  return result;
+}
 
 export function MegaMenuProvider({ children }) {
   const [megaMap, setMegaMap] = useState(new Map());
@@ -16,18 +32,11 @@ export function MegaMenuProvider({ children }) {
     const controller = new AbortController();
     async function fetchAll() {
       try {
-        const urlCats =
-          `${STRAPI_URL}/api/categorias` +
-          `?populate[subcategorias][populate][tipos]=*` +
-          `&pagination[pageSize]=100` +
-          `&publicationState=live`;
-        const resCats = await fetch(urlCats, { signal: controller.signal });
-        if (!resCats.ok) throw new Error(`HTTP ${resCats.status}`);
-        const jsonCats = await resCats.json();
-        const categorias = jsonCats?.data || [];
+        const categorias = await fetchCategoryTree(controller.signal);
         const colMap = new Map();
         const secMap = new Map();
         const ambiguousNames = new Set();
+        const generalGroups = new Map();
         categorias.forEach((entry) => {
           const attrs = entry.attributes || entry;
           const nombre = attrs.nombre;
@@ -62,9 +71,24 @@ export function MegaMenuProvider({ children }) {
             return { title: subNombre, items };
           }).filter(Boolean);
           if (columns.length > 0) {
-            colMap.set(key, columns);
-            colMap.set(nombre, columns);
+            colMap.set(key, mergeColumns(colMap.get(key) || [], columns));
+            const group = generalGroups.get(nombre) || [];
+            group.push({ seccion: seccionMapped, label: attrs.seccion || 'General', columns });
+            generalGroups.set(nombre, group);
           }
+        });
+        generalGroups.forEach((groups, name) => {
+          const sections = new Map();
+          groups.forEach(group => {
+            const current = sections.get(group.seccion) || { label: group.label, columns: [] };
+            current.columns = mergeColumns(current.columns, group.columns);
+            sections.set(group.seccion, current);
+          });
+          const columns = [...sections.values()].flatMap(group => group.columns.map(col => ({
+            ...col, title: sections.size > 1 ? `${col.title} · ${group.label}` : col.title,
+          })));
+          colMap.set(`GENERAL-${name}`, columns);
+          if (!ambiguousNames.has(name)) colMap.set(name, columns);
         });
         ambiguousNames.forEach((name) => {
           secMap.delete(name);

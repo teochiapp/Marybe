@@ -1,6 +1,7 @@
 'use strict';
 
 const ExcelJS = require('exceljs');
+const crypto = require('node:crypto');
 
 // ─── Estilos y taxonomía compartidos con el exportador principal ─────────────────
 const {
@@ -176,6 +177,61 @@ async function fetchProductosPorProveedor(strapi, proveedores) {
   });
 
   return todos;
+}
+
+// The same published products as the Excel, with both versions recorded so a
+// draft edited while the confirmation is open cannot be silently discarded.
+async function vistaBorrado(strapi, proveedores) {
+  const productos = [];
+  for (let start = 0; ; start += PAGE_SIZE) {
+    const page = await strapi.documents(UID_PRODUCTO).findMany({
+      filters: { proveedor: { $in: proveedores } }, status: 'published', start, limit: PAGE_SIZE,
+      fields: ['id_original', 'nombre', 'sku', 'proveedor', 'updatedAt'],
+      populate: { variantes: { fields: ['sku_ean'] } },
+    });
+    productos.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+  const snapshots = [];
+  for (let start = 0; start < productos.length; start += 25) {
+    const batch = await Promise.all(productos.slice(start, start + 25).map(async p => {
+      const draft = await strapi.documents(UID_PRODUCTO).findOne({ documentId: p.documentId, status: 'draft', fields: ['proveedor', 'updatedAt'] });
+      return {
+      documentId: p.documentId, id_original: p.id_original || '', nombre: p.nombre || '',
+      sku: p.sku || '', skuVariantes: (p.variantes || []).map(v => v.sku_ean || '').filter(Boolean).sort(),
+      proveedor: p.proveedor, updatedAt: p.updatedAt || null,
+      draftUpdatedAt: draft?.updatedAt || null, draftProveedor: draft?.proveedor ?? null,
+      };
+    }));
+    snapshots.push(...batch);
+  }
+  snapshots.sort((a, b) => a.documentId.localeCompare(b.documentId));
+  return snapshots;
+}
+
+function hashVistaBorrado(productos) {
+  return crypto.createHash('sha256').update(JSON.stringify(productos)).digest('hex');
+}
+
+async function borrarVista(strapi, productos) {
+  const borrados = [];
+  const errores = [];
+  for (const producto of productos) {
+    try {
+      const docs = strapi.documents(UID_PRODUCTO);
+      const actual = await docs.findOne({ documentId: producto.documentId, status: 'published' });
+      const draft = await docs.findOne({ documentId: producto.documentId, status: 'draft' });
+      if (!actual || actual.proveedor !== producto.proveedor || actual.updatedAt !== producto.updatedAt ||
+          (draft?.updatedAt || null) !== producto.draftUpdatedAt || (draft?.proveedor ?? null) !== producto.draftProveedor) {
+        throw new Error('El producto cambió desde la vista previa. No se borró.');
+      }
+      await docs.delete({ documentId: producto.documentId });
+      borrados.push({ documentId: producto.documentId, id_original: producto.id_original, nombre: producto.nombre });
+    } catch (err) {
+      errores.push({ documentId: producto.documentId, id_original: producto.id_original, nombre: producto.nombre, mensaje: err.message });
+    }
+  }
+  return { borrados, errores };
 }
 
 // ─── Generador del Excel ──────────────────────────────────────────────────────
@@ -592,5 +648,9 @@ async function generarExcelProveedor(strapi, proveedores) {
 // ─── Exports ──────────────────────────────────────────────────────────────────
 module.exports = () => ({
   fetchProveedores,
+  fetchProductosPorProveedor,
+  vistaBorrado,
+  hashVistaBorrado,
+  borrarVista,
   generarExcelProveedor,
 });

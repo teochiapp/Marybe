@@ -36,5 +36,17 @@ module.exports = {
         tags: ['Admin'],
       },
     },
+    {
+      method: 'POST',
+      path: '/exportacion-proveedores-admin/borrado/vista-previa',
+      handler: 'exportacion-proveedores-admin.vistaPreviaBorrado',
+      config: { auth: false },
+    },
+    {
+      method: 'POST',
+      path: '/exportacion-proveedores-admin/borrado/confirmar',
+      handler: 'exportacion-proveedores-admin.confirmarBorrado',
+      config: { auth: false },
+    },
   ],
 };

@@ -7,7 +7,8 @@ import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
 import { useMegaMenu } from '../../hooks/useMegaMenu';
 import { useMegaMenuContext } from '../../hooks/useMegaMenuContext';
-import { categoryUrl } from '../../data/megamenu';
+import { categoryUrl, menuCategoryUrl, discountUrl, SECTION_MAP } from '../../data/megamenu';
+import { generateProductUrl } from '../../utils/productUrl';
 
 /* ── Animaciones ── */
 const slideIn = keyframes`
@@ -573,12 +574,7 @@ export default function NavBar() {
           colData.push({
             title: ofertasConf.titulo_descuentos || 'Descuentos',
             items: [
-              { label: 'Hasta 60%', href: '/tienda?descuento=60' },
-              { label: 'Hasta 50%', href: '/tienda?descuento=50' },
-              { label: 'Hasta 40%', href: '/tienda?descuento=40' },
-              { label: 'Hasta 30%', href: '/tienda?descuento=30' },
-              { label: 'Hasta 20%', href: '/tienda?descuento=20' },
-              { label: 'Hasta 10%', href: '/tienda?descuento=10' },
+              ...[60, 50, 40, 30, 20, 10].map(n => ({ label: `Hasta ${n}%`, href: discountUrl(n, context) })),
             ],
           });
         }
@@ -586,7 +582,7 @@ export default function NavBar() {
           ofertasConf.columnas_categorias.forEach((col) => {
             const cats = col.categorias?.data || col.categorias || [];
             const items = cats
-              .map((c) => { const n = c.attributes?.nombre || c.nombre; return n ? { label: n, href: categoryUrl(n, context, '&ofertas=true') } : null; })
+              .map((c) => { const n = c.attributes?.nombre || c.nombre; const sec = c.attributes?.seccion || c.seccion; return n ? { label: n, href: categoryUrl(n, SECTION_MAP[sec] || context, '&descuento=todas') } : null; })
               .filter(Boolean);
             if (items.length > 0) colData.push({ title: col.titulo_columna || 'Categorías', items });
           });
@@ -594,7 +590,7 @@ export default function NavBar() {
         const prods = ofertasConf.productos_destacados?.data || ofertasConf.productos_destacados || [];
         if (prods.length > 0) {
           const items = prods
-            .map((p) => { const n = p.attributes?.nombre || p.nombre; const s = p.attributes?.slug || p.slug || ''; return n ? { label: n, href: `/producto/${s}` } : null; })
+            .map((p) => { const n = p.attributes?.nombre || p.nombre; const id = p.id || p.documentId; return n && id ? { label: n, href: generateProductUrl(id, n) } : null; })
             .filter(Boolean);
           if (items.length > 0) colData.push({ title: ofertasConf.titulo_destacados || 'Destacados', items });
         }
@@ -609,14 +605,14 @@ export default function NavBar() {
         const cats = lanzConf.categorias?.data || lanzConf.categorias || [];
         if (cats.length > 0) {
           const items = cats
-            .map((c) => { const n = c.attributes?.nombre || c.nombre; return n ? { label: n, href: categoryUrl(n, context, '&lanzamientos=true') } : null; })
+            .map((c) => { const n = c.attributes?.nombre || c.nombre; const sec = c.attributes?.seccion || c.seccion; return n ? { label: n, href: categoryUrl(n, SECTION_MAP[sec] || context, '&orden=createdAt%3Adesc') } : null; })
             .filter(Boolean);
           if (items.length > 0) colData.push({ title: lanzConf.titulo_categorias || 'Novedades por Categoría', items });
         }
         const prods = lanzConf.productos_destacados?.data || lanzConf.productos_destacados || [];
         if (prods.length > 0) {
           const items = prods
-            .map((p) => { const n = p.attributes?.nombre || p.nombre; const s = p.attributes?.slug || p.slug || ''; return n ? { label: n, href: `/producto/${s}` } : null; })
+            .map((p) => { const n = p.attributes?.nombre || p.nombre; const id = p.id || p.documentId; return n && id ? { label: n, href: generateProductUrl(id, n) } : null; })
             .filter(Boolean);
           if (items.length > 0) colData.push({ title: lanzConf.titulo_destacados || 'Nuevos Lanzamientos', items });
         }
@@ -894,7 +890,7 @@ export default function NavBar() {
                           toggleSection(cat);
                         } else {
                           closeDrawer();
-                          navigate(categoryUrl(cat, context));
+                          navigate(menuCategoryUrl(cat, context));
                         }
                       }}
                     >
@@ -905,6 +901,9 @@ export default function NavBar() {
                     {/* ── Nivel 2: Subcategorías ── */}
                     {hasColumns && (
                       <SubList $open={openSection === cat}>
+                        <DrawerSubItem onClick={() => { closeDrawer(); navigate(menuCategoryUrl(cat, context)); }}>
+                          Ver todos en {cat}
+                        </DrawerSubItem>
                         {columns.map((col) => {
                           const subKey = `${cat}::${col.title}`;
                           const verTodoItem = col.items?.find(

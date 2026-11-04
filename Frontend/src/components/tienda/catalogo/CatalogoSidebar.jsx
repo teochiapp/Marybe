@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import PriceRangeSlider from './PriceRangeSlider';
-
-const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+import { fetchCategoryTree } from '../../../data/megamenu';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const ChevronIcon = () => (
@@ -319,16 +318,11 @@ export default function CatalogoSidebar({
   const [categoryTree, setCategoryTree] = useState([]);
 
   useEffect(() => {
-    fetch(
-      `${STRAPI_URL}/api/categorias` +
-      `?populate[subcategorias][populate][tipos]=*` +
-      `&pagination[pageSize]=100` +
-      `&publicationState=live`
-    )
-      .then(r => r.json())
-      .then(json => {
+    const controller = new AbortController();
+    fetchCategoryTree(controller.signal)
+      .then(entries => {
         const treeMap = new Map();
-        (json.data || []).forEach(entry => {
+        entries.forEach(entry => {
           const a = entry.attributes || entry;
           const catName = a.nombre;
           if (!catName) return;
@@ -360,7 +354,8 @@ export default function CatalogoSidebar({
         });
         setCategoryTree(Array.from(treeMap.values()));
       })
-      .catch(err => console.warn('[CatalogoSidebar] Error fetching categories:', err));
+      .catch(err => { if (err.name !== 'AbortError') console.warn('[CatalogoSidebar] Error fetching categories:', err); });
+    return () => controller.abort();
   }, []);
 
   // ── Niveles activos ──────────────────────────────────────────────────────────
@@ -369,16 +364,21 @@ export default function CatalogoSidebar({
   const activeTipo = activeTipoParam ? activeTipoParam.split(',')[0] : null;
 
   // Nodo activo en el árbol (filtrado por sección para evitar duplicados como Fragancias en Hogar/Perfumería)
-  const activeCatNode = activeCat
-    ? categoryTree.find(c => {
-        if (c.nombre !== activeCat) return false;
-        if (activeSeccion && c.seccion) {
-          const normalize = str => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-          return normalize(c.seccion) === normalize(activeSeccion);
-        }
-        return true;
-      })
-    : null;
+  const matchingCategories = categoryTree.filter(c => c.nombre === activeCat);
+  const normalizeSection = str => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  let activeCatNode = null;
+  if (activeSeccion) {
+    activeCatNode = matchingCategories.find(c => c.seccion && normalizeSection(c.seccion) === normalizeSection(activeSeccion))
+      || matchingCategories.find(c => !c.seccion) || null;
+  } else if (matchingCategories.length) {
+    const subcategories = new Map();
+    matchingCategories.forEach(category => category.subcategorias.forEach(sub => {
+      const existing = subcategories.get(sub.nombre);
+      if (existing) existing.tipos = [...new Set([...existing.tipos, ...sub.tipos])];
+      else subcategories.set(sub.nombre, { ...sub, tipos: [...sub.tipos] });
+    }));
+    activeCatNode = { nombre: activeCat, subcategorias: [...subcategories.values()] };
+  }
   const activeSubNode = activeCatNode && activeSub
     ? activeCatNode.subcategorias.find(s => s.nombre === activeSub)
     : null;

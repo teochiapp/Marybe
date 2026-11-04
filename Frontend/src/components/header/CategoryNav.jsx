@@ -6,6 +6,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   MOBILE_FEATURED,
   categoryUrl,
+  menuCategoryUrl,
+  discountUrl,
+  SECTION_MAP,
 } from '../../data/megamenu';
 import { useMegaMenu } from '../../hooks/useMegaMenu';
 import { useMegaMenuContext } from '../../hooks/useMegaMenuContext';
@@ -364,7 +367,6 @@ export default function CategoryNav() {
 
   // Columnas del MegaMenu según la categoría activa
   const getMegaColumnsForCategory = (cat) => {
-    console.log('[DEBUG] Category:', cat, 'menuLanzOfertas:', menuLanzOfertas);
     if (cat === 'Ofertas') {
       const colData = [];
       const ofertasConf = menuLanzOfertas?.ofertas;
@@ -374,12 +376,7 @@ export default function CategoryNav() {
            colData.push({
              title: ofertasConf.titulo_descuentos || 'Descuentos',
              items: [
-                { label: 'Hasta 60%', href: '/tienda?descuento=60' },
-                { label: 'Hasta 50%', href: '/tienda?descuento=50' },
-                { label: 'Hasta 40%', href: '/tienda?descuento=40' },
-                { label: 'Hasta 30%', href: '/tienda?descuento=30' },
-                { label: 'Hasta 20%', href: '/tienda?descuento=20' },
-                { label: 'Hasta 10%', href: '/tienda?descuento=10' },
+                ...[60, 50, 40, 30, 20, 10].map(n => ({ label: `Hasta ${n}%`, href: discountUrl(n, context) })),
              ]
            });
         }
@@ -390,7 +387,8 @@ export default function CategoryNav() {
              const cats = col.categorias?.data || col.categorias || [];
              const items = cats.map(c => {
                  const catName = c.attributes?.nombre || c.nombre;
-                 return { label: catName, href: categoryUrl(catName, context, '&ofertas=true') };
+                 const section = c.attributes?.seccion || c.seccion;
+                 return { label: catName, href: categoryUrl(catName, SECTION_MAP[section] || context, '&descuento=todas') };
              }).filter(c => c.label);
              if (items.length > 0) colData.push({ title, items });
           });
@@ -419,7 +417,8 @@ export default function CategoryNav() {
             const cats = lanzConf.categorias.data || lanzConf.categorias || [];
             const items = cats.map(c => {
                 const catName = c.attributes?.nombre || c.nombre;
-                return { label: catName, href: categoryUrl(catName, context, '&lanzamientos=true') };
+                const section = c.attributes?.seccion || c.seccion;
+                return { label: catName, href: categoryUrl(catName, SECTION_MAP[section] || context, '&orden=createdAt%3Adesc') };
             }).filter(c => c.label);
             if (items.length > 0) colData.push({ title: lanzConf.titulo_categorias || 'Novedades por Categoría', items });
         }
@@ -470,7 +469,7 @@ export default function CategoryNav() {
                 <MegaTitleText
                   onClick={() => {
                     setActiveCategory(null);
-                    navigate(categoryUrl(activeCategory, context));
+                    navigate(menuCategoryUrl(activeCategory, context));
                   }}
                   title={`Ver todo en ${activeCategory}`}
                 >

@@ -139,6 +139,33 @@ export function categoryUrl(nombre, context, extra = '') {
   return `/tienda?categoria=${encodeURIComponent(nombre)}${seccion ? `&seccion=${encodeURIComponent(seccion)}` : ''}${extra}`;
 }
 
+export function menuCategoryUrl(nombre, context) {
+  const seccion = context === 'HOGAR' ? 'Hogar' : context === 'PERFUMERIA' ? 'Perfumería' : '';
+  const suffix = seccion ? `&seccion=${encodeURIComponent(seccion)}` : '';
+  if (nombre === 'Ofertas') return `/tienda?descuento=todas${suffix}`;
+  if (nombre === 'Lanzamientos') return `/tienda?orden=createdAt%3Adesc${suffix}`;
+  return categoryUrl(nombre, context);
+}
+
+export function discountUrl(percent, context) {
+  return menuCategoryUrl('Ofertas', context).replace('descuento=todas', `descuento=${encodeURIComponent(percent)}`);
+}
+
+export async function fetchCategoryTree(signal) {
+  const all = [];
+  let page = 1;
+  let pages = 1;
+  do {
+    const res = await fetch(`${STRAPI_URL}/api/categorias?populate[subcategorias][populate][tipos]=*&pagination[pageSize]=100&pagination[page]=${page}&publicationState=live`, { signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    all.push(...(json.data || []));
+    pages = json.meta?.pagination?.pageCount || 1;
+    page++;
+  } while (page <= pages);
+  return all;
+}
+
 /**
  * URL base de Strapi (se puede sobreescribir con la variable de entorno).
  */

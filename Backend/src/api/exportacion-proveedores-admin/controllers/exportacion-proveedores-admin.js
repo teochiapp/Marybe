@@ -16,7 +16,73 @@ function verificarAdmin(ctx) {
   }
 }
 
+function conflicto(ctx, message) {
+  ctx.status = 409;
+  ctx.body = { error: { status: 409, message } };
+}
+
+function listaValida(value) {
+  if (!Array.isArray(value) || !value.length || value.some(v => typeof v !== 'string' || !v.trim() || v !== v.trim())) return null;
+  if (new Set(value).size !== value.length) return null;
+  return [...value].sort();
+}
+
 module.exports = {
+  async vistaPreviaBorrado(ctx) {
+    if (!verificarAdmin(ctx)) return ctx.unauthorized('No autenticado o sesión expirada.');
+    const proveedores = listaValida(ctx.request.body?.proveedores);
+    if (!proveedores) return ctx.badRequest('Seleccioná uno o más proveedores válidos.');
+    try {
+      const servicio = strapi.service('api::exportacion-proveedores-admin.exportacion-proveedores-admin');
+      const productos = await servicio.vistaBorrado(strapi, proveedores);
+      if (!productos.length) return ctx.badRequest('No hay productos publicados para los proveedores seleccionados.');
+      const secret = strapi.config.get('plugin.users-permissions.jwtSecret') || 'custom-secret-key';
+      const comprobante = jwt.sign({ accion: 'borrar-seleccion-proveedores', proveedores, hash: servicio.hashVistaBorrado(productos) }, secret, { expiresIn: '10m' });
+      return ctx.send({ proveedores, total: productos.length, productos: productos.map(({ documentId, id_original, nombre, sku, skuVariantes, proveedor, draftProveedor }) => ({
+        documentId, id_original, nombre, sku, skuVariantes, proveedor,
+        bloqueado: draftProveedor !== null && draftProveedor !== proveedor,
+      })), comprobante });
+    } catch (err) {
+      strapi.log.error(`[ExportacionProveedoresAdmin] vista previa de borrado: ${err.message}`);
+      return ctx.internalServerError('No se pudo preparar la vista previa.');
+    }
+  },
+
+  async confirmarBorrado(ctx) {
+    if (!verificarAdmin(ctx)) return ctx.unauthorized('No autenticado o sesión expirada.');
+    const { confirmacion, comprobante } = ctx.request.body || {};
+    const proveedores = listaValida(ctx.request.body?.proveedores);
+    const ids = listaValida(ctx.request.body?.productos);
+    if (!proveedores || !ids || confirmacion !== 'BORRAR' || typeof comprobante !== 'string') {
+      return ctx.badRequest('Seleccioná productos y confirmá escribiendo BORRAR.');
+    }
+    let vista;
+    try {
+      const secret = strapi.config.get('plugin.users-permissions.jwtSecret') || 'custom-secret-key';
+      vista = jwt.verify(comprobante, secret);
+      if (vista.accion !== 'borrar-seleccion-proveedores' || JSON.stringify(vista.proveedores) !== JSON.stringify(proveedores) || typeof vista.hash !== 'string') throw new Error('invalid preview');
+    } catch {
+      return ctx.badRequest('La vista previa venció o no es válida. Volvé a prepararla.');
+    }
+    try {
+      const servicio = strapi.service('api::exportacion-proveedores-admin.exportacion-proveedores-admin');
+      const productos = await servicio.vistaBorrado(strapi, proveedores);
+      if (!productos.length || servicio.hashVistaBorrado(productos) !== vista.hash) {
+        return conflicto(ctx, 'Los productos cambiaron desde la vista previa. Volvé a revisarlos.');
+      }
+      const idsElegidos = new Set(ids);
+      const seleccion = productos.filter(p => idsElegidos.has(p.documentId));
+      if (seleccion.length !== ids.length || seleccion.some(p => p.draftProveedor !== null && p.draftProveedor !== p.proveedor)) {
+        return conflicto(ctx, 'La selección contiene productos inválidos o con otro proveedor en su borrador.');
+      }
+      const resultado = await servicio.borrarVista(strapi, seleccion);
+      strapi.log.info(`[ExportacionProveedoresAdmin] Borrado para ${proveedores.join(', ')}: ${resultado.borrados.length} borrados, ${resultado.errores.length} errores.`);
+      return ctx.send({ ok: resultado.errores.length === 0, ...resultado });
+    } catch (err) {
+      strapi.log.error(`[ExportacionProveedoresAdmin] borrado de proveedor: ${err.message}`);
+      return ctx.internalServerError('No se pudo completar el borrado. Revisá el catálogo antes de volver a intentarlo.');
+    }
+  },
   /**
    * POST /api/exportacion-proveedores-admin/login
    */

@@ -25,6 +25,14 @@ export default function ExportacionProveedoresAdmin() {
   const [exporting, setExporting]     = useState(false);
   const [exportError, setExportError] = useState('');
   const [exportOk, setExportOk]       = useState(null);
+  const [vistaBorrado, setVistaBorrado] = useState(null);
+  const [productosSeleccionados, setProductosSeleccionados] = useState(new Set());
+  const [busquedaBorrado, setBusquedaBorrado] = useState('');
+  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
+  const [confirmacionBorrado, setConfirmacionBorrado] = useState('');
+  const [cargandoBorrado, setCargandoBorrado] = useState(false);
+  const [errorBorrado, setErrorBorrado] = useState('');
+  const [resultadoBorrado, setResultadoBorrado] = useState(null);
 
   // ─── Cargar proveedores al autenticarse ─────────────────────────────────────
   const cargarProveedores = useCallback(async (jwt) => {
@@ -80,6 +88,13 @@ export default function ExportacionProveedoresAdmin() {
     setSeleccionados(new Set());
     setExportError('');
     setExportOk(null);
+    setVistaBorrado(null);
+    setProductosSeleccionados(new Set());
+    setBusquedaBorrado('');
+    setConfirmandoBorrado(false);
+    setConfirmacionBorrado('');
+    setResultadoBorrado(null);
+    setErrorBorrado('');
   };
 
   // ─── Selección ───────────────────────────────────────────────────────────────
@@ -91,10 +106,76 @@ export default function ExportacionProveedoresAdmin() {
     });
     setExportOk(null);
     setExportError('');
+    setVistaBorrado(null);
+    setResultadoBorrado(null);
+    setErrorBorrado('');
   };
 
-  const seleccionarTodos = () => { setSeleccionados(new Set(proveedores)); setExportOk(null); };
-  const limpiarSeleccion = () => { setSeleccionados(new Set()); setExportOk(null); };
+  const seleccionarTodos = () => { setSeleccionados(new Set(proveedores)); setExportOk(null); setVistaBorrado(null); setResultadoBorrado(null); setErrorBorrado(''); };
+  const limpiarSeleccion = () => { setSeleccionados(new Set()); setExportOk(null); setVistaBorrado(null); setResultadoBorrado(null); setErrorBorrado(''); };
+
+  const prepararBorrado = async () => {
+    if (seleccionados.size === 0) return;
+    setCargandoBorrado(true);
+    setErrorBorrado('');
+    setResultadoBorrado(null);
+    setConfirmacionBorrado('');
+    setProductosSeleccionados(new Set());
+    setBusquedaBorrado('');
+    setConfirmandoBorrado(false);
+    try {
+      const proveedores = [...seleccionados];
+      const res = await axios.post(`${API_URL}/api/exportacion-proveedores-admin/borrado/vista-previa`, { proveedores }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setVistaBorrado(res.data);
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        handleLogout();
+        setAuthError('Sesión expirada. Iniciá sesión nuevamente.');
+      } else setErrorBorrado(err.response?.data?.error?.message || 'No se pudo obtener la vista previa.');
+    } finally {
+      setCargandoBorrado(false);
+    }
+  };
+
+  const confirmarBorrado = async () => {
+    if (!vistaBorrado || !productosSeleccionados.size || confirmacionBorrado !== 'BORRAR') return;
+    setCargandoBorrado(true);
+    setErrorBorrado('');
+    try {
+      const res = await axios.post(`${API_URL}/api/exportacion-proveedores-admin/borrado/confirmar`, {
+        proveedores: vistaBorrado.proveedores, productos: [...productosSeleccionados], confirmacion: confirmacionBorrado, comprobante: vistaBorrado.comprobante,
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      setResultadoBorrado(res.data);
+      setVistaBorrado(null);
+      setConfirmacionBorrado('');
+      setProductosSeleccionados(new Set());
+      setConfirmandoBorrado(false);
+      setSeleccionados(new Set());
+      await cargarProveedores(token);
+    } catch (err) {
+      setVistaBorrado(null);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        handleLogout();
+        setAuthError('Sesión expirada. Iniciá sesión nuevamente.');
+      } else setErrorBorrado(err.response?.data?.error?.message || 'No se pudo completar el borrado. Revisá el catálogo antes de intentar de nuevo.');
+    } finally {
+      setCargandoBorrado(false);
+    }
+  };
+
+  const normalizarBusqueda = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
+  const productosFiltrados = (vistaBorrado?.productos || []).filter(p => {
+    const term = normalizarBusqueda(busquedaBorrado);
+    return !term || [p.nombre, p.sku, p.id_original, ...(p.skuVariantes || [])].some(value => normalizarBusqueda(value).includes(term));
+  });
+  const productosElegidos = (vistaBorrado?.productos || []).filter(p => productosSeleccionados.has(p.documentId));
+  const toggleProductoBorrado = id => setProductosSeleccionados(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   // ─── Exportar ────────────────────────────────────────────────────────────────
   const handleExportar = async () => {
@@ -268,12 +349,12 @@ export default function ExportacionProveedoresAdmin() {
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button id="btn-seleccionar-todos" type="button" className="ia-btn ia-btn--ghost"
                   style={{ padding: '4px 12px', fontSize: '12px' }}
-                  onClick={seleccionarTodos} disabled={seleccionados.size === proveedores.length}>
+                  onClick={seleccionarTodos} disabled={cargandoBorrado || seleccionados.size === proveedores.length}>
                   Todos
                 </button>
                 <button id="btn-limpiar-seleccion" type="button" className="ia-btn ia-btn--ghost"
                   style={{ padding: '4px 12px', fontSize: '12px' }}
-                  onClick={limpiarSeleccion} disabled={seleccionados.size === 0}>
+                  onClick={limpiarSeleccion} disabled={cargandoBorrado || seleccionados.size === 0}>
                   Limpiar
                 </button>
               </div>
@@ -321,7 +402,7 @@ export default function ExportacionProveedoresAdmin() {
                     transition:  'background 0.15s, border-color 0.15s',
                     userSelect:  'none',
                   }}>
-                    <input id={`prov-${nombre}`} type="checkbox" checked={checked}
+                    <input id={`prov-${nombre}`} type="checkbox" checked={checked} disabled={cargandoBorrado}
                       onChange={() => toggleProveedor(nombre)}
                       style={{ accentColor: '#7c6af7', width: '16px', height: '16px', cursor: 'pointer' }} />
                     <span style={{
@@ -381,11 +462,18 @@ export default function ExportacionProveedoresAdmin() {
           </div>
         )}
 
+        <button type="button" className="ia-btn ia-btn--yellow ia-btn--full"
+          style={{ marginTop: '12px' }} onClick={prepararBorrado}
+          disabled={exporting || cargandoBorrado || seleccionados.size === 0}>
+          {cargandoBorrado && !vistaBorrado ? 'Cargando productos...' : 'BORRAR productos'}
+        </button>
+        {seleccionados.size === 0 && <p className="ia-delete-hint">Seleccioná uno o más proveedores para buscar productos.</p>}
+
         {/* Botón principal */}
         <button id="btn-exportar-proveedores" type="button"
           className="ia-btn ia-btn--primary ia-btn--full"
           onClick={handleExportar}
-          disabled={exporting || seleccionados.size === 0}
+          disabled={exporting || cargandoBorrado || seleccionados.size === 0}
           style={{ marginTop: '8px' }}>
           {exporting
             ? <><span className="ia-spinner" aria-hidden="true"/> Generando exportación...</>
@@ -400,7 +488,68 @@ export default function ExportacionProveedoresAdmin() {
               </>
           }
         </button>
+        {errorBorrado && <div className="ia-alert ia-alert--error" role="alert">{errorBorrado}</div>}
+        {resultadoBorrado && (
+          <div className="ia-resultado" role="status">
+            <h2 className="ia-resultado-title">Resultado del borrado</h2>
+            <p>{resultadoBorrado.borrados.length} productos borrados · {resultadoBorrado.errores.length} errores</p>
+            {resultadoBorrado.borrados.length > 0 && <details><summary>Ver productos borrados</summary><ul>{resultadoBorrado.borrados.map((item, i) => (
+              <li key={`${item.documentId || item.id_original}-${i}`}>{item.id_original || item.documentId} · {item.nombre}</li>
+            ))}</ul></details>}
+            {resultadoBorrado.errores.length > 0 && <ul>{resultadoBorrado.errores.map((item, i) => (
+              <li key={`${item.documentId || item.id_original}-${i}`}>{item.id_original || item.documentId} · {item.nombre}: {item.mensaje}</li>
+            ))}</ul>}
+          </div>
+        )}
       </div>
+      {vistaBorrado && (
+        <div className="ia-delete-overlay" role="dialog" aria-modal="true" aria-labelledby="ia-delete-title"
+          onKeyDown={e => { if (e.key === 'Escape' && !cargandoBorrado) setVistaBorrado(null); }}
+          onClick={e => { if (e.target === e.currentTarget && !cargandoBorrado) setVistaBorrado(null); }}>
+          <div className="ia-delete-dialog">
+            <h2 id="ia-delete-title">{confirmandoBorrado ? 'Confirmar borrado' : 'Seleccionar productos para borrar'}</h2>
+            <p>Proveedores: <strong>{vistaBorrado.proveedores.join(', ')}</strong></p>
+            {!confirmandoBorrado ? <>
+              <label htmlFor="ia-delete-search">Buscar por SKU o nombre</label>
+              <input id="ia-delete-search" className="ia-delete-input" autoFocus value={busquedaBorrado}
+                placeholder="Nombre, SKU o ID" onChange={e => setBusquedaBorrado(e.target.value)} />
+              <div className="ia-delete-toolbar">
+                <span>{productosSeleccionados.size} seleccionados · {productosFiltrados.length} visibles</span>
+                <button type="button" className="ia-delete-link" onClick={() => setProductosSeleccionados(prev => new Set([...prev, ...productosFiltrados.filter(p => !p.bloqueado).map(p => p.documentId)]))}>Seleccionar visibles</button>
+                <button type="button" className="ia-delete-link" onClick={() => setProductosSeleccionados(new Set())}>Limpiar selección</button>
+              </div>
+              <div className="ia-delete-list" role="group" aria-label="Productos para borrar">
+                {productosFiltrados.length === 0 && <p>No se encontraron productos.</p>}
+                {productosFiltrados.map(p => <label className="ia-delete-product" key={p.documentId}>
+                  <input type="checkbox" checked={productosSeleccionados.has(p.documentId)} disabled={p.bloqueado}
+                    onChange={() => toggleProductoBorrado(p.documentId)} />
+                  <span><strong>{p.nombre}</strong><small>SKU: {p.sku || '—'} · ID: {p.id_original || p.documentId} · {p.proveedor}</small>
+                    {p.skuVariantes?.length > 0 && <small>SKU de variantes: {p.skuVariantes.join(', ')}</small>}
+                    {p.bloqueado && <small>El borrador tiene otro proveedor; revisalo en Strapi.</small>}
+                  </span>
+                </label>)}
+              </div>
+              <div className="ia-delete-actions">
+                <button type="button" className="ia-btn" onClick={() => setVistaBorrado(null)}>Cancelar</button>
+                <button type="button" className="ia-btn ia-btn--yellow" disabled={!productosSeleccionados.size}
+                  onClick={() => { setConfirmacionBorrado(''); setConfirmandoBorrado(true); }}>Revisar selección ({productosSeleccionados.size})</button>
+              </div>
+            </> : <>
+              <p>Se eliminarán permanentemente <strong>{productosElegidos.length} productos seleccionados</strong> y sus variantes de Strapi.</p>
+              <p>Los pedidos conservan sus datos. Si un pago pendiente se acredita después del borrado, el descuento de stock puede requerir revisión.</p>
+              <ul className="ia-delete-confirm-list">{productosElegidos.map(p => <li key={p.documentId}>{p.nombre} · {p.sku || p.id_original || p.documentId} · {p.proveedor}</li>)}</ul>
+              <label htmlFor="ia-delete-confirm">Escribí <strong>BORRAR</strong> para confirmar:</label>
+              <input id="ia-delete-confirm" className="ia-delete-input" autoFocus value={confirmacionBorrado}
+                disabled={cargandoBorrado} onChange={e => setConfirmacionBorrado(e.target.value)} />
+              <div className="ia-delete-actions">
+                <button type="button" className="ia-btn" disabled={cargandoBorrado} onClick={() => setConfirmandoBorrado(false)}>Volver</button>
+                <button type="button" className="ia-btn ia-btn--yellow" disabled={cargandoBorrado || confirmacionBorrado !== 'BORRAR' || !productosSeleccionados.size}
+                  onClick={confirmarBorrado}>{cargandoBorrado ? 'Borrando...' : `Borrar ${productosElegidos.length} producto${productosElegidos.length === 1 ? '' : 's'}`}</button>
+              </div>
+            </>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

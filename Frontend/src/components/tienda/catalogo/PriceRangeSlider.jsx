@@ -101,7 +101,7 @@ export default function PriceRangeSlider({ min, max, value, onChange, onFinalCha
     }
   };
 
-  const getPercent = (val) => Math.round(((val - min) / (max - min)) * 100);
+  const getPercent = (val) => max <= min ? 0 : Math.round(((val - min) / (max - min)) * 100);
 
   return (
     <SliderContainer>

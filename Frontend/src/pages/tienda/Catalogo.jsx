@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import styled from 'styled-components';
 import { useSearchParams } from 'react-router-dom';
 
@@ -16,6 +16,15 @@ import { addClassificationFilters } from '../../utils/catalogClassificationFilte
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 const PAGE_SIZE = 12;
+
+function addDiscountFilters(params, discounts) {
+  if (!discounts.length) return;
+  params.set('filters[descuento][$gt]', '0');
+  if (!discounts.includes('todas')) {
+    const values = discounts.map(Number).filter(Number.isFinite);
+    if (values.length) params.set('filters[descuento][$lte]', String(Math.max(...values)));
+  }
+}
 
 const BANNER_CONFIG = {
   elixir: {
@@ -122,7 +131,6 @@ export default function Catalogo() {
   const [error, setError] = useState(null);
 
   const [availableBrands, setAvailableBrands] = useState([]);
-  const [availableCategories, setAvailableCategories] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
   const [availablePriceRange, setAvailablePriceRange] = useState([0, 500000]);
 
@@ -140,6 +148,7 @@ export default function Catalogo() {
 
   // ── Lectura de URL params ─────────────────────────────────────────────────
   const [activePage, setActivePage] = useState(1);
+  const productsRequestId = useRef(0);
   const activeSort = searchParams.get('orden') || 'nombre:asc';
   const activeBusqueda = searchParams.get('busqueda') || '';
   const activeDescuentos = useMemo(
@@ -318,82 +327,21 @@ export default function Catalogo() {
   // Scroll top al cambiar sección o aplicar filtros
   useEffect(() => {
     window.scrollTo(0, 0);
+    setActivePage(1);
   }, [searchParams]);
-
-  // ── Carga de metadatos de filtros ─────────────────────────────────────────
-  useEffect(() => {
-    async function fetchFilterMetadata() {
-      try {
-        const brands = new Set();
-        const categories = new Set();
-        const sizes = new Set();
-        let globalMin = Infinity;
-        let globalMax = -Infinity;
-
-        let page = 1;
-        let hasMore = true;
-
-        while (hasMore) {
-          const res = await fetch(`${STRAPI_URL}/api/productos?pagination[page]=${page}&pagination[pageSize]=100&populate=*&filters[publicado][$eq]=true`);
-          if (!res.ok) throw new Error('Error al cargar metadatos de filtros');
-          const json = await res.json();
-
-          if (!json.data || json.data.length === 0) {
-            hasMore = false;
-            break;
-          }
-
-          for (const p of json.data) {
-            const attrs = p.attributes || p;
-            if (attrs.marca) brands.add(attrs.marca);
-            if (attrs.categoria?.nombre) categories.add(attrs.categoria.nombre);
-            if (attrs.variantes && attrs.variantes.length > 0) {
-              for (const v of attrs.variantes) {
-                if (v.volumen && /\d/.test(v.volumen)) sizes.add(v.volumen);
-                if (v.precio) {
-                  const effectivePrice = v.precio_oferta || v.precio;
-                  if (Math.floor(effectivePrice) < globalMin) globalMin = Math.floor(effectivePrice);
-                  if (Math.ceil(effectivePrice) > globalMax) globalMax = Math.ceil(effectivePrice);
-                }
-              }
-            } else if (attrs.precio) {
-              // Producto sin variantes: usar precio del producto
-              const effectivePrice = attrs.precio_oferta || attrs.precio;
-              if (Math.floor(effectivePrice) < globalMin) globalMin = Math.floor(effectivePrice);
-              if (Math.ceil(effectivePrice) > globalMax) globalMax = Math.ceil(effectivePrice);
-            }
-          }
-
-          const pageCount = json.meta?.pagination?.pageCount || 1;
-          if (page >= pageCount) {
-            hasMore = false;
-          } else {
-            page++;
-          }
-        }
-
-        setAvailableBrands([...brands].sort());
-        setAvailableCategories([...categories].sort());
-        setAvailableSizes([...sizes].sort());
-        if (globalMin !== Infinity && globalMax !== -Infinity) {
-          setAvailablePriceRange([Math.floor(globalMin), Math.ceil(globalMax)]);
-        }
-      } catch (err) {
-        console.error('Error fetching filters data:', err);
-      }
-    }
-    fetchFilterMetadata();
-  }, []);
 
   // -- Marcas reactivas al nivel activo (tipo > subcategora > categora > seccin) --
   useEffect(() => {
+    const controller = new AbortController();
     async function fetchDynamicFilters() {
       try {
         const params = new URLSearchParams();
-        params.set('pagination[pageSize]', '500');
+        params.set('pagination[pageSize]', '100');
         // Queremos marca del producto base y las variantes para obtener los volumenes
         params.set('populate', 'variantes');
         params.set('filters[publicado][$eq]', 'true');
+        if (activeBusqueda) params.set('filters[nombre][$containsi]', activeBusqueda);
+        addDiscountFilters(params, activeDescuentos);
 
         addClassificationFilters(params, {
           seccion: activeSeccion,
@@ -402,15 +350,19 @@ export default function Catalogo() {
           tipo: activeTipoParam,
         });
 
-        const res = await fetch(`${STRAPI_URL}/api/productos?${params.toString()}`);
-        const json = await res.json();
-        
         const brands = new Set();
         const sizes = new Set();
         let localMin = Infinity;
         let localMax = -Infinity;
-        
-        (json.data || []).forEach(p => {
+        let page = 1;
+        let pageCount = 1;
+        do {
+          params.set('pagination[page]', String(page));
+          const res = await fetch(`${STRAPI_URL}/api/productos?${params.toString()}`, { signal: controller.signal });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          pageCount = json.meta?.pagination?.pageCount || 1;
+          (json.data || []).forEach(p => {
           const attrs = p.attributes || p;
           if (attrs.marca) brands.add(attrs.marca);
           if (attrs.variantes && attrs.variantes.length > 0) {
@@ -430,22 +382,25 @@ export default function Catalogo() {
             if (Math.floor(effectivePrice) < localMin) localMin = Math.floor(effectivePrice);
             if (Math.ceil(effectivePrice) > localMax) localMax = Math.ceil(effectivePrice);
           }
-        });
+          });
+          page++;
+        } while (page <= pageCount);
 
         setAvailableBrands([...brands].sort());
         setAvailableSizes([...sizes].sort());
-        if (localMin !== Infinity && localMax !== -Infinity) {
-          setAvailablePriceRange([Math.floor(localMin), Math.ceil(localMax)]);
-        }
+        setAvailablePriceRange(localMin !== Infinity && localMax !== -Infinity
+          ? [Math.floor(localMin), Math.ceil(localMax)] : [0, 0]);
       } catch (err) {
-        console.warn('[Catalogo] Error fetching dynamic filters:', err.message);
+        if (err.name !== 'AbortError') console.warn('[Catalogo] Error fetching dynamic filters:', err.message);
       }
     }
     fetchDynamicFilters();
-  }, [activeCatParam, activeSubcatParam, activeTipoParam, activeSeccion]);
+    return () => controller.abort();
+  }, [activeCatParam, activeSubcatParam, activeTipoParam, activeSeccion, activeBusqueda, activeDescuentos]);
 
   // ── Fetch productos ───────────────────────────────────────────────────────
   const fetchProductos = useCallback(async () => {
+    const requestId = ++productsRequestId.current;
     if (activePage === 1) {
       setLoading(true);
       // Limpiar productos al cambiar filtros para no mostrar resultados anteriores
@@ -475,15 +430,7 @@ export default function Catalogo() {
         params.set('filters[nombre][$containsi]', activeBusqueda);
       }
 
-      if (activeDescuentos.length > 0) {
-        if (activeDescuentos.includes('todas')) {
-          params.set('filters[descuento][$gt]', 0);
-        } else {
-          const maxDescuento = Math.max(...activeDescuentos.map(Number));
-          params.set('filters[descuento][$gt]', 0);
-          params.set('filters[descuento][$lte]', maxDescuento);
-        }
-      }
+      addDiscountFilters(params, activeDescuentos);
 
       activeBrands.forEach((brand, idx) => params.set(`filters[marca][$in][${idx}]`, brand));
       activeSizes.forEach((sz, idx) => params.set(`filters[variantes][volumen][$in][${idx}]`, sz));
@@ -507,6 +454,7 @@ export default function Catalogo() {
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 
       const json = await res.json();
+      if (requestId !== productsRequestId.current) return;
 
       if (activePage === 1) {
         setProductos(json.data || []);
@@ -520,18 +468,22 @@ export default function Catalogo() {
       }
       setTotal(json.meta?.pagination?.total || 0);
     } catch (err) {
+      if (requestId !== productsRequestId.current) return;
       console.error('[Catalogo] Error fetching products:', err);
       setError('No se pudieron obtener los productos de la tienda. Asegurate de que el backend esté encendido.');
       if (activePage === 1) setProductos([]);
       if (activePage === 1) setTotal(0);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (requestId === productsRequestId.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, [activePage, activeSort, activeBusqueda, activeDescuentos, activeSeccion, activeBrands, activeSizes, activePriceParam, activeCatParam, activeSubcatParam, activeTipoParam]);
 
   useEffect(() => {
     fetchProductos();
+    return () => { productsRequestId.current++; };
   }, [fetchProductos]);
 
   // ── Sort client-side para garantizar orden numérico correcto ─────────────
