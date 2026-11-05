@@ -111,7 +111,7 @@ test('las tres planillas usan la nueva jerarquía y validaciones dependientes', 
   ];
 
   assert.equal(Object.keys(TAXONOMY).length, 12);
-  assert.deepEqual(TAXONOMY['Dermocosmetica:'].Facial.slice(0, 2), ['Limpieza Facial', 'Tónico']);
+  assert.deepEqual(TAXONOMY['Dermocosmetica'].Facial.slice(0, 2), ['Limpieza Facial', 'Tónico']);
   assert.deepEqual(TAXONOMY['Maquillaje'].Labios.slice(0, 2), ['Labiales liquidos', 'Labiales en Barra']);
 
   for (const workbook of workbooks) {
@@ -141,14 +141,14 @@ test('una clasificación elegida del nuevo Excel se importa con su categoría y 
   const { state, strapi } = fixture();
   const workbook = await generalWorkbook(strapi);
   const product = workbook.getWorksheet('📦 Productos');
-  product.getCell('F4').value = 'Dermocosmetica:';
+  product.getCell('F4').value = 'Dermocosmetica';
   product.getCell('G4').value = 'Facial';
   product.getCell('H4').value = 'Limpieza Facial';
 
   const result = await importWorkbook(strapi, workbook);
   assert.equal(result.errores, 0, result.erroresList.join('; '));
-  assert.ok(state.categories.some(category => category.nombre === 'Dermocosmetica:' && category.seccion === 'Perfumería'));
-  assert.ok(state.product.clasificaciones.some(item => item.categoria === 'Dermocosmetica:' && item.subcategoria === 'Facial' && item.tipo === 'Limpieza Facial'));
+  assert.ok(state.categories.some(category => category.nombre === 'Dermocosmetica' && category.seccion === 'Perfumería'));
+  assert.ok(state.product.clasificaciones.some(item => item.categoria === 'Dermocosmetica' && item.subcategoria === 'Facial' && item.tipo === 'Limpieza Facial'));
 });
 
 test('el error de validación de categoría se muestra en español y no modifica el producto', async () => {

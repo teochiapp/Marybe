@@ -213,7 +213,7 @@ Cambios realizados:
 Actualizar la categorización y los desplegables de los Excel de administración ✅
 
 Cambios realizados:
-- Se incorporaron las 12 categorías, 67 subcategorías y 94 tipos del Excel proporcionado en una única taxonomía compartida. Se conservaron los nombres, acentos y signos; se retiraron solo espacios al comienzo o final de algunas celdas, igual que hace la importación.
+- Se incorporaron las 12 categorías, 67 subcategorías y 94 tipos del Excel proporcionado en una única taxonomía compartida. Se conservaron los nombres, acentos y signos (quitando los dos puntos finales en `Dermocosmetica`); se retiraron solo espacios al comienzo o final de algunas celdas, igual que hace la importación.
 - El catálogo completo, la plantilla vacía y la exportación por proveedores muestran Categoría → Subcategoría → Tipo en cascada. Los nombres repetidos de subcategoría se resuelven junto con su categoría para mostrar los tipos correctos.
 - La sección sigue siendo independiente porque el archivo de categorías no indica Hogar o Perfumería. La importación mantiene la separación por sección y categoría sin cambiar productos existentes.
 - Validación: 16 pruebas dirigidas de Excel aprobadas. Excel de escritorio abrió la planilla generada y resolvió correctamente las opciones de dos ramas distintas en filas diferentes.

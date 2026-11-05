@@ -653,7 +653,7 @@ async function generarExcelVacio(strapi) {
       nombre:           'Perfume Sin Variantes (EJEMPLO — BORRAR)',
       marca:            'Marca Ejemplo',
       seccion:          'Perfumería',
-      categoria:        'Dermocosmetica:',
+      categoria:        'Dermocosmetica',
       subcategoria:     'Facial',
       tipo:             'Limpieza Facial',
       descripcion:      'Descripción de ejemplo. Reemplazá este texto con la descripción real del producto.',
