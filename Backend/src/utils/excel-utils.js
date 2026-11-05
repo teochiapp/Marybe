@@ -1,6 +1,7 @@
 'use strict';
 
 // ─── Taxonomía completa ───────────────────────────────────────────────────────
+// @ts-ignore
 const TAXONOMY = require('./excel-taxonomy.json');
 
 const SECCIONES = ['Perfumería', 'Hogar'];

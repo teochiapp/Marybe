@@ -949,10 +949,12 @@ async function generarExcelVacio(strapi) {
 
   // Validaciones de variantes
   const lastRowV = rowIdxV + EXTRA_ROWS;
+  // @ts-ignore
   wsV.dataValidations.add(`J4:J${lastRowV}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.booleanos],
   });
+  // @ts-ignore
   wsV.dataValidations.add(`L4:L${lastRowV}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.colores],

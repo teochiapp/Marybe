@@ -526,10 +526,12 @@ async function generarExcelProveedor(strapi, proveedores) {
   const lastRow    = rowIdx + EXTRA_ROWS;
 
   aplicarValidacionesClasificacion(ws, refs, 4, lastRow);
+  // @ts-ignore
   ws.dataValidations.add(`I4:I${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.booleanos],
   });
+  // @ts-ignore
   ws.dataValidations.add(`J4:J${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.booleanos],
