@@ -1,6 +1,7 @@
 Rehacer la nueva categorizacion proporcionada en el Excel, cambiar el sistema actual del Excel con las preselecciones
 
-Frontend\src\pages\nuestra-historia\NuestraHistoria.jsx
+Mejorar disposicion de imagenes en
+Frontend\src\pages\nuestra-historia\NuestraHistoria.jsx ✅
 
 En la pagina de "Sobre Marybe" sacar el fallback de las imagenes viejas, usar solamente las que vienen desde Strapi con caché optimizado  ✅
 

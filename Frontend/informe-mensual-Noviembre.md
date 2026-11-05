@@ -284,3 +284,13 @@ Quitar imágenes locales antiguas de Sobre Marybe ✅
 Cambios realizados:
 - La página Nuestra Historia ya no usa las imágenes locales antiguas cuando Strapi no tiene imagen o la consulta falla; solo renderiza imágenes recibidas desde Strapi.
 - Las imágenes se decodifican de forma asíncrona y las que están más abajo se cargan de forma diferida para aprovechar la caché HTTP del navegador y reducir trabajo inicial.
+
+
+Adaptar imágenes reemplazables de Sobre Marybe ✅
+
+Cambios realizados:
+- Los cuatro campos de imagen de Strapi incluyen un encuadre ajustable (centro, arriba, abajo, izquierda o derecha) y sugerencias de proporción según su uso.
+- Los banners laterales usan proporciones estables que cambian en móvil; se eliminó el recorte basado en alturas, márgenes y desplazamientos fijos.
+- La imagen final selecciona el archivo móvil con `<picture>` hasta 900 px y deja un único elemento de imagen; cada versión tiene su propio encuadre.
+- Se ajustaron tipografías y márgenes con valores fluidos para acompañar los nuevos contenedores en pantallas chicas.
+- Validación: 2 pruebas del componente verifican encuadres, archivo móvil responsivo, un solo `<img>` final y ausencia de imágenes si Strapi no devuelve archivos; frontend y panel de Strapi compilan correctamente. El build de frontend mantiene advertencias ESLint/Browserslist preexistentes.

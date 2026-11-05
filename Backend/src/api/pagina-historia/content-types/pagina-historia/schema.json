@@ -23,7 +23,13 @@
       "allowedTypes": [
         "images"
       ],
-      "description": "Imagen del banner superior inicial. Tamaño recomendado: 1000 x 800 px (Formato 5:4 o 4:3)"
+      "description": "Banner lateral. Recomendado: 1000 x 800 px (5:4). Elegí el encuadre para mantener visible el sujeto principal."
+    },
+    "encuadre_imagen_inicio": {
+      "type": "enumeration",
+      "enum": ["centro", "arriba", "abajo", "izquierda", "derecha"],
+      "default": "centro",
+      "description": "Parte de la imagen que debe priorizarse al recortar en pantallas estrechas."
     },
     "texto_banner_1": {
       "type": "richtext",
@@ -44,7 +50,13 @@
       "allowedTypes": [
         "images"
       ],
-      "description": "Imagen del banner secundario. Tamaño recomendado: 1000 x 800 px"
+      "description": "Banner lateral. Recomendado: 1000 x 800 px (5:4). Elegí el encuadre para mantener visible el sujeto principal."
+    },
+    "encuadre_imagen_secundaria": {
+      "type": "enumeration",
+      "enum": ["centro", "arriba", "abajo", "izquierda", "derecha"],
+      "default": "centro",
+      "description": "Parte de la imagen que debe priorizarse al recortar en pantallas estrechas."
     },
     "imagen_final_desktop": {
       "type": "media",
@@ -53,7 +65,13 @@
       "allowedTypes": [
         "images"
       ],
-      "description": "Imagen panorámica final para versión Escritorio. Tamaño recomendado: 1920 x 800 px (Formato 16:7 o 16:9)"
+      "description": "Imagen panorámica final para escritorio. Recomendado: 1920 x 840 px (16:7). Elegí el encuadre para mantener visible el sujeto principal."
+    },
+    "encuadre_imagen_final_desktop": {
+      "type": "enumeration",
+      "enum": ["centro", "arriba", "abajo", "izquierda", "derecha"],
+      "default": "centro",
+      "description": "Parte de la imagen panorámica que debe priorizarse al recortar."
     },
     "imagen_final_mobile": {
       "type": "media",
@@ -62,7 +80,13 @@
       "allowedTypes": [
         "images"
       ],
-      "description": "Imagen final adaptada para móviles. Tamaño recomendado: 800 x 1000 px (Formato 4:5 u 1:1)"
+      "description": "Imagen final para móviles. Recomendado: 800 x 1000 px (4:5). En el sitio se selecciona según el ancho de pantalla."
+    },
+    "encuadre_imagen_final_mobile": {
+      "type": "enumeration",
+      "enum": ["centro", "arriba", "abajo", "izquierda", "derecha"],
+      "default": "centro",
+      "description": "Parte de la imagen móvil que debe priorizarse al recortar."
     }
   }
 }

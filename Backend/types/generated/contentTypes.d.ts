@@ -763,6 +763,22 @@ export interface ApiPaginaHistoriaPaginaHistoria
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    encuadre_imagen_final_desktop: Schema.Attribute.Enumeration<
+      ['centro', 'arriba', 'abajo', 'izquierda', 'derecha']
+    > &
+      Schema.Attribute.DefaultTo<'centro'>;
+    encuadre_imagen_final_mobile: Schema.Attribute.Enumeration<
+      ['centro', 'arriba', 'abajo', 'izquierda', 'derecha']
+    > &
+      Schema.Attribute.DefaultTo<'centro'>;
+    encuadre_imagen_inicio: Schema.Attribute.Enumeration<
+      ['centro', 'arriba', 'abajo', 'izquierda', 'derecha']
+    > &
+      Schema.Attribute.DefaultTo<'centro'>;
+    encuadre_imagen_secundaria: Schema.Attribute.Enumeration<
+      ['centro', 'arriba', 'abajo', 'izquierda', 'derecha']
+    > &
+      Schema.Attribute.DefaultTo<'centro'>;
     imagen_final_desktop: Schema.Attribute.Media<'images'>;
     imagen_final_mobile: Schema.Attribute.Media<'images'>;
     imagen_inicio: Schema.Attribute.Media<'images'>;
