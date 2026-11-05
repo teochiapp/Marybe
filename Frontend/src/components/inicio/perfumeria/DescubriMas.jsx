@@ -458,7 +458,7 @@ export default function DescubriMas() {
             Te vas a enterar de todos los descuentos y los últimos lanzamientos antes que nadie.
           </BannerDesc>
         </BannerText>
-        <UnirmeBtn href="#" target="_blank" rel="noopener noreferrer">
+        <UnirmeBtn href="https://whatsapp.com/channel/0029VbBxl6sCxoAypSmcLw3m" target="_blank" rel="noopener noreferrer">
           Unirme
           <WhatsAppIconDark />
         </UnirmeBtn>

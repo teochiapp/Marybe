@@ -245,3 +245,26 @@ Cambios realizados:
 - Se eliminaron los sufijos de sección en títulos de subcategorías y filtros laterales (ya no se añade ` · Hogar` o ` · Perfumería`), manteniendo nombres limpios sin aclaraciones en pantalla.
 - Los enlaces de navegación (tanto al ver todo en la categoría como al seleccionar una subcategoría) transmiten la sección configurada en Strapi (`&seccion=Hogar`), asegurando que el catálogo filtre exactamente los productos de dicha sección.
 - Validación: 177 pruebas de frontend aprobadas (incluyendo tests de navegación en escritorio y menú móvil para categorías homónimas en vista General y panel de borrado) y compilación de producción de frontend completada exitosamente.
+
+
+Sincronizar la interfaz cuando expira una sesión ✅
+
+Cambios realizados:
+- Los JWT de clientes (7 días) y administración (1 día) no cuentan con refresh token. El frontend ahora valida `exp` al cargar y programa la invalidación al vencer, sin intentar una renovación inexistente.
+- Los errores `401` se detectan centralmente en Axios y en las solicitudes autenticadas con Fetch; los `403` continúan como errores de permisos y no cierran la sesión.
+- Al expirar se eliminan solamente el token y el usuario correspondientes, se sincroniza el contexto visual y un modal global bloquea nuevas acciones con las opciones "Iniciar sesión nuevamente" y "Cerrar sesión".
+- La reautenticación del cliente mantiene la URL y conserva montadas, cuando corresponde, las pantallas de Mi Cuenta, Envío y Pago para no perder formularios o selecciones. El panel administrativo vuelve al login de la misma ruta.
+- Validación: 182 pruebas de frontend aprobadas y compilación de producción correcta; permanecen solamente advertencias preexistentes de ESLint y Browserslist.
+
+
+Agregar enlace al canal de WhatsApp ✅
+
+Cambios realizados:
+- El botón "Unirme" del bloque "Sumate a nuestro canal de WhatsApp!" abre el canal oficial de Marybe en una pestaña nueva.
+
+
+Adaptar la grilla de promociones bancarias para hasta 12 elementos ✅
+
+Cambios realizados:
+- Se compactaron las tarjetas existentes manteniendo el estilo visual, con logo y condiciones de cuotas legibles.
+- La grilla muestra cuatro columnas en escritorio, tres en tablet, dos en móvil y una en pantallas muy angostas; admite los 12 elementos que devuelve la sección sin carrusel ni límite visual fijo.

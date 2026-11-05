@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
 import GuestCheckoutForm from '../../components/shared/GuestCheckoutForm';
+import { authenticatedFetch } from '../../utils/sessionManager';
 
 // Styled Components (Shared with Envio)
 const PageContainer = styled.div`
@@ -309,9 +310,9 @@ export default function Login() {
         setIsLoadingProfile(true);
         try {
           const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
-          const res = await fetch(`${apiUrl}/api/mi-perfil`, {
+          const res = await authenticatedFetch(`${apiUrl}/api/mi-perfil`, {
             headers: { Authorization: `Bearer ${token}` }
-          });
+          }, token);
           const json = await res.json();
           
           if (json && json.data) {
@@ -370,9 +371,9 @@ export default function Login() {
         provincia: formData.provincia
       };
 
-      const checkRes = await fetch(`${apiUrl}/api/mi-perfil`, {
+      const checkRes = await authenticatedFetch(`${apiUrl}/api/mi-perfil`, {
         headers: { Authorization: `Bearer ${token}` }
-      });
+      }, token);
       const checkData = await checkRes.json();
       
       const payload = {
@@ -385,14 +386,14 @@ export default function Login() {
       let res;
       // createOrUpdateMe maneja tanto crear como actualizar internamente
       // No necesitamos verificar si existe — el endpoint lo hace solo
-      res = await fetch(`${apiUrl}/api/mi-perfil`, {
+      res = await authenticatedFetch(`${apiUrl}/api/mi-perfil`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify(payload)
-      });
+      }, token);
 
       if (!res.ok) {
         const errData = await res.json();

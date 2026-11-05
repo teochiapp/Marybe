@@ -5,7 +5,7 @@ import MiCuentaContent from '../../components/pedidos/miCuenta/MiCuentaContent';
 import { AuthContext } from '../../context/AuthContext';
 
 export default function MiCuenta() {
-  const { isAuthenticated, isLoading, openAuthModal } = useContext(AuthContext);
+  const { isAuthenticated, isLoading, isSessionBlocked, openAuthModal } = useContext(AuthContext);
   // Recordamos si el usuario estuvo logueado dentro de esta pantalla.
   // Si se desloguea (Cerrar Sesión), redirigimos sin abrir el modal.
   const wasAuthenticated = useRef(false);
@@ -17,14 +17,14 @@ export default function MiCuenta() {
       return;
     }
     // No está logueado: solo abrimos el modal si nunca estuvo logueado aquí
-    if (!wasAuthenticated.current) {
+    if (!wasAuthenticated.current && !isSessionBlocked) {
       openAuthModal();
     }
-  }, [isLoading, isAuthenticated, openAuthModal]);
+  }, [isLoading, isAuthenticated, isSessionBlocked, openAuthModal]);
 
   if (isLoading) return null;
 
-  if (!isAuthenticated) return <Navigate to="/inicio" replace />;
+  if (!isAuthenticated && !isSessionBlocked) return <Navigate to="/inicio" replace />;
 
   return (
     <PageLayout

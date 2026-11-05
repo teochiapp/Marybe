@@ -7,6 +7,7 @@ import { useConfiguracionGeneral } from '../../hooks/useConfiguracionGeneral';
 import PickupBranchSelector from '../../components/shared/PickupBranchSelector';
 import { DELIVERY_KEY, readDelivery, deliveryAddress, validDelivery, shippingCost as calculateShippingCost } from '../../utils/checkoutDelivery';
 import { readGuest, validGuest } from '../../utils/guestCheckout';
+import { authenticatedFetch } from '../../utils/sessionManager';
 import '../../components/shared/GuestCheckoutForm.css';
 
 // Styled Components
@@ -339,7 +340,7 @@ const formatPrice = (price) => {
 
 export default function Envio() {
   const { cartItems, cartTotal } = useContext(CartContext);
-  const { token, isLoading: authLoading } = useContext(AuthContext);
+  const { token, isLoading: authLoading, isSessionBlocked } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [shippingMethod, setShippingMethod] = useState(() => readDelivery()?.metodo_envio || 'domicilio');
@@ -354,17 +355,17 @@ export default function Envio() {
     return !token ? (saved?.metodo_envio === 'domicilio' ? saved : saved?.facturacion || null) : null;
   });
   useEffect(() => {
-    if (!authLoading && !token && !validGuest(guest)) navigate('/login', { replace: true });
-  }, [token, guest, navigate, authLoading]);
+    if (!authLoading && !isSessionBlocked && !token && !validGuest(guest)) navigate('/login', { replace: true });
+  }, [token, guest, navigate, authLoading, isSessionBlocked]);
 
   useEffect(() => {
     if (token) {
       const fetchProfile = async () => {
         try {
           const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
-          const res = await fetch(`${apiUrl}/api/mi-perfil`, {
+          const res = await authenticatedFetch(`${apiUrl}/api/mi-perfil`, {
             headers: { Authorization: `Bearer ${token}` }
-          });
+          }, token);
           const json = await res.json();
           if (json && json.data) {
             const profile = json.data;
@@ -412,7 +413,7 @@ export default function Envio() {
   const finalTotal = Number(cartTotal) + Number(shippingCost);
   const contactAddress = !token && guest ? { ...savedAddress, nombre: `${guest.nombre} ${guest.apellido}`, telefono: guest.telefono, email: guest.email } : savedAddress;
   const delivery = deliveryAddress(shippingMethod, contactAddress, selectedBranch);
-  const canContinue = !authLoading && validDelivery(delivery) && cartItems.length > 0 && (esSucursal || costoEnvio !== null);
+  const canContinue = !authLoading && !isSessionBlocked && validDelivery(delivery) && cartItems.length > 0 && (esSucursal || costoEnvio !== null);
 
   return (
     <PageContainer>

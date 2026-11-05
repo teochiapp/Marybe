@@ -14,6 +14,7 @@ import Inicio from './pages/inicio/Inicio';
 
 // Modales y rutas que no se necesitan en el render principal inicial (Lazy load para reducir Script Evaluation)
 const AuthModal = lazyWithRetry(() => import('./components/auth/AuthModal'), 'AuthModal');
+const SessionExpiredModal = lazyWithRetry(() => import('./components/auth/SessionExpiredModal'), 'SessionExpiredModal');
 
 // ── Rutas de Tienda y Checkout (Carga Perezosa / Lazy con reintentos para evitar sobrecargar el Main Bundle) ──
 const Catalogo = lazyWithRetry(() => import('./pages/tienda/Catalogo'), 'Catalogo');
@@ -85,6 +86,7 @@ function App() {
       <LazyMotion features={domAnimation}>
         {!bannerStudio && <Header />}
         <AuthModal />
+        <SessionExpiredModal />
         <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>Cargando...</div>}>
           <Routes>
             <Route path="/" element={<RootRoute />} />

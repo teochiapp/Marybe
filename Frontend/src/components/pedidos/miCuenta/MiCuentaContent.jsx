@@ -8,6 +8,7 @@ import { CartContext } from '../../../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { generateProductUrl } from '../../../utils/productUrl';
+import { authenticatedFetch } from '../../../utils/sessionManager';
 
 const DashboardLayout = styled.div`
   display: grid;
@@ -605,7 +606,7 @@ const ConfirmBtn = styled.button`
 `;
 
 export default function MiCuentaContent() {
-  const { token, logout } = useContext(AuthContext);
+  const { token, updateToken, logout } = useContext(AuthContext);
   const { favorites, removeFavorite } = useContext(FavoritesContext);
   const { addToCart } = useContext(CartContext);
   const navigate = useNavigate();
@@ -631,9 +632,9 @@ export default function MiCuentaContent() {
       const fetchPedidos = async () => {
         try {
           const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
-          const res = await fetch(`${apiUrl}/api/mis-pedidos`, {
+          const res = await authenticatedFetch(`${apiUrl}/api/mis-pedidos`, {
             headers: { Authorization: `Bearer ${token}` }
-          });
+          }, token);
           const json = await res.json();
           if (json && json.data) {
             setMisPedidos(json.data);
@@ -651,9 +652,9 @@ export default function MiCuentaContent() {
       const fetchData = async () => {
         try {
           const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
-          const res = await fetch(`${apiUrl}/api/mi-perfil`, {
+          const res = await authenticatedFetch(`${apiUrl}/api/mi-perfil`, {
             headers: { Authorization: `Bearer ${token}` }
-          });
+          }, token);
           const json = await res.json();
 
           if (json && json.data) {
@@ -703,7 +704,7 @@ export default function MiCuentaContent() {
 
     try {
       const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
-      const res = await fetch(`${apiUrl}/api/auth/change-password`, {
+      const res = await authenticatedFetch(`${apiUrl}/api/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -714,7 +715,7 @@ export default function MiCuentaContent() {
           password: passwords.password,
           passwordConfirmation: passwords.confirm
         })
-      });
+      }, token);
       
       const json = await res.json();
       
@@ -725,7 +726,7 @@ export default function MiCuentaContent() {
         
         // Strapi returns a new token on password change, so we must update it
         if (json.jwt) {
-          localStorage.setItem('jwt', json.jwt);
+          updateToken(json.jwt);
         }
       } else {
         // Error
@@ -745,7 +746,7 @@ export default function MiCuentaContent() {
     setAddressStatus({ type: '', message: '' });
     try {
       const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
-      const res = await fetch(`${apiUrl}/api/mi-perfil`, {
+      const res = await authenticatedFetch(`${apiUrl}/api/mi-perfil`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -756,7 +757,7 @@ export default function MiCuentaContent() {
             direcciones: [addressForm]
           }
         })
-      });
+      }, token);
       
       const json = await res.json();
       if (res.ok) {

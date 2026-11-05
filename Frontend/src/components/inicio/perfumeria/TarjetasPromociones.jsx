@@ -9,16 +9,20 @@ const STRAPI_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
 
 const Section = styled.section`
   background-color: var(--color-fondo-tarjetas-promo);
-  padding: 64px 32px;
+  padding: 40px 24px;
   width: 100%;
 
   @media (max-width: 768px) {
-    padding: 40px 16px;
+    padding: 32px 16px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 28px 12px;
   }
 `;
 
 const Container = styled.div`
-  max-width: 1200px;
+  max-width: 1320px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -29,17 +33,17 @@ const Title = styled.h2`
   font-family: var(--font-family-primary);
   font-style: italic;
   font-weight: 600;
-  font-size: 48px;
-  line-height: 56px;
-  letter-spacing: -2%;
+  font-size: 40px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   color: black;
-  margin: 0 0 48px 0;
+  margin: 0 0 28px;
   text-align: center;
 
   @media (max-width: 768px) {
     font-size: 24px;
     line-height: 1.2;
-    margin-bottom: 32px;
+    margin-bottom: 22px;
   }
 `;
 
@@ -47,16 +51,21 @@ const Title = styled.h2`
 
 const CardsGrid = styled(motion.div)`
   display: grid;
-  grid-template-columns: repeat(${({ $cols }) => $cols || 4}, 1fr);
-  gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
   width: 100%;
-  margin-bottom: 40px;
+  margin-bottom: 28px;
 
-  @media (max-width: 992px) {
-    grid-template-columns: repeat(2, 1fr);
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  @media (max-width: 480px) {
+  @media (max-width: 720px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  @media (max-width: 360px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -66,30 +75,32 @@ const Card = styled(motion.div)`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 0 24px 24px 24px;
-  border-bottom: 1px solid rgba(40, 1, 1, 0.15);
-
-  &:last-child {
-    border-bottom: none;
-  }
+  justify-content: flex-start;
+  min-width: 0;
+  min-height: 132px;
+  padding: 14px 12px;
+  border: 1px solid rgba(40, 1, 1, 0.12);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.48);
 
   @media (max-width: 992px) {
-    padding: 24px 16px;
+    min-height: 126px;
+    padding: 12px 10px;
   }
 `;
 
 const CardImage = styled.img`
   width: auto;
-  max-width: 140px;
-  height: 50px;
+  max-width: min(100%, 120px);
+  height: 38px;
   object-fit: contain;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 `;
 
 const CardImagePlaceholder = styled.div`
-  width: 140px;
-  height: 50px;
-  margin-bottom: 16px;
+  width: min(100%, 120px);
+  height: 38px;
+  margin-bottom: 10px;
   background: rgba(40, 1, 1, 0.08);
   border-radius: 8px;
   display: flex;
@@ -105,10 +116,10 @@ const CardImagePlaceholder = styled.div`
 
 const CardText = styled.p`
   font-family: var(--font-family-secondary);
-  font-size: 14px;
+  font-size: 13px;
   color: black;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.4;
 
   strong {
     font-weight: 700;
@@ -296,16 +307,12 @@ export default function TarjetasPromociones() {
     return () => controller.abort();
   }, []);
 
-  // Determinar columnas del grid según cantidad de ítems
-  const count = promociones.length;
-  const cols = count > 0 ? Math.min(count, 4) : 4;
-
   return (
     <Section>
       <Container>
         <Title>Beneficios para vos</Title>
 
-        <CardsGrid $cols={cols}>
+        <CardsGrid>
           {loading ? (
             // Skeleton mientras carga
             Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)

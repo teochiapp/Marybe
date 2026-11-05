@@ -7,6 +7,7 @@ import { readDelivery, validDelivery, shippingCost } from '../../utils/checkoutD
 import { readGuest, validGuest } from '../../utils/guestCheckout';
 import { useConfiguracionGeneral } from '../../hooks/useConfiguracionGeneral';
 import { readPendingCheckout, syncCheckout } from '../../utils/mercadoPagoCheckout';
+import { authenticatedFetch } from '../../utils/sessionManager';
 
 const PageContainer = styled.div`
   min-height: 80vh;
@@ -593,7 +594,7 @@ const ConfirmBtn = styled.button`
 
 export default function Pago() {
   const { cartItems, cartTotal, appliedGiftCard, setAppliedGiftCard, clearCart } = useContext(CartContext);
-  const { token, user, isLoading: authLoading } = useContext(AuthContext);
+  const { token, user, isLoading: authLoading, isSessionBlocked } = useContext(AuthContext);
   const { config: siteConfig } = useConfiguracionGeneral();
 
   // Métodos de pago dinámicos desde Strapi (con fallback al archivo estático)
@@ -659,7 +660,7 @@ export default function Pago() {
 
   const handlePayment = async () => {
     if (checkingPrevious || previousPaymentError) return;
-    if (authLoading) return;
+    if (authLoading || isSessionBlocked) return;
     if (!token && !validGuest(guest)) { navigate('/login'); return; }
     if (!validDelivery(savedAddress)) { navigate('/envio'); return; }
     if (isProcessing) return;
@@ -712,7 +713,7 @@ export default function Pago() {
         // Captura del carrito antes de limpiarlo
         let orderNumber = 'M-000000';
 
-        const responseOrder = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${orderEndpoint}`, {
+        const responseOrder = await authenticatedFetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${orderEndpoint}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -729,7 +730,7 @@ export default function Pago() {
             descuento_gift_card: appliedGiftCard ? appliedGiftCard.monto : 0,
             codigo_gift_card: appliedGiftCard ? appliedGiftCard.codigo : null
           })
-        });
+        }, token);
         
         if (!responseOrder.ok) {
           throw new Error('No se pudo generar el pedido en la tienda.');
@@ -797,7 +798,7 @@ export default function Pago() {
   };
 
   const confirmOrder = useCallback(async (overrideTotal) => {
-    if (authLoading) return;
+    if (authLoading || isSessionBlocked) return;
     if (!token && !validGuest(guest)) { navigate('/login'); return; }
     if (!validDelivery(savedAddress)) { navigate('/envio'); return; }
     setIsProcessing(true);
@@ -813,7 +814,7 @@ export default function Pago() {
 
     try {
       // 1. Crear el pedido en Strapi
-      const response = await fetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${orderEndpoint}`, {
+      const response = await authenticatedFetch(`${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${orderEndpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -830,7 +831,7 @@ export default function Pago() {
           descuento_gift_card: appliedGiftCard ? appliedGiftCard.monto : 0,
           codigo_gift_card: appliedGiftCard ? appliedGiftCard.codigo : null
         })
-      });
+      }, token);
 
       if (!response.ok) throw new Error('No se pudo registrar el pedido. Intentá nuevamente.');
       const json = await response.json();
@@ -860,13 +861,13 @@ export default function Pago() {
       } 
     });
     return orderNumber;
-  }, [cartItems, cartTotal, paymentMethod, savedAddress, appliedGiftCard, token, customerEmail, guest, orderEndpoint, clearCart, navigate, setAppliedGiftCard, costoEnvioFinal, authLoading]);
+  }, [cartItems, cartTotal, paymentMethod, savedAddress, appliedGiftCard, token, customerEmail, guest, orderEndpoint, clearCart, navigate, setAppliedGiftCard, costoEnvioFinal, authLoading, isSessionBlocked]);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || isSessionBlocked) return;
     if (!token && !validGuest(guest)) { navigate('/login', { replace: true }); return; }
     if (!validDelivery(savedAddress)) navigate('/envio', { replace: true });
-  }, [savedAddress, navigate, token, guest, authLoading]);
+  }, [savedAddress, navigate, token, guest, authLoading, isSessionBlocked]);
 
   const getProductImage = (product) => {
     let imgUrl = '/placeholder.png';
@@ -1130,7 +1131,7 @@ export default function Pago() {
 
               {previousPaymentError && <p role="alert">{previousPaymentError} <Link to="/order-error">Consultar el intento anterior</Link></p>}
               {checkingPrevious && <p role="status">Verificando el intento de pago anterior…</p>}
-              <PrimaryBtn onClick={handlePayment} disabled={checkingPrevious || Boolean(previousPaymentError) || authLoading || isProcessing || !validDelivery(savedAddress) || !metodosPago.some(m => m.id === paymentMethod) || cartItems.length === 0}>
+              <PrimaryBtn onClick={handlePayment} disabled={checkingPrevious || Boolean(previousPaymentError) || authLoading || isSessionBlocked || isProcessing || !validDelivery(savedAddress) || !metodosPago.some(m => m.id === paymentMethod) || cartItems.length === 0}>
                 {isProcessing ? 'Procesando...' : buttonText}
               </PrimaryBtn>
             </SummaryCard>
