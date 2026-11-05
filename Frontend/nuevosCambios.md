@@ -1,4 +1,4 @@
-Rehacer la nueva categorizacion proporcionada en el Excel, cambiar el sistema actual del Excel con las preselecciones
+Rehacer la nueva categorizacion proporcionada en el Excel, cambiar el sistema actual del Excel con las preselecciones ✅
 
 Mejorar disposicion de imagenes en
 Frontend\src\pages\nuestra-historia\NuestraHistoria.jsx ✅

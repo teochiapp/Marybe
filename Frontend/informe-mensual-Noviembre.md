@@ -210,6 +210,16 @@ Cambios realizados:
 - Validación: 13 pruebas nuevas de Excel, 73 pruebas de backend y 163 de frontend aprobadas; prueba adicional con Strapi y SQLite aislada para verificar componentes y `-v1`. Compilaciones de producción de Frontend y Backend correctas, con advertencias preexistentes.
 
 
+Actualizar la categorización y los desplegables de los Excel de administración ✅
+
+Cambios realizados:
+- Se incorporaron las 12 categorías, 67 subcategorías y 94 tipos del Excel proporcionado en una única taxonomía compartida. Se conservaron los nombres, acentos y signos; se retiraron solo espacios al comienzo o final de algunas celdas, igual que hace la importación.
+- El catálogo completo, la plantilla vacía y la exportación por proveedores muestran Categoría → Subcategoría → Tipo en cascada. Los nombres repetidos de subcategoría se resuelven junto con su categoría para mostrar los tipos correctos.
+- La sección sigue siendo independiente porque el archivo de categorías no indica Hogar o Perfumería. La importación mantiene la separación por sección y categoría sin cambiar productos existentes.
+- Validación: 16 pruebas dirigidas de Excel aprobadas. Excel de escritorio abrió la planilla generada y resolvió correctamente las opciones de dos ramas distintas en filas diferentes.
+- Compatibilidad de cascada con Google Sheets y Excel: se reemplazaron las fórmulas `INDIRECT` en las validaciones de datos por rangos literales por fila en la hoja oculta `Listas` calculados con `IFERROR` + `MATCH` + `INDEX`. Para `Tipo` (columna H) se unificó el cálculo con el mismo patrón de referencia directa que `Subcategoría` (`MATCH($G{fila}, $C$2:$C$58, 0)` sobre `_SUBCATEGORIAS`), eliminando la concatenación con `¦` y la dependencia de que la categoría previa coincida textualmente. También se actualizaron las filas de ejemplo de la plantilla vacía con ramas de 3 niveles válidos. Validación: 80 pruebas de backend aprobadas, verificación XML de rangos literales y recálculo en vivo en Excel 16.0.
+
+
 Distinguir categorías con el mismo nombre entre Hogar y Perfumería en el menú y catálogo ✅
 
 Cambios realizados:
@@ -292,5 +302,6 @@ Cambios realizados:
 - Los cuatro campos de imagen de Strapi incluyen un encuadre ajustable (centro, arriba, abajo, izquierda o derecha) y sugerencias de proporción según su uso.
 - Los banners laterales usan proporciones estables que cambian en móvil; se eliminó el recorte basado en alturas, márgenes y desplazamientos fijos.
 - La imagen final selecciona el archivo móvil con `<picture>` hasta 900 px y deja un único elemento de imagen; cada versión tiene su propio encuadre.
+- Se ajustó la imagen final para que se visualice completa y sin recortes (`height: auto`, sin forzar `aspect-ratio` fijo ni `object-fit: cover`), preservando su proporción natural tanto en escritorio como en móvil.
 - Se ajustaron tipografías y márgenes con valores fluidos para acompañar los nuevos contenedores en pantallas chicas.
-- Validación: 2 pruebas del componente verifican encuadres, archivo móvil responsivo, un solo `<img>` final y ausencia de imágenes si Strapi no devuelve archivos; frontend y panel de Strapi compilan correctamente. El build de frontend mantiene advertencias ESLint/Browserslist preexistentes.
+- Validación: 2 pruebas del componente verifican encuadres, archivo móvil responsivo, un solo `<img>` final y ausencia de imágenes si Strapi no devuelve archivos; 187 pruebas de frontend aprobadas.

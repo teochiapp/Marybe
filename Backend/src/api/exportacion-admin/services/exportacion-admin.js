@@ -1,15 +1,13 @@
 'use strict';
 
 const ExcelJS = require('exceljs');
+const { calcularRefs, aplicarValidacionesClasificacion, construirHojaListas } = require('../../../utils/excel-dropdowns');
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const UID_PRODUCTO = 'api::producto.producto';
 const PAGE_SIZE    = 100;
 
 const {
-  TAXONOMY,
-  SECCIONES,
-  COLORES,
   C,
   headerStyle,
   dataStyle,
@@ -35,125 +33,6 @@ function calcPct(precio, precioOferta, descuentoExplicito) {
   }
   return 0;
 }
-
-// ─── Helpers para Named Ranges ────────────────────────────────────────────────
-/**
- * Convierte índice de columna (1-based) a letra(s) Excel (A, B, ... Z, AA...)
- */
-function colLetter(n) {
-  let r = '';
-  while (n > 0) {
-    n--;
-    r = String.fromCharCode(65 + (n % 26)) + r;
-    n = Math.floor(n / 26);
-  }
-  return r;
-}
-
-/**
- * Calcula las posiciones de columna para la hoja Listas y construye
- * las referencias a las listas planas, SIN crear la hoja todavía.
- */
-function calcularRefs() {
-  let col = 1;
-
-  // Col 1: Secciones
-  const secLtr = colLetter(col);
-  const secciones = `Listas!$${secLtr}$2:$${secLtr}$${SECCIONES.length + 1}`;
-  col++;
-
-  // Col 2: Categorías
-  const categorias_list = Object.keys(TAXONOMY);
-  const catLtr = colLetter(col);
-  const categorias = `Listas!$${catLtr}$2:$${catLtr}$${categorias_list.length + 1}`;
-  col++;
-
-  // Col 3: Subcategorías (todas aplanadas)
-  const subcatLtr = colLetter(col);
-  const subcategoriasSet = new Set();
-  for (const subcats of Object.values(TAXONOMY)) {
-    for (const subcat of Object.keys(subcats)) subcategoriasSet.add(subcat);
-  }
-  const subcategoriasArr = Array.from(subcategoriasSet);
-  const subcategorias = `Listas!$${subcatLtr}$2:$${subcatLtr}$${subcategoriasArr.length + 1}`;
-  col++;
-
-  // Col 4: Tipos (todos aplanados)
-  const tipoLtr = colLetter(col);
-  const tiposSet = new Set();
-  for (const subcats of Object.values(TAXONOMY)) {
-    for (const tipos of Object.values(subcats)) {
-      for (const tipo of tipos) tiposSet.add(tipo);
-    }
-  }
-  const tiposArr = Array.from(tiposSet);
-  const tipos = `Listas!$${tipoLtr}$2:$${tipoLtr}$${tiposArr.length + 1}`;
-  col++;
-
-  // Col 5: Colores
-  const coloresLtr = colLetter(col);
-  const colores = `Listas!$${coloresLtr}$2:$${coloresLtr}$${COLORES.length + 1}`;
-  col++;
-
-  // Col 6: Booleanos
-  const boolLtr = colLetter(col);
-  const booleanos = `Listas!$${boolLtr}$2:$${boolLtr}$3`;
-
-  return {
-    secciones,
-    categorias,
-    subcategorias,
-    tipos,
-    booleanos,
-    colores,
-    data: {
-      categorias: categorias_list,
-      subcategorias: subcategoriasArr,
-      tipos: tiposArr,
-    }
-  };
-}
-
-/**
- * Crea la hoja "Listas" al final del workbook usando los datos pre-calculados.
- */
-function construirHojaListas(wb, refs) {
-  const wsL = wb.addWorksheet('Listas');
-  let col = 1;
-
-  // 1. Secciones
-  wsL.getCell(1, col).value = '_SECCIONES';
-  SECCIONES.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
-  col++;
-
-  // 2. Categorías
-  wsL.getCell(1, col).value = '_CATEGORIAS';
-  refs.data.categorias.forEach((c, i) => { wsL.getCell(i + 2, col).value = c; });
-  col++;
-
-  // 3. Subcategorías
-  wsL.getCell(1, col).value = '_SUBCATEGORIAS';
-  refs.data.subcategorias.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
-  col++;
-
-  // 4. Tipos
-  wsL.getCell(1, col).value = '_TIPOS';
-  refs.data.tipos.forEach((t, i) => { wsL.getCell(i + 2, col).value = t; });
-  col++;
-
-  // 5. Colores
-  wsL.getCell(1, col).value = '_COLORES';
-  COLORES.forEach((c, i) => { wsL.getCell(i + 2, col).value = c; });
-  col++;
-
-  // 6. Booleanos
-  wsL.getCell(1, col).value = '_BOOLEANOS';
-  wsL.getCell(2, col).value = 'SI';
-  wsL.getCell(3, col).value = 'NO';
-  col++;
-}
-
-
 
 // ─── Traer TODOS los productos de Strapi con paginación ──────────────────────
 async function fetchAllProductos(strapi) {
@@ -246,7 +125,7 @@ async function generarExcel(strapi) {
   // Fila 2 — Instrucción
   wsP.mergeCells('A2:R2');
   const instrP     = wsP.getCell('A2');
-  instrP.value     = `⚠ Exportación generada el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Las columnas Sección, Categoría, Subcategoría y Tipo tienen listas desplegables en cascada.`;
+  instrP.value     = `⚠ Exportación generada el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Categoría, Subcategoría y Tipo tienen listas desplegables en cascada; Sección se selecciona por separado.`;
   applyStyle(instrP, noteStyle());
   wsP.getRow(2).height = 28;
 
@@ -464,25 +343,7 @@ async function generarExcel(strapi) {
   const lastRow    = rowIdxP + EXTRA_ROWS;
 
   // @ts-ignore
-  wsP.dataValidations.add(`E4:E${lastRow}`, {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.secciones],
-  });
-  // @ts-ignore
-  wsP.dataValidations.add(`F4:F${lastRow}`, {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.categorias],
-  });
-  // @ts-ignore
-  wsP.dataValidations.add(`G4:G${lastRow}`, {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.subcategorias],
-  });
-  // @ts-ignore
-  wsP.dataValidations.add(`H4:H${lastRow}`, {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.tipos],
-  });
+  aplicarValidacionesClasificacion(wsP, refs, 4, lastRow);
   // @ts-ignore
   wsP.dataValidations.add(`L4:L${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
@@ -676,7 +537,7 @@ async function generarExcel(strapi) {
   });
 
   // ── Hoja Listas al final (Productos → Variantes → Listas) ───────────────
-  construirHojaListas(wb, refs);
+  construirHojaListas(wb, refs, { mainSheet: wsP, firstRow: 4, lastRow, hidden: true });
 
   const buffer = await wb.xlsx.writeBuffer();
 
@@ -792,9 +653,9 @@ async function generarExcelVacio(strapi) {
       nombre:           'Perfume Sin Variantes (EJEMPLO — BORRAR)',
       marca:            'Marca Ejemplo',
       seccion:          'Perfumería',
-      categoria:        'Fragancias',
-      subcategoria:     'Perfumes',
-      tipo:             'Eau de Parfum',
+      categoria:        'Dermocosmetica:',
+      subcategoria:     'Facial',
+      tipo:             'Limpieza Facial',
       descripcion:      'Descripción de ejemplo. Reemplazá este texto con la descripción real del producto.',
       especificaciones: 'Volumen: 100 ml | Concentración: EDP',
       proveedor:        'Proveedor Ejemplo S.A.',
@@ -812,9 +673,9 @@ async function generarExcelVacio(strapi) {
       nombre:           'Perfume Con Variantes de Volumen (EJEMPLO — BORRAR)',
       marca:            'Marca Ejemplo',
       seccion:          'Perfumería',
-      categoria:        'Fragancias',
-      subcategoria:     'Perfumes',
-      tipo:             'Eau de Toilette',
+      categoria:        'Cuidado Personal',
+      subcategoria:     'Higiene Corporal',
+      tipo:             'Jabones Líquidos',
       descripcion:      'Este producto tiene variantes por volumen. Completá los precios en la hoja Variantes.',
       especificaciones: 'Concentración: EDT',
       proveedor:        'Proveedor Ejemplo S.A.',
@@ -907,25 +768,7 @@ async function generarExcelVacio(strapi) {
   const lastRow    = rowIdxP + EXTRA_ROWS;
 
   // @ts-ignore
-  wsP.dataValidations.add(`E4:E${lastRow}`, {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.secciones],
-  });
-  // @ts-ignore
-  wsP.dataValidations.add(`F4:F${lastRow}`, {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.categorias],
-  });
-  // @ts-ignore
-  wsP.dataValidations.add(`G4:G${lastRow}`, {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.subcategorias],
-  });
-  // @ts-ignore
-  wsP.dataValidations.add(`H4:H${lastRow}`, {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.tipos],
-  });
+  aplicarValidacionesClasificacion(wsP, refs, 4, lastRow);
   // @ts-ignore
   wsP.dataValidations.add(`L4:L${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
@@ -1116,7 +959,7 @@ async function generarExcelVacio(strapi) {
   });
 
   // ── Hoja Listas al final ──────────────────────────────────────────────────
-  construirHojaListas(wb, refs);
+  construirHojaListas(wb, refs, { mainSheet: wsP, firstRow: 4, lastRow, hidden: true });
 
   const buffer = await wb.xlsx.writeBuffer();
   strapi.log.info('[ExportAdmin] ✅ Plantilla vacía MODO_ALTA generada');

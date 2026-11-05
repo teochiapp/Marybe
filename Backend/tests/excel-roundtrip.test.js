@@ -13,6 +13,7 @@ const exportarGeneral = require('../src/api/exportacion-admin/services/exportaci
 const exportarProveedor = require('../src/api/exportacion-proveedores-admin/services/exportacion-proveedores-admin')();
 const PRODUCTO = 'api::producto.producto';
 const CATEGORIA = 'api::categoria.categoria';
+const { TAXONOMY } = require('../src/utils/excel-utils');
 
 function fixture(options = {}) {
   const product = {
@@ -99,6 +100,56 @@ async function generalWorkbook(strapi) {
   const { buffer } = await exportarGeneral.generarExcel(strapi);
   return workbookFrom(buffer);
 }
+
+test('las tres planillas usan la nueva jerarquía y validaciones dependientes', async () => {
+  const { strapi } = fixture();
+  const { buffer: emptyBuffer } = await exportarGeneral.generarExcelVacio(strapi);
+  const workbooks = [
+    await generalWorkbook(strapi),
+    await workbookFrom(emptyBuffer),
+    await supplierWorkbook(strapi),
+  ];
+
+  assert.equal(Object.keys(TAXONOMY).length, 12);
+  assert.deepEqual(TAXONOMY['Dermocosmetica:'].Facial.slice(0, 2), ['Limpieza Facial', 'Tónico']);
+  assert.deepEqual(TAXONOMY['Maquillaje'].Labios.slice(0, 2), ['Labiales liquidos', 'Labiales en Barra']);
+
+  for (const workbook of workbooks) {
+    const sheet = workbook.worksheets[0];
+    const lists = workbook.getWorksheet('Listas');
+    assert.equal(lists.state, 'hidden');
+    assert.deepEqual(Object.keys(TAXONOMY), Object.keys(TAXONOMY).map((_, index) => lists.getCell(index + 2, 2).value));
+    assert.deepEqual(['Facial', 'Corporal', 'Solares'], [lists.getCell('G2').value, lists.getCell('H2').value, lists.getCell('I2').value]);
+    assert.equal(lists.getCell('P2').value, 'Limpieza Facial');
+
+    assert.equal(sheet.getCell('F4').dataValidation.formulae[0], 'Listas!$B$2:$B$13');
+    assert.equal(sheet.getCell('G4').dataValidation.formulae[0], 'Listas!$X$4:$AF$4');
+    assert.equal(sheet.getCell('G5').dataValidation.formulae[0], 'Listas!$X$5:$AF$5');
+    assert.equal(sheet.getCell('H4').dataValidation.formulae[0], 'Listas!$AH$4:$AN$4');
+    assert.equal(sheet.getCell('H5').dataValidation.formulae[0], 'Listas!$AH$5:$AN$5');
+    assert.doesNotMatch(sheet.getCell('G4').dataValidation.formulae[0], /INDIRECT|MATCH/);
+    assert.doesNotMatch(sheet.getCell('H4').dataValidation.formulae[0], /INDIRECT|MATCH/);
+
+    assert.match(lists.getCell('W4').formula, /MATCH\(.*!\$F4,\$B\$2:\$B\$13,0\)/);
+    assert.match(lists.getCell('X4').formula, /INDEX\(G\$2:G\$13,\$W4\)/);
+    assert.match(lists.getCell('AG4').formula, /MATCH\(.*!\$G4,\$C\$2:\$C\$58,0\)/);
+    assert.match(lists.getCell('AH4').formula, /INDEX\(P\$2:P\$58,\$AG4\)/);
+  }
+});
+
+test('una clasificación elegida del nuevo Excel se importa con su categoría y tipo', async () => {
+  const { state, strapi } = fixture();
+  const workbook = await generalWorkbook(strapi);
+  const product = workbook.getWorksheet('📦 Productos');
+  product.getCell('F4').value = 'Dermocosmetica:';
+  product.getCell('G4').value = 'Facial';
+  product.getCell('H4').value = 'Limpieza Facial';
+
+  const result = await importWorkbook(strapi, workbook);
+  assert.equal(result.errores, 0, result.erroresList.join('; '));
+  assert.ok(state.categories.some(category => category.nombre === 'Dermocosmetica:' && category.seccion === 'Perfumería'));
+  assert.ok(state.product.clasificaciones.some(item => item.categoria === 'Dermocosmetica:' && item.subcategoria === 'Facial' && item.tipo === 'Limpieza Facial'));
+});
 
 test('el error de validación de categoría se muestra en español y no modifica el producto', async () => {
   const { state, strapi } = fixture();

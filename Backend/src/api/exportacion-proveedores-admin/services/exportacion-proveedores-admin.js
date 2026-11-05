@@ -1,12 +1,11 @@
 'use strict';
 
 const ExcelJS = require('exceljs');
+const { calcularRefs, aplicarValidacionesClasificacion, construirHojaListas } = require('../../../utils/excel-dropdowns');
 const crypto = require('node:crypto');
 
 // ─── Estilos y taxonomía compartidos con el exportador principal ─────────────────
 const {
-  TAXONOMY,
-  SECCIONES,
   C,
   headerStyle,
   dataStyle,
@@ -17,88 +16,6 @@ const {
 
 const UID_PRODUCTO = 'api::producto.producto';
 const PAGE_SIZE    = 100;
-
-// ─── Helpers para dropdowns (igual que en exportacion-admin) ─────────────────────
-function colLetter(n) {
-  let r = '';
-  while (n > 0) {
-    n--;
-    r = String.fromCharCode(65 + (n % 26)) + r;
-    n = Math.floor(n / 26);
-  }
-  return r;
-}
-
-function calcularRefs() {
-  let col = 1;
-
-  const secLtr   = colLetter(col);
-  const secciones = `Listas!$${secLtr}$2:$${secLtr}$${SECCIONES.length + 1}`;
-  col++;
-
-  const categorias_list = Object.keys(TAXONOMY);
-  const catLtr  = colLetter(col);
-  const categorias = `Listas!$${catLtr}$2:$${catLtr}$${categorias_list.length + 1}`;
-  col++;
-
-  const subcatLtr = colLetter(col);
-  const subcategoriasSet = new Set();
-  for (const subcats of Object.values(TAXONOMY)) {
-    for (const subcat of Object.keys(subcats)) subcategoriasSet.add(subcat);
-  }
-  const subcategoriasArr = Array.from(subcategoriasSet);
-  const subcategorias = `Listas!$${subcatLtr}$2:$${subcatLtr}$${subcategoriasArr.length + 1}`;
-  col++;
-
-  const tipoLtr = colLetter(col);
-  const tiposSet = new Set();
-  for (const subcats of Object.values(TAXONOMY)) {
-    for (const tipos of Object.values(subcats)) {
-      for (const tipo of tipos) tiposSet.add(tipo);
-    }
-  }
-  const tiposArr = Array.from(tiposSet);
-  const tipos = `Listas!$${tipoLtr}$2:$${tipoLtr}$${tiposArr.length + 1}`;
-  col++;
-
-  const boolLtr  = colLetter(col);
-  const booleanos = `Listas!$${boolLtr}$2:$${boolLtr}$3`;
-
-  return {
-    secciones,
-    categorias,
-    subcategorias,
-    tipos,
-    booleanos,
-    data: { categorias: categorias_list, subcategorias: subcategoriasArr, tipos: tiposArr },
-  };
-}
-
-function construirHojaListas(wb, refs) {
-  const wsL = wb.addWorksheet('Listas');
-  let col = 1;
-
-  wsL.getCell(1, col).value = '_SECCIONES';
-  SECCIONES.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
-  col++;
-
-  wsL.getCell(1, col).value = '_CATEGORIAS';
-  refs.data.categorias.forEach((c, i) => { wsL.getCell(i + 2, col).value = c; });
-  col++;
-
-  wsL.getCell(1, col).value = '_SUBCATEGORIAS';
-  refs.data.subcategorias.forEach((s, i) => { wsL.getCell(i + 2, col).value = s; });
-  col++;
-
-  wsL.getCell(1, col).value = '_TIPOS';
-  refs.data.tipos.forEach((t, i) => { wsL.getCell(i + 2, col).value = t; });
-  col++;
-
-  wsL.getCell(1, col).value = '_BOOLEANOS';
-  wsL.getCell(2, col).value = 'SI';
-  wsL.getCell(3, col).value = 'NO';
-  wsL.state = 'hidden';
-}
 
 function safeNum(val) {
   const n = parseFloat(val);
@@ -608,22 +525,7 @@ async function generarExcelProveedor(strapi, proveedores) {
   const EXTRA_ROWS = 300;
   const lastRow    = rowIdx + EXTRA_ROWS;
 
-  ws.dataValidations.add(`E4:E${lastRow}`, {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.secciones],
-  });
-  ws.dataValidations.add(`F4:F${lastRow}`, {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.categorias],
-  });
-  ws.dataValidations.add(`G4:G${lastRow}`, {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.subcategorias],
-  });
-  ws.dataValidations.add(`H4:H${lastRow}`, {
-    type: 'list', allowBlank: true, showErrorMessage: false,
-    formulae: [refs.tipos],
-  });
+  aplicarValidacionesClasificacion(ws, refs, 4, lastRow);
   ws.dataValidations.add(`I4:I${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.booleanos],
@@ -634,7 +536,7 @@ async function generarExcelProveedor(strapi, proveedores) {
   });
 
   // Crear la hoja Listas al final (igual que en exportacion-admin)
-  construirHojaListas(wb, refs);
+  construirHojaListas(wb, refs, { mainSheet: ws, firstRow: 4, lastRow, hidden: true });
 
   const buffer = await wb.xlsx.writeBuffer();
 

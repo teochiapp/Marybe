@@ -124,18 +124,7 @@ const FinalPicture = styled.picture`
   img {
     display: block;
     width: 100%;
-    aspect-ratio: 16 / 7;
-    max-height: 680px;
-    object-fit: cover;
-    object-position: var(--position-desktop, center);
-  }
-
-  @media (max-width: 900px) {
-    img {
-      aspect-ratio: 4 / 5;
-      max-height: none;
-      object-position: var(--position-mobile, center);
-    }
+    height: auto;
   }
 `;
 
