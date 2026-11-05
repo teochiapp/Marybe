@@ -63,6 +63,8 @@ function calcularRefs() {
   return {
     secciones: `Listas!$A$2:$A$${SECCIONES.length + 1}`,
     categorias: `Listas!$B$2:$B$${categories.length + 1}`,
+    subcategoriasFijas: `Listas!$C$2:$C$${subcategories.length + 1}`,
+    tiposFijos: `Listas!$D$2:$D$${types.length + 1}`,
     subcategorias: row => `Listas!$${subStartLtr}$${row}:$${subEndLtr}$${row}`,
     tipos: row => `Listas!$${typeStartLtr}$${row}:$${typeEndLtr}$${row}`,
     booleanos: 'Listas!$F$2:$F$3',
@@ -83,7 +85,7 @@ function calcularRefs() {
   };
 }
 
-function aplicarValidacionesClasificacion(sheet, refs, firstRow, lastRow) {
+function aplicarValidacionesClasificacion(sheet, refs, firstRow, lastRow, { cascade = true } = {}) {
   const baseRule = { type: 'list', allowBlank: true, showErrorMessage: false };
   sheet.dataValidations.add(`E${firstRow}:E${lastRow}`, {
     ...baseRule,
@@ -93,6 +95,17 @@ function aplicarValidacionesClasificacion(sheet, refs, firstRow, lastRow) {
     ...baseRule,
     formulae: [refs.categorias],
   });
+  if (!cascade) {
+    sheet.dataValidations.add(`G${firstRow}:G${lastRow}`, {
+      ...baseRule,
+      formulae: [refs.subcategoriasFijas],
+    });
+    sheet.dataValidations.add(`H${firstRow}:H${lastRow}`, {
+      ...baseRule,
+      formulae: [refs.tiposFijos],
+    });
+    return;
+  }
   for (let row = firstRow; row <= lastRow; row++) {
     sheet.dataValidations.add(`G${row}`, {
       ...baseRule,
@@ -106,7 +119,6 @@ function aplicarValidacionesClasificacion(sheet, refs, firstRow, lastRow) {
 }
 
 function construirHojaListas(workbook, refs, { mainSheet = null, firstRow = 4, lastRow = 3, hidden = true } = {}) {
-  workbook.calcProperties.fullCalcOnLoad = true;
   const sheet = workbook.addWorksheet('Listas');
   const { categories, subcategories, subTypeEntries, types } = refs.data;
   const {
@@ -132,26 +144,27 @@ function construirHojaListas(workbook, refs, { mainSheet = null, firstRow = 4, l
   putColumn(5, '_COLORES', COLORES);
   putColumn(6, '_BOOLEANOS', ['SI', 'NO']);
 
-  for (let i = 0; i < maxSubs; i++) {
-    sheet.getCell(1, subMatrixCol + i).value = `_MAT_SUB_${i + 1}`;
-  }
-  categories.forEach((category, catIndex) => {
-    const subs = Object.keys(TAXONOMY[category]);
-    subs.forEach((sub, subIndex) => {
-      sheet.getCell(catIndex + 2, subMatrixCol + subIndex).value = sub;
-    });
-  });
-
-  for (let j = 0; j < maxTypes; j++) {
-    sheet.getCell(1, typeMatrixCol + j).value = `_MAT_TIPO_${j + 1}`;
-  }
-  subTypeEntries.forEach((entry, subIndex) => {
-    entry.types.forEach((typeName, typeIndex) => {
-      sheet.getCell(subIndex + 2, typeMatrixCol + typeIndex).value = typeName;
-    });
-  });
-
   if (mainSheet && lastRow >= firstRow) {
+    workbook.calcProperties.fullCalcOnLoad = true;
+    for (let i = 0; i < maxSubs; i++) {
+      sheet.getCell(1, subMatrixCol + i).value = `_MAT_SUB_${i + 1}`;
+    }
+    categories.forEach((category, catIndex) => {
+      const subs = Object.keys(TAXONOMY[category]);
+      subs.forEach((sub, subIndex) => {
+        sheet.getCell(catIndex + 2, subMatrixCol + subIndex).value = sub;
+      });
+    });
+
+    for (let j = 0; j < maxTypes; j++) {
+      sheet.getCell(1, typeMatrixCol + j).value = `_MAT_TIPO_${j + 1}`;
+    }
+    subTypeEntries.forEach((entry, subIndex) => {
+      entry.types.forEach((typeName, typeIndex) => {
+        sheet.getCell(subIndex + 2, typeMatrixCol + typeIndex).value = typeName;
+      });
+    });
+
     const catEndRow = categories.length + 1;
     const subEndRow = subcategories.length + 1;
     const sheetRef = quoteSheetName(mainSheet.name);

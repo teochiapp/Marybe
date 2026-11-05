@@ -343,7 +343,7 @@ async function generarExcel(strapi) {
   const lastRow    = rowIdxP + EXTRA_ROWS;
 
   // @ts-ignore
-  aplicarValidacionesClasificacion(wsP, refs, 4, lastRow);
+  aplicarValidacionesClasificacion(wsP, refs, 4, lastRow, { cascade: false });
   // @ts-ignore
   wsP.dataValidations.add(`L4:L${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
@@ -537,7 +537,7 @@ async function generarExcel(strapi) {
   });
 
   // ── Hoja Listas al final (Productos → Variantes → Listas) ───────────────
-  construirHojaListas(wb, refs, { mainSheet: wsP, firstRow: 4, lastRow, hidden: true });
+  construirHojaListas(wb, refs, { hidden: true });
 
   const buffer = await wb.xlsx.writeBuffer();
 

@@ -101,11 +101,11 @@ async function generalWorkbook(strapi) {
   return workbookFrom(buffer);
 }
 
-test('las tres planillas usan la nueva jerarquía y validaciones dependientes', async () => {
+test('las tres planillas usan la nueva jerarquía, con listas fijas en catálogo completo y cascada en plantilla vacía y proveedores', async () => {
   const { strapi } = fixture();
   const { buffer: emptyBuffer } = await exportarGeneral.generarExcelVacio(strapi);
-  const workbooks = [
-    await generalWorkbook(strapi),
+  const fullWorkbook = await generalWorkbook(strapi);
+  const cascadeWorkbooks = [
     await workbookFrom(emptyBuffer),
     await supplierWorkbook(strapi),
   ];
@@ -114,7 +114,16 @@ test('las tres planillas usan la nueva jerarquía y validaciones dependientes', 
   assert.deepEqual(TAXONOMY['Dermocosmetica'].Facial.slice(0, 2), ['Limpieza Facial', 'Tónico']);
   assert.deepEqual(TAXONOMY['Maquillaje'].Labios.slice(0, 2), ['Labiales liquidos', 'Labiales en Barra']);
 
-  for (const workbook of workbooks) {
+  const fullSheet = fullWorkbook.worksheets[0];
+  const fullLists = fullWorkbook.getWorksheet('Listas');
+  assert.equal(fullLists.state, 'hidden');
+  assert.deepEqual(Object.keys(TAXONOMY), Object.keys(TAXONOMY).map((_, index) => fullLists.getCell(index + 2, 2).value));
+  assert.equal(fullSheet.getCell('F4').dataValidation.formulae[0], 'Listas!$B$2:$B$13');
+  assert.equal(fullSheet.getCell('G4').dataValidation.formulae[0], 'Listas!$C$2:$C$58');
+  assert.equal(fullSheet.getCell('H4').dataValidation.formulae[0], 'Listas!$D$2:$D$77');
+  assert.equal(fullLists.getCell('W4').value, null);
+
+  for (const workbook of cascadeWorkbooks) {
     const sheet = workbook.worksheets[0];
     const lists = workbook.getWorksheet('Listas');
     assert.equal(lists.state, 'hidden');
