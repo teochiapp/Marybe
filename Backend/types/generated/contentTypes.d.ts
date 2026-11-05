@@ -955,7 +955,7 @@ export interface ApiPromocionBancariaPromocionBancaria
     > &
       Schema.Attribute.Private;
     logo: Schema.Attribute.Media<'images'>;
-    monto_maximo: Schema.Attribute.String;
+    monto_minimo: Schema.Attribute.String;
     nombre: Schema.Attribute.String & Schema.Attribute.Required;
     orden: Schema.Attribute.Integer &
       Schema.Attribute.SetMinMax<

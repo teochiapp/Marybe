@@ -255,6 +255,7 @@ Cambios realizados:
 - Al expirar se eliminan solamente el token y el usuario correspondientes, se sincroniza el contexto visual y un modal global bloquea nuevas acciones con las opciones "Iniciar sesión nuevamente" y "Cerrar sesión".
 - La reautenticación del cliente mantiene la URL y conserva montadas, cuando corresponde, las pantallas de Mi Cuenta, Envío y Pago para no perder formularios o selecciones. El panel administrativo vuelve al login de la misma ruta.
 - Validación: 182 pruebas de frontend aprobadas y compilación de producción correcta; permanecen solamente advertencias preexistentes de ESLint y Browserslist.
+- Se mejoró la jerarquía visual del modal de sesión expirada y se acortó el botón principal a "Iniciar sesión", con mejor ajuste en pantallas chicas.
 
 
 Agregar enlace al canal de WhatsApp ✅
@@ -268,3 +269,18 @@ Adaptar la grilla de promociones bancarias para hasta 12 elementos ✅
 Cambios realizados:
 - Se compactaron las tarjetas existentes manteniendo el estilo visual, con logo y condiciones de cuotas legibles.
 - La grilla muestra cuatro columnas en escritorio, tres en tablet, dos en móvil y una en pantallas muy angostas; admite los 12 elementos que devuelve la sección sin carrusel ni límite visual fijo.
+
+
+Renombrar el monto mínimo de promociones bancarias ✅
+
+Cambios realizados:
+- En Strapi el campo `monto_maximo` se renombró a `monto_minimo`, conservando la columna de base de datos existente para mantener los valores cargados.
+- Inicio y el modal de medios de pago ahora muestran el monto como condición mínima: "en compras desde".
+- Validación de carga: 12 promociones activas llegan ordenadas desde la API, las inactivas se excluyen y `monto_minimo` conserva sus datos en Strapi; pruebas de Inicio y modal aprobadas (3), con SQLite aislada.
+
+
+Quitar imágenes locales antiguas de Sobre Marybe ✅
+
+Cambios realizados:
+- La página Nuestra Historia ya no usa las imágenes locales antiguas cuando Strapi no tiene imagen o la consulta falla; solo renderiza imágenes recibidas desde Strapi.
+- Las imágenes se decodifican de forma asíncrona y las que están más abajo se cargan de forma diferida para aprovechar la caché HTTP del navegador y reducir trabajo inicial.

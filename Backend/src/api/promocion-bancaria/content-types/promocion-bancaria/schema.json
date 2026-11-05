@@ -29,8 +29,9 @@
     "cuotas_cantidad": {
       "type": "json"
     },
-    "monto_maximo": {
-      "type": "string"
+    "monto_minimo": {
+      "type": "string",
+      "columnName": "monto_maximo"
     },
     "orden": {
       "type": "integer",

@@ -14,7 +14,7 @@ const Container = styled.div`
 /* Banda a todo el ancho: una mitad foto (de borde a borde) y la otra texto. */
 const Banner = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: ${({ $hasImage }) => ($hasImage ? '1fr 1fr' : '1fr')};
   align-items: stretch;
 
   @media (max-width: 900px) {
@@ -170,8 +170,8 @@ export default function HistoriaContent() {
 
   return (
     <>
-      <Banner>
-        <Photo src={imagen_inicio} alt="Fundadores de MARYBE en los inicios de la perfumería" />
+      <Banner $hasImage={Boolean(imagen_inicio)}>
+        {imagen_inicio && <Photo src={imagen_inicio} alt="Fundadores de MARYBE en los inicios de la perfumería" loading="eager" fetchPriority="high" decoding="async" />}
         <BannerText>
           <TextBlock>
             <Title>{titulo}</Title>
@@ -184,17 +184,17 @@ export default function HistoriaContent() {
         <FullText dangerouslySetInnerHTML={{ __html: texto_intermedio }} />
       </Container>
 
-      <Banner>
+      <Banner $hasImage={Boolean(imagen_secundaria)}>
         <BannerText>
           <TextBlock dangerouslySetInnerHTML={{ __html: texto_banner_2 }} />
         </BannerText>
-        <OverlapWrap>
-          <CroppedPhoto src={imagen_secundaria} alt="Equipo de MARYBE en una de las sucursales" />
-        </OverlapWrap>
+        {imagen_secundaria && <OverlapWrap>
+          <CroppedPhoto src={imagen_secundaria} alt="Equipo de MARYBE en una de las sucursales" loading="lazy" decoding="async" />
+        </OverlapWrap>}
       </Banner>
 
-      <FullPhoto src={imagen_final_desktop} alt="Familia y equipo de MARYBE Perfumerías" />
-      <MobileFullPhoto src={imagen_final_mobile} alt="Familia y equipo de MARYBE Perfumerías" />
+      {imagen_final_desktop && <FullPhoto src={imagen_final_desktop} alt="Familia y equipo de MARYBE Perfumerías" loading="lazy" decoding="async" />}
+      {imagen_final_mobile && <MobileFullPhoto src={imagen_final_mobile} alt="Familia y equipo de MARYBE Perfumerías" loading="lazy" decoding="async" />}
     </>
   );
 }

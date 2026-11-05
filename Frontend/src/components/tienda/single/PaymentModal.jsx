@@ -176,7 +176,7 @@ function formatCuotas(cuotas_cantidad) {
 }
 
 function buildCuotasTexto(promo) {
-  const { cuotas_descripcion, cuotas_cantidad, monto_maximo } = promo;
+  const { cuotas_descripcion, cuotas_cantidad, monto_minimo } = promo;
   const cuotasStr = formatCuotas(cuotas_cantidad);
 
   return (
@@ -188,10 +188,10 @@ function buildCuotasTexto(promo) {
       ) : cuotas_descripcion ? (
         cuotas_descripcion
       ) : null}
-      {monto_maximo && (
+      {monto_minimo && (
         <>
           <br />
-          en compras hasta <strong>{monto_maximo}</strong>
+          en compras desde <strong>{monto_minimo}</strong>
         </>
       )}
     </>
@@ -249,7 +249,7 @@ export default function PaymentModal({ isOpen, onClose }) {
         ) : (
           <PromoList>
             {promociones.map((item) => {
-              const { id, nombre, logo, cuotas_descripcion, cuotas_cantidad, monto_maximo } = item;
+              const { id, nombre, logo, cuotas_descripcion, cuotas_cantidad, monto_minimo } = item;
               const logoUrl = logo?.url
                 ? logo.url.startsWith('http')
                   ? logo.url
@@ -264,7 +264,7 @@ export default function PaymentModal({ isOpen, onClose }) {
                     <PromoLogoPlaceholder>{nombre}</PromoLogoPlaceholder>
                   )}
                   <PromoText>
-                    {buildCuotasTexto({ cuotas_descripcion, cuotas_cantidad, monto_maximo })}
+                    {buildCuotasTexto({ cuotas_descripcion, cuotas_cantidad, monto_minimo })}
                   </PromoText>
                 </PromoItem>
               );

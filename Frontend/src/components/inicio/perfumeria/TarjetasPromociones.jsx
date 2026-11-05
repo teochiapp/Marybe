@@ -3,7 +3,7 @@ import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 
 
-const STRAPI_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
+const STRAPI_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -249,10 +249,10 @@ function formatCuotas(cuotas_cantidad) {
 
 /**
  * Construye el JSX de texto de cuotas a partir de los campos estructurados:
- * cuotas_descripcion, cuotas_cantidad (number | number[]), monto_maximo
+ * cuotas_descripcion, cuotas_cantidad (number | number[]), monto_minimo
  */
 function buildCuotasTexto(promo) {
-  const { cuotas_descripcion, cuotas_cantidad, monto_maximo } = promo;
+  const { cuotas_descripcion, cuotas_cantidad, monto_minimo } = promo;
   const cuotasStr = formatCuotas(cuotas_cantidad);
 
   return (
@@ -264,10 +264,10 @@ function buildCuotasTexto(promo) {
       ) : cuotas_descripcion ? (
         cuotas_descripcion
       ) : null}
-      {monto_maximo && (
+      {monto_minimo && (
         <>
           <br />
-          en compras hasta <strong>{monto_maximo}</strong>
+          en compras desde <strong>{monto_minimo}</strong>
         </>
       )}
     </>
@@ -321,7 +321,7 @@ export default function TarjetasPromociones() {
             null
           ) : (
             promociones.map((item) => {
-              const { id, nombre, logo, cuotas_descripcion, cuotas_cantidad, monto_maximo } = item;
+              const { id, nombre, logo, cuotas_descripcion, cuotas_cantidad, monto_minimo } = item;
               const logoUrl = logo?.url
                 ? logo.url.startsWith('http')
                   ? logo.url
@@ -336,7 +336,7 @@ export default function TarjetasPromociones() {
                     <CardImagePlaceholder>{nombre}</CardImagePlaceholder>
                   )}
                   <CardText>
-                    {buildCuotasTexto({ cuotas_descripcion, cuotas_cantidad, monto_maximo })}
+                    {buildCuotasTexto({ cuotas_descripcion, cuotas_cantidad, monto_minimo })}
                   </CardText>
                 </Card>
               );
