@@ -12,22 +12,15 @@ const {
   noteStyle,
   readonlyStyle,
   applyStyle,
+  boolStr,
+  safeNum,
+  calcPct,
+  filtrarVariantesComerciales,
+  construirHojaVariantes,
 } = require('../../../utils/excel-utils');
 
 const UID_PRODUCTO = 'api::producto.producto';
 const PAGE_SIZE    = 100;
-
-function safeNum(val) {
-  const n = parseFloat(val);
-  return isNaN(n) ? null : n;
-}
-
-function calcPct(precio, precioOferta) {
-  if (precio && precioOferta && precio > 0 && precioOferta < precio) {
-    return Math.round(((precio - precioOferta) / precio) * 100);
-  }
-  return 0;
-}
 
 // ─── Obtener proveedores únicos ───────────────────────────────────────────────
 async function fetchProveedores(strapi) {
@@ -226,10 +219,17 @@ async function generarExcelProveedor(strapi, proveedores) {
   title.alignment = { horizontal: 'center', vertical: 'middle' };
   ws.getRow(1).height = 36;
 
+  // Marcador oculto de proveedores filtrados en celda AA1 (columna 27)
+  const cMarcadorProv = ws.getCell(1, 27);
+  cMarcadorProv.value = JSON.stringify(proveedores.map(p => String(p).trim()).filter(Boolean));
+  cMarcadorProv.font  = { color: { argb: C.blanco }, size: 8 };
+  cMarcadorProv.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.blanco } };
+  ws.getColumn(27).hidden = true;
+
   // ── Fila 2: Instrucción ───────────────────────────────────────────────────
   ws.mergeCells('A2:O2');
   const instr = ws.getCell('A2');
-  instr.value = `⚠ Generado el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Variantes indentadas (↳). Tamaño / Variante es solo referencia: se edita desde la planilla general. Precio Oferta vacío quita la oferta; % Desc. es informativo.`;
+  instr.value = `⚠ Generado el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Variantes indentadas (↳). Para crear nuevas variantes o editar Volumen/Color, usá la hoja "🔗 Variantes". Precio Oferta vacío quita la oferta; % Desc. es informativo.`;
   applyStyle(instr, noteStyle());
   ws.getRow(2).height = 28;
 
@@ -279,13 +279,7 @@ async function generarExcelProveedor(strapi, proveedores) {
     const pctDesc = calcPct(precioNum, precioOfertaNum);
 
     // Variantes reales (sin fantasmas ni únicas-vacías)
-    const variantesLimpias = variantes.filter(v => {
-      const esV1         = v.id_original === `${padreId}-v1`;
-      const esUnicaVacia = variantes.length === 1
-        && !(v.volumen || '').trim()
-        && !(v.color_nombre || '').trim();
-      return !(esV1 || esUnicaVacia);
-    });
+    const variantesLimpias = filtrarVariantesComerciales(padreId, variantes);
 
     // ── Fila del Producto Padre ───────────────────────────────────────────
     const rProd = ws.getRow(rowIdx);
@@ -343,7 +337,6 @@ async function generarExcelProveedor(strapi, proveedores) {
         if (subcatMatch?.tipos?.length > 0) tipoVal = subcatMatch.tipos[0]?.nombre || '';
       }
     }
-    const boolStr = val => (val === true || val === 1 || String(val).toLowerCase() === 'true' || String(val).toLowerCase() === 'si') ? 'SI' : 'NO';
 
     // E: Sección
     const cE = rProd.getCell(5);
@@ -536,6 +529,17 @@ async function generarExcelProveedor(strapi, proveedores) {
   ws.dataValidations.add(`J4:J${lastRow}`, {
     type: 'list', allowBlank: true, showErrorMessage: false,
     formulae: [refs.booleanos],
+  });
+
+  // ── Hoja 2: Variantes (A–L, misma estructura que exportación general, agrupadas por producto) ──
+  construirHojaVariantes(wb, productos, refs, {
+    title: `🔗 MARYBE — Variantes por Proveedor: ${provNombres} (${new Date().toLocaleDateString('es-AR')})`,
+    instruction: '⚠ Una fila por variante, agrupadas por producto. "ID Producto Padre" debe coincidir con el "ID / ID Variante" del producto en Precios por Proveedor. Podés agregar nuevas filas para crear variantes adicionales.',
+    parentSheetName: '💲 Precios por Proveedor',
+    parentNameCol: 'D',
+    parentNameColIdx: 4,
+    extraRows: EXTRA_ROWS,
+    groupByProduct: true,
   });
 
   // Crear la hoja Listas al final (igual que en exportacion-admin)

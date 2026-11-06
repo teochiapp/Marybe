@@ -328,8 +328,8 @@ export default function ExportacionProveedoresAdmin() {
             <strong>¿Cómo funciona?</strong>
             <span>
               Seleccioná uno o más proveedores y hacé clic en <strong>"Exportar"</strong>.
-              El Excel muestra cada producto con sus variantes indentadas abajo (↳), con columnas de{' '}
-              <strong>ID · SKU · Proveedor · Nombre · Tamaño · Stock · Precio · Precio Oferta · % Desc.</strong>
+              El Excel incluye la hoja de precios con variantes indentadas (↳) y la hoja <strong>🔗 Variantes</strong>{' '}
+              agrupada por producto para editar atributos (Volumen, Color, Envío, Stock, Precios) o agregar nuevas variantes.
             </span>
           </div>
         </div>

@@ -122,7 +122,7 @@ test('las tres planillas usan la nueva jerarquía, con listas fijas en catálogo
   assert.deepEqual(Object.keys(TAXONOMY), Object.keys(TAXONOMY).map((_, index) => fullLists.getCell(index + 2, 2).value));
   assert.equal(fullSheet.getCell('F4').dataValidation.formulae[0], 'Listas!$B$2:$B$13');
   assert.equal(fullSheet.getCell('G4').dataValidation.formulae[0], 'Listas!$C$2:$C$57');
-  assert.equal(fullSheet.getCell('H4').dataValidation.formulae[0], 'Listas!$D$2:$D$77');
+  assert.equal(fullSheet.getCell('H4').dataValidation.formulae[0], 'Listas!$D$2:$D$78');
   assert.equal(fullLists.getCell('W4').value, null);
 
   for (const workbook of cascadeWorkbooks) {
@@ -394,4 +394,81 @@ test('vaciar el campo Tipo en la planilla de proveedor o general borra el tipo e
   assert.equal(state.updates.length, 1);
   assert.equal(state.product.tipo, '');
   assert.equal(state.product.clasificaciones[0].tipo, '');
+});
+
+test('planilla de proveedor incluye hoja Variantes con estructura A-L, BUSCARV adaptado y creación de nuevas variantes', async () => {
+  const { state, strapi } = fixture();
+  const wb = await supplierWorkbook(strapi);
+
+  const wsV = wb.getWorksheet('🔗 Variantes');
+  assert.ok(wsV, 'Debe existir la hoja 🔗 Variantes en la planilla por proveedor');
+  assert.equal(wsV.getCell('A4').value, 'P2-100');
+  assert.equal(wsV.getCell('B4').value, 'P2');
+  assert.match(wsV.getCell('C4').formula, /'💲 Precios por Proveedor'!A:D,4,FALSE/);
+  assert.equal(wsV.getCell('J4').dataValidation.formulae[0], 'Listas!$F$2:$F$3');
+  assert.match(wsV.getCell('L4').dataValidation.formulae[0], /^Listas!\$E\$2:\$E\$/);
+
+  // Editar color/volumen de variante existente en 🔗 Variantes y agregar una variante nueva P2-200
+  wsV.getCell('E4').value = '120 ml';
+  wsV.getCell('L4').value = 'Dorado';
+
+  const newRow = wsV.getRow(6);
+  newRow.getCell(1).value = 'P2-200';
+  newRow.getCell(2).value = 'P2';
+  newRow.getCell(4).value = 'EAN-200';
+  newRow.getCell(5).value = '200 ml';
+  newRow.getCell(6).value = 12;
+  newRow.getCell(7).value = 2000;
+  newRow.getCell(8).value = 1400; // 30% descuento
+  newRow.getCell(10).value = 'SI';
+  newRow.getCell(11).value = '1';
+  newRow.getCell(12).value = 'Negro';
+  newRow.commit();
+
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errores, 0, result.erroresList.join('; '));
+  assert.equal(state.product.variantes.length, 3);
+
+  const v100 = state.product.variantes.find(v => v.id_original === 'P2-100');
+  assert.equal(v100.volumen, '120 ml');
+  assert.equal(v100.color_nombre, 'Dorado');
+
+  const v200 = state.product.variantes.find(v => v.id_original === 'P2-200');
+  assert.ok(v200, 'La nueva variante P2-200 debe haberse creado');
+  assert.equal(v200.sku_ean, 'EAN-200');
+  assert.equal(v200.volumen, '200 ml');
+  assert.equal(v200.stock, 12);
+  assert.equal(v200.precio, 2000);
+  assert.equal(v200.precio_oferta, 1400);
+  assert.equal(v200.color_nombre, 'Negro');
+  assert.equal(state.product.descuento, 30);
+});
+
+test('planilla de proveedor rechaza IDs de variante duplicados y respeta el filtro del proveedor seleccionado', async () => {
+  const { state, strapi } = fixture();
+  const wb = await supplierWorkbook(strapi);
+  const wsV = wb.getWorksheet('🔗 Variantes');
+
+  // 1. Duplicar ID P2-100 en fila 6
+  const dupRow = wsV.getRow(6);
+  dupRow.getCell(1).value = 'P2-100';
+  dupRow.getCell(2).value = 'P2';
+  dupRow.getCell(6).value = 5;
+  dupRow.getCell(7).value = 1100;
+  dupRow.commit();
+
+  const resDup = await importWorkbook(strapi, wb);
+  assert.equal(resDup.errores, 1);
+  assert.match(resDup.erroresList[0], /Variante duplicada "P2-100"/);
+  assert.equal(state.updates.length, 0);
+
+  // 2. Cambiar el proveedor del producto en BD a otro proveedor fuera del filtro del Excel
+  const wb2 = await supplierWorkbook(strapi);
+  state.product.proveedor = 'Otro Proveedor Ajeno';
+  wb2.getWorksheet('💲 Precios por Proveedor').getCell(4, 13).value = 9999;
+
+  const resProv = await importWorkbook(strapi, wb2);
+  assert.equal(resProv.errores, 1);
+  assert.match(resProv.erroresList[0], /no corresponde al filtro de proveedores seleccionados/);
+  assert.equal(state.updates.length, 0);
 });
