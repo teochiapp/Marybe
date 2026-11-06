@@ -379,3 +379,19 @@ test('controlador de importación informa éxito parcial con detalle de la fila'
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('vaciar el campo Tipo en la planilla de proveedor o general borra el tipo en Strapi', async () => {
+  const { state, strapi } = fixture();
+  assert.equal(state.product.tipo, 'Eau de Parfum');
+  assert.equal(state.product.clasificaciones[0].tipo, 'Eau de Parfum');
+
+  const wb = await supplierWorkbook(strapi);
+  const ws = wb.getWorksheet('💲 Precios por Proveedor');
+  ws.getCell(4, 8).value = '';
+
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errores, 0, result.erroresList.join('; '));
+  assert.equal(state.updates.length, 1);
+  assert.equal(state.product.tipo, '');
+  assert.equal(state.product.clasificaciones[0].tipo, '');
+});

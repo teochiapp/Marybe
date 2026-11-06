@@ -808,7 +808,7 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
         // Actualizar campos planos desde la primera clasificación
         if (primeraClasif.seccion)      productoData.seccion      = primeraClasif.seccion;
         if (primeraClasif.subcategoria) productoData.subcategoria = primeraClasif.subcategoria;
-        if (primeraClasif.tipo)         productoData.tipo         = primeraClasif.tipo;
+        productoData.tipo = primeraClasif.tipo || '';
         // SKU: actualizar si la celda tiene valor (permite cambiar el SKU desde la plantilla)
         const skuVal = (p.sku || '').trim();
         if (skuVal) productoData.sku = skuVal;
@@ -871,13 +871,14 @@ async function ejecutarUpsert(strapi, productos, variantes, hasVariantesSheet, i
             const byId = new Map(existentes.map(v => [v.id_original, v]));
             const primeraExistente = existente.clasificaciones?.[0] || {};
             const nuevaPrimera = { ...primeraExistente };
-            for (const field of ['seccion', 'categoria', 'subcategoria', 'tipo']) {
+            for (const field of ['seccion', 'categoria', 'subcategoria']) {
               if (primeraClasif[field]) nuevaPrimera[field] = primeraClasif[field];
             }
+            nuevaPrimera.tipo = primeraClasif.tipo || '';
             const changedCategory = ['seccion', 'categoria'].some(field =>
               String(nuevaPrimera[field] || '').trim() !== String(primeraExistente[field] || '').trim());
             if (changedCategory && nombreCat1 && catDocId1) productoData.categoria = catDocId1;
-            if (['seccion', 'categoria', 'subcategoria', 'tipo'].some(field => nuevaPrimera[field])) {
+            if (['seccion', 'categoria', 'subcategoria', 'tipo'].some(field => nuevaPrimera[field]) || String(primeraExistente.tipo || '').trim() !== '') {
               productoData.clasificaciones = [nuevaPrimera, ...(existente.clasificaciones || []).slice(1)];
             }
             // La hoja de proveedor muestra el tamaño y el color juntos como referencia.
