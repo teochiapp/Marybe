@@ -111,15 +111,17 @@ test('las tres planillas usan la nueva jerarquía, con listas fijas en catálogo
   ];
 
   assert.equal(Object.keys(TAXONOMY).length, 12);
-  assert.deepEqual(TAXONOMY['Dermocosmetica'].Facial.slice(0, 2), ['Limpieza Facial', 'Tónico']);
-  assert.deepEqual(TAXONOMY['Maquillaje'].Labios.slice(0, 2), ['Labiales liquidos', 'Labiales en Barra']);
+  assert.deepEqual(TAXONOMY['Dermocosmetica'].Facial.slice(0, 2), ['Limpieza Facial', 'Tónicos']);
+  assert.deepEqual(TAXONOMY['Maquillaje'].Labios.slice(0, 2), ['Labiales Liquidos', 'Labiales en Barra']);
+  assert.ok('Contornos de Ojos y Labios' in TAXONOMY['Dermocosmetica Premium']);
+  assert.deepEqual(TAXONOMY['Fragancias'].Cofres, ['Femeninas', 'Masculinas']);
 
   const fullSheet = fullWorkbook.worksheets[0];
   const fullLists = fullWorkbook.getWorksheet('Listas');
   assert.equal(fullLists.state, 'hidden');
   assert.deepEqual(Object.keys(TAXONOMY), Object.keys(TAXONOMY).map((_, index) => fullLists.getCell(index + 2, 2).value));
   assert.equal(fullSheet.getCell('F4').dataValidation.formulae[0], 'Listas!$B$2:$B$13');
-  assert.equal(fullSheet.getCell('G4').dataValidation.formulae[0], 'Listas!$C$2:$C$58');
+  assert.equal(fullSheet.getCell('G4').dataValidation.formulae[0], 'Listas!$C$2:$C$57');
   assert.equal(fullSheet.getCell('H4').dataValidation.formulae[0], 'Listas!$D$2:$D$77');
   assert.equal(fullLists.getCell('W4').value, null);
 
@@ -128,7 +130,7 @@ test('las tres planillas usan la nueva jerarquía, con listas fijas en catálogo
     const lists = workbook.getWorksheet('Listas');
     assert.equal(lists.state, 'hidden');
     assert.deepEqual(Object.keys(TAXONOMY), Object.keys(TAXONOMY).map((_, index) => lists.getCell(index + 2, 2).value));
-    assert.deepEqual(['Facial', 'Corporal', 'Solares'], [lists.getCell('G2').value, lists.getCell('H2').value, lists.getCell('I2').value]);
+    assert.deepEqual(['Facial', 'Corporal', 'Solares', 'Accesorios'], [lists.getCell('G2').value, lists.getCell('H2').value, lists.getCell('I2').value, lists.getCell('J2').value]);
     assert.equal(lists.getCell('P2').value, 'Limpieza Facial');
 
     assert.equal(sheet.getCell('F4').dataValidation.formulae[0], 'Listas!$B$2:$B$13');
@@ -141,8 +143,8 @@ test('las tres planillas usan la nueva jerarquía, con listas fijas en catálogo
 
     assert.match(lists.getCell('W4').formula, /MATCH\(.*!\$F4,\$B\$2:\$B\$13,0\)/);
     assert.match(lists.getCell('X4').formula, /INDEX\(G\$2:G\$13,\$W4\)/);
-    assert.match(lists.getCell('AG4').formula, /MATCH\(.*!\$G4,\$C\$2:\$C\$58,0\)/);
-    assert.match(lists.getCell('AH4').formula, /INDEX\(P\$2:P\$58,\$AG4\)/);
+    assert.match(lists.getCell('AG4').formula, /MATCH\(.*!\$G4,\$C\$2:\$C\$57,0\)/);
+    assert.match(lists.getCell('AH4').formula, /INDEX\(P\$2:P\$57,\$AG4\)/);
   }
 });
 

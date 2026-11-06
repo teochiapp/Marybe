@@ -2,11 +2,11 @@
   "Dermocosmetica": {
     "Facial": [
       "Limpieza Facial",
-      "Tónico",
-      "Crema de Dia",
-      "Crema de Noche",
-      "Serum",
-      "Contorno de Ojos y Labios",
+      "Tónicos",
+      "Cremas de Dia",
+      "Cremas de Noche",
+      "Serums y Oleos",
+      "Contornos de Ojos y Labios",
       "Exfoliantes y Mascarillas"
     ],
     "Corporal": [
@@ -15,57 +15,64 @@
       "Exfoliantes"
     ],
     "Solares": [
-      "Rostro",
-      "Corporal",
-      "Autobronceante",
-      "Post solar"
-    ]
+      "Faciales",
+      "Corporales",
+      "Autobronceantes",
+      "Post solares"
+    ],
+    "Accesorios": []
   },
   "Dermocosmetica Premium": {
-    "Limpieza": [],
-    "Tónico": [],
-    "Crema Dia": [],
-    "Crema Noche": [],
-    "Serum": [],
-    "Contono de Ojos y Labios": [],
+    "Limpieza Facial": [],
+    "Tónicos": [],
+    "Cremas Dia": [],
+    "Cremas Noche": [],
+    "Serums": [],
+    "Contornos de Ojos y Labios": [],
     "Exfoliantes y Mascarillas": [],
     "Solares": []
   },
   "Fragancias": {
     "Masculinas": [],
     "Femeninas": [],
-    "Sets": [],
+    "Cofres": [
+      "Femeninas",
+      "Masculinas"
+    ],
     "Bebes y Niños": [],
     "Body Splash y Colonias": []
   },
   "Fragancias Premium": {
     "Masculinas": [],
     "Femeninas": [],
-    "Sets": [],
+    "Cofres": [
+      "Masculinas",
+      "Femeninas"
+    ],
     "Bebes y Niños": []
   },
   "Maquillaje": {
-    "Rostros": [
+    "Rostro": [
       "Primer",
       "Bases",
       "Correctores",
-      "Contornos",
+      "Contornos y Bronzer",
       "Rubores",
       "Iluminadores",
       "Fijadores"
     ],
     "Ojos": [
-      "Mascaras de pestañas",
+      "Mascaras de Pestañas",
       "Sombras",
       "Delineadores",
       "Cejas"
     ],
     "Labios": [
-      "Labiales liquidos",
+      "Labiales Liquidos",
       "Labiales en Barra",
       "Brillos Labiales",
       "Delineadores",
-      "Protectores labiales"
+      "Balsamos Labiales"
     ],
     "Uñas": [
       "Esmaltes",
@@ -73,39 +80,38 @@
       "Tratamiento"
     ],
     "Accesorios": [
-      "Esponjas",
-      "Brochas y Pinceles",
-      "Limas y Alicates"
+      "Maquillaje",
+      "Uñas"
     ]
   },
   "Maquillaje Premium": {
-    "Rostros": [
+    "Rostro": [
       "Primer",
       "Bases",
       "Correctores",
-      "Contornos",
+      "Contornos y Bronzer",
       "Rubores",
       "Iluminadores",
       "Fijadores"
     ],
     "Ojos": [
-      "Mascaras de pestañas",
+      "Mascaras de Pestañas",
       "Sombras",
       "Delineadores",
       "Cejas"
     ],
     "Labios": [
-      "Labiales liquidos",
+      "Labiales Liquidos",
       "Labiales en Barra",
       "Brillos Labiales",
       "Delineadores",
-      "Protectores labiales"
+      "Balsamos Labiales"
     ]
   },
   "Cuidado Personal": {
     "Higiene Corporal": [
       "Desodorantes Aerosol",
-      "Desodorante Bolilla",
+      "Desodorantes Bolilla",
       "Desodorantes Barra-Crema",
       "Jabones Líquidos",
       "Jabones Sólidos",
@@ -113,9 +119,9 @@
       "Algodones e Hisopos"
     ],
     "Higiene Oral": [
-      "Pasta Dental",
-      "Cepillo de dientes",
-      "Enjuagues Bucales e Hilo Dental"
+      "Pastas Dentales",
+      "Cepillos de dientes",
+      "Enjuagues Bucales e Hilos Dentales"
     ],
     "Afeitado y Depilación": [
       "Cremas Depilatorias",
@@ -127,20 +133,22 @@
       "Toallitas",
       "Protectores diarios",
       "Salud intima",
+      "Protectores Mamarios",
       "Incontinencia"
-    ]
+    ],
+    "Accesorios": []
   },
   "Capilares": {
     "Shampoo": [],
-    "Acondicionador": [],
-    "Tratamiento Capilar": [
+    "Acondicionadores": [],
+    "Tratamientos Capilares": [
       "Mascarillas Capilares",
       "Cremas de Peinar",
       "Ampollas de Nutrición",
       "Serums y Oleos"
     ],
     "Gel y Fijadores": [],
-    "Cepillo y Peines": [],
+    "Cepillos y Peines": [],
     "Accesorios": []
   },
   "Coloracion Capilar": {
@@ -156,35 +164,31 @@
     "Pañales": [],
     "Higiene del Bebe": [
       "Toallas humedas",
-      "Oleo y algodón",
+      "Oleos y algodónes",
       "Talcos y Aceites"
     ],
     "Capilares": [
       "Shampoo",
-      "Acondicionador",
-      "Tratamiento"
+      "Acondicionadores",
+      "Tratamientos"
     ],
     "Jabones": [],
     "Desodorantes": [],
     "Solares": [],
-    "Pasta y Cepillo Dental": [],
-    "Cuidado Maternos": [
-      "Protectores Mamarios",
-      "Cuidado de piel"
-    ]
+    "Pastas y Cepillos Dentales": []
   },
   "Limpieza del Hogar": {
     "Cocina y Baño": [
-      "Detergente",
-      "Lava Vajilla",
+      "Detergentes",
+      "Lava Vajillas",
       "Limpieza de Superficies",
       "Desinfectantes",
-      "Pastillas de baño"
+      "Pastillas de Baño"
     ],
     "Pisos y Muebles": [
       "Lavandina y Desinfectantes",
-      "Lustra Mueble",
-      "Cera y Autobrillo"
+      "Lustra Muebles",
+      "Ceras y Autobrillo"
     ],
     "Insecticidas y Repelentes": [],
     "Alcoholes y Antibacteriales": [],
@@ -195,15 +199,15 @@
     "Calzado": [],
     "Fragancias de Hogar": [],
     "Papeles": [
-      "Papel higienico y Panuelos",
-      "Rollo de cocina y Servilletas"
+      "Papel Higienico y Pañuelos",
+      "Rollo de Cocina y Servilletas"
     ],
     "Accesorios de Limpieza": []
   },
   "Electro belleza": {
-    "Maquinas de Cortar el Pelo": [],
+    "Maquinas de Corte": [],
     "Planchita y Rizadores": [],
-    "Secadores de pelo": [],
+    "Secadores": [],
     "Depilacion": [],
     "Masajeadores": []
   }
