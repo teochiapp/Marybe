@@ -131,6 +131,7 @@ function construirHojaVariantes(wb, productos, refs, options = {}) {
     parentNameColIdx = 3,
     extraRows = 300,
     groupByProduct = false,
+    fallbackExampleIfEmpty = false,
   } = options;
 
   const wsV = wb.addWorksheet('🔗 Variantes', {
@@ -183,6 +184,7 @@ function construirHojaVariantes(wb, productos, refs, options = {}) {
   let productosSinVariante = 0;
   let productGroupIdx = 0;
 
+  const bloquesVariantes = [];
   for (const prod of productos) {
     const padreIdOriginal = prod.id_original || String(prod.id || '');
     const variantesLimpias = prod._variantesEjemplo
@@ -193,7 +195,34 @@ function construirHojaVariantes(wb, productos, refs, options = {}) {
       productosSinVariante++;
       continue;
     }
+    bloquesVariantes.push({ padreIdOriginal, variantesLimpias });
+  }
 
+  if (bloquesVariantes.length === 0 && fallbackExampleIfEmpty) {
+    const primerPadreId = productos[0]
+      ? (productos[0].id_original || String(productos[0].id || 'EJEMPLO-001'))
+      : 'EJEMPLO-001';
+    bloquesVariantes.push({
+      padreIdOriginal: primerPadreId,
+      variantesLimpias: [
+        {
+          id_variante:   'EJEMPLO-VAR-001',
+          id_padre:      primerPadreId,
+          sku_ean:       'EAN-EJEMPLO-001',
+          volumen:       '50 ml (EJEMPLO — BORRAR)',
+          stock:         5,
+          precio:        10000,
+          precio_oferta: 8000,
+          pct_desc:      20,
+          publicado:     'SI',
+          envio:         '1',
+          color_nombre:  '',
+        },
+      ],
+    });
+  }
+
+  for (const { padreIdOriginal, variantesLimpias } of bloquesVariantes) {
     productGroupIdx++;
 
     for (const v of variantesLimpias) {

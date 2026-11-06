@@ -540,6 +540,7 @@ async function generarExcelProveedor(strapi, proveedores) {
     parentNameColIdx: 4,
     extraRows: EXTRA_ROWS,
     groupByProduct: true,
+    fallbackExampleIfEmpty: true,
   });
 
   // Crear la hoja Listas al final (igual que en exportacion-admin)

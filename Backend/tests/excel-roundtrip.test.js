@@ -472,3 +472,20 @@ test('planilla de proveedor rechaza IDs de variante duplicados y respeta el filt
   assert.match(resProv.erroresList[0], /no corresponde al filtro de proveedores seleccionados/);
   assert.equal(state.updates.length, 0);
 });
+
+test('proveedor sin variantes genera 1 fila de variante de ejemplo con BUSCARV de referencia y la ignora al reimportar', async () => {
+  const { state, strapi } = fixture({ variantes: [] });
+  const wb = await supplierWorkbook(strapi);
+  const wsV = wb.getWorksheet('🔗 Variantes');
+
+  assert.equal(wsV.getCell('A4').value, 'EJEMPLO-VAR-001');
+  assert.equal(wsV.getCell('B4').value, 'P2');
+  assert.match(wsV.getCell('C4').formula, /'💲 Precios por Proveedor'!A:D,4,FALSE/);
+  assert.equal(wsV.getCell('A5').value, null);
+
+  // Si se reimporta sin borrar la fila de ejemplo, se omite automáticamente sin ensuciar la BD
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.errores, 0, result.erroresList.join('; '));
+  assert.equal(state.updates.length, 0);
+  assert.equal(state.product.variantes.length, 0);
+});
