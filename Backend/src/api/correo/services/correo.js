@@ -71,9 +71,10 @@ module.exports = ({ strapi }) => ({
    */
   async enviarAlertaNuevoPedidoAdmin(pedido, nombreCliente) {
     const htmlContent = generarAlertaNuevoPedidoAdmin(pedido, nombreCliente);
+    const adminRecipient = process.env.ADMIN_NOTIFICATION_EMAIL || process.env.IMPORT_ADMIN_EMAIL || 'Aldana.marybe@gmail.com';
 
     return this.enviar({
-      to: 'Aldana.marybe@gmail.com',
+      to: adminRecipient,
       subject: `¡Nueva Venta! Pedido #${pedido.numero_pedido} - $${pedido.total}`,
       html: htmlContent
     });

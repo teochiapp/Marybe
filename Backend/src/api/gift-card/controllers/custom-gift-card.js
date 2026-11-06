@@ -1,24 +1,33 @@
 'use strict';
 
 const crypto = require('crypto');
+const { consumeRateLimit, sendTooManyRequests } = require('../../../utils/admin-auth');
 
 function generarCodigo() {
-  // Genera un código tipo: GC-A1B2C3D4
-  return 'GC-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+  // Genera un código con 12 bytes aleatorios (24 caracteres hexadecimales)
+  return 'GC-' + crypto.randomBytes(12).toString('hex').toUpperCase();
 }
 
 module.exports = {
+  generarCodigo,
   async apply(ctx) {
-    try {
-      const { codigo } = ctx.request.body;
+    const limit = consumeRateLimit(ctx, 'gift-card-apply', { max: 5, windowMs: 60 * 1000 });
+    if (limit.limited) {
+      return sendTooManyRequests(ctx, 'Demasiadas consultas de Gift Card. Intentá nuevamente en un minuto.');
+    }
 
-      if (!codigo) {
+    try {
+      const { codigo } = ctx.request.body || {};
+
+      if (!codigo || typeof codigo !== 'string' || !codigo.trim()) {
         return ctx.badRequest('El código es requerido');
       }
 
+      const cleanCode = codigo.trim();
+
       // Buscar la gift card usando el entityService para ignorar permisos públicos de "find"
       const giftCards = await strapi.entityService.findMany('api::gift-card.gift-card', {
-        filters: { codigo },
+        filters: { codigo: cleanCode },
         limit: 1,
       });
 
@@ -28,7 +37,7 @@ module.exports = {
 
       const giftCard = giftCards[0];
 
-      if (!giftCard.activa) {
+      if (!giftCard.activa || Number(giftCard.monto) <= 0) {
         return ctx.badRequest('El código ingresado ya fue utilizado o no está activo');
       }
 
@@ -47,7 +56,8 @@ module.exports = {
       });
 
     } catch (err) {
-      ctx.body = err;
+      strapi?.log?.error?.('[GiftCard] Error al validar gift card:', err);
+      return ctx.internalServerError('Error al procesar la solicitud');
     }
   },
 };

@@ -1,23 +1,9 @@
 'use strict';
 
 const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
 const guestCustomer = require('../utils/guest-customer');
-const { newCheckout } = require('../../mercado-pago/services/checkout-lifecycle');
-
-function verificarAdminImportacion(ctx) {
-  const authHeader = ctx.request.header.authorization || '';
-  const token = authHeader.replace('Bearer ', '').trim();
-  if (!token) return false;
-
-  try {
-    const secret = strapi.config.get('plugin.users-permissions.jwtSecret') || 'custom-secret-key';
-    const payload = jwt.verify(token, secret);
-    return payload.isAdminImport === true;
-  } catch (err) {
-    return false;
-  }
-}
+const { newCheckout, fulfill } = require('../../mercado-pago/services/checkout-lifecycle');
+const { verificarAdmin: verificarAdminImportacion } = require('../../../utils/admin-auth');
 
 module.exports = {
   async createGuestOrder(ctx) {
@@ -62,7 +48,8 @@ module.exports = {
         return ctx.badRequest('El pedido no tiene productos con cantidad válida.');
       }
 
-      if (!total || Number(total) <= 0) {
+      const tieneGiftCardAplicada = Number(descuento_gift_card) > 0 && Boolean(codigo_gift_card);
+      if (total === undefined || total === null || Number(total) < 0 || (Number(total) === 0 && !tieneGiftCardAplicada)) {
         return ctx.badRequest('El total del pedido debe ser mayor a $0.');
       }
 
@@ -71,22 +58,24 @@ module.exports = {
       let finalTotal = total;
       let validatedShipping = 0;
       let validatedProducts = [];
+      let validatedDiscount = Number(descuento_gift_card || 0);
       
       try {
-        const { finalTotal: calculatedTotal, costoEnvioFinal, validatedItems } = 
+        const { finalTotal: calculatedTotal, costoEnvioFinal, validatedItems, descuentoAplicado } = 
           await customPedidoService.validateCartAndCalculateTotal(productos, envio, descuento_gift_card, metodoEnvio, codigo_gift_card);
         
         finalTotal = calculatedTotal;
         validatedShipping = costoEnvioFinal;
         validatedProducts = validatedItems;
+        if (descuentoAplicado !== undefined) {
+          validatedDiscount = descuentoAplicado;
+        }
 
-        if (finalTotal <= 0) {
+        if (finalTotal < 0 || (finalTotal === 0 && !(validatedDiscount > 0 && codigo_gift_card))) {
           return ctx.badRequest('El total del pedido calculado en el servidor debe ser mayor a $0.');
         }
       } catch (err) {
-        console.error("====== ERROR EN VALIDACION DE PRODUCTOS ======");
-        console.error(err);
-        console.error("==============================================");
+        strapi?.log?.warn?.(`[Pedido] Validación rechazada: ${err.message}`);
         return ctx.badRequest(err.message || 'Error validando los productos del pedido');
       }
 
@@ -129,124 +118,64 @@ module.exports = {
         });
       }
 
-      if (descuento_gift_card > 0) {
+      if (validatedDiscount > 0) {
         productosLimpios.push({
           producto: `Descuento por Gift Card${codigo_gift_card ? ' (' + codigo_gift_card + ')' : ''}`,
           marca: '',
           variante: 'Descuento',
           cantidad: 1,
-          precio_unitario: -descuento_gift_card,
-          subtotal: -descuento_gift_card,
+          precio_unitario: -validatedDiscount,
+          subtotal: -validatedDiscount,
           sku: 'DESCUENTO-GC',
           imagen: null
         });
       }
 
       const numero_pedido = `M-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
-      const checkout = ['mercadopago', 'qr'].includes(metodo_pago) ? newCheckout() : null;
+      const requiresExternalPayment = ['mercadopago', 'qr'].includes(metodo_pago) && finalTotal > 0;
+      const checkout = requiresExternalPayment ? newCheckout() : null;
 
-      const pedido = await strapi.entityService.create('api::pedido.pedido', {
-        data: {
-          numero_pedido,
-          productos: productosLimpios,
-          total: finalTotal, // Usamos el total validado
-          metodo_pago: metodo_pago || 'No especificado',
-          estado: checkout ? 'Pendiente de pago' : 'Procesando',
-          ...(checkout ? { pago_mercadopago: checkout.metadata } : {}),
-          ...(checkout ? { estado_pago: 'not_started' } : {}),
-          direccion_envio: orderAddress,
-          cliente_email: customerEmail,
-          es_invitado: Boolean(guest),
-          ...(!guest && user ? { usuario: user.documentId || user.id } : {})
-        }
-      });
+      const baseOrderData = {
+        numero_pedido,
+        productos: productosLimpios,
+        total: finalTotal, // Usamos el total validado
+        metodo_pago: metodo_pago || 'No especificado',
+        estado: checkout ? 'Pendiente de pago' : 'Procesando',
+        ...(checkout ? { pago_mercadopago: checkout.metadata } : {}),
+        ...(checkout ? { estado_pago: 'not_started' } : {}),
+        direccion_envio: orderAddress,
+        cliente_email: customerEmail,
+        es_invitado: Boolean(guest),
+        ...(!guest && user ? { usuario: user.documentId || user.id } : {})
+      };
 
-      // ─── Lógica para métodos de pago distintos a Mercado Pago ───
-      // Si el pago es en efectivo, transferencia, a convenir, etc. descontamos stock y procesamos GC ahora.
-      // Si es mercadopago, lo dejamos para el webhook.
-      if (metodo_pago !== 'mercadopago' && metodo_pago !== 'qr') {
-        
-        // ─── Descontar Stock ───
-        for (const item of productosLimpios) {
-          if (!item.id_producto) continue;
-          
-          const filterCriteria = isNaN(Number(item.id_producto)) 
-            ? { documentId: item.id_producto } 
-            : { id: item.id_producto };
+      let pedido;
 
-          const dbProduct = await strapi.db.query('api::producto.producto').findOne({
-            where: filterCriteria,
-            populate: ['variantes']
+      // ─── Lógica para métodos de pago distintos a Mercado Pago (o cubiertos 100% por Gift Card) ───
+      if (!requiresExternalPayment) {
+        const executeAtomicOrder = async (trx) => {
+          const createdGCs = await fulfill({ numero_pedido, productos: productosLimpios }, trx);
+          const created = await strapi.entityService.create('api::pedido.pedido', {
+            data: {
+              ...baseOrderData,
+              ...(createdGCs.length > 0 ? { gift_cards_generadas: createdGCs } : {})
+            }
           });
+          return created;
+        };
 
-          if (dbProduct) {
-            if (item.id_variante || item.id_variante_original) {
-              const varIndex = dbProduct.variantes.findIndex(v => item.id_variante ? String(v.id) === String(item.id_variante) : String(v.id_original) === String(item.id_variante_original));
-              if (varIndex !== -1) {
-                const newStock = Math.max(0, (dbProduct.variantes[varIndex].stock || 0) - (item.cantidad || 1));
-                await strapi.db.query('producto.variante').update({
-                  where: { id: dbProduct.variantes[varIndex].id },
-                  data: { stock: newStock }
-                });
-              }
-            } else {
-              await strapi.entityService.update('api::producto.producto', dbProduct.id, { data: { stock: Math.max(0, (dbProduct.stock || 0) - (item.cantidad || 1)) } });
-            }
-          }
-        }
-
-        // ─── Consumo de Gift Card Aplicada ───
-        if (codigo_gift_card && Number(descuento_gift_card) > 0) {
-          try {
-            const gcs = await strapi.entityService.findMany('api::gift-card.gift-card', { filters: { codigo: codigo_gift_card }, limit: 1 });
-            if (gcs && gcs.length > 0) {
-              await strapi.entityService.update('api::gift-card.gift-card', gcs[0].id, { data: { activa: false } });
-              strapi.log.info(`[Pedido ${numero_pedido}] Gift card consumida: ${codigo_gift_card}`);
-            }
-          } catch (err) {
-            strapi.log.error(`[Pedido ${numero_pedido}] Error consumiendo gift card:`, err);
-          }
-        }
-
-        // ─── Generación de Nuevas Gift Cards ───
         try {
-          const giftCardItems = validatedProducts.filter(item => item.isGiftCard);
-          if (giftCardItems.length > 0) {
-            const createdGCs = [];
-            for (const item of giftCardItems) {
-              const monto = item.validatedPrice;
-              const cantidad = item.quantity || 1;
-              for (let i = 0; i < cantidad; i++) {
-                let codigo;
-                for (let attempts = 0; attempts < 10; attempts++) {
-                  const candidato = 'GC-' + crypto.randomBytes(4).toString('hex').toUpperCase();
-                  const existente = await strapi.entityService.findMany('api::gift-card.gift-card', { filters: { codigo: candidato }, limit: 1 });
-                  if (!existente || existente.length === 0) {
-                    codigo = candidato;
-                    break;
-                  }
-                }
-                if (codigo) {
-                  const fechaExpiracion = new Date();
-                  fechaExpiracion.setFullYear(fechaExpiracion.getFullYear() + 1);
-                  await strapi.entityService.create('api::gift-card.gift-card', {
-                    data: { codigo, monto, activa: true, fecha_expiracion: fechaExpiracion.toISOString() },
-                  });
-                  createdGCs.push(codigo);
-                }
-              }
-            }
-            strapi.log.info(`[Pedido ${numero_pedido}] ${createdGCs.length} Gift Cards generadas: ${createdGCs.join(', ')}`);
-            
-            // Guardar los códigos en el pedido
-            if (createdGCs.length > 0) {
-              await strapi.entityService.update('api::pedido.pedido', pedido.id, {
-                data: { gift_cards_generadas: createdGCs }
-              });
-            }
+          if (typeof strapi.db?.transaction === 'function') {
+            pedido = await strapi.db.transaction(async ({ trx }) => executeAtomicOrder(trx));
+          } else {
+            pedido = await executeAtomicOrder(null);
           }
         } catch (err) {
-          strapi.log.error(`[Pedido ${numero_pedido}] Error generando gift cards:`, err);
+          strapi?.log?.error?.(`[Pedido ${numero_pedido}] Error transaccional al confirmar pedido:`, err.message);
+          if (/Stock insuficiente|Sin stock|Gift card|no encontrado|inválid/i.test(err.message || '')) {
+            return ctx.badRequest(err.message);
+          }
+          throw err;
         }
 
         // ─── Enviar Correo de Confirmación ───
@@ -261,8 +190,12 @@ module.exports = {
           // Enviar alerta al administrador
           await strapi.service('api::correo.correo').enviarAlertaNuevoPedidoAdmin(pedido, nombreCliente);
         } catch (err) {
-          strapi.log.error(`[Pedido ${numero_pedido}] Error enviando email:`, err);
+          strapi?.log?.error?.(`[Pedido ${numero_pedido}] Error enviando email:`, err);
         }
+      } else {
+        pedido = await strapi.entityService.create('api::pedido.pedido', {
+          data: baseOrderData
+        });
       }
 
       // ─── NOTA: Para Mercado Pago, el consumo y generación de Gift Cards y el descuento de stock 
@@ -271,7 +204,7 @@ module.exports = {
       const { pago_mercadopago, ...publicOrder } = pedido;
       return ctx.send({ data: publicOrder, ...(checkout ? { checkoutToken: checkout.token } : {}) });
     } catch (err) {
-      console.error(err);
+      strapi?.log?.error?.('[Pedido] Error al crear el pedido:', err);
       return ctx.internalServerError('Error al crear el pedido');
     }
   },
@@ -291,7 +224,7 @@ module.exports = {
 
       return ctx.send({ data: pedidos.map(({ pago_mercadopago, ...pedido }) => pedido) });
     } catch (err) {
-      console.error(err);
+      strapi?.log?.error?.('[Pedido] Error al obtener los pedidos:', err);
       return ctx.internalServerError('Error al obtener los pedidos');
     }
   },
@@ -357,6 +290,9 @@ module.exports = {
 
   async adminDelete(ctx) {
     if (!verificarAdminImportacion(ctx)) return ctx.unauthorized('No autenticado o sesión expirada');
+    const { id } = ctx.params || {};
+    const snapshot = await strapi.db?.query?.('api::pedido.pedido')?.findOne?.({ where: { documentId: id } }).catch?.(() => null);
+    strapi?.log?.info?.(`[AUDIT] action=DELETE_PEDIDO documentId=${id} numero_pedido=${snapshot?.numero_pedido || 'N/A'} total=${snapshot?.total ?? 'N/A'} timestamp=${new Date().toISOString()}`);
     return await strapi.controller('api::pedido.pedido').delete(ctx);
   }
 };

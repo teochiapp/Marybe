@@ -13,9 +13,13 @@ export default function AuthRedirect() {
     if (called.current) return;
     called.current = true;
 
-    if (location.search) {
+    const rawParams = location.hash ? `?${location.hash.slice(1)}` : location.search;
+    if (rawParams) {
+      if (typeof window !== 'undefined' && window.history?.replaceState) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
       const apiUrl = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
-      const fullUrl = `${apiUrl}/api/auth/google/callback${location.search}`;
+      const fullUrl = `${apiUrl}/api/auth/google/callback${rawParams}`;
       
       fetch(fullUrl, {
         method: 'GET',

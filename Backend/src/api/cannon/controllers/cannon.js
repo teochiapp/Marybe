@@ -12,10 +12,12 @@
  *   404  → EAN no encontrado en el catálogo
  *   400  → parámetro ean ausente
  */
+const { timingSafeCompare } = require('../../../utils/admin-auth');
+
 module.exports = {
   async product(ctx) {
     // ── 1. Validar X-Api-Key ──────────────────────────────────────────────────
-    const apiKey = ctx.request.headers['x-api-key'] || '';
+    const apiKey = String(ctx.request.headers['x-api-key'] || '');
     const expectedKey = process.env.CANNON_API_KEY || '';
 
     if (!expectedKey) {
@@ -23,7 +25,7 @@ module.exports = {
       return ctx.internalServerError('Integración no configurada en el servidor.');
     }
 
-    if (!apiKey || apiKey !== expectedKey) {
+    if (!apiKey || !timingSafeCompare(apiKey, expectedKey)) {
       strapi.log.warn(`[Cannon] Intento con clave inválida: "${apiKey.slice(0, 8)}..."`);
       return ctx.unauthorized('API key inválida o ausente.');
     }

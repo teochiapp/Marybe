@@ -1,20 +1,6 @@
 'use strict';
 
-const jwt = require('jsonwebtoken');
-
-function verificarAdmin(ctx) {
-  const authHeader = ctx.request.header.authorization || '';
-  const token = authHeader.replace('Bearer ', '').trim();
-  if (!token) return false;
-
-  try {
-    const secret = strapi.config.get('plugin.users-permissions.jwtSecret') || 'custom-secret-key';
-    const payload = jwt.verify(token, secret);
-    return payload.isAdminImport === true;
-  } catch (err) {
-    return false;
-  }
-}
+const { verificarAdmin, handleAdminLogin } = require('../../../utils/admin-auth');
 
 module.exports = {
   /**
@@ -22,21 +8,7 @@ module.exports = {
    * Mismas credenciales que importacion-admin / exportacion-admin.
    */
   async login(ctx) {
-    const { identifier, password } = ctx.request.body;
-    const adminEmail    = process.env.IMPORT_ADMIN_EMAIL || 'admin@marybe.com';
-    const adminPassword = process.env.IMPORT_ADMIN_PASSWORD;
-
-    if (!adminPassword) {
-      return ctx.internalServerError('Error del servidor: IMPORT_ADMIN_PASSWORD no configurado.');
-    }
-
-    if (identifier === adminEmail && password === adminPassword) {
-      const secret = strapi.config.get('plugin.users-permissions.jwtSecret') || 'custom-secret-key';
-      const token  = jwt.sign({ isAdminImport: true, email: adminEmail }, secret, { expiresIn: '1d' });
-      return ctx.send({ jwt: token });
-    }
-
-    return ctx.badRequest('Invalid identifier or password');
+    return handleAdminLogin(ctx);
   },
 
   /**

@@ -143,6 +143,7 @@ async function borrarVista(strapi, productos) {
         throw new Error('El producto cambió desde la vista previa. No se borró.');
       }
       await docs.delete({ documentId: producto.documentId });
+      strapi?.log?.info?.(`[AUDIT] action=DELETE_PRODUCTO_PROVEEDOR documentId=${producto.documentId} id_original=${producto.id_original} proveedor="${producto.proveedor}" timestamp=${new Date().toISOString()}`);
       borrados.push({ documentId: producto.documentId, id_original: producto.id_original, nombre: producto.nombre });
     } catch (err) {
       errores.push({ documentId: producto.documentId, id_original: producto.id_original, nombre: producto.nombre, mensaje: err.message });

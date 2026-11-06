@@ -23,7 +23,7 @@ module.exports = function generarAvisoPedidoEnviado(emailCliente, nombreCliente,
       <div style="background-color: #f0f8ff; padding: 15px; border-radius: 6px; margin-top: 25px; border: 1px solid #cce5ff;">
         <h3 style="color: #004085; margin-top: 0; font-size: 16px;">📦 Seguimiento de tu envío</h3>
         <p style="margin: 0; color: #555; line-height: 1.5; font-size: 14px;">
-          Tu código de seguimiento es: <strong style="font-size: 16px; color: #004085;">${codigo_seguimiento}</strong>
+          Tu código de seguimiento es: <strong style="font-size: 16px; color: #004085;">${escapeHtml(codigo_seguimiento)}</strong>
         </p>
       </div>
     `;

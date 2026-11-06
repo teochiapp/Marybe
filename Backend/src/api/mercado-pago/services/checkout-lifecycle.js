@@ -27,8 +27,19 @@ function authorize(order, token) {
   }
 }
 
+let fulfillmentMutex = Promise.resolve();
+
+function withFulfillmentLock(fn) {
+  const next = fulfillmentMutex.then(fn, fn);
+  fulfillmentMutex = next.catch(() => {});
+  return next;
+}
+
 async function lockRow(trx, uid, id) {
-  const table = strapi.db.metadata.get(uid).tableName;
+  if (!trx || typeof trx !== 'function' || !strapi?.db?.metadata?.get) return;
+  const meta = strapi.db.metadata.get(uid);
+  if (!meta?.tableName) return;
+  const table = meta.tableName;
   const schema = strapi.db.getSchemaName?.();
   const query = schema ? trx(table).withSchema(schema) : trx(table);
   await query.where({ id }).forUpdate().first();
@@ -49,47 +60,53 @@ function validPayment(order, payment) {
 }
 
 async function fulfill(order, trx) {
-  const items = order.productos || [];
-  const stockItems = items.filter(item => item.id_producto && item.sku !== 'ENVIO' && item.sku !== 'DESCUENTO-GC' && !String(item.id_producto).startsWith('gift-card-'));
-  stockItems.sort((a, b) => String(a.id_producto).localeCompare(String(b.id_producto)));
-  for (const item of stockItems) {
-    const where = isNaN(Number(item.id_producto)) ? { documentId: item.id_producto } : { id: item.id_producto };
-    let product = await strapi.db.query('api::producto.producto').findOne({ where, populate: ['variantes'] });
-    if (!product) throw new Error(`Producto no encontrado al acreditar ${order.numero_pedido}.`);
-    await lockRow(trx, 'api::producto.producto', product.id);
-    product = await strapi.db.query('api::producto.producto').findOne({ where, populate: ['variantes'] });
-    const quantity = Number(item.cantidad);
-    if (!Number.isInteger(quantity) || quantity < 1) throw new Error('Cantidad inválida en pedido.');
-    if (item.id_variante || item.id_variante_original) {
-      const variant = product.variantes?.find(v => item.id_variante ? String(v.id) === String(item.id_variante) : String(v.id_original) === String(item.id_variante_original));
-      if (!variant || Number(variant.stock) < quantity) throw new Error(`Stock insuficiente al acreditar ${order.numero_pedido}. Revisar pago recibido.`);
-      await strapi.db.query('producto.variante').update({ where: { id: variant.id }, data: { stock: Number(variant.stock) - quantity } });
-    } else {
-      if (Number(product.stock) < quantity) throw new Error(`Stock insuficiente al acreditar ${order.numero_pedido}. Revisar pago recibido.`);
-      await strapi.entityService.update('api::producto.producto', product.id, { data: { stock: Number(product.stock) - quantity } });
+  return withFulfillmentLock(async () => {
+    const items = order.productos || [];
+    const stockItems = items.filter(item => item.id_producto && item.sku !== 'ENVIO' && item.sku !== 'DESCUENTO-GC' && !String(item.id_producto).startsWith('gift-card-'));
+    stockItems.sort((a, b) => String(a.id_producto).localeCompare(String(b.id_producto)));
+    for (const item of stockItems) {
+      const where = isNaN(Number(item.id_producto)) ? { documentId: item.id_producto } : { id: item.id_producto };
+      let product = await strapi.db.query('api::producto.producto').findOne({ where, populate: ['variantes'] });
+      if (!product) throw new Error(`Producto no encontrado al acreditar ${order.numero_pedido}.`);
+      await lockRow(trx, 'api::producto.producto', product.id);
+      product = await strapi.db.query('api::producto.producto').findOne({ where, populate: ['variantes'] });
+      const quantity = Number(item.cantidad);
+      if (!Number.isInteger(quantity) || quantity < 1) throw new Error('Cantidad inválida en pedido.');
+      if (item.id_variante || item.id_variante_original) {
+        const variant = product.variantes?.find(v => item.id_variante ? String(v.id) === String(item.id_variante) : String(v.id_original) === String(item.id_variante_original));
+        if (!variant || Number(variant.stock) < quantity) throw new Error(`Stock insuficiente al acreditar ${order.numero_pedido}. Revisar pago recibido.`);
+        await strapi.db.query('producto.variante').update({ where: { id: variant.id }, data: { stock: Number(variant.stock) - quantity } });
+      } else {
+        if (Number(product.stock) < quantity) throw new Error(`Stock insuficiente al acreditar ${order.numero_pedido}. Revisar pago recibido.`);
+        await strapi.entityService.update('api::producto.producto', product.id, { data: { stock: Number(product.stock) - quantity } });
+      }
     }
-  }
-  const discount = items.find(item => item.sku === 'DESCUENTO-GC');
-  if (discount) {
-    const code = discount.producto.match(/\(([^)]+)\)/)?.[1];
-    if (!code) throw new Error('Código de gift card ausente.');
-    const cards = await strapi.entityService.findMany('api::gift-card.gift-card', { filters: { codigo: code }, limit: 1 });
-    if (!cards?.[0]) throw new Error('Gift card no encontrada al acreditar pago.');
-    await lockRow(trx, 'api::gift-card.gift-card', cards[0].id);
-    const [card] = await strapi.entityService.findMany('api::gift-card.gift-card', { filters: { codigo: code }, limit: 1 });
-    if (!card.activa || Number(card.monto) < -Number(discount.subtotal)) throw new Error('Gift card ya utilizada o insuficiente. Revisar pago recibido.');
-    await strapi.entityService.update('api::gift-card.gift-card', card.id, { data: { activa: false } });
-  }
-  const codes = [];
-  for (const item of items.filter(i => String(i.id_producto).startsWith('gift-card-'))) {
-    for (let i = 0; i < item.cantidad; i++) {
-      const codigo = 'GC-' + crypto.randomBytes(12).toString('hex').toUpperCase();
-      const expiration = new Date(); expiration.setFullYear(expiration.getFullYear() + 1);
-      await strapi.entityService.create('api::gift-card.gift-card', { data: { codigo, monto: item.precio_unitario, activa: true, fecha_expiracion: expiration.toISOString() } });
-      codes.push(codigo);
+    const discount = items.find(item => item.sku === 'DESCUENTO-GC');
+    if (discount) {
+      const code = discount.producto.match(/\(([^)]+)\)/)?.[1];
+      if (!code) throw new Error('Código de gift card ausente.');
+      const cards = await strapi.entityService.findMany('api::gift-card.gift-card', { filters: { codigo: code }, limit: 1 });
+      if (!cards?.[0]) throw new Error('Gift card no encontrada al acreditar pago.');
+      await lockRow(trx, 'api::gift-card.gift-card', cards[0].id);
+      const [card] = await strapi.entityService.findMany('api::gift-card.gift-card', { filters: { codigo: code }, limit: 1 });
+      const consumed = Math.abs(Number(discount.subtotal));
+      if (!card.activa || Number(card.monto) < consumed) throw new Error('Gift card ya utilizada o insuficiente. Revisar pago recibido.');
+      const remaining = Math.max(0, Math.round((Number(card.monto) - consumed) * 100) / 100);
+      await strapi.entityService.update('api::gift-card.gift-card', card.id, {
+        data: remaining > 0 ? { monto: remaining, activa: true } : { monto: 0, activa: false },
+      });
     }
-  }
-  return codes;
+    const codes = [];
+    for (const item of items.filter(i => String(i.id_producto).startsWith('gift-card-'))) {
+      for (let i = 0; i < item.cantidad; i++) {
+        const codigo = 'GC-' + crypto.randomBytes(12).toString('hex').toUpperCase();
+        const expiration = new Date(); expiration.setFullYear(expiration.getFullYear() + 1);
+        await strapi.entityService.create('api::gift-card.gift-card', { data: { codigo, monto: item.precio_unitario, activa: true, fecha_expiracion: expiration.toISOString() } });
+        codes.push(codigo);
+      }
+    }
+    return codes;
+  });
 }
 
 function publicStatus(order) {

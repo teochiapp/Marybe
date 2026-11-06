@@ -1,21 +1,6 @@
 'use strict';
 
-const jwt = require('jsonwebtoken');
-
-// ─── Helper: verificar JWT de admin ──────────────────────────────────────────
-function verificarAdmin(ctx) {
-  const authHeader = ctx.request.header.authorization || '';
-  const token = authHeader.replace('Bearer ', '').trim();
-  if (!token) return false;
-
-  try {
-    const secret = strapi.config.get('plugin.users-permissions.jwtSecret') || 'custom-secret-key';
-    const payload = jwt.verify(token, secret);
-    return payload.isAdminImport === true;
-  } catch {
-    return false;
-  }
-}
+const { verificarAdmin, handleAdminLogin, validateImageUpload } = require('../../../utils/admin-auth');
 
 // ─── Helper: respuesta de no autorizado ──────────────────────────────────────
 function noAuth(ctx) {
@@ -53,21 +38,7 @@ const PAGE_SIZE    = 150;
 module.exports = {
   // ── POST /api/editor-admin/login ──────────────────────────────────────────
   async login(ctx) {
-    const { identifier, password } = ctx.request.body;
-    const adminEmail    = process.env.IMPORT_ADMIN_EMAIL || 'admin@marybe.com';
-    const adminPassword = process.env.IMPORT_ADMIN_PASSWORD;
-
-    if (!adminPassword) {
-      return ctx.internalServerError('IMPORT_ADMIN_PASSWORD no configurado.');
-    }
-
-    if (identifier === adminEmail && password === adminPassword) {
-      const secret = strapi.config.get('plugin.users-permissions.jwtSecret') || 'custom-secret-key';
-      const token  = jwt.sign({ isAdminImport: true, email: adminEmail }, secret, { expiresIn: '1d' });
-      return ctx.send({ jwt: token });
-    }
-
-    return ctx.badRequest('Invalid identifier or password');
+    return handleAdminLogin(ctx);
   },
 
   // ── GET /api/editor-admin/proveedores ─────────────────────────────────────
@@ -193,8 +164,9 @@ module.exports = {
 
     const file = Array.isArray(files.portada) ? files.portada[0] : files.portada;
 
-    if (file.size > 200 * 1024) {
-      return ctx.badRequest(`La imagen supera el tamaño máximo permitido (200KB). Tamaño recibido: ${Math.round(file.size / 1024)}KB.`);
+    const uploadError = validateImageUpload(file, { maxSizeBytes: 200 * 1024 });
+    if (uploadError) {
+      return ctx.badRequest(uploadError);
     }
 
     try {
@@ -232,8 +204,9 @@ module.exports = {
 
     const file = Array.isArray(files.portada) ? files.portada[0] : files.portada;
 
-    if (file.size > 200 * 1024) {
-      return ctx.badRequest(`La imagen supera el tamaño máximo permitido (200KB). Tamaño recibido: ${Math.round(file.size / 1024)}KB.`);
+    const uploadError = validateImageUpload(file, { maxSizeBytes: 200 * 1024 });
+    if (uploadError) {
+      return ctx.badRequest(uploadError);
     }
 
     try {
@@ -296,6 +269,13 @@ module.exports = {
     }
 
     const archivos = Array.isArray(files.imagenes) ? files.imagenes : [files.imagenes];
+
+    for (const file of archivos) {
+      const uploadError = validateImageUpload(file, { maxSizeBytes: 200 * 1024 });
+      if (uploadError) {
+        return ctx.badRequest(uploadError);
+      }
+    }
 
     try {
       const uploadedFiles = await Promise.all(

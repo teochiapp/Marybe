@@ -7,12 +7,12 @@ module.exports = function generarConfirmacionPedidoCliente(emailCliente, nombreC
   const productosHtml = (productos || []).map(item => `
     <tr>
       <td style="padding: 12px 10px; border-bottom: 1px solid #eee; text-align: left;">
-        <strong>${item.producto}</strong>
-        ${item.variante !== 'Única' && item.variante !== 'Envío' && item.variante !== 'Descuento' ? `<br/><small style="color: #888;">Variante: ${item.variante}</small>` : ''}
+        <strong>${escapeHtml(item.producto)}</strong>
+        ${item.variante !== 'Única' && item.variante !== 'Envío' && item.variante !== 'Descuento' ? `<br/><small style="color: #888;">Variante: ${escapeHtml(item.variante)}</small>` : ''}
       </td>
-      <td style="padding: 12px 10px; border-bottom: 1px solid #eee; text-align: center;">${item.cantidad}</td>
-      <td style="padding: 12px 10px; border-bottom: 1px solid #eee; text-align: right;">$${item.precio_unitario}</td>
-      <td style="padding: 12px 10px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">$${item.subtotal}</td>
+      <td style="padding: 12px 10px; border-bottom: 1px solid #eee; text-align: center;">${escapeHtml(item.cantidad)}</td>
+      <td style="padding: 12px 10px; border-bottom: 1px solid #eee; text-align: right;">$${escapeHtml(item.precio_unitario)}</td>
+      <td style="padding: 12px 10px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">$${escapeHtml(item.subtotal)}</td>
     </tr>
   `).join('');
 

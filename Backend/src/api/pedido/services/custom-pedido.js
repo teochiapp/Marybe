@@ -17,7 +17,7 @@ module.exports = ({ strapi }) => ({
       // Check if it's a gift card purchase
       if (/^gift-card-\d+$/.test(String(item.product?.id))) {
         unitPrice = Number(String(item.product.id).slice('gift-card-'.length));
-        if (!Number.isFinite(unitPrice) || unitPrice <= 0 || unitPrice > 10000000) throw new Error('Monto de gift card inválido.');
+        if (!Number.isInteger(unitPrice) || unitPrice < 1000 || unitPrice > 10000000) throw new Error('Monto de gift card inválido.');
         validatedItems.push({
           ...item,
           isGiftCard: true,
@@ -122,31 +122,41 @@ module.exports = ({ strapi }) => ({
     }
 
     finalTotal += costoEnvioFinal;
-    
-    // Descuento Gift Card (solo validamos que no supere el total)
-    // El frontend ya restó esto, nosotros lo restamos del total calculado
+    const totalAntesDeGc = finalTotal;
+
+    if (totalAntesDeGc <= 0) {
+      throw new Error('No se puede procesar un pedido con total $0. Verificá que los productos tengan precio configurado.');
+    }
+
+    // Descuento Gift Card (permite cubrir parcial o 100% del pedido conservando saldo remanente)
     const descuentoGcNum = Number(descuentoGiftCardFront || 0);
     if (!Number.isFinite(descuentoGcNum) || descuentoGcNum < 0) throw new Error('Descuento de gift card inválido.');
+    let descuentoAplicado = 0;
     if (descuentoGcNum > 0) {
       if (!codigoGiftCard) throw new Error('Falta el código de la gift card.');
       const cards = await strapi.entityService.findMany('api::gift-card.gift-card', { filters: { codigo: codigoGiftCard }, limit: 1 });
       const card = cards?.[0];
       if (!card?.activa || (card.fecha_expiracion && Date.parse(card.fecha_expiracion) <= Date.now()) || !Number.isFinite(Number(card.monto)) || Number(card.monto) <= 0) throw new Error('La gift card no está disponible.');
-      if (descuentoGcNum !== Number(card.monto)) throw new Error('El descuento no coincide con la gift card.');
-      finalTotal = Math.max(0, finalTotal - Number(card.monto));
+      const cardMonto = Number(card.monto);
+      const maxAplicable = Math.min(totalAntesDeGc, cardMonto);
+      if (descuentoGcNum !== cardMonto && descuentoGcNum !== maxAplicable) {
+        throw new Error('El descuento no coincide con la gift card.');
+      }
+      descuentoAplicado = maxAplicable;
+      finalTotal = Math.max(0, totalAntesDeGc - descuentoAplicado);
     }
 
-    // ─── Validación crítica: no permitir pedidos a $0 ───
-    // Solo se permite $0 si TODOS los items son gift cards (que ya tienen precio propio)
+    // ─── Validación crítica: no permitir pedidos a $0 salvo que estén cubiertos por Gift Card ───
     const soloGiftCards = validatedItems.length > 0 && validatedItems.every(i => i.isGiftCard);
-    if (finalTotal <= 0 && !soloGiftCards) {
+    if (finalTotal <= 0 && !soloGiftCards && descuentoAplicado <= 0) {
       throw new Error('No se puede procesar un pedido con total $0. Verificá que los productos tengan precio configurado.');
     }
 
     return {
       finalTotal,
       costoEnvioFinal,
-      validatedItems
+      validatedItems,
+      descuentoAplicado
     };
   }
 });

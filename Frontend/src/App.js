@@ -75,7 +75,11 @@ const RecuperarContrasena = lazyWithRetry(() => import('./pages/auth/RecuperarCo
 function RootRoute() {
   const location = useLocation();
   const query = location.search;
-  return <Navigate to={`/inicio${query}`} replace />;
+  const hash = location.hash;
+  if (hash.includes('access_token=') || query.includes('access_token=')) {
+    return <Navigate to={`/auth/google/callback${query}${hash}`} replace />;
+  }
+  return <Navigate to={`/inicio${query}${hash}`} replace />;
 }
 
 function App() {

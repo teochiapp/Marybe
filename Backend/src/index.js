@@ -160,11 +160,11 @@ module.exports = {
           let rawCode = ctx.request.query?.code;
 
           if (accessToken) {
-            const separator = location.includes('?') ? '&' : '?';
-            ctx.response.set('Location', `${location}${separator}access_token=${accessToken}${idToken ? `&id_token=${idToken}` : ''}`);
+            const separator = location.includes('#') ? '&' : '#';
+            ctx.response.set('Location', `${location}${separator}access_token=${encodeURIComponent(accessToken)}${idToken ? `&id_token=${encodeURIComponent(idToken)}` : ''}`);
           } else if (rawCode) {
-            const separator = location.includes('?') ? '&' : '?';
-            ctx.response.set('Location', `${location}${separator}access_token=${rawCode}`);
+            const separator = location.includes('#') ? '&' : '#';
+            ctx.response.set('Location', `${location}${separator}access_token=${encodeURIComponent(rawCode)}`);
           }
         }
       }

@@ -1,4 +1,6 @@
+const { escapeHtml } = require('./delivery-details');
 module.exports = function generarBienvenidaCliente(nombreCliente) {
+  nombreCliente = escapeHtml(nombreCliente);
   return `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden; background-color: #ffffff;">
       
