@@ -1,8 +1,9 @@
-import React, { useRef, useCallback, useState, useEffect } from 'react';
-import styled from 'styled-components';
+import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react';
+import styled, { css } from 'styled-components';
 import { motion } from 'framer-motion';
 import { staggerContainerVariants, staggerItemFadeVariants } from '../../animations/ScrollAnimations';
 import { useNavigate } from 'react-router-dom';
+import { categoriesAreaKey, orderCategories } from '../../../utils/categoriasInicio';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
@@ -183,6 +184,66 @@ const CategoryCard = styled(motion.div)`
   &:hover img {
     transform: scale(1.05);
   }
+
+  /* Variantes de forma elegidas en el Editor de Inicio. Sin configuración se mantiene el diseño original. */
+  ${({ $forma }) => $forma === 'rectangular' && css`
+    border-radius: 0;
+  `}
+
+  /* && sube la especificidad para ganarle a los anchos por breakpoint del diseño original. */
+  ${({ $forma }) => $forma === 'cuadrado' && css`
+    && {
+      border-radius: var(--radius-md);
+      width: 250px;
+      height: 250px;
+
+      @media (max-width: 1024px) {
+        width: 220px;
+        height: 220px;
+      }
+
+      @media (max-width: 768px) {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 1;
+      }
+    }
+  `}
+
+  ${({ $forma }) => $forma === 'circular' && css`
+    && {
+      width: 230px;
+      height: auto;
+      overflow: visible;
+      background-color: transparent;
+      border-radius: 0;
+      box-shadow: none;
+
+      @media (max-width: 1024px) {
+        width: 200px;
+      }
+
+      @media (max-width: 768px) {
+        width: 100%;
+        max-width: 240px;
+        justify-self: center;
+      }
+    }
+
+    &&:hover {
+      box-shadow: none;
+    }
+
+    && img, && [data-placeholder] {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+  `}
 `;
 
 
@@ -221,6 +282,18 @@ const CategoryLabel = styled.div`
     left: 10px;
     right: 10px;
   }
+
+  ${({ $boton }) => $boton === 'redondeado' && css`border-radius: var(--radius-md);`}
+  ${({ $boton }) => $boton === 'cuadrado' && css`border-radius: 0;`}
+  ${({ $estilo }) => $estilo === 'claro' && css`
+    background-color: rgba(255, 255, 255, 0.95);
+    color: var(--color-bordo-secundario);
+    box-shadow: inset 0 0 0 1px rgba(124, 4, 5, 0.2), 0 4px 6px rgba(0, 0, 0, 0.05);
+  `}
+  ${({ $forma }) => $forma === 'circular' && css`
+    position: static;
+    margin-top: 12px;
+  `}
 `;
 
 const LabelText = styled.span`
@@ -237,7 +310,7 @@ const ArrowRightIcon = () => (
 );
 
 const ImagePlaceholder = () => (
-  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eaeaea' }}>
+  <div data-placeholder="" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eaeaea' }}>
     <svg viewBox="0 0 24 24" fill="#ccc" style={{ width: '50px', height: '50px' }}>
       <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
     </svg>
@@ -273,8 +346,12 @@ const ChevronIcon = () => (
   </svg>
 );
 
-export default function CategoriesSection({ seccion = 'perfumeria', compact = false }) {
-  const [categorias, setCategorias] = useState([]);
+export default function CategoriesSection({ seccion = 'perfumeria', compact = false, previewData }) {
+  const [categoriasApi, setCategorias] = useState([]);
+  const [disenoApi, setDiseno] = useState(null);
+  // previewData (Editor de Inicio) reemplaza categorías y diseño publicados sin consultar la API.
+  const diseno = previewData ? previewData.diseno || {} : disenoApi || {};
+  const categorias = useMemo(() => (previewData ? previewData.categorias || [] : orderCategories(categoriasApi, disenoApi?.orden)), [previewData, categoriasApi, disenoApi]);
   const [showAllMobile, setShowAllMobile] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const scrollRef = useRef(null);
@@ -290,15 +367,26 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
   }, []);
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/categorias?filters[seccion][$eq]=${seccionName}&populate=*`)
+    if (previewData) return;
+    let active = true;
+    const categoriasRequest = fetch(`${process.env.REACT_APP_STRAPI_URL}/api/categorias?filters[seccion][$eq]=${seccionName}&populate=*&pagination[pageSize]=100`)
+      .then(res => res.json());
+    // El diseño de la sección (orden, forma y botones) solo aplica en Inicio, no en la versión compacta.
+    const disenoRequest = compact ? Promise.resolve(null) : fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?fields[0]=diseno_categorias`)
       .then(res => res.json())
-      .then(data => {
+      .then(data => (data?.data?.attributes || data?.data)?.diseno_categorias?.[categoriesAreaKey(seccion)] || null)
+      .catch(() => null);
+    Promise.all([categoriasRequest, disenoRequest])
+      .then(([data, config]) => {
+        if (!active) return;
+        setDiseno(config);
         if (data && data.data) {
           setCategorias(data.data);
         }
       })
       .catch(err => console.error('Error fetching categorias:', err));
-  }, [seccionName]);
+    return () => { active = false; };
+  }, [seccionName, seccion, compact, previewData]);
 
   const isDown = useRef(false);
   const startX = useRef(0);
@@ -419,7 +507,9 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
             return (
               <CategoryCard
                 key={id}
+                data-editor-part={`categoria-${item.documentId}`}
                 $compact={compact}
+                $forma={diseno.forma}
                 onClick={() => handleCategoryClick(nombre)}
                 variants={staggerItemFadeVariants}
               >
@@ -428,7 +518,7 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
                 ) : (
                   <ImagePlaceholder />
                 )}
-                <CategoryLabel>
+                <CategoryLabel data-editor-part="botones" $boton={diseno.boton} $estilo={diseno.estiloBoton} $forma={diseno.forma}>
                   <LabelText>{nombre}</LabelText>
                   <ArrowRightIcon />
                 </CategoryLabel>
@@ -443,6 +533,7 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
 
       {isMobile && categorias.length > 0 && (
         <ViewMoreContainer
+          data-preview-interactive=""
           $isOpen={showAllMobile}
           onClick={() => setShowAllMobile(!showAllMobile)}
         >

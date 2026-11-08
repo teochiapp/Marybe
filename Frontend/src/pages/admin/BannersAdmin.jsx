@@ -15,7 +15,7 @@ function normalized(document) {
 function NumberControl({ label, value, min = 0, max = 100, step = 1, onChange, suffix = 'px' }) {
   return <label className="ba-control"><span>{label} <small>{suffix}</small></span><div className="ba-range"><input aria-label={`${label} deslizador`} type="range" min={min} max={max} step={step} value={value ?? min} onChange={e => onChange(Number(e.target.value))} /><input aria-label={label} type="number" min={min} max={max} step={step} value={value ?? min} onChange={e => { if (e.target.value !== '') onChange(Math.max(min, Math.min(max, Number(e.target.value)))); }} /></div></label>;
 }
-export default function BannersAdmin() {
+export default function BannersAdmin({ onBack, onLogout } = {}) {
   const [token, setToken] = useState(() => localStorage.getItem('admin_jwt') || '');
   const [credentials, setCredentials] = useState({ identifier: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -326,10 +326,11 @@ export default function BannersAdmin() {
   return <main className="ba-app" inert={showPreview}>
     {showPreview && draft && <BannerPreviewDialog rows={rows} title={draft.titulo} initialDevice={device} onClose={closePreview} />}
     <header className="ba-topbar">
+      {onBack && <button type="button" className="ba-back" disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Volver al Editor de Inicio con cambios sin guardar?')) onBack(); }}>← Editor de Inicio</button>}
       <div className="ba-brand"><img src="/logo-marybe.png" alt="Marybe" width="629" height="168" /><span>Editor de banners</span></div>
       <span className={`ba-status ${hasUnsaved ? 'ba-status--dirty' : ''}`}>{!draft?.documentId && draft ? '○ Sección nueva' : dirty ? '● Cambios sin guardar' : hasUnsaved ? '● Otros cambios pendientes' : '● Todo guardado'}</span>
       <div className="ba-top-actions">
-        <details className="ba-top-more"><summary>Más opciones</summary><div><button onClick={recover} disabled={!draft || busy}>Recuperar copia</button><button disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Salir con cambios sin guardar?')) { localStorage.removeItem('admin_jwt'); setToken(''); } }}>Salir</button></div></details>
+        <details className="ba-top-more"><summary>Más opciones</summary><div><button onClick={recover} disabled={!draft || busy}>Recuperar copia</button><button disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Salir con cambios sin guardar?')) { localStorage.removeItem('admin_jwt'); setToken(''); onLogout?.(); } }}>Salir</button></div></details>
         <button className="ba-preview-open" disabled={!draft || loading} onClick={() => setShowPreview(true)}>Vista previa</button>
         <button disabled={!draft || busy} onClick={() => save(false)}>Guardar borrador</button>
         <button className="ba-primary" disabled={!draft || busy} onClick={() => save(true)}>{busy ? 'Guardando…' : 'Publicar cambios'}</button>

@@ -64,6 +64,8 @@ const PedidosAdmin = lazyWithRetry(() => import('./pages/admin/PedidosAdmin'), '
 const EditorAdmin  = lazyWithRetry(() => import('./pages/admin/editor-admin/EditorAdmin'), 'EditorAdmin');
 const BannersAdmin = lazyWithRetry(() => import('./pages/admin/BannersAdmin'), 'BannersAdmin');
 const BannersPreview = lazyWithRetry(() => import('./pages/admin/BannersPreview'), 'BannersPreview');
+const EditorInicioAdmin = lazyWithRetry(() => import('./pages/admin/editor-inicio/EditorInicioAdmin'), 'EditorInicioAdmin');
+const EditorInicioPreview = lazyWithRetry(() => import('./pages/admin/editor-inicio/EditorInicioPreview'), 'EditorInicioPreview');
 
 // Página de Gift Card
 const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'), 'GiftCardPage');
@@ -84,7 +86,7 @@ function RootRoute() {
 
 function App() {
   const location = useLocation();
-  const bannerStudio = ['/banners-admin', '/banners-preview'].includes(location.pathname);
+  const bannerStudio = ['/banners-admin', '/banners-preview', '/editor-inicio-preview'].includes(location.pathname) || /^\/editor-inicio-admin(\/|$)/.test(location.pathname);
   return (
     <AuthProvider>
       <LazyMotion features={domAnimation}>
@@ -139,6 +141,8 @@ function App() {
             <Route path="/editor-admin" element={<EditorAdmin />} />
             <Route path="/banners-admin" element={<BannersAdmin />} />
             <Route path="/banners-preview" element={<BannersPreview />} />
+            <Route path="/editor-inicio-admin/*" element={<EditorInicioAdmin />} />
+            <Route path="/editor-inicio-preview" element={<EditorInicioPreview />} />
 
             {/* Ruta de Gift Card */}
             <Route path="/gift-card" element={<GiftCardPage />} />

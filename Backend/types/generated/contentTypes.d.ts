@@ -1044,6 +1044,7 @@ export interface ApiSeccionPrincipalSeccionPrincipal
   };
   attributes: {
     banners_visuales: Schema.Attribute.JSON & Schema.Attribute.Private;
+    borradores_editor_inicio: Schema.Attribute.JSON & Schema.Attribute.Private;
     categoria_especifica_hogar: Schema.Attribute.Component<
       'inicio.categoria_especifica',
       false
@@ -1072,6 +1073,8 @@ export interface ApiSeccionPrincipalSeccionPrincipal
     >;
     destacada_hogar: Schema.Attribute.Component<'inicio.destacada', false>;
     destacada_perfumeria: Schema.Attribute.Component<'inicio.destacada', false>;
+    diseno_categorias: Schema.Attribute.JSON;
+    diseno_secciones: Schema.Attribute.JSON;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',

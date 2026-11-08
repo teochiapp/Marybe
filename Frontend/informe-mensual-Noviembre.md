@@ -319,3 +319,77 @@ Cambios realizados:
   - **Lógica de Negocio y Gift Cards (`LOG-01`..`LOG-03`):** Se habilitó el checkout de pedidos cubiertos al 100% por Gift Card ($0 a pagar) en [custom-pedido.js (servicio)](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/pedido/services/custom-pedido.js) y [custom-pedido.js (controlador)](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/pedido/controllers/custom-pedido.js), se implementó la conservación del saldo remanente en consumos parciales de Gift Cards en [checkout-lifecycle.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/mercado-pago/services/checkout-lifecycle.js), y se restringió la emisión de Gift Cards a montos enteros ≥ $1.000.
   - **Concurrencia, Integridad y Gestión (`COM-01`, `COM-02`, `MGT-01`, `MGT-02`, `INT-01`, `INT-02`):** Se unificó la confirmación de pedidos offline bajo transacción atómica y bloqueo de concurrencia (`fulfill` + `strapi.db.transaction`) impidiendo sobreventa de stock, se añadieron registros de auditoría (`[AUDIT]`) en borrados administrativos, se configuró `ADMIN_NOTIFICATION_EMAIL` en [correo.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/correo/services/correo.js), se sanitizaron con `escapeHtml` las variables en plantillas de correo y se eliminó la dependencia obsoleta `xlsx` de [package.json](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/package.json).
 - Validación: Se agregó la suite [security-audit-remediation.test.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/tests/security-audit-remediation.test.js) (90/90 pruebas de backend aprobadas).
+
+Editor de Inicio — Fase 1: selector de secciones ✅
+
+Cambios realizados:
+- Nueva ruta `/editor-inicio-admin` con el panel «¿Qué querés modificar hoy?»: diez tarjetas (Banners, Sección Destacada, Categorías, Categoría Destacada (1), Ofertas, Descuentos, Categoría Destacada (2), Beneficios, Gift Card y Próximos Eventos) en el orden real de Inicio (Perfumería), con ícono, descripción, estado e indicador de navegación. Grilla de 1 a 5 columnas según el ancho.
+- Acceso con el mismo login y token administrativo de `/banners-admin` (`/api/importacion-admin/login`, `admin_jwt`); se descartan tokens vencidos y se cierra la vista ante sesión expirada. Sin backend, modelos ni endpoints nuevos.
+- Banners abre el editor existente en `/editor-inicio-admin/banners`, con botón «← Editor de Inicio» (pide confirmación si hay cambios sin guardar). `/banners-admin` sigue funcionando igual.
+- Las demás secciones tienen ruta propia (`/editor-inicio-admin/<id>`) con la vista «Editor próximamente disponible» y regreso al selector; rutas inexistentes vuelven al selector. Configuración central en `editorInicioSections.js` y registro de editores en `sectionEditors.js`. Documentación en `docs/editor-inicio-admin.md`.
+- Validación: 200 pruebas de frontend aprobadas (13 nuevas), lint sin errores en los archivos tocados, `npm run build` correcto y QA en navegador con CMS simulado (`scripts/qa-editor-inicio.cjs`) en escritorio, tablet y celular.
+
+Editor de Inicio — Sección Destacada (editor visual) ✅
+
+Cambios realizados:
+- Nuevo editor en `/editor-inicio-admin/seccion-destacada` con la misma organización que Banners: Perfumería/Hogar, partes de la sección, lienzo con la sección real («Lo nuevo en Marybe») en computadora, tablet y celular, inspector, deshacer/rehacer, vista previa limpia y aviso por cambios sin guardar. Un clic en el lienzo abre la parte correspondiente.
+- Se editan título (dos partes y sus colores), subtítulo, imagen de computadora y de celular (biblioteca o subida), productos destacados (búsqueda por nombre, marca o SKU, hasta 40) y los dos banners inferiores de Perfumería.
+- Guardar borrador no cambia la tienda (campo privado `borradores_editor_inicio` en la Página de Inicio). Publicar escribe en `secciones`, `categorias_destacadas` y `destacado` de los productos, sin publicar otros cambios pendientes de cada producto. Control de versión con aviso 409.
+- Backend: API `destacada-admin` (resumen, búsqueda, guardar/publicar, descartar borrador) con el JWT administrativo. Landing: `FeaturedSection` y `FeaturedSectionHogar` aceptan `previewData` opcional; sin ella funcionan igual.
+- Validación: 209 pruebas de frontend y 101 de backend aprobadas, build correcto, integración con Strapi real (SQLite de QA) y recorrido completo en navegador: borrador, recarga, vista previa, conflicto, publicación reflejada en `/inicio`, Hogar y celular.
+
+Editor de Inicio — Tamaño de imágenes de la Sección Destacada ✅
+
+Cambios realizados:
+- La imagen principal y las imágenes de los dos banners inferiores se pueden achicar y agrandar (30 % a 200 %) con deslizador, botones Achicar/Agrandar y Original, por separado para computadora/tablet y celular. Al ajustar un tamaño, el lienzo muestra ese dispositivo.
+- Strapi: campos `escala_imagen_desktop` y `escala_imagen_mobile` en `shared.seccion-principal-item` y `shared.banner-destacado`; se publican desde el editor y también pueden editarse desde el panel de Strapi.
+- Landing (Perfumería y Hogar): aplica el tamaño solo cuando hay un ajuste; sin valores se ve exactamente igual que antes.
+- Validación: 211 pruebas de frontend y 101 de backend aprobadas, build correcto y recorrido con Strapi real: ajuste en el lienzo por dispositivo, publicación de los valores y tamaño aplicado en /inicio.
+
+Editor de Inicio — Productos destacados alineados con el Excel ✅
+
+Cambios realizados:
+- El panel de productos de la Sección Destacada aclara que usa el mismo dato que la columna Destacado del Excel: lo marcado con TRUE en la planilla aparece en el editor y lo publicado desde el editor sale en la próxima exportación.
+- El máximo pasó de 40 a 25 productos por área, porque la landing consulta los destacados sin paginar y Strapi devuelve 25 como máximo. Si la planilla dejó más, el editor avisa cuántos quitar y no permite publicar hasta resolverlo.
+- Validación: 211 pruebas de frontend y 101 de backend aprobadas, build correcto.
+
+Sección Destacada de Hogar: vista completa en el editor y en la tienda ✅
+
+Cambios realizados:
+- La vista previa del editor simula el alto de una pantalla real (computadora 800 px, tablet 1180 px, celular 844 px). Antes las medidas en vh de la sección se calculaban sobre el alto del lienzo y la imagen de Hogar quedaba desplazada o fuera de escala.
+- Hogar sin productos destacados ya no queda cortada: el carrusel reserva el alto de una fila de tarjetas en pantallas de más de 768 px (474 px, el mismo alto que ocupa con productos), y la imagen se ve completa. Con productos, la sección mide lo mismo que antes.
+- Validación: 211 pruebas de frontend aprobadas, build correcto, comparación de capturas tienda/editor en computadora y celular (Hogar sin productos) y recorrido completo del editor con Strapi real.
+
+Editor de Inicio — Sección Categorías ✅
+
+Cambios realizados:
+- Nuevo editor en `/editor-inicio-admin/categorias`, con el mismo diseño y flujo que la Sección Destacada: Perfumería/Hogar, lienzo con la sección real, inspector, deshacer/rehacer, borrador, publicación, vista previa y aviso al salir.
+- Imagen de portada por categoría (biblioteca o subida). Se aplica en Strapi recién al publicar, solo en las categorías modificadas y sin publicar otros cambios pendientes de la categoría.
+- Orden por arrastre horizontal (mouse y táctil) con hueco de destino, más flechas y lista ↑/↓ como alternativa accesible. El orden es solo de esta sección (`diseno_categorias`), por `documentId`.
+- Diseño general: tarjetas con bordes redondeados (original), rectangulares, cuadradas o circulares; botones píldora (original), redondeados o cuadrados, en bordó o claro. Muestras visuales de cada opción.
+- Refactor: la Sección Destacada y Categorías comparten `useSectionDraft` y `SectionEditorShell`.
+- Landing: `CategoriesSection` aplica orden y diseño solo si están configurados, conserva enlaces y responsive, y pide hasta 100 categorías.
+- Validación: 221 pruebas de frontend y 107 de backend aprobadas, build correcto, integración con Strapi real (portada en borrador y publicado, cambios pendientes sin publicar, subcategorías intactas) y recorridos en navegador de Categorías, Sección Destacada y Editor de Inicio.
+
+Editor de Inicio — Categoría Destacada (1) ✅
+
+Cambios realizados:
+- Nuevo editor en `/editor-inicio-admin/categoria-destacada-1`, con el mismo diseño y flujo que los demás módulos (Perfumería/Hogar, lienzo con la sección real, inspector, deshacer/rehacer, borrador, publicación, vista previa y aviso al salir). Solo afecta a Categoría Destacada (1).
+- Se elige la categoría de Strapi (con cantidad de productos y avisos si está vacía o ya no existe) y el título de la sección.
+- Productos: modo automático (comportamiento original) o selección propia de hasta 25 productos publicados de la categoría, con buscador paginado y orden por arrastre horizontal o flechas.
+- Strapi: campo nuevo `productos_orden` (JSON) en el componente `inicio.destacada`; API `categoria-destacada-admin` con el JWT administrativo. No se tocan productos ni categorías.
+- Landing: `FeaturedCategorySection` acepta `previewData` y, si hay productos elegidos, los muestra en ese orden; sin selección se ve igual que antes.
+- Refactor: `OrderStrip`, `PartButton` y `ProductPickerItem` pasaron a ser componentes compartidos por los editores.
+- Validación: 229 pruebas de frontend y 111 de backend aprobadas, build correcto, y recorridos en navegador con Strapi real de Categoría Destacada (1), Categorías, Sección Destacada y Editor de Inicio.
+
+Editor de Inicio — Sección Ofertas ✅
+
+Cambios realizados:
+- Análisis: la sección no muestra productos ni precios; son 9 insignias estáticas que filtran la tienda por descuento. Título, tipografía, color, fondo y espaciado estaban fijos en el código.
+- Nuevo editor en `/editor-inicio-admin/ofertas` (Perfumería/Hogar, lienzo real, deshacer/rehacer, borrador, publicación, vista previa responsive y aviso al salir).
+- Contenido: título editable, con «Disfrutá de las mejores ofertas» como valor predeterminado.
+- Tipografía: Inter o Brygada 1918, cuatro tamaños predefinidos con versión para celular, peso normal/semibold/bold y alineación izquierda/centro/derecha.
+- Diseño (elegido por el análisis): color del título dentro de la paleta, fondo blanco/arena/rosado y espaciado compacto/original/amplio.
+- Sin cambios en insignias, porcentajes ni enlaces a la tienda.
+- Strapi: campo JSON `diseno_secciones` en la Página de Inicio y API genérica `secciones-inicio-admin`, reutilizable por otras secciones sin modelo propio.
+- Validación: 239 pruebas de frontend y 117 de backend aprobadas, build correcto, y recorridos en navegador con Strapi real de Ofertas (borrador, recarga, descarte, publicación, landing en computadora/tablet/celular y enlaces de las insignias) y de los demás módulos.

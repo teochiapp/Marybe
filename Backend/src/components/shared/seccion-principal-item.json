@@ -53,6 +53,18 @@
       "allowedTypes": [
         "images"
       ]
+    },
+    "escala_imagen_desktop": {
+      "type": "integer",
+      "min": 30,
+      "max": 200,
+      "description": "Tamaño de la imagen en computadora y tablet, en porcentaje (100 = original). Vacío conserva el tamaño original."
+    },
+    "escala_imagen_mobile": {
+      "type": "integer",
+      "min": 30,
+      "max": 200,
+      "description": "Tamaño de la imagen en celular, en porcentaje (100 = original). Vacío conserva el tamaño original."
     }
   }
 }

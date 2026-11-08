@@ -1,0 +1,3428 @@
+From 50e6ef56f623fce50811c32e8af824836cb087ea Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 7 Nov 2026 21:18:04 +0000
+Subject: [PATCH 1/2] Editor de Inicio fase 1: selector de secciones
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Nueva ruta /editor-inicio-admin con el panel "¿Qué querés modificar hoy?"
+  y las diez secciones de Inicio en su orden real.
+- Reutiliza el login y el token administrativo de /banners-admin.
+- Banners abre el editor existente; las demás secciones muestran
+  "Editor próximamente disponible" con regreso al selector.
+- /banners-admin se mantiene sin cambios de comportamiento.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01DYCRcLQwfELKi4kAvBeRJk
+---
+ Frontend/.gitignore                           |   1 +
+ Frontend/docs/editor-inicio-admin.md          |  49 +++++
+ Frontend/informe-mensual-Noviembre.md         |   9 +
+ Frontend/scripts/qa-editor-inicio.cjs         | 179 ++++++++++++++++++
+ Frontend/src/App.js                           |   4 +-
+ Frontend/src/hooks/useAdminSession.js         |  44 +++++
+ Frontend/src/pages/admin/BannersAdmin.jsx     |   5 +-
+ .../pages/admin/BannersAdminEmbedded.test.jsx |  54 ++++++
+ .../admin/editor-inicio/EditorInicioAdmin.jsx |  40 ++++
+ .../editor-inicio/EditorInicioAdmin.test.jsx  | 134 +++++++++++++
+ .../components/AdminLoginCard.jsx             |  63 ++++++
+ .../components/BannersSectionEditor.jsx       |   7 +
+ .../components/EditorInicioLayout.jsx         | 154 +++++++++++++++
+ .../editor-inicio/components/SectionCard.jsx  | 154 +++++++++++++++
+ .../components/SectionPlaceholder.jsx         | 101 ++++++++++
+ .../components/SectionSelector.jsx            |  87 +++++++++
+ .../editor-inicio/editorInicioSections.js     |  93 +++++++++
+ .../admin/editor-inicio/sectionEditors.js     |  11 ++
+ 18 files changed, 1186 insertions(+), 3 deletions(-)
+ create mode 100644 Frontend/docs/editor-inicio-admin.md
+ create mode 100644 Frontend/scripts/qa-editor-inicio.cjs
+ create mode 100644 Frontend/src/hooks/useAdminSession.js
+ create mode 100644 Frontend/src/pages/admin/BannersAdminEmbedded.test.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.test.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/AdminLoginCard.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/BannersSectionEditor.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/EditorInicioLayout.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/SectionCard.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/SectionPlaceholder.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/SectionSelector.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/editorInicioSections.js
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/sectionEditors.js
+
+diff --git a/Frontend/.gitignore b/Frontend/.gitignore
+index 7dd942c..c4a4a6c 100644
+--- a/Frontend/.gitignore
++++ b/Frontend/.gitignore
+@@ -8,6 +8,7 @@
+ # testing
+ /coverage
+ /tmp/banners-qa/
++/tmp/editor-inicio-qa/
+ /tmp/heading-colors-qa/
+ /tmp/pdfs/
+ /output/pdf/comprobante-marybe-ejemplo.pdf
+diff --git a/Frontend/docs/editor-inicio-admin.md b/Frontend/docs/editor-inicio-admin.md
+new file mode 100644
+index 0000000..d7b7537
+--- /dev/null
++++ b/Frontend/docs/editor-inicio-admin.md
+@@ -0,0 +1,49 @@
++# Editor de Inicio
++
++Ruta: `/editor-inicio-admin`. Punto de entrada para administrar las secciones de la página principal. Reemplazará progresivamente a `/banners-admin`, que sigue disponible sin cambios.
++
++## Acceso
++
++Usa el mismo acceso administrativo que Banners, Pedidos e Importación: login en `/api/importacion-admin/login` y JWT guardado en `localStorage.admin_jwt` (validado en el backend con `isAdminImport`). Iniciar sesión en cualquiera de esos paneles habilita los demás, y cerrar sesión en uno la cierra en todos. La sesión se maneja con `src/hooks/useAdminSession.js`, que descarta tokens vencidos y reacciona al evento de sesión expirada (`sessionManager`).
++
++## Rutas
++
++| Ruta | Vista |
++|---|---|
++| `/editor-inicio-admin` | Selector «¿Qué querés modificar hoy?» |
++| `/editor-inicio-admin/banners` | Editor de banners existente (`BannersAdmin`) |
++| `/editor-inicio-admin/<id>` | Editor de la sección o vista «Editor próximamente disponible» |
++| `/editor-inicio-admin/<id-inexistente>` | Redirige al selector |
++
++Identificadores, en el orden de Inicio (Perfumería): `banners`, `seccion-destacada`, `categorias`, `categoria-destacada-1`, `ofertas`, `descuentos`, `categoria-destacada-2`, `beneficios`, `gift-card`, `proximos-eventos`.
++
++## Estructura
++
++```
++src/pages/admin/editor-inicio/
++├── EditorInicioAdmin.jsx       ← control de sesión y rutas internas
++├── editorInicioSections.js     ← configuración central: id, título, descripción, ícono, componente de la landing
++├── sectionEditors.js           ← registro id → editor real (hoy solo banners)
++└── components/
++    ├── AdminLoginCard.jsx      ← login con el endpoint administrativo existente
++    ├── EditorInicioLayout.jsx  ← barra superior, ubicación y cierre de sesión
++    ├── SectionSelector.jsx     ← panel con la grilla de secciones
++    ├── SectionCard.jsx         ← tarjeta de sección
++    ├── SectionPlaceholder.jsx  ← vista temporal de editores pendientes
++    └── BannersSectionEditor.jsx← integra BannersAdmin con «← Editor de Inicio»
++```
++
++Para habilitar el editor de otra sección: crear su componente y registrarlo en `SECTION_EDITORS` con el `id` de la sección. Recibe `section`, `onBack` y `onLogout`. La tarjeta pasa automáticamente de «Próximamente» a «Editar sección».
++
++`BannersAdmin` acepta dos props opcionales, usadas solo dentro del Editor de Inicio: `onBack` (muestra el botón de regreso y pide confirmación si hay cambios sin guardar) y `onLogout` (se llama al usar **Salir**). Sin props, `/banners-admin` se comporta igual que antes.
++
++## Validación
++
++```powershell
++# Desde Frontend
++npm test -- --watchAll=false
++npm run build
++node scripts/qa-editor-inicio.cjs <ruta-a-playwright> http://localhost:3000
++```
++
++`scripts/qa-editor-inicio.cjs` usa un CMS simulado (no guarda ni publica): acceso directo protegido, credenciales válidas e inválidas, las diez secciones en orden, vistas temporales, recarga, rutas inexistentes, editor de banners integrado, confirmación de cambios sin guardar, `/banners-admin`, celular/tablet y cierre de sesión. Guarda capturas en `tmp/editor-inicio-qa`.
+diff --git a/Frontend/informe-mensual-Noviembre.md b/Frontend/informe-mensual-Noviembre.md
+index ebbc5de..9460162 100644
+--- a/Frontend/informe-mensual-Noviembre.md
++++ b/Frontend/informe-mensual-Noviembre.md
+@@ -319,3 +319,12 @@ Cambios realizados:
+   - **Lógica de Negocio y Gift Cards (`LOG-01`..`LOG-03`):** Se habilitó el checkout de pedidos cubiertos al 100% por Gift Card ($0 a pagar) en [custom-pedido.js (servicio)](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/pedido/services/custom-pedido.js) y [custom-pedido.js (controlador)](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/pedido/controllers/custom-pedido.js), se implementó la conservación del saldo remanente en consumos parciales de Gift Cards en [checkout-lifecycle.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/mercado-pago/services/checkout-lifecycle.js), y se restringió la emisión de Gift Cards a montos enteros ≥ $1.000.
+   - **Concurrencia, Integridad y Gestión (`COM-01`, `COM-02`, `MGT-01`, `MGT-02`, `INT-01`, `INT-02`):** Se unificó la confirmación de pedidos offline bajo transacción atómica y bloqueo de concurrencia (`fulfill` + `strapi.db.transaction`) impidiendo sobreventa de stock, se añadieron registros de auditoría (`[AUDIT]`) en borrados administrativos, se configuró `ADMIN_NOTIFICATION_EMAIL` en [correo.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/correo/services/correo.js), se sanitizaron con `escapeHtml` las variables en plantillas de correo y se eliminó la dependencia obsoleta `xlsx` de [package.json](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/package.json).
+ - Validación: Se agregó la suite [security-audit-remediation.test.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/tests/security-audit-remediation.test.js) (90/90 pruebas de backend aprobadas).
++
++Editor de Inicio — Fase 1: selector de secciones ✅
++
++Cambios realizados:
++- Nueva ruta `/editor-inicio-admin` con el panel «¿Qué querés modificar hoy?»: diez tarjetas (Banners, Sección Destacada, Categorías, Categoría Destacada (1), Ofertas, Descuentos, Categoría Destacada (2), Beneficios, Gift Card y Próximos Eventos) en el orden real de Inicio (Perfumería), con ícono, descripción, estado e indicador de navegación. Grilla de 1 a 5 columnas según el ancho.
++- Acceso con el mismo login y token administrativo de `/banners-admin` (`/api/importacion-admin/login`, `admin_jwt`); se descartan tokens vencidos y se cierra la vista ante sesión expirada. Sin backend, modelos ni endpoints nuevos.
++- Banners abre el editor existente en `/editor-inicio-admin/banners`, con botón «← Editor de Inicio» (pide confirmación si hay cambios sin guardar). `/banners-admin` sigue funcionando igual.
++- Las demás secciones tienen ruta propia (`/editor-inicio-admin/<id>`) con la vista «Editor próximamente disponible» y regreso al selector; rutas inexistentes vuelven al selector. Configuración central en `editorInicioSections.js` y registro de editores en `sectionEditors.js`. Documentación en `docs/editor-inicio-admin.md`.
++- Validación: 200 pruebas de frontend aprobadas (13 nuevas), lint sin errores en los archivos tocados, `npm run build` correcto y QA en navegador con CMS simulado (`scripts/qa-editor-inicio.cjs`) en escritorio, tablet y celular.
+diff --git a/Frontend/scripts/qa-editor-inicio.cjs b/Frontend/scripts/qa-editor-inicio.cjs
+new file mode 100644
+index 0000000..b722660
+--- /dev/null
++++ b/Frontend/scripts/qa-editor-inicio.cjs
+@@ -0,0 +1,179 @@
++// Verificación en navegador del Editor de Inicio con un CMS simulado. Nunca guarda ni publica datos reales.
++// node scripts/qa-editor-inicio.cjs <path-to-playwright-package> [base-url]
++const { chromium } = require(process.argv[2] || 'playwright');
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const path = require('node:path');
++
++const baseUrl = process.argv[3] || 'http://localhost:3000';
++const output = path.resolve(__dirname, '../tmp/editor-inicio-qa');
++const JWT = 'qa-only-admin-token';
++const SECTIONS = [
++  ['banners', 'Banners'],
++  ['seccion-destacada', 'Sección Destacada'],
++  ['categorias', 'Categorías'],
++  ['categoria-destacada-1', 'Categoría Destacada (1)'],
++  ['ofertas', 'Ofertas'],
++  ['descuentos', 'Descuentos'],
++  ['categoria-destacada-2', 'Categoría Destacada (2)'],
++  ['beneficios', 'Beneficios'],
++  ['gift-card', 'Gift Card'],
++  ['proximos-eventos', 'Próximos Eventos'],
++];
++const group = { documentId: 'qa-promo', updatedAt: 'v1', titulo: 'Campaña QA', seccion: 'Perfumería', Filas: [{ id: 1, __component: 'layout.fila-1-columna', diseno: { desktop: { columns: 1 } }, banners: [{ id: 2, titulo: 'Banner QA', imagen_desktop: { id: 3, url: '/inicio/giftcard.webp' }, diseno: { desktop: { height: 420 } } }] }] };
++
++const noOverflow = page => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
++
++async function mockApi(page, log) {
++  await page.route('**/api/**', async route => {
++    const request = route.request();
++    const url = new URL(request.url());
++    log.push({ method: request.method(), path: url.pathname, auth: request.headers().authorization || '' });
++    if (url.pathname === '/api/importacion-admin/login') {
++      const body = request.postDataJSON();
++      if (body.identifier === 'admin@marybe.com' && body.password === 'correcta') return route.fulfill({ json: { jwt: JWT } });
++      return route.fulfill({ status: 400, json: { error: { message: 'Credenciales inválidas' } } });
++    }
++    if (url.pathname.startsWith('/api/banners-admin')) {
++      if (request.headers().authorization !== `Bearer ${JWT}`) return route.fulfill({ status: 401, json: { error: { message: 'No autorizado' } } });
++      if (url.pathname === '/api/banners-admin') return route.fulfill({ json: { data: { promotions: [group] } } });
++      assert.fail(`El QA no debe guardar ni consultar ${url.pathname}`);
++    }
++    return route.fulfill({ json: { data: [] } });
++  });
++}
++
++async function expectSelector(page) {
++  await page.getByRole('heading', { level: 1, name: '¿Qué querés modificar hoy?' }).waitFor();
++  const cards = page.getByRole('list', { name: 'Secciones de la página de inicio' }).getByRole('link');
++  assert.equal(await cards.count(), 10);
++  return cards;
++}
++
++(async () => {
++  fs.mkdirSync(output, { recursive: true });
++  const browser = await chromium.launch(process.env.QA_CHROME_CHANNEL ? { channel: process.env.QA_CHROME_CHANNEL } : {});
++  try {
++    const context = await browser.newContext({ viewport: { width: 1440, height: 960 } });
++    const page = await context.newPage();
++    const errors = [];
++    const log = [];
++    page.on('pageerror', error => errors.push(error.message));
++    await mockApi(page, log);
++
++    // Acceso directo sin sesión: solo se ve el login y no se consulta la API administrativa.
++    await page.goto(`${baseUrl}/editor-inicio-admin/banners`);
++    await page.getByRole('button', { name: 'Iniciar sesión' }).waitFor();
++    assert.equal(await page.getByText('¿Qué querés modificar hoy?').count(), 0);
++    assert.equal(await page.getByRole('spinbutton', { name: 'Alto', exact: true }).count(), 0);
++    assert.equal(log.filter(entry => entry.path.startsWith('/api/banners-admin')).length, 0);
++    await page.goto(`${baseUrl}/editor-inicio-admin/ofertas`);
++    await page.getByRole('button', { name: 'Iniciar sesión' }).waitFor();
++    assert.equal(await page.getByText('Editor próximamente disponible').count(), 0);
++    assert.equal(await page.locator('footer').count(), 0, 'El editor no muestra el footer de la tienda');
++    await page.screenshot({ path: path.join(output, 'login.png'), fullPage: true });
++
++    // Credenciales: rechazo y acceso con las credenciales administrativas existentes.
++    await page.goto(`${baseUrl}/editor-inicio-admin`);
++    await page.getByLabel('Email administrador').fill('admin@marybe.com');
++    await page.getByLabel('Contraseña', { exact: true }).fill('incorrecta');
++    await page.getByRole('button', { name: 'Iniciar sesión' }).click();
++    await page.getByRole('alert').filter({ hasText: 'Credenciales inválidas' }).waitFor();
++    await page.getByLabel('Contraseña', { exact: true }).fill('correcta');
++    await page.getByRole('button', { name: 'Iniciar sesión' }).click();
++    const cards = await expectSelector(page);
++    assert.equal(await page.evaluate(() => localStorage.getItem('admin_jwt')), JWT);
++    assert.deepEqual(await cards.evaluateAll(links => links.map(link => link.getAttribute('aria-label'))), SECTIONS.map(([, title]) => title));
++    await page.screenshot({ path: path.join(output, 'selector-desktop.png'), fullPage: true });
++
++    // Cada sección pendiente abre su vista temporal y permite volver.
++    for (const [id, title] of SECTIONS.slice(1)) {
++      await page.getByRole('link', { name: title, exact: true }).click();
++      await page.waitForURL(`${baseUrl}/editor-inicio-admin/${id}`);
++      await page.getByRole('heading', { level: 1, name: title }).waitFor();
++      await page.getByText('Editor próximamente disponible').waitFor();
++      if (id === 'categoria-destacada-1') await page.screenshot({ path: path.join(output, 'placeholder-desktop.png'), fullPage: true });
++      await page.getByRole('link', { name: 'Volver al selector', exact: true }).click();
++      await expectSelector(page);
++    }
++
++    // Recarga y navegación directa con sesión activa.
++    await page.goto(`${baseUrl}/editor-inicio-admin/categoria-destacada-2`);
++    await page.getByRole('heading', { level: 1, name: 'Categoría Destacada (2)' }).waitFor();
++    await page.reload();
++    await page.getByRole('heading', { level: 1, name: 'Categoría Destacada (2)' }).waitFor();
++    await page.getByRole('link', { name: 'Editor de Inicio', exact: true }).click();
++    await expectSelector(page);
++    await page.goto(`${baseUrl}/editor-inicio-admin/no-existe`);
++    await page.waitForURL(`${baseUrl}/editor-inicio-admin`);
++    await expectSelector(page);
++    await page.goto(`${baseUrl}/editor-inicio-admin/`);
++    await expectSelector(page);
++
++    // Banners abre el editor existente con el mismo token y vuelve al selector.
++    await page.getByRole('link', { name: 'Banners', exact: true }).click();
++    await page.waitForURL(`${baseUrl}/editor-inicio-admin/banners`);
++    await page.getByRole('spinbutton', { name: 'Alto', exact: true }).waitFor();
++    assert.ok(log.some(entry => entry.path === '/api/banners-admin' && entry.auth === `Bearer ${JWT}`));
++    await page.getByRole('heading', { name: 'Página de Inicio' }).waitFor();
++    await page.screenshot({ path: path.join(output, 'banners-integrado.png') });
++    await page.reload();
++    await page.getByRole('spinbutton', { name: 'Alto', exact: true }).waitFor();
++    await page.getByRole('button', { name: '← Editor de Inicio' }).click();
++    await expectSelector(page);
++
++    // Con cambios sin guardar, volver pide confirmación.
++    await page.getByRole('link', { name: 'Banners', exact: true }).click();
++    await page.getByRole('spinbutton', { name: 'Alto', exact: true }).fill('500');
++    page.once('dialog', dialog => dialog.dismiss());
++    await page.getByRole('button', { name: '← Editor de Inicio' }).click();
++    assert.ok(page.url().endsWith('/editor-inicio-admin/banners'));
++    page.once('dialog', dialog => dialog.accept());
++    await page.getByRole('button', { name: '← Editor de Inicio' }).click();
++    await expectSelector(page);
++
++    // /banners-admin sigue funcionando por separado con la misma sesión.
++    await page.goto(`${baseUrl}/banners-admin`);
++    await page.getByRole('spinbutton', { name: 'Alto', exact: true }).waitFor();
++    assert.equal(await page.getByRole('button', { name: '← Editor de Inicio' }).count(), 0);
++
++    // Responsive.
++    for (const [name, viewport] of [['phone', { width: 390, height: 844 }], ['tablet', { width: 820, height: 1180 }]]) {
++      await page.setViewportSize(viewport);
++      await page.goto(`${baseUrl}/editor-inicio-admin`);
++      await expectSelector(page);
++      assert.ok(await noOverflow(page), `El selector no debe desbordarse en ${name}`);
++      await page.screenshot({ path: path.join(output, `selector-${name}.png`), fullPage: true });
++      await page.goto(`${baseUrl}/editor-inicio-admin/gift-card`);
++      await page.getByText('Editor próximamente disponible').waitFor();
++      assert.ok(await noOverflow(page), `La vista temporal no debe desbordarse en ${name}`);
++      await page.screenshot({ path: path.join(output, `placeholder-${name}.png`), fullPage: true });
++    }
++    await page.setViewportSize({ width: 1440, height: 960 });
++
++    // Cierre de sesión desde el selector y desde el editor de banners.
++    await page.goto(`${baseUrl}/editor-inicio-admin/beneficios`);
++    await page.getByRole('button', { name: 'Cerrar sesión' }).click();
++    await page.getByRole('button', { name: 'Iniciar sesión' }).waitFor();
++    assert.equal(await page.evaluate(() => localStorage.getItem('admin_jwt')), null);
++    await page.goto(`${baseUrl}/editor-inicio-admin/banners`);
++    await page.getByRole('button', { name: 'Iniciar sesión' }).waitFor();
++    await page.getByLabel('Email administrador').fill('admin@marybe.com');
++    await page.getByLabel('Contraseña', { exact: true }).fill('correcta');
++    await page.getByRole('button', { name: 'Iniciar sesión' }).click();
++    await page.getByRole('spinbutton', { name: 'Alto', exact: true }).waitFor();
++    await page.getByText('Más opciones').click();
++    await page.getByRole('button', { name: 'Salir', exact: true }).click();
++    await page.getByText('Editor de Inicio', { exact: true }).waitFor();
++    await page.getByRole('button', { name: 'Iniciar sesión' }).waitFor();
++    assert.equal(await page.evaluate(() => localStorage.getItem('admin_jwt')), null);
++
++    assert.deepEqual(errors, []);
++
++    // La landing pública conserva su estructura (header y footer de la tienda).
++    await page.goto(`${baseUrl}/inicio`);
++    await page.locator('footer').first().waitFor();
++    console.log('Browser QA OK: login, acceso directo protegido, 10 secciones en orden, vistas temporales, recarga, rutas inválidas, banners integrado, confirmación de cambios, /banners-admin, responsive y cierre de sesión.');
++    console.log(output);
++  } finally { await browser.close(); }
++})().catch(error => { console.error(error); process.exitCode = 1; });
+diff --git a/Frontend/src/App.js b/Frontend/src/App.js
+index 6609d18..dfbd818 100644
+--- a/Frontend/src/App.js
++++ b/Frontend/src/App.js
+@@ -64,6 +64,7 @@ const PedidosAdmin = lazyWithRetry(() => import('./pages/admin/PedidosAdmin'), '
+ const EditorAdmin  = lazyWithRetry(() => import('./pages/admin/editor-admin/EditorAdmin'), 'EditorAdmin');
+ const BannersAdmin = lazyWithRetry(() => import('./pages/admin/BannersAdmin'), 'BannersAdmin');
+ const BannersPreview = lazyWithRetry(() => import('./pages/admin/BannersPreview'), 'BannersPreview');
++const EditorInicioAdmin = lazyWithRetry(() => import('./pages/admin/editor-inicio/EditorInicioAdmin'), 'EditorInicioAdmin');
+ 
+ // Página de Gift Card
+ const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'), 'GiftCardPage');
+@@ -84,7 +85,7 @@ function RootRoute() {
+ 
+ function App() {
+   const location = useLocation();
+-  const bannerStudio = ['/banners-admin', '/banners-preview'].includes(location.pathname);
++  const bannerStudio = ['/banners-admin', '/banners-preview'].includes(location.pathname) || /^\/editor-inicio-admin(\/|$)/.test(location.pathname);
+   return (
+     <AuthProvider>
+       <LazyMotion features={domAnimation}>
+@@ -139,6 +140,7 @@ function App() {
+             <Route path="/editor-admin" element={<EditorAdmin />} />
+             <Route path="/banners-admin" element={<BannersAdmin />} />
+             <Route path="/banners-preview" element={<BannersPreview />} />
++            <Route path="/editor-inicio-admin/*" element={<EditorInicioAdmin />} />
+ 
+             {/* Ruta de Gift Card */}
+             <Route path="/gift-card" element={<GiftCardPage />} />
+diff --git a/Frontend/src/hooks/useAdminSession.js b/Frontend/src/hooks/useAdminSession.js
+new file mode 100644
+index 0000000..751ca90
+--- /dev/null
++++ b/Frontend/src/hooks/useAdminSession.js
+@@ -0,0 +1,44 @@
++import { useState, useEffect, useCallback } from 'react';
++import { SESSION_EXPIRED_EVENT, clearCredentials, isTokenExpired } from '../utils/sessionManager';
++
++const ADMIN_TOKEN_KEY = 'admin_jwt';
++
++const readStoredToken = () => {
++  const stored = localStorage.getItem(ADMIN_TOKEN_KEY) || '';
++  if (stored && isTokenExpired(stored)) {
++    clearCredentials('admin');
++    return '';
++  }
++  return stored;
++};
++
++// Sesión administrativa compartida con los paneles existentes (/banners-admin, /pedidos-admin…):
++// mismo JWT en localStorage.admin_jwt, emitido por /api/importacion-admin/login.
++export default function useAdminSession() {
++  const [token, setToken] = useState(readStoredToken);
++
++  const sync = useCallback(() => setToken(readStoredToken()), []);
++
++  const signIn = useCallback((jwt) => {
++    localStorage.setItem(ADMIN_TOKEN_KEY, jwt);
++    setToken(jwt);
++  }, []);
++
++  const signOut = useCallback(() => {
++    clearCredentials('admin');
++    setToken('');
++  }, []);
++
++  useEffect(() => {
++    const handleExpired = ({ detail }) => { if (detail?.scope === 'admin') setToken(''); };
++    const handleStorage = (event) => { if (event.key === null || event.key === ADMIN_TOKEN_KEY) sync(); };
++    window.addEventListener(SESSION_EXPIRED_EVENT, handleExpired);
++    window.addEventListener('storage', handleStorage);
++    return () => {
++      window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpired);
++      window.removeEventListener('storage', handleStorage);
++    };
++  }, [sync]);
++
++  return { token, isAuthenticated: Boolean(token), signIn, signOut, sync };
++}
+diff --git a/Frontend/src/pages/admin/BannersAdmin.jsx b/Frontend/src/pages/admin/BannersAdmin.jsx
+index 1e610ae..4e77273 100644
+--- a/Frontend/src/pages/admin/BannersAdmin.jsx
++++ b/Frontend/src/pages/admin/BannersAdmin.jsx
+@@ -15,7 +15,7 @@ function normalized(document) {
+ function NumberControl({ label, value, min = 0, max = 100, step = 1, onChange, suffix = 'px' }) {
+   return <label className="ba-control"><span>{label} <small>{suffix}</small></span><div className="ba-range"><input aria-label={`${label} deslizador`} type="range" min={min} max={max} step={step} value={value ?? min} onChange={e => onChange(Number(e.target.value))} /><input aria-label={label} type="number" min={min} max={max} step={step} value={value ?? min} onChange={e => { if (e.target.value !== '') onChange(Math.max(min, Math.min(max, Number(e.target.value)))); }} /></div></label>;
+ }
+-export default function BannersAdmin() {
++export default function BannersAdmin({ onBack, onLogout } = {}) {
+   const [token, setToken] = useState(() => localStorage.getItem('admin_jwt') || '');
+   const [credentials, setCredentials] = useState({ identifier: '', password: '' });
+   const [showPassword, setShowPassword] = useState(false);
+@@ -326,10 +326,11 @@ export default function BannersAdmin() {
+   return <main className="ba-app" inert={showPreview}>
+     {showPreview && draft && <BannerPreviewDialog rows={rows} title={draft.titulo} initialDevice={device} onClose={closePreview} />}
+     <header className="ba-topbar">
++      {onBack && <button type="button" className="ba-back" disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Volver al Editor de Inicio con cambios sin guardar?')) onBack(); }}>← Editor de Inicio</button>}
+       <div className="ba-brand"><img src="/logo-marybe.png" alt="Marybe" width="629" height="168" /><span>Editor de banners</span></div>
+       <span className={`ba-status ${hasUnsaved ? 'ba-status--dirty' : ''}`}>{!draft?.documentId && draft ? '○ Sección nueva' : dirty ? '● Cambios sin guardar' : hasUnsaved ? '● Otros cambios pendientes' : '● Todo guardado'}</span>
+       <div className="ba-top-actions">
+-        <details className="ba-top-more"><summary>Más opciones</summary><div><button onClick={recover} disabled={!draft || busy}>Recuperar copia</button><button disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Salir con cambios sin guardar?')) { localStorage.removeItem('admin_jwt'); setToken(''); } }}>Salir</button></div></details>
++        <details className="ba-top-more"><summary>Más opciones</summary><div><button onClick={recover} disabled={!draft || busy}>Recuperar copia</button><button disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Salir con cambios sin guardar?')) { localStorage.removeItem('admin_jwt'); setToken(''); onLogout?.(); } }}>Salir</button></div></details>
+         <button className="ba-preview-open" disabled={!draft || loading} onClick={() => setShowPreview(true)}>Vista previa</button>
+         <button disabled={!draft || busy} onClick={() => save(false)}>Guardar borrador</button>
+         <button className="ba-primary" disabled={!draft || busy} onClick={() => save(true)}>{busy ? 'Guardando…' : 'Publicar cambios'}</button>
+diff --git a/Frontend/src/pages/admin/BannersAdminEmbedded.test.jsx b/Frontend/src/pages/admin/BannersAdminEmbedded.test.jsx
+new file mode 100644
+index 0000000..b8b90a1
+--- /dev/null
++++ b/Frontend/src/pages/admin/BannersAdminEmbedded.test.jsx
+@@ -0,0 +1,54 @@
++import React from 'react';
++import '@testing-library/jest-dom';
++import { render, screen, fireEvent } from '@testing-library/react';
++import axios from 'axios';
++import BannersAdmin from './BannersAdmin';
++
++jest.mock('axios');
++jest.mock('react-router-dom', () => ({ Link: ({ children }) => <span>{children}</span> }), { virtual: true });
++
++const group = { documentId: 'promo-1', updatedAt: 'v1', titulo: 'Campaña inicial', seccion: 'Perfumería', Filas: [{ id: 1, __component: 'layout.fila-1-columna', banners: [{ id: 2, titulo: 'Campaña inicial', imagen_desktop: { id: 3, url: '/uploads/test.webp' }, diseno: { desktop: { height: 480 } } }] }] };
++
++beforeEach(() => {
++  localStorage.clear(); sessionStorage.clear(); jest.clearAllMocks();
++  global.ResizeObserver = class { observe() {} disconnect() {} };
++  localStorage.setItem('admin_jwt', 'fixture-token');
++  axios.get.mockResolvedValue({ data: { data: { promotions: [group] } } });
++});
++afterEach(() => jest.restoreAllMocks());
++
++test('en /banners-admin no muestra el acceso al Editor de Inicio', async () => {
++  render(<BannersAdmin />);
++  await screen.findByRole('spinbutton', { name: 'Alto' });
++  expect(screen.queryByRole('button', { name: '← Editor de Inicio' })).toBeNull();
++});
++
++test('integrado en el Editor de Inicio permite volver al selector', async () => {
++  const onBack = jest.fn();
++  render(<BannersAdmin onBack={onBack} />);
++  await screen.findByRole('spinbutton', { name: 'Alto' });
++  fireEvent.click(screen.getByRole('button', { name: '← Editor de Inicio' }));
++  expect(onBack).toHaveBeenCalledTimes(1);
++});
++
++test('advierte antes de volver si hay cambios sin guardar', async () => {
++  const onBack = jest.fn();
++  const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
++  render(<BannersAdmin onBack={onBack} />);
++  fireEvent.change(await screen.findByRole('spinbutton', { name: 'Alto' }), { target: { value: '350' } });
++  fireEvent.click(screen.getByRole('button', { name: '← Editor de Inicio' }));
++  expect(confirm).toHaveBeenCalled();
++  expect(onBack).not.toHaveBeenCalled();
++  confirm.mockReturnValue(true);
++  fireEvent.click(screen.getByRole('button', { name: '← Editor de Inicio' }));
++  expect(onBack).toHaveBeenCalledTimes(1);
++});
++
++test('Salir cierra la sesión compartida y avisa al Editor de Inicio', async () => {
++  const onLogout = jest.fn();
++  render(<BannersAdmin onBack={jest.fn()} onLogout={onLogout} />);
++  await screen.findByRole('spinbutton', { name: 'Alto' });
++  fireEvent.click(screen.getByRole('button', { name: 'Salir' }));
++  expect(onLogout).toHaveBeenCalledTimes(1);
++  expect(localStorage.getItem('admin_jwt')).toBeNull();
++});
+diff --git a/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.jsx b/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.jsx
+new file mode 100644
+index 0000000..86fde76
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.jsx
+@@ -0,0 +1,40 @@
++import React, { useEffect } from 'react';
++import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
++import useAdminSession from '../../../hooks/useAdminSession';
++import AdminLoginCard from './components/AdminLoginCard';
++import EditorInicioLayout from './components/EditorInicioLayout';
++import SectionSelector from './components/SectionSelector';
++import SectionPlaceholder from './components/SectionPlaceholder';
++import { EDITOR_INICIO_PATH, findSection } from './editorInicioSections';
++import { SECTION_EDITORS } from './sectionEditors';
++
++function SectionRoute({ onLogout }) {
++  const { sectionId } = useParams();
++  const navigate = useNavigate();
++  const section = findSection(sectionId);
++  if (!section) return <Navigate to={EDITOR_INICIO_PATH} replace />;
++  const Editor = SECTION_EDITORS[section.id];
++  if (Editor) return <Editor section={section} onBack={() => navigate(EDITOR_INICIO_PATH)} onLogout={onLogout} />;
++  return (
++    <EditorInicioLayout currentSection={section} onLogout={onLogout}>
++      <SectionPlaceholder section={section} />
++    </EditorInicioLayout>
++  );
++}
++
++export default function EditorInicioAdmin() {
++  const { token, signIn, signOut, sync } = useAdminSession();
++  const { pathname } = useLocation();
++
++  useEffect(() => { sync(); }, [pathname, sync]);
++
++  if (!token) return <AdminLoginCard subtitle="Editor de Inicio" onAuthenticated={signIn} />;
++
++  return (
++    <Routes>
++      <Route index element={<EditorInicioLayout onLogout={signOut}><SectionSelector /></EditorInicioLayout>} />
++      <Route path=":sectionId" element={<SectionRoute onLogout={signOut} />} />
++      <Route path="*" element={<Navigate to={EDITOR_INICIO_PATH} replace />} />
++    </Routes>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.test.jsx b/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.test.jsx
+new file mode 100644
+index 0000000..c8591f6
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.test.jsx
+@@ -0,0 +1,134 @@
++import React from 'react';
++import fs from 'fs';
++import path from 'path';
++import '@testing-library/jest-dom';
++import { render, screen, fireEvent, within, act } from '@testing-library/react';
++import axios from 'axios';
++import EditorInicioAdmin from './EditorInicioAdmin';
++import SectionSelector from './components/SectionSelector';
++import { EDITOR_INICIO_PATH, EDITOR_INICIO_SECTIONS, findSection, sectionPath } from './editorInicioSections';
++import { hasSectionEditor } from './sectionEditors';
++import { SESSION_EXPIRED_EVENT } from '../../../utils/sessionManager';
++
++jest.mock('axios');
++jest.mock('react-router-dom', () => ({
++  Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
++  Navigate: () => null,
++  Routes: ({ children }) => <>{children}</>,
++  Route: ({ index, element }) => (index ? element : null),
++  useLocation: () => ({ pathname: '/editor-inicio-admin' }),
++  useNavigate: () => jest.fn(),
++  useParams: () => ({}),
++}), { virtual: true });
++
++const EXPECTED_TITLES = [
++  'Banners',
++  'Sección Destacada',
++  'Categorías',
++  'Categoría Destacada (1)',
++  'Ofertas',
++  'Descuentos',
++  'Categoría Destacada (2)',
++  'Beneficios',
++  'Gift Card',
++  'Próximos Eventos',
++];
++
++beforeEach(() => {
++  localStorage.clear();
++  jest.clearAllMocks();
++});
++
++describe('configuración de secciones', () => {
++  test('define las diez secciones en el orden esperado con identificadores únicos', () => {
++    expect(EDITOR_INICIO_SECTIONS.map(section => section.title)).toEqual(EXPECTED_TITLES);
++    const ids = EDITOR_INICIO_SECTIONS.map(section => section.id);
++    expect(new Set(ids).size).toBe(ids.length);
++    ids.forEach(id => expect(id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/));
++    expect(findSection('categoria-destacada-1')).not.toBe(findSection('categoria-destacada-2'));
++    expect(sectionPath('ofertas')).toBe(`${EDITOR_INICIO_PATH}/ofertas`);
++  });
++
++  test('respeta el orden real de los componentes en Inicio (Perfumería)', () => {
++    const source = fs.readFileSync(path.join(__dirname, '../../inicio/Inicio.jsx'), 'utf8');
++    const perfumeria = source.slice(source.indexOf("seccionActiva === 'perfumeria' && ("), source.indexOf("seccionActiva === 'hogar' && ("));
++    const positions = EDITOR_INICIO_SECTIONS.map(section => perfumeria.search(new RegExp(`<${section.landingComponent}[\\s/>]`)));
++    positions.forEach(position => expect(position).toBeGreaterThan(-1));
++    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
++  });
++
++  test('solo Banners tiene editor real en esta etapa', () => {
++    expect(EDITOR_INICIO_SECTIONS.filter(section => hasSectionEditor(section.id)).map(section => section.id)).toEqual(['banners']);
++  });
++});
++
++describe('selector de secciones', () => {
++  test('muestra las diez tarjetas con su enlace, descripción e indicador', () => {
++    render(<SectionSelector />);
++    expect(screen.getByRole('heading', { level: 1, name: '¿Qué querés modificar hoy?' })).toBeInTheDocument();
++    const grid = screen.getByRole('list', { name: 'Secciones de la página de inicio' });
++    const links = within(grid).getAllByRole('link');
++    expect(links).toHaveLength(10);
++    links.forEach((link, index) => {
++      const section = EDITOR_INICIO_SECTIONS[index];
++      expect(link).toHaveAccessibleName(section.title);
++      expect(link).toHaveAttribute('href', sectionPath(section.id));
++      expect(link).toHaveAccessibleDescription(expect.stringContaining(section.description));
++    });
++    expect(within(links[0]).getByText('Editar sección')).toBeInTheDocument();
++    expect(within(links[1]).getByText('Próximamente')).toBeInTheDocument();
++  });
++});
++
++describe('autenticación del editor de inicio', () => {
++  test('sin sesión muestra el login y no las secciones', () => {
++    render(<EditorInicioAdmin />);
++    expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeDisabled();
++    expect(screen.queryByText('¿Qué querés modificar hoy?')).toBeNull();
++  });
++
++  test('usa el login administrativo existente y comparte el token admin_jwt', async () => {
++    axios.post.mockResolvedValue({ data: { jwt: 'admin-token' } });
++    render(<EditorInicioAdmin />);
++    fireEvent.change(screen.getByLabelText('Email administrador'), { target: { value: 'admin@marybe.com' } });
++    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'secreto' } });
++    fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
++    await screen.findByText('¿Qué querés modificar hoy?');
++    expect(axios.post).toHaveBeenCalledWith(expect.stringMatching(/\/api\/importacion-admin\/login$/), { identifier: 'admin@marybe.com', password: 'secreto' });
++    expect(localStorage.getItem('admin_jwt')).toBe('admin-token');
++  });
++
++  test('muestra el error del servidor cuando las credenciales son inválidas', async () => {
++    axios.post.mockRejectedValue({ response: { status: 400, data: { error: { message: 'Credenciales inválidas' } } } });
++    render(<EditorInicioAdmin />);
++    fireEvent.change(screen.getByLabelText('Email administrador'), { target: { value: 'x@marybe.com' } });
++    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'mal' } });
++    fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
++    expect(await screen.findByRole('alert')).toHaveTextContent('Credenciales inválidas');
++    expect(localStorage.getItem('admin_jwt')).toBeNull();
++  });
++
++  test('reutiliza una sesión existente y el cierre de sesión la elimina', () => {
++    localStorage.setItem('admin_jwt', 'fixture-token');
++    render(<EditorInicioAdmin />);
++    expect(screen.getByText('¿Qué querés modificar hoy?')).toBeInTheDocument();
++    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
++    expect(localStorage.getItem('admin_jwt')).toBeNull();
++    expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
++  });
++
++  test('descarta tokens vencidos y reacciona a la expiración de la sesión', async () => {
++    const encode = value => btoa(JSON.stringify(value)).replace(/=+$/, '');
++    localStorage.setItem('admin_jwt', `${encode({ alg: 'HS256' })}.${encode({ exp: 1 })}.firma`);
++    const { unmount } = render(<EditorInicioAdmin />);
++    expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
++    expect(localStorage.getItem('admin_jwt')).toBeNull();
++    unmount();
++
++    localStorage.setItem('admin_jwt', 'fixture-token');
++    render(<EditorInicioAdmin />);
++    expect(screen.getByText('¿Qué querés modificar hoy?')).toBeInTheDocument();
++    act(() => { window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { scope: 'admin' } })); });
++    expect(await screen.findByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
++  });
++});
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/AdminLoginCard.jsx b/Frontend/src/pages/admin/editor-inicio/components/AdminLoginCard.jsx
+new file mode 100644
+index 0000000..a797f8a
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/AdminLoginCard.jsx
+@@ -0,0 +1,63 @@
++import React, { useState } from 'react';
++import axios from 'axios';
++import '../../ImportacionAdmin.css';
++
++const API = process.env.REACT_APP_STRAPI_URL || process.env.REACT_APP_API_URL || 'http://localhost:1337';
++
++export default function AdminLoginCard({ subtitle, onAuthenticated }) {
++  const [credentials, setCredentials] = useState({ identifier: '', password: '' });
++  const [showPassword, setShowPassword] = useState(false);
++  const [busy, setBusy] = useState(false);
++  const [error, setError] = useState('');
++
++  async function login(event) {
++    event.preventDefault();
++    setBusy(true);
++    setError('');
++    try {
++      const response = await axios.post(`${API}/api/importacion-admin/login`, credentials);
++      onAuthenticated(response.data.jwt);
++    } catch (requestError) {
++      setError(requestError.response?.data?.error?.message || requestError.message || 'No se pudo iniciar sesión.');
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  return (
++    <main className="ia-wrapper">
++      <div className="ia-bg-particles">{[...Array(12)].map((_, index) => <div key={index} className={`ia-particle ia-particle--${index + 1}`} />)}</div>
++      <section className="ia-login-card" aria-labelledby="editor-inicio-login-title">
++        <div className="ia-login-brand">
++          <div className="ia-brand-icon">
++            <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M24 4L44 14V34L24 44L4 34V14L24 4Z" stroke="currentColor" strokeWidth="2" /><path d="M24 12L36 18V30L24 36L12 30V18L24 12Z" fill="currentColor" opacity=".2" /><path d="M24 20L30 23V29L24 32L18 29V23L24 20Z" fill="currentColor" /></svg>
++          </div>
++          <h1 id="editor-inicio-login-title" className="ia-brand-title">Marybe</h1>
++          <p className="ia-brand-sub">{subtitle}</p>
++        </div>
++        <form className="ia-login-form" onSubmit={login} noValidate>
++          <div className="ia-field">
++            <label htmlFor="editor-inicio-email" className="ia-label">Email administrador</label>
++            <div className="ia-input-wrap">
++              <span className="ia-input-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg></span>
++              <input id="editor-inicio-email" type="email" className="ia-input" placeholder="admin@marybe.com" autoComplete="email" required value={credentials.identifier} onChange={event => setCredentials({ ...credentials, identifier: event.target.value })} />
++            </div>
++          </div>
++          <div className="ia-field">
++            <label htmlFor="editor-inicio-password" className="ia-label">Contraseña</label>
++            <div className="ia-input-wrap">
++              <span className="ia-input-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a7 7 0 0114 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg></span>
++              <input id="editor-inicio-password" type={showPassword ? 'text' : 'password'} className="ia-input" placeholder="••••••••••••" autoComplete="current-password" required value={credentials.password} onChange={event => setCredentials({ ...credentials, password: event.target.value })} />
++              <button type="button" className="ia-show-pass" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{showPassword ? '◉' : '◌'}</button>
++            </div>
++          </div>
++          {error && <div className="ia-alert ia-alert--error" role="alert">{error}</div>}
++          <button type="submit" className="ia-btn ia-btn--primary" disabled={busy || !credentials.identifier || !credentials.password}>
++            {busy ? <><span className="ia-spinner" aria-hidden="true" /> Iniciando sesión...</> : 'Iniciar sesión'}
++          </button>
++        </form>
++        <p className="ia-login-hint">Acceso restringido · Solo administradores</p>
++      </section>
++    </main>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/BannersSectionEditor.jsx b/Frontend/src/pages/admin/editor-inicio/components/BannersSectionEditor.jsx
+new file mode 100644
+index 0000000..f2928f4
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/BannersSectionEditor.jsx
+@@ -0,0 +1,7 @@
++import React from 'react';
++import BannersAdmin from '../../BannersAdmin';
++
++// Integra el editor de banners existente sin alterar su lógica de carga, edición ni guardado.
++export default function BannersSectionEditor({ onBack, onLogout }) {
++  return <BannersAdmin onBack={onBack} onLogout={onLogout} />;
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/EditorInicioLayout.jsx b/Frontend/src/pages/admin/editor-inicio/components/EditorInicioLayout.jsx
+new file mode 100644
+index 0000000..ae54c9a
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/EditorInicioLayout.jsx
+@@ -0,0 +1,154 @@
++import React from 'react';
++import styled from 'styled-components';
++import { Link } from 'react-router-dom';
++import { FiChevronRight, FiLogOut } from 'react-icons/fi';
++import { EDITOR_INICIO_PATH } from '../editorInicioSections';
++
++const LayoutWrapper = styled.div`
++  min-height: 100vh;
++  display: flex;
++  flex-direction: column;
++  background:
++    radial-gradient(ellipse at 12% 0%, rgba(124, 4, 5, 0.07) 0%, transparent 55%),
++    radial-gradient(ellipse at 100% 100%, rgba(194, 161, 92, 0.12) 0%, transparent 50%),
++    var(--color-fondo-tarjetas-promo);
++  color: var(--color-marron-cuarto);
++  font-family: var(--font-family-secondary);
++`;
++
++const TopBar = styled.header`
++  position: sticky;
++  top: 0;
++  z-index: 20;
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: var(--spacing-md);
++  min-height: 64px;
++  padding: 10px var(--spacing-md);
++  background: rgba(255, 255, 255, 0.92);
++  backdrop-filter: blur(8px);
++  border-bottom: 1px solid #ebe3dc;
++
++  @media (min-width: 768px) {
++    min-height: 72px;
++    padding: 12px var(--spacing-xl);
++  }
++`;
++
++const BrandGroup = styled.div`
++  display: flex;
++  align-items: center;
++  gap: 14px;
++  min-width: 0;
++`;
++
++const BrandLink = styled(Link)`
++  display: flex;
++  flex-shrink: 0;
++  border-radius: var(--radius-sm);
++
++  img {
++    width: 96px;
++    height: auto;
++    aspect-ratio: 629 / 168;
++    object-fit: contain;
++  }
++
++  &:focus-visible { outline: 2px solid var(--color-bordo-secundario); outline-offset: 4px; }
++
++  @media (min-width: 768px) {
++    img { width: 118px; }
++  }
++`;
++
++const Breadcrumb = styled.nav`
++  display: flex;
++  align-items: center;
++  gap: 6px;
++  min-width: 0;
++  padding-left: 14px;
++  border-left: 1px solid #e6dcd5;
++  font-size: 0.85rem;
++  font-weight: 600;
++  white-space: nowrap;
++
++  a {
++    color: var(--color-marron-principal);
++    text-decoration: none;
++  }
++
++  a:hover { text-decoration: underline; }
++
++  span {
++    overflow: hidden;
++    text-overflow: ellipsis;
++    color: #7a6a6a;
++    font-weight: 500;
++  }
++
++  svg { flex-shrink: 0; color: #b3a4a4; }
++
++  @media (max-width: 600px) {
++    span, svg { display: none; }
++  }
++`;
++
++const LogoutButton = styled.button`
++  display: inline-flex;
++  align-items: center;
++  gap: 8px;
++  flex-shrink: 0;
++  min-height: 40px;
++  padding: 8px 14px;
++  border: 1px solid #e3d8d1;
++  border-radius: var(--radius-md);
++  background: var(--color-blanco);
++  color: var(--color-marron-principal);
++  font: inherit;
++  font-size: 0.85rem;
++  font-weight: 600;
++  cursor: pointer;
++  transition: var(--transition-fast);
++
++  &:hover { border-color: var(--color-bordo-secundario); background: var(--color-blanco-pero-no-tan-blanco); }
++  &:focus-visible { outline: 2px solid var(--color-bordo-secundario); outline-offset: 2px; }
++
++  @media (max-width: 480px) {
++    span { display: none; }
++    padding: 8px 11px;
++  }
++`;
++
++const Content = styled.main`
++  flex: 1;
++  display: flex;
++  justify-content: center;
++  padding: var(--spacing-lg) var(--spacing-md) var(--spacing-xxl);
++
++  @media (min-width: 768px) {
++    padding: var(--spacing-xxl) var(--spacing-xl);
++  }
++`;
++
++export default function EditorInicioLayout({ currentSection, onLogout, children }) {
++  return (
++    <LayoutWrapper>
++      <TopBar>
++        <BrandGroup>
++          <BrandLink to={EDITOR_INICIO_PATH} aria-label="Marybe · Editor de Inicio">
++            <img src="/logo-marybe.png" alt="Marybe" width="629" height="168" />
++          </BrandLink>
++          <Breadcrumb aria-label="Ubicación">
++            {currentSection ? <Link to={EDITOR_INICIO_PATH}>Editor de Inicio</Link> : <strong>Editor de Inicio</strong>}
++            {currentSection && <><FiChevronRight aria-hidden="true" /><span aria-current="page">{currentSection.title}</span></>}
++          </Breadcrumb>
++        </BrandGroup>
++        <LogoutButton type="button" onClick={onLogout} aria-label="Cerrar sesión">
++          <FiLogOut aria-hidden="true" /><span>Cerrar sesión</span>
++        </LogoutButton>
++      </TopBar>
++      <Content>{children}</Content>
++    </LayoutWrapper>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/SectionCard.jsx b/Frontend/src/pages/admin/editor-inicio/components/SectionCard.jsx
+new file mode 100644
+index 0000000..e94192c
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/SectionCard.jsx
+@@ -0,0 +1,154 @@
++import React from 'react';
++import styled from 'styled-components';
++import { Link } from 'react-router-dom';
++import { FiArrowRight } from 'react-icons/fi';
++
++const CardLink = styled(Link)`
++  position: relative;
++  display: flex;
++  flex-direction: column;
++  gap: 12px;
++  height: 100%;
++  min-height: 188px;
++  padding: 18px;
++  border: 1px solid #ebe2dc;
++  border-radius: 14px;
++  background: var(--color-blanco);
++  color: inherit;
++  text-decoration: none;
++  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
++
++  &:hover {
++    transform: translateY(-3px);
++    border-color: rgba(124, 4, 5, 0.45);
++    box-shadow: 0 14px 30px -14px rgba(62, 1, 2, 0.35);
++  }
++
++  &:focus-visible {
++    outline: 3px solid var(--color-bordo-secundario);
++    outline-offset: 3px;
++  }
++
++  &:active { transform: translateY(-1px); }
++
++  @media (max-width: 480px) {
++    min-height: 0;
++    padding: 16px;
++  }
++
++  @media (prefers-reduced-motion: reduce) {
++    transition: none;
++    &:hover, &:active { transform: none; }
++  }
++`;
++
++const CardTop = styled.div`
++  display: flex;
++  align-items: flex-start;
++  justify-content: space-between;
++`;
++
++const IconTile = styled.span`
++  display: grid;
++  place-items: center;
++  width: 46px;
++  height: 46px;
++  border-radius: var(--radius-lg);
++  background: var(--color-blanco-pero-no-tan-blanco);
++  color: var(--color-bordo-secundario);
++  transition: var(--transition-fast);
++
++  ${CardLink}:hover &, ${CardLink}:focus-visible & {
++    background: var(--color-bordo-secundario);
++    color: var(--color-blanco);
++  }
++`;
++
++const OrderNumber = styled.span`
++  color: #b9aaa6;
++  font-size: 0.75rem;
++  font-weight: 700;
++  letter-spacing: 0.08em;
++  font-variant-numeric: tabular-nums;
++`;
++
++const CardTitle = styled.h3`
++  margin: 0;
++  color: var(--color-marron-principal);
++  font-family: var(--font-family-secondary);
++  font-size: 1rem;
++  font-weight: 700;
++  line-height: 1.3;
++`;
++
++const CardDescription = styled.p`
++  flex: 1;
++  margin: 0;
++  color: #6f6262;
++  font-size: 0.84rem;
++  line-height: 1.5;
++`;
++
++const CardFooter = styled.div`
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 8px;
++  padding-top: 12px;
++  border-top: 1px solid #f1ebe6;
++`;
++
++const StatusPill = styled.span`
++  padding: 4px 9px;
++  border-radius: var(--radius-full);
++  background: ${({ $available }) => ($available ? 'rgba(124, 4, 5, 0.09)' : '#f1ede9')};
++  color: ${({ $available }) => ($available ? 'var(--color-bordo-secundario)' : '#837674')};
++  font-size: 0.7rem;
++  font-weight: 700;
++  letter-spacing: 0.02em;
++`;
++
++const ArrowCircle = styled.span`
++  display: grid;
++  place-items: center;
++  width: 30px;
++  height: 30px;
++  border-radius: var(--radius-full);
++  border: 1px solid #e6dcd5;
++  color: var(--color-marron-principal);
++  transition: var(--transition-fast);
++
++  ${CardLink}:hover &, ${CardLink}:focus-visible & {
++    border-color: var(--color-bordo-secundario);
++    background: var(--color-bordo-secundario);
++    color: var(--color-blanco);
++    transform: translateX(2px);
++  }
++`;
++
++const VisuallyHidden = styled.span`
++  position: absolute;
++  width: 1px;
++  height: 1px;
++  overflow: hidden;
++  clip: rect(0 0 0 0);
++  white-space: nowrap;
++`;
++
++export default function SectionCard({ section, order, to, available }) {
++  const Icon = section.icon;
++  return (
++    <CardLink to={to} data-section-id={section.id} aria-label={section.title} aria-describedby={`${section.id}-card-description`}>
++      <CardTop>
++        <IconTile aria-hidden="true"><Icon size={22} strokeWidth={1.8} /></IconTile>
++        <OrderNumber aria-hidden="true">{String(order).padStart(2, '0')}</OrderNumber>
++      </CardTop>
++      <CardTitle>{section.title}</CardTitle>
++      <CardDescription id={`${section.id}-card-description`}>{section.description}{!available && <VisuallyHidden> Editor próximamente disponible.</VisuallyHidden>}</CardDescription>
++      <CardFooter aria-hidden="true">
++        <StatusPill $available={available}>{available ? 'Editar sección' : 'Próximamente'}</StatusPill>
++        <ArrowCircle><FiArrowRight size={16} /></ArrowCircle>
++      </CardFooter>
++    </CardLink>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/SectionPlaceholder.jsx b/Frontend/src/pages/admin/editor-inicio/components/SectionPlaceholder.jsx
+new file mode 100644
+index 0000000..4bcf0bf
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/SectionPlaceholder.jsx
+@@ -0,0 +1,101 @@
++import React from 'react';
++import styled from 'styled-components';
++import { Link } from 'react-router-dom';
++import { FiArrowLeft, FiClock } from 'react-icons/fi';
++import { EDITOR_INICIO_PATH } from '../editorInicioSections';
++
++const PlaceholderPanel = styled.section`
++  align-self: flex-start;
++  width: 100%;
++  max-width: 620px;
++  margin-top: var(--spacing-md);
++  padding: var(--spacing-xl) var(--spacing-lg);
++  border: 1px solid #ece4de;
++  border-radius: var(--radius-xl);
++  background: var(--color-blanco);
++  box-shadow: 0 30px 70px -40px rgba(62, 1, 2, 0.35);
++  text-align: center;
++
++  @media (min-width: 768px) {
++    margin-top: var(--spacing-xl);
++    padding: 56px var(--spacing-xxl);
++  }
++`;
++
++const IconTile = styled.div`
++  display: grid;
++  place-items: center;
++  width: 64px;
++  height: 64px;
++  margin: 0 auto var(--spacing-lg);
++  border-radius: 18px;
++  background: var(--color-blanco-pero-no-tan-blanco);
++  color: var(--color-bordo-secundario);
++`;
++
++const SectionTitle = styled.h1`
++  margin: 0 0 10px;
++  color: var(--color-marron-principal);
++  font-family: var(--font-family-primary);
++  font-size: clamp(1.6rem, 4vw, 2.2rem);
++  font-weight: 600;
++  line-height: 1.2;
++`;
++
++const SectionDescription = styled.p`
++  margin: 0 0 var(--spacing-lg);
++  color: #6f6262;
++  font-size: 0.95rem;
++  line-height: 1.55;
++`;
++
++const ComingSoonBadge = styled.p`
++  display: inline-flex;
++  align-items: center;
++  gap: 8px;
++  margin: 0 0 var(--spacing-xl);
++  padding: 9px 16px;
++  border-radius: var(--radius-full);
++  background: #f4efea;
++  color: var(--color-marron-principal);
++  font-size: 0.88rem;
++  font-weight: 600;
++`;
++
++const BackLink = styled(Link)`
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  gap: 8px;
++  min-height: 46px;
++  padding: 11px 20px;
++  border-radius: var(--radius-md);
++  background: var(--color-marron-principal);
++  color: var(--color-blanco);
++  font-size: 0.9rem;
++  font-weight: 700;
++  text-decoration: none;
++  transition: var(--transition-fast);
++
++  &:hover { background: var(--color-bordo-secundario); }
++  &:focus-visible { outline: 3px solid var(--color-bordo-secundario); outline-offset: 3px; }
++
++  @media (max-width: 480px) {
++    width: 100%;
++  }
++`;
++
++export default function SectionPlaceholder({ section }) {
++  const Icon = section.icon;
++  return (
++    <PlaceholderPanel aria-labelledby="editor-inicio-section-title" data-section-id={section.id}>
++      <IconTile aria-hidden="true"><Icon size={30} strokeWidth={1.7} /></IconTile>
++      <SectionTitle id="editor-inicio-section-title">{section.title}</SectionTitle>
++      <SectionDescription>{section.description}</SectionDescription>
++      <ComingSoonBadge role="status"><FiClock aria-hidden="true" /> Editor próximamente disponible</ComingSoonBadge>
++      <div>
++        <BackLink to={EDITOR_INICIO_PATH}><FiArrowLeft aria-hidden="true" /> Volver al selector</BackLink>
++      </div>
++    </PlaceholderPanel>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/SectionSelector.jsx b/Frontend/src/pages/admin/editor-inicio/components/SectionSelector.jsx
+new file mode 100644
+index 0000000..4b25ce1
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/SectionSelector.jsx
+@@ -0,0 +1,87 @@
++import React from 'react';
++import styled from 'styled-components';
++import SectionCard from './SectionCard';
++import { EDITOR_INICIO_SECTIONS, sectionPath } from '../editorInicioSections';
++import { hasSectionEditor } from '../sectionEditors';
++
++const SelectorPanel = styled.section`
++  width: 100%;
++  max-width: 1320px;
++  padding: var(--spacing-lg) var(--spacing-md);
++  border: 1px solid #ece4de;
++  border-radius: var(--radius-xl);
++  background: rgba(255, 255, 255, 0.72);
++  box-shadow: 0 30px 70px -40px rgba(62, 1, 2, 0.35);
++
++  @media (min-width: 768px) {
++    padding: var(--spacing-xxl) var(--spacing-xl);
++  }
++`;
++
++const PanelHeader = styled.header`
++  max-width: 640px;
++  margin: 0 auto var(--spacing-xl);
++  text-align: center;
++
++  @media (min-width: 768px) {
++    margin-bottom: 40px;
++  }
++`;
++
++const Eyebrow = styled.p`
++  margin: 0 0 10px;
++  color: var(--color-bordo-secundario);
++  font-size: 0.72rem;
++  font-weight: 700;
++  letter-spacing: 0.16em;
++  text-transform: uppercase;
++`;
++
++const PanelTitle = styled.h1`
++  margin: 0 0 12px;
++  color: var(--color-marron-principal);
++  font-family: var(--font-family-primary);
++  font-size: clamp(1.7rem, 4.2vw, 2.6rem);
++  font-weight: 600;
++  line-height: 1.15;
++`;
++
++const PanelSubtitle = styled.p`
++  margin: 0;
++  color: #6f6262;
++  font-size: 0.95rem;
++  line-height: 1.55;
++`;
++
++const SectionsGrid = styled.ol`
++  display: grid;
++  grid-template-columns: 1fr;
++  gap: 14px;
++  margin: 0;
++  padding: 0;
++  list-style: none;
++
++  @media (min-width: 480px) { grid-template-columns: repeat(2, 1fr); }
++  @media (min-width: 768px) { grid-template-columns: repeat(3, 1fr); gap: 16px; }
++  @media (min-width: 992px) { grid-template-columns: repeat(4, 1fr); }
++  @media (min-width: 1200px) { grid-template-columns: repeat(5, 1fr); gap: 18px; }
++`;
++
++export default function SectionSelector() {
++  return (
++    <SelectorPanel aria-labelledby="editor-inicio-selector-title">
++      <PanelHeader>
++        <Eyebrow>Editor de Inicio</Eyebrow>
++        <PanelTitle id="editor-inicio-selector-title">¿Qué querés modificar hoy?</PanelTitle>
++        <PanelSubtitle>Elegí una sección de la página principal. Están ordenadas tal como aparecen en la tienda.</PanelSubtitle>
++      </PanelHeader>
++      <SectionsGrid aria-label="Secciones de la página de inicio">
++        {EDITOR_INICIO_SECTIONS.map((section, index) => (
++          <li key={section.id}>
++            <SectionCard section={section} order={index + 1} to={sectionPath(section.id)} available={hasSectionEditor(section.id)} />
++          </li>
++        ))}
++      </SectionsGrid>
++    </SelectorPanel>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/editorInicioSections.js b/Frontend/src/pages/admin/editor-inicio/editorInicioSections.js
+new file mode 100644
+index 0000000..41ea731
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/editorInicioSections.js
+@@ -0,0 +1,93 @@
++import {
++  FiImage,
++  FiStar,
++  FiGrid,
++  FiBookmark,
++  FiTag,
++  FiPercent,
++  FiLayers,
++  FiCreditCard,
++  FiGift,
++  FiCalendar,
++} from 'react-icons/fi';
++
++export const EDITOR_INICIO_PATH = '/editor-inicio-admin';
++
++// Orden verificado contra la sección Perfumería de pages/inicio/Inicio.jsx.
++// `landingComponent` indica qué componente de la landing pública representa cada sección.
++export const EDITOR_INICIO_SECTIONS = [
++  {
++    id: 'banners',
++    title: 'Banners',
++    description: 'Imágenes principales que abren Inicio en Perfumería y Hogar.',
++    icon: FiImage,
++    landingComponent: 'PromoCarousel',
++  },
++  {
++    id: 'seccion-destacada',
++    title: 'Sección Destacada',
++    description: 'Productos destacados que aparecen debajo de los banners.',
++    icon: FiStar,
++    landingComponent: 'FeaturedSection',
++  },
++  {
++    id: 'categorias',
++    title: 'Categorías',
++    description: 'Accesos rápidos a las categorías de la tienda.',
++    icon: FiGrid,
++    landingComponent: 'CategoriesSection',
++  },
++  {
++    id: 'categoria-destacada-1',
++    title: 'Categoría Destacada (1)',
++    description: 'Primera categoría con una selección de sus productos.',
++    icon: FiBookmark,
++    landingComponent: 'FeaturedCategorySection',
++  },
++  {
++    id: 'ofertas',
++    title: 'Ofertas',
++    description: 'Bloque «Disfrutá de las mejores ofertas» con accesos a promociones.',
++    icon: FiTag,
++    landingComponent: 'OfertasSection',
++  },
++  {
++    id: 'descuentos',
++    title: 'Descuentos',
++    description: 'Productos con precio rebajado.',
++    icon: FiPercent,
++    landingComponent: 'DiscountedSection',
++  },
++  {
++    id: 'categoria-destacada-2',
++    title: 'Categoría Destacada (2)',
++    description: 'Segunda categoría con una selección de sus productos.',
++    icon: FiLayers,
++    landingComponent: 'SpecificCategorySection',
++  },
++  {
++    id: 'beneficios',
++    title: 'Beneficios',
++    description: 'Promociones y beneficios de tarjetas bancarias.',
++    icon: FiCreditCard,
++    landingComponent: 'TarjetasPromociones',
++  },
++  {
++    id: 'gift-card',
++    title: 'Gift Card',
++    description: 'Banner que invita a regalar una tarjeta Marybe.',
++    icon: FiGift,
++    landingComponent: 'GiftCard',
++  },
++  {
++    id: 'proximos-eventos',
++    title: 'Próximos Eventos',
++    description: 'Agenda de eventos y actividades de la tienda.',
++    icon: FiCalendar,
++    landingComponent: 'ProximosEventos',
++  },
++];
++
++export const sectionPath = (id) => `${EDITOR_INICIO_PATH}/${id}`;
++
++export const findSection = (id) => EDITOR_INICIO_SECTIONS.find(section => section.id === id);
+diff --git a/Frontend/src/pages/admin/editor-inicio/sectionEditors.js b/Frontend/src/pages/admin/editor-inicio/sectionEditors.js
+new file mode 100644
+index 0000000..ff50513
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/sectionEditors.js
+@@ -0,0 +1,11 @@
++import { lazyWithRetry } from '../../../utils/lazyWithRetry';
++
++const BannersSectionEditor = lazyWithRetry(() => import('./components/BannersSectionEditor'), 'BannersSectionEditor');
++
++// Editores reales por identificador de sección. Las secciones sin entrada muestran
++// la vista "Editor próximamente disponible"; para habilitar un editor nuevo basta con registrarlo acá.
++export const SECTION_EDITORS = {
++  banners: BannersSectionEditor,
++};
++
++export const hasSectionEditor = (id) => Boolean(SECTION_EDITORS[id]);
+-- 
+2.43.0
+
+
+From c0ec8fc6c4dd02dc5cec333108d45d1df1ef1fa1 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 7 Nov 2026 22:02:09 +0000
+Subject: [PATCH 2/2] =?UTF-8?q?Editor=20de=20Inicio:=20editor=20visual=20d?=
+ =?UTF-8?q?e=20la=20Secci=C3=B3n=20Destacada?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- /editor-inicio-admin/seccion-destacada con lienzo real, áreas
+  Perfumería/Hogar, textos y colores, imágenes, productos destacados
+  y banners inferiores; borrador y publicación con control de versión.
+- API destacada-admin y campo privado borradores_editor_inicio.
+- FeaturedSection y FeaturedSectionHogar aceptan previewData opcional.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01DYCRcLQwfELKi4kAvBeRJk
+---
+ .../controllers/destacada-admin.js            |  21 ++
+ .../destacada-admin/routes/destacada-admin.js |  11 +
+ .../services/destacada-admin.js               | 253 ++++++++++++++++
+ .../seccion-principal/schema.json             |   5 +
+ Backend/tests/destacada-admin.test.js         | 126 ++++++++
+ Backend/types/generated/contentTypes.d.ts     |   1 +
+ Frontend/docs/editor-inicio-admin.md          |  32 ++-
+ Frontend/informe-mensual-Noviembre.md         |   9 +
+ Frontend/scripts/qa-editor-inicio.cjs         |  19 +-
+ Frontend/src/App.js                           |   4 +-
+ .../inicio/FeaturedPreview.test.jsx           |  45 +++
+ .../inicio/hogar/FeaturedSectionHogar.jsx     |  18 +-
+ .../inicio/perfumeria/FeaturedSection.jsx     |  27 +-
+ .../admin/editor-inicio/EditorInicioAdmin.jsx |   6 +-
+ .../editor-inicio/EditorInicioAdmin.test.jsx  |   7 +-
+ .../editor-inicio/EditorInicioPreview.jsx     |  92 ++++++
+ .../components/EditorPreviewDialog.jsx        |  56 ++++
+ .../components/EditorPreviewFrame.jsx         |  38 +++
+ .../components/MediaLibraryDialog.jsx         |  75 +++++
+ .../destacada/BannerInferiorPanel.jsx         |  25 ++
+ .../components/destacada/ColorField.jsx       |  20 ++
+ .../components/destacada/DestacadaEditor.jsx  | 269 ++++++++++++++++++
+ .../destacada/DestacadaEditor.test.jsx        | 106 +++++++
+ .../destacada/DestacadaPartsPanel.jsx         |  47 +++
+ .../components/destacada/ImagenPanel.jsx      |  28 ++
+ .../components/destacada/ProductosPanel.jsx   | 141 +++++++++
+ .../components/destacada/TextosPanel.jsx      |  24 ++
+ .../components/destacada/destacadaModel.js    |  58 ++++
+ .../admin/editor-inicio/sectionEditors.js     |   2 +
+ 29 files changed, 1540 insertions(+), 25 deletions(-)
+ create mode 100644 Backend/src/api/destacada-admin/controllers/destacada-admin.js
+ create mode 100644 Backend/src/api/destacada-admin/routes/destacada-admin.js
+ create mode 100644 Backend/src/api/destacada-admin/services/destacada-admin.js
+ create mode 100644 Backend/tests/destacada-admin.test.js
+ create mode 100644 Frontend/src/components/inicio/FeaturedPreview.test.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/EditorInicioPreview.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/EditorPreviewDialog.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/EditorPreviewFrame.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/MediaLibraryDialog.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/destacada/BannerInferiorPanel.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/destacada/ColorField.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/destacada/DestacadaEditor.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/destacada/DestacadaEditor.test.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/destacada/DestacadaPartsPanel.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/destacada/ImagenPanel.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/destacada/ProductosPanel.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/destacada/TextosPanel.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/destacada/destacadaModel.js
+
+diff --git a/Backend/src/api/destacada-admin/controllers/destacada-admin.js b/Backend/src/api/destacada-admin/controllers/destacada-admin.js
+new file mode 100644
+index 0000000..4342c56
+--- /dev/null
++++ b/Backend/src/api/destacada-admin/controllers/destacada-admin.js
+@@ -0,0 +1,21 @@
++'use strict';
++
++const { verificarAdmin } = require('../../../utils/admin-auth');
++
++async function run(ctx, action) {
++  if (!verificarAdmin(ctx, strapi)) return ctx.unauthorized('Iniciá sesión como administrador.');
++  try {
++    return ctx.send({ data: await action(strapi.service('api::destacada-admin.destacada-admin')) });
++  } catch (error) {
++    strapi.log.error(`[DestacadaAdmin] ${error.message}`);
++    return ctx.throw(error.status || 500, error.status ? error.message : 'No se pudo guardar la Sección Destacada.');
++  }
++}
++
++module.exports = {
++  overview: ctx => run(ctx, service => service.overview()),
++  search: ctx => run(ctx, service => service.search(ctx.query)),
++  save: ctx => run(ctx, service => service.save(ctx.params.area, ctx.request.body)),
++  // DELETE no lleva cuerpo: la versión viaja como parámetro de consulta.
++  discard: ctx => run(ctx, service => service.discard(ctx.params.area, { version: ctx.query.version })),
++};
+diff --git a/Backend/src/api/destacada-admin/routes/destacada-admin.js b/Backend/src/api/destacada-admin/routes/destacada-admin.js
+new file mode 100644
+index 0000000..fef9408
+--- /dev/null
++++ b/Backend/src/api/destacada-admin/routes/destacada-admin.js
+@@ -0,0 +1,11 @@
++'use strict';
++
++// Autenticación propia del panel (JWT isAdminImport), validada en el controlador.
++module.exports = {
++  routes: [
++    { method: 'GET', path: '/destacada-admin', handler: 'destacada-admin.overview', config: { auth: false } },
++    { method: 'GET', path: '/destacada-admin/productos', handler: 'destacada-admin.search', config: { auth: false } },
++    { method: 'PUT', path: '/destacada-admin/:area', handler: 'destacada-admin.save', config: { auth: false } },
++    { method: 'DELETE', path: '/destacada-admin/:area/borrador', handler: 'destacada-admin.discard', config: { auth: false } },
++  ],
++};
+diff --git a/Backend/src/api/destacada-admin/services/destacada-admin.js b/Backend/src/api/destacada-admin/services/destacada-admin.js
+new file mode 100644
+index 0000000..827f2d2
+--- /dev/null
++++ b/Backend/src/api/destacada-admin/services/destacada-admin.js
+@@ -0,0 +1,253 @@
++'use strict';
++
++const { safeUrl } = require('../../banners-admin/services/banners-admin');
++
++const MAIN = 'api::seccion-principal.seccion-principal';
++const PRODUCT = 'api::producto.producto';
++const FILE = 'plugin::upload.file';
++
++// `item` es el valor del enum de shared.seccion-principal-item; `products` el texto de producto.seccion.
++const AREAS = {
++  perfumeria: { label: 'Perfumería', item: 'Perfumeria', products: 'Perfumería', banners: true },
++  hogar: { label: 'Hogar', item: 'Hogar', products: 'Hogar', banners: false },
++};
++const MAX_PRODUCTS = 40;
++const MAX_BANNERS = 2;
++const MAX_SEARCH = 30;
++const mainPopulate = { secciones: { populate: ['imagen_desktop', 'imagen_mobile'] }, categorias_destacadas: { populate: ['imagen'] } };
++const productFields = ['nombre', 'marca', 'sku', 'seccion', 'precio', 'precio_oferta', 'descuento', 'stock', 'publicado', 'destacado', 'precio_minimo_calculado', 'precio_maximo_calculado'];
++const productPopulate = { portada: { fields: ['url', 'width', 'height', 'alternativeText'] }, variantes: { populate: { portada: { fields: ['url'] } } } };
++
++function fail(message, status = 400) { const error = new Error(message); error.status = status; throw error; }
++function text(value, max) {
++  if (value == null) return '';
++  if (typeof value !== 'string' || value.length > max) fail('Texto demasiado largo o inválido.');
++  return value;
++}
++function color(value) {
++  if (value == null || value === '') return '';
++  if (typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value)) fail('Color inválido. Usá el formato #RRGGBB.');
++  return value.toUpperCase();
++}
++function areaFor(key) {
++  const area = AREAS[key];
++  if (!area) fail('Área inválida.', 404);
++  return area;
++}
++const normalize = value => String(value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
++const itemFor = (main, area) => (main?.secciones || []).find(item => normalize(item.seccion) === normalize(area.item));
++const media = file => (file?.id ? { id: file.id, url: file.url, name: file.name, width: file.width, height: file.height } : null);
++const mediaKey = value => (typeof value === 'object' && value !== null ? value.id : value);
++
++function emptyData() {
++  return { titulo_cursiva: '', titulo_normal: '', color_titulo_cursiva: '', color_titulo_normal: '', subtitulo: '', imagen_desktop: null, imagen_mobile: null, banners: [], productos: [] };
++}
++
++module.exports = ({ strapi }) => {
++  async function loadMain() {
++    return strapi.documents(MAIN).findFirst({ populate: mainPopulate });
++  }
++
++  async function productCards(where) {
++    return strapi.documents(PRODUCT).findMany({ status: 'published', fields: productFields, populate: productPopulate, sort: 'id:asc', limit: 200, ...where });
++  }
++
++  async function featuredProducts(area) {
++    return productCards({ filters: { publicado: true, destacado: true, seccion: area.products } });
++  }
++
++  async function filesById(ids) {
++    const unique = [...new Set(ids.filter(id => Number.isSafeInteger(id)))];
++    if (!unique.length) return new Map();
++    const files = await strapi.db.query(FILE).findMany({ where: { id: { $in: unique } }, select: ['id', 'url', 'name', 'width', 'height', 'mime'] });
++    return new Map(files.map(file => [file.id, file]));
++  }
++
++  function publishedState(main, area, products) {
++    const item = itemFor(main, area);
++    return {
++      titulo_cursiva: item?.titulo_cursiva || '',
++      titulo_normal: item?.titulo_normal || '',
++      color_titulo_cursiva: item?.color_titulo_cursiva || '',
++      color_titulo_normal: item?.color_titulo_normal || '',
++      subtitulo: item?.subtitulo || '',
++      imagen_desktop: media(item?.imagen_desktop),
++      imagen_mobile: media(item?.imagen_mobile),
++      banners: area.banners ? (main?.categorias_destacadas || []).map(banner => ({ titulo: banner.titulo || '', imagen: media(banner.imagen), texto_boton: banner.texto_boton || '', link_boton: banner.link_boton || '' })) : [],
++      productos: products.map(product => product.documentId),
++    };
++  }
++
++  function hydrateDraft(stored, files) {
++    if (!stored?.data) return null;
++    const data = { ...emptyData(), ...stored.data };
++    return {
++      ...data,
++      imagen_desktop: media(files.get(data.imagen_desktop)),
++      imagen_mobile: media(files.get(data.imagen_mobile)),
++      banners: (data.banners || []).map(banner => ({ ...banner, imagen: media(files.get(banner.imagen)) })),
++    };
++  }
++
++  async function overview() {
++    const main = await loadMain();
++    const drafts = main?.borradores_editor_inicio?.destacada || {};
++    const draftMediaIds = Object.values(drafts).flatMap(entry => [entry?.data?.imagen_desktop, entry?.data?.imagen_mobile, ...(entry?.data?.banners || []).map(banner => banner.imagen)]);
++    const files = await filesById(draftMediaIds);
++    const catalog = new Map();
++    const areas = {};
++    for (const [key, area] of Object.entries(AREAS)) {
++      const featured = await featuredProducts(area);
++      featured.forEach(product => catalog.set(product.documentId, product));
++      areas[key] = { published: publishedState(main, area, featured), draft: hydrateDraft(drafts[key], files), draftSavedAt: drafts[key]?.savedAt || null };
++    }
++    const missing = Object.values(areas).flatMap(entry => entry.draft?.productos || []).filter(id => !catalog.has(id));
++    if (missing.length) (await productCards({ filters: { documentId: { $in: missing } } })).forEach(product => catalog.set(product.documentId, product));
++    return { version: main?.updatedAt || null, exists: Boolean(main), areas, products: Object.fromEntries(catalog) };
++  }
++
++  async function mediaId(value) {
++    const id = mediaKey(value);
++    if (id == null || id === '') return null;
++    if (!Number.isSafeInteger(Number(id)) || Number(id) < 1) fail('Imagen inválida.');
++    const file = await strapi.db.query(FILE).findOne({ where: { id: Number(id) } });
++    if (!file || !file.mime?.startsWith('image/') || file.mime === 'image/svg+xml') fail('Seleccioná una imagen JPG, PNG, WebP, GIF o AVIF de la biblioteca.');
++    return Number(id);
++  }
++
++  async function clean(input, area, strict) {
++    if (!input || typeof input !== 'object' || Array.isArray(input)) fail('Datos inválidos.');
++    const data = {
++      titulo_cursiva: text(input.titulo_cursiva, 120),
++      titulo_normal: text(input.titulo_normal, 120),
++      color_titulo_cursiva: color(input.color_titulo_cursiva),
++      color_titulo_normal: color(input.color_titulo_normal),
++      subtitulo: text(input.subtitulo, 500),
++      imagen_desktop: await mediaId(input.imagen_desktop),
++      imagen_mobile: await mediaId(input.imagen_mobile),
++      banners: [],
++      productos: [],
++    };
++    if (input.banners != null && !Array.isArray(input.banners)) fail('Banners inválidos.');
++    if (area.banners) {
++      if ((input.banners || []).length > MAX_BANNERS) fail(`La sección admite hasta ${MAX_BANNERS} banners.`);
++      for (const banner of input.banners || []) {
++        if (!banner || typeof banner !== 'object') fail('Banner inválido.');
++        data.banners.push({ titulo: text(banner.titulo, 120), imagen: await mediaId(banner.imagen), texto_boton: text(banner.texto_boton, 60), link_boton: safeUrl(banner.link_boton) });
++      }
++    }
++    if (input.productos != null && !Array.isArray(input.productos)) fail('Productos inválidos.');
++    const ids = input.productos || [];
++    if (ids.length > MAX_PRODUCTS) fail(`Podés destacar hasta ${MAX_PRODUCTS} productos.`);
++    if (ids.some(id => typeof id !== 'string' || !/^[a-z0-9]{1,64}$/i.test(id))) fail('Producto inválido.');
++    if (new Set(ids).size !== ids.length) fail('Hay productos repetidos.');
++    if (ids.length) {
++      const found = await strapi.documents(PRODUCT).findMany({ status: 'published', fields: ['seccion', 'publicado'], filters: { documentId: { $in: ids }, publicado: true, seccion: area.products }, limit: MAX_PRODUCTS });
++      if (found.length !== ids.length) fail(`Algunos productos ya no están publicados en ${area.label}. Quitalos y volvé a intentar.`);
++    }
++    data.productos = ids;
++    if (strict) {
++      if (!data.titulo_cursiva.trim() || !data.titulo_normal.trim()) fail('Completá las dos partes del título antes de publicar.');
++      if (!data.imagen_desktop) fail('Elegí la imagen para computadora antes de publicar.');
++      if (data.banners.some(banner => !banner.titulo.trim() || !banner.imagen || !banner.texto_boton.trim())) fail('Cada banner inferior necesita título, imagen y texto del botón.');
++    }
++    return data;
++  }
++
++  function componentFrom(item) {
++    return {
++      id: item.id,
++      seccion: item.seccion,
++      titulo_cursiva: item.titulo_cursiva,
++      titulo_normal: item.titulo_normal,
++      color_titulo_cursiva: item.color_titulo_cursiva || null,
++      color_titulo_normal: item.color_titulo_normal || null,
++      subtitulo: item.subtitulo,
++      imagen_desktop: item.imagen_desktop?.id ?? null,
++      imagen_mobile: item.imagen_mobile?.id ?? null,
++    };
++  }
++
++  async function writeMain(main, data) {
++    if (main) return strapi.documents(MAIN).update({ documentId: main.documentId, data });
++    return strapi.documents(MAIN).create({ data: { secciones: [], ...data } });
++  }
++
++  async function syncProducts(area, ids) {
++    const current = await strapi.documents(PRODUCT).findMany({ status: 'published', fields: ['documentId'], filters: { publicado: true, destacado: true, seccion: area.products }, limit: 1000 });
++    const currentIds = current.map(product => product.documentId);
++    const add = ids.filter(id => !currentIds.includes(id));
++    const remove = currentIds.filter(id => !ids.includes(id));
++    // Actualiza las filas borrador y publicada de cada producto sin publicar otros cambios pendientes.
++    if (add.length) await strapi.db.query(PRODUCT).updateMany({ where: { documentId: { $in: add } }, data: { destacado: true } });
++    if (remove.length) await strapi.db.query(PRODUCT).updateMany({ where: { documentId: { $in: remove } }, data: { destacado: false } });
++    return { add, remove };
++  }
++
++  function checkVersion(main, version) {
++    if ((main?.updatedAt || null) !== (version ?? null)) fail('Otro administrador modificó la Página de Inicio. Recargá antes de guardar.', 409);
++  }
++
++  return {
++    overview,
++
++    async search(query = {}) {
++      const area = areaFor(query.area);
++      const term = text(query.q, 80).trim();
++      const filters = { publicado: true, seccion: area.products };
++      if (term) filters.$or = [{ nombre: { $containsi: term } }, { marca: { $containsi: term } }, { sku: { $containsi: term } }];
++      return strapi.documents(PRODUCT).findMany({ status: 'published', fields: productFields, populate: productPopulate, filters, sort: 'nombre:asc', limit: MAX_SEARCH });
++    },
++
++    async save(areaKey, body = {}) {
++      const area = areaFor(areaKey);
++      const main = await loadMain();
++      checkVersion(main, body.version);
++      const publish = body.publish === true;
++      const data = await clean(body.data, area, publish);
++      const stored = main?.borradores_editor_inicio || {};
++      const drafts = { ...stored, destacada: { ...(stored.destacada || {}) } };
++      if (!publish) {
++        drafts.destacada[areaKey] = { data, savedAt: new Date().toISOString() };
++        await writeMain(main, { borradores_editor_inicio: drafts });
++        return overview();
++      }
++      delete drafts.destacada[areaKey];
++      const values = {
++        seccion: area.item,
++        titulo_cursiva: data.titulo_cursiva.trim(),
++        titulo_normal: data.titulo_normal.trim(),
++        color_titulo_cursiva: data.color_titulo_cursiva || null,
++        color_titulo_normal: data.color_titulo_normal || null,
++        subtitulo: data.subtitulo,
++        imagen_desktop: data.imagen_desktop,
++        imagen_mobile: data.imagen_mobile,
++      };
++      const current = itemFor(main, area);
++      const secciones = (main?.secciones || []).map(item => (item === current ? { id: item.id, ...values } : componentFrom(item)));
++      if (!current) secciones.push(values);
++      const update = { secciones, borradores_editor_inicio: drafts };
++      if (area.banners) {
++        const existing = main?.categorias_destacadas || [];
++        update.categorias_destacadas = data.banners.map((banner, index) => ({ ...(existing[index]?.id ? { id: existing[index].id } : {}), ...banner }));
++      }
++      const run = async () => { await writeMain(main, update); await syncProducts(area, data.productos); };
++      if (typeof strapi.db.transaction === 'function') await strapi.db.transaction(run); else await run();
++      return overview();
++    },
++
++    async discard(areaKey, body = {}) {
++      areaFor(areaKey);
++      const main = await loadMain();
++      checkVersion(main, body.version);
++      const stored = main?.borradores_editor_inicio || {};
++      if (!stored.destacada?.[areaKey]) return overview();
++      const destacada = { ...stored.destacada };
++      delete destacada[areaKey];
++      await writeMain(main, { borradores_editor_inicio: { ...stored, destacada } });
++      return overview();
++    },
++  };
++};
++
++module.exports.AREAS = AREAS;
+diff --git a/Backend/src/api/seccion-principal/content-types/seccion-principal/schema.json b/Backend/src/api/seccion-principal/content-types/seccion-principal/schema.json
+index 4cbd886..802bc52 100644
+--- a/Backend/src/api/seccion-principal/content-types/seccion-principal/schema.json
++++ b/Backend/src/api/seccion-principal/content-types/seccion-principal/schema.json
+@@ -17,6 +17,11 @@
+       "private": true,
+       "description": "Borrador y versión publicada de las piezas visuales del editor /banners-admin"
+     },
++    "borradores_editor_inicio": {
++      "type": "json",
++      "private": true,
++      "description": "Borradores del Editor de Inicio (/editor-inicio-admin) por sección y área"
++    },
+     "texto_toggle_perfumeria": {
+       "type": "string",
+       "default": "Perfumería"
+diff --git a/Backend/tests/destacada-admin.test.js b/Backend/tests/destacada-admin.test.js
+new file mode 100644
+index 0000000..32e1ba3
+--- /dev/null
++++ b/Backend/tests/destacada-admin.test.js
+@@ -0,0 +1,126 @@
++const { test } = require('node:test');
++const assert = require('node:assert/strict');
++const createService = require('../src/api/destacada-admin/services/destacada-admin');
++
++const IMAGES = { 10: { id: 10, mime: 'image/webp', url: '/uploads/hero.webp', name: 'hero.webp' }, 11: { id: 11, mime: 'image/webp', url: '/uploads/mobile.webp', name: 'mobile.webp' }, 12: { id: 12, mime: 'image/svg+xml', url: '/x.svg' } };
++
++function fixture() {
++  let main = {
++    documentId: 'main-1', updatedAt: 'v1', texto_toggle_perfumeria: 'Belleza',
++    secciones: [
++      { id: 1, seccion: 'Perfumeria', titulo_cursiva: 'Lo nuevo', titulo_normal: 'en Marybe', subtitulo: 'Sub', imagen_desktop: IMAGES[10], imagen_mobile: null },
++      { id: 2, seccion: 'Hogar', titulo_cursiva: 'Tu espacio,', titulo_normal: 'tu hogar', imagen_desktop: IMAGES[11], imagen_mobile: IMAGES[10] },
++    ],
++    categorias_destacadas: [{ id: 7, titulo: 'Elixir', imagen: IMAGES[10], texto_boton: 'Conocer más', link_boton: '/tienda' }],
++  };
++  const products = [
++    { documentId: 'p1', seccion: 'Perfumería', publicado: true, destacado: true },
++    { documentId: 'p2', seccion: 'Perfumería', publicado: true, destacado: false },
++    { documentId: 'h1', seccion: 'Hogar', publicado: true, destacado: true },
++  ];
++  const events = [];
++  const matches = (product, filters = {}) => Object.entries(filters).every(([key, value]) => {
++    if (key === '$or') return true;
++    if (key === 'documentId') return value.$in.includes(product.documentId);
++    return product[key] === value;
++  });
++  const strapi = {
++    documents: uid => (uid.includes('producto') ? {
++      findMany: async ({ filters }) => products.filter(product => matches(product, filters)).map(product => ({ ...product })),
++    } : {
++      findFirst: async () => structuredClone(main),
++      update: async ({ data }) => { events.push(['update', data]); main = { ...main, ...data, updatedAt: 'v2' }; return main; },
++      create: async ({ data }) => { events.push(['create', data]); main = { documentId: 'main-new', ...data, updatedAt: 'v2' }; return main; },
++    }),
++    db: {
++      transaction: async run => { events.push(['transaction']); return run(); },
++      query: uid => (uid.includes('upload') ? {
++        findOne: async ({ where }) => IMAGES[where.id] || null,
++        findMany: async ({ where }) => where.id.$in.map(id => IMAGES[id]).filter(Boolean),
++      } : {
++        updateMany: async ({ where, data }) => {
++          events.push(['products', where.documentId.$in, data.destacado]);
++          products.forEach(product => { if (where.documentId.$in.includes(product.documentId)) product.destacado = data.destacado; });
++        },
++      }),
++    },
++  };
++  return { service: createService({ strapi }), events, main: () => main, products };
++}
++
++const body = (overrides = {}) => ({ version: 'v1', data: { titulo_cursiva: 'Lo más nuevo', titulo_normal: 'en Marybe', subtitulo: 'Nuevo', color_titulo_cursiva: '#f2dc8f', color_titulo_normal: '', imagen_desktop: { id: 10 }, imagen_mobile: { id: 11 }, banners: [{ titulo: 'Azzaro', imagen: { id: 11 }, texto_boton: 'Ver', link_boton: '/tienda' }], productos: ['p2'] }, ...overrides });
++
++test('el resumen expone lo publicado por área sin borradores', async () => {
++  const { service } = fixture();
++  const result = await service.overview();
++  assert.equal(result.version, 'v1');
++  assert.equal(result.areas.perfumeria.published.titulo_cursiva, 'Lo nuevo');
++  assert.equal(result.areas.perfumeria.published.imagen_desktop.url, '/uploads/hero.webp');
++  assert.deepEqual(result.areas.perfumeria.published.productos, ['p1']);
++  assert.equal(result.areas.perfumeria.published.banners[0].titulo, 'Elixir');
++  assert.deepEqual(result.areas.hogar.published.banners, []);
++  assert.deepEqual(result.areas.hogar.published.productos, ['h1']);
++  assert.equal(result.areas.perfumeria.draft, null);
++});
++
++test('guardar borrador no modifica secciones, banners ni productos publicados', async () => {
++  const { service, events, products } = fixture();
++  const result = await service.save('perfumeria', body());
++  assert.deepEqual(events.map(event => event[0]), ['update']);
++  assert.deepEqual(Object.keys(events[0][1]), ['borradores_editor_inicio']);
++  assert.equal(result.areas.perfumeria.draft.titulo_cursiva, 'Lo más nuevo');
++  assert.equal(result.areas.perfumeria.draft.imagen_mobile.url, '/uploads/mobile.webp');
++  assert.equal(result.areas.perfumeria.published.titulo_cursiva, 'Lo nuevo');
++  assert.equal(products.find(product => product.documentId === 'p1').destacado, true);
++});
++
++test('publicar actualiza solo el área elegida, conserva ids y sincroniza destacados', async () => {
++  const { service, events, main, products } = fixture();
++  await service.save('perfumeria', body({ publish: true }));
++  const update = events.find(event => event[0] === 'update')[1];
++  assert.deepEqual(update.secciones[0], { id: 1, seccion: 'Perfumeria', titulo_cursiva: 'Lo más nuevo', titulo_normal: 'en Marybe', color_titulo_cursiva: '#F2DC8F', color_titulo_normal: null, subtitulo: 'Nuevo', imagen_desktop: 10, imagen_mobile: 11 });
++  assert.deepEqual(update.secciones[1], { id: 2, seccion: 'Hogar', titulo_cursiva: 'Tu espacio,', titulo_normal: 'tu hogar', color_titulo_cursiva: null, color_titulo_normal: null, subtitulo: undefined, imagen_desktop: 11, imagen_mobile: 10 });
++  assert.deepEqual(update.categorias_destacadas, [{ id: 7, titulo: 'Azzaro', imagen: 11, texto_boton: 'Ver', link_boton: '/tienda' }]);
++  assert.deepEqual(events.filter(event => event[0] === 'products'), [['products', ['p2'], true], ['products', ['p1'], false]]);
++  assert.ok(events.some(event => event[0] === 'transaction'));
++  assert.equal(products.find(product => product.documentId === 'h1').destacado, true, 'Hogar no cambia');
++  assert.equal(main().borradores_editor_inicio.destacada.perfumeria, undefined);
++});
++
++test('Hogar no publica banners inferiores', async () => {
++  const { service, events } = fixture();
++  await service.save('hogar', body({ publish: true, data: { ...body().data, productos: ['h1'] } }));
++  const update = events.find(event => event[0] === 'update')[1];
++  assert.equal(update.categorias_destacadas, undefined);
++  assert.equal(update.secciones[1].titulo_cursiva, 'Lo más nuevo');
++  assert.equal(update.secciones[0].titulo_cursiva, 'Lo nuevo');
++});
++
++test('rechaza conflictos y datos inválidos', async () => {
++  const { service } = fixture();
++  await assert.rejects(service.save('perfumeria', body({ version: 'viejo' })), error => error.status === 409);
++  await assert.rejects(service.save('marketing', body()), error => error.status === 404);
++  await assert.rejects(service.save('perfumeria', body({ data: { ...body().data, imagen_desktop: { id: 12 } } })), /imagen/);
++  await assert.rejects(service.save('perfumeria', body({ data: { ...body().data, color_titulo_normal: 'red' } })), /Color/);
++  await assert.rejects(service.save('perfumeria', body({ data: { ...body().data, productos: ['h1'] } })), /no están publicados/);
++  await assert.rejects(service.save('perfumeria', body({ data: { ...body().data, productos: ['p2', 'p2'] } })), /repetidos/);
++  await assert.rejects(service.save('perfumeria', body({ data: { ...body().data, banners: [{ titulo: 'x', link_boton: 'javascript:alert(1)' }] } })), /URL/);
++  await assert.rejects(service.save('perfumeria', body({ data: { ...body().data, banners: [{}, {}, {}] } })), /hasta 2/);
++});
++
++test('publicar exige título completo, imagen de computadora y banners completos', async () => {
++  const { service } = fixture();
++  await assert.rejects(service.save('perfumeria', body({ publish: true, data: { ...body().data, titulo_normal: ' ' } })), /título/);
++  await assert.rejects(service.save('perfumeria', body({ publish: true, data: { ...body().data, imagen_desktop: null } })), /computadora/);
++  await assert.rejects(service.save('perfumeria', body({ publish: true, data: { ...body().data, banners: [{ titulo: 'Sin imagen', texto_boton: 'Ver' }] } })), /banner inferior/);
++  await service.save('perfumeria', body({ data: { ...body().data, imagen_desktop: null } }));
++});
++
++test('descartar elimina solo el borrador del área', async () => {
++  const { service } = fixture();
++  let result = await service.save('perfumeria', body());
++  result = await service.save('hogar', { version: result.version, data: { ...body().data, productos: [] } });
++  result = await service.discard('perfumeria', { version: result.version });
++  assert.equal(result.areas.perfumeria.draft, null);
++  assert.equal(result.areas.hogar.draft.titulo_cursiva, 'Lo más nuevo');
++});
+diff --git a/Backend/types/generated/contentTypes.d.ts b/Backend/types/generated/contentTypes.d.ts
+index 71b5b7a..b50ee42 100644
+--- a/Backend/types/generated/contentTypes.d.ts
++++ b/Backend/types/generated/contentTypes.d.ts
+@@ -1044,6 +1044,7 @@ export interface ApiSeccionPrincipalSeccionPrincipal
+   };
+   attributes: {
+     banners_visuales: Schema.Attribute.JSON & Schema.Attribute.Private;
++    borradores_editor_inicio: Schema.Attribute.JSON & Schema.Attribute.Private;
+     categoria_especifica_hogar: Schema.Attribute.Component<
+       'inicio.categoria_especifica',
+       false
+diff --git a/Frontend/docs/editor-inicio-admin.md b/Frontend/docs/editor-inicio-admin.md
+index d7b7537..d09dd2e 100644
+--- a/Frontend/docs/editor-inicio-admin.md
++++ b/Frontend/docs/editor-inicio-admin.md
+@@ -12,6 +12,7 @@ Usa el mismo acceso administrativo que Banners, Pedidos e Importación: login en
+ |---|---|
+ | `/editor-inicio-admin` | Selector «¿Qué querés modificar hoy?» |
+ | `/editor-inicio-admin/banners` | Editor de banners existente (`BannersAdmin`) |
++| `/editor-inicio-admin/seccion-destacada` | Editor visual de la Sección Destacada («Lo nuevo en Marybe») |
+ | `/editor-inicio-admin/<id>` | Editor de la sección o vista «Editor próximamente disponible» |
+ | `/editor-inicio-admin/<id-inexistente>` | Redirige al selector |
+ 
+@@ -33,16 +34,45 @@ src/pages/admin/editor-inicio/
+     └── BannersSectionEditor.jsx← integra BannersAdmin con «← Editor de Inicio»
+ ```
+ 
+-Para habilitar el editor de otra sección: crear su componente y registrarlo en `SECTION_EDITORS` con el `id` de la sección. Recibe `section`, `onBack` y `onLogout`. La tarjeta pasa automáticamente de «Próximamente» a «Editar sección».
++Para habilitar el editor de otra sección: crear su componente y registrarlo en `SECTION_EDITORS` con el `id` de la sección. Recibe `section`, `token`, `onBack` y `onLogout`. La tarjeta pasa automáticamente de «Próximamente» a «Editar sección».
+ 
+ `BannersAdmin` acepta dos props opcionales, usadas solo dentro del Editor de Inicio: `onBack` (muestra el botón de regreso y pide confirmación si hay cambios sin guardar) y `onLogout` (se llama al usar **Salir**). Sin props, `/banners-admin` se comporta igual que antes.
+ 
++## Sección Destacada
++
++Editor visual con la misma organización que Banners: área (Perfumería / Hogar), partes de la sección a la izquierda, lienzo con la sección real en el centro (computadora 1280 px, tablet 820 px, celular 390 px) e inspector a la derecha. Un clic sobre el lienzo selecciona la parte correspondiente. Incluye deshacer/rehacer por área (60 pasos), vista previa limpia a pantalla completa y aviso al salir con cambios sin guardar.
++
++Partes editables:
++
++- **Título y subtítulo:** las dos partes del título, sus colores (vacío conserva el color original) y el subtítulo.
++- **Imagen principal:** computadora/tablet (obligatoria) y celular (opcional), desde la biblioteca o subiendo una imagen.
++- **Productos destacados:** búsqueda por nombre, marca o SKU entre los productos publicados del área; hasta 40. La tienda los ordena según el catálogo.
++- **Banners inferiores (solo Perfumería):** hasta 2, con título, imagen, texto y enlace del botón. Sin banners, la tienda muestra los predeterminados.
++
++**Guardar borrador** conserva el trabajo en `seccion-principal.borradores_editor_inicio` (campo privado, nunca se expone en la API pública) sin cambiar la tienda. **Publicar cambios** escribe en los campos que ya usa la landing: `secciones[]` (ítem del área), `categorias_destacadas` y el indicador `destacado` de los productos. La publicación actualiza `destacado` en la fila borrador y en la publicada de cada producto sin publicar otros cambios pendientes del producto, y solo toca productos publicados (`publicado = true`) del área. Cada guardado comprueba la versión (`updatedAt`): si otra persona modificó la Página de Inicio, devuelve 409 y conserva el trabajo local.
++
++El lienzo es `/editor-inicio-preview`: recibe el borrador por `postMessage` del mismo origen y renderiza `FeaturedSection` / `FeaturedSectionHogar` con la prop opcional `previewData`. Sin esa prop, los componentes de la landing funcionan igual que antes.
++
++API (JWT administrativo `isAdminImport`):
++
++- `GET /api/destacada-admin`: versión, estado publicado y borrador de cada área, y tarjetas de los productos referenciados.
++- `GET /api/destacada-admin/productos?area=perfumeria&q=texto`: hasta 30 productos publicados del área.
++- `PUT /api/destacada-admin/:area` (`perfumeria` | `hogar`): `{ version, data, publish }`.
++- `DELETE /api/destacada-admin/:area/borrador?version=…`: descarta el borrador del área.
++
++La biblioteca de imágenes reutiliza `/api/banners-admin/media` y `/api/banners-admin/upload`. Después de actualizar, reiniciar Strapi para registrar el campo nuevo y las rutas.
++
+ ## Validación
+ 
+ ```powershell
+ # Desde Frontend
+ npm test -- --watchAll=false
+ npm run build
++
++# Desde Backend
++node --test tests/*.test.js
++
++# Desde Frontend (con el frontend en marcha)
+ node scripts/qa-editor-inicio.cjs <ruta-a-playwright> http://localhost:3000
+ ```
+ 
+diff --git a/Frontend/informe-mensual-Noviembre.md b/Frontend/informe-mensual-Noviembre.md
+index 9460162..47bbf44 100644
+--- a/Frontend/informe-mensual-Noviembre.md
++++ b/Frontend/informe-mensual-Noviembre.md
+@@ -328,3 +328,12 @@ Cambios realizados:
+ - Banners abre el editor existente en `/editor-inicio-admin/banners`, con botón «← Editor de Inicio» (pide confirmación si hay cambios sin guardar). `/banners-admin` sigue funcionando igual.
+ - Las demás secciones tienen ruta propia (`/editor-inicio-admin/<id>`) con la vista «Editor próximamente disponible» y regreso al selector; rutas inexistentes vuelven al selector. Configuración central en `editorInicioSections.js` y registro de editores en `sectionEditors.js`. Documentación en `docs/editor-inicio-admin.md`.
+ - Validación: 200 pruebas de frontend aprobadas (13 nuevas), lint sin errores en los archivos tocados, `npm run build` correcto y QA en navegador con CMS simulado (`scripts/qa-editor-inicio.cjs`) en escritorio, tablet y celular.
++
++Editor de Inicio — Sección Destacada (editor visual) ✅
++
++Cambios realizados:
++- Nuevo editor en `/editor-inicio-admin/seccion-destacada` con la misma organización que Banners: Perfumería/Hogar, partes de la sección, lienzo con la sección real («Lo nuevo en Marybe») en computadora, tablet y celular, inspector, deshacer/rehacer, vista previa limpia y aviso por cambios sin guardar. Un clic en el lienzo abre la parte correspondiente.
++- Se editan título (dos partes y sus colores), subtítulo, imagen de computadora y de celular (biblioteca o subida), productos destacados (búsqueda por nombre, marca o SKU, hasta 40) y los dos banners inferiores de Perfumería.
++- Guardar borrador no cambia la tienda (campo privado `borradores_editor_inicio` en la Página de Inicio). Publicar escribe en `secciones`, `categorias_destacadas` y `destacado` de los productos, sin publicar otros cambios pendientes de cada producto. Control de versión con aviso 409.
++- Backend: API `destacada-admin` (resumen, búsqueda, guardar/publicar, descartar borrador) con el JWT administrativo. Landing: `FeaturedSection` y `FeaturedSectionHogar` aceptan `previewData` opcional; sin ella funcionan igual.
++- Validación: 209 pruebas de frontend y 101 de backend aprobadas, build correcto, integración con Strapi real (SQLite de QA) y recorrido completo en navegador: borrador, recarga, vista previa, conflicto, publicación reflejada en `/inicio`, Hogar y celular.
+diff --git a/Frontend/scripts/qa-editor-inicio.cjs b/Frontend/scripts/qa-editor-inicio.cjs
+index b722660..c016e71 100644
+--- a/Frontend/scripts/qa-editor-inicio.cjs
++++ b/Frontend/scripts/qa-editor-inicio.cjs
+@@ -22,6 +22,10 @@ const SECTIONS = [
+ ];
+ const group = { documentId: 'qa-promo', updatedAt: 'v1', titulo: 'Campaña QA', seccion: 'Perfumería', Filas: [{ id: 1, __component: 'layout.fila-1-columna', diseno: { desktop: { columns: 1 } }, banners: [{ id: 2, titulo: 'Banner QA', imagen_desktop: { id: 3, url: '/inicio/giftcard.webp' }, diseno: { desktop: { height: 420 } } }] }] };
+ 
++const destacadaArea = { published: { titulo_cursiva: 'Lo nuevo', titulo_normal: 'en Marybe', color_titulo_cursiva: '', color_titulo_normal: '', subtitulo: 'Intensidad, seducción y carácter en un solo lugar.', imagen_desktop: { id: 3, url: '/inicio/featured.webp' }, imagen_mobile: null, banners: [], productos: [] }, draft: null };
++const destacada = { version: 'v1', exists: true, areas: { perfumeria: destacadaArea, hogar: destacadaArea }, products: {} };
++const PENDING = SECTIONS.filter(([id]) => !['banners', 'seccion-destacada'].includes(id));
++
+ const noOverflow = page => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+ 
+ async function mockApi(page, log) {
+@@ -34,6 +38,11 @@ async function mockApi(page, log) {
+       if (body.identifier === 'admin@marybe.com' && body.password === 'correcta') return route.fulfill({ json: { jwt: JWT } });
+       return route.fulfill({ status: 400, json: { error: { message: 'Credenciales inválidas' } } });
+     }
++    if (url.pathname === '/api/destacada-admin') {
++      if (request.headers().authorization !== `Bearer ${JWT}`) return route.fulfill({ status: 401, json: { error: { message: 'No autorizado' } } });
++      return route.fulfill({ json: { data: destacada } });
++    }
++    if (url.pathname === '/api/destacada-admin/productos') return route.fulfill({ json: { data: [] } });
+     if (url.pathname.startsWith('/api/banners-admin')) {
+       if (request.headers().authorization !== `Bearer ${JWT}`) return route.fulfill({ status: 401, json: { error: { message: 'No autorizado' } } });
+       if (url.pathname === '/api/banners-admin') return route.fulfill({ json: { data: { promotions: [group] } } });
+@@ -87,7 +96,15 @@ async function expectSelector(page) {
+     await page.screenshot({ path: path.join(output, 'selector-desktop.png'), fullPage: true });
+ 
+     // Cada sección pendiente abre su vista temporal y permite volver.
+-    for (const [id, title] of SECTIONS.slice(1)) {
++    // Sección Destacada abre su editor visual.
++    await page.getByRole('link', { name: 'Sección Destacada', exact: true }).click();
++    await page.waitForURL(`${baseUrl}/editor-inicio-admin/seccion-destacada`);
++    await page.getByRole('heading', { level: 1, name: 'Sección Destacada' }).waitFor();
++    await page.frameLocator('iframe[title="Vista previa de la Sección Destacada"]').getByText('Lo nuevo').waitFor();
++    await page.getByRole('button', { name: '← Editor de Inicio' }).click();
++    await expectSelector(page);
++
++    for (const [id, title] of PENDING) {
+       await page.getByRole('link', { name: title, exact: true }).click();
+       await page.waitForURL(`${baseUrl}/editor-inicio-admin/${id}`);
+       await page.getByRole('heading', { level: 1, name: title }).waitFor();
+diff --git a/Frontend/src/App.js b/Frontend/src/App.js
+index dfbd818..449a81a 100644
+--- a/Frontend/src/App.js
++++ b/Frontend/src/App.js
+@@ -65,6 +65,7 @@ const EditorAdmin  = lazyWithRetry(() => import('./pages/admin/editor-admin/Edit
+ const BannersAdmin = lazyWithRetry(() => import('./pages/admin/BannersAdmin'), 'BannersAdmin');
+ const BannersPreview = lazyWithRetry(() => import('./pages/admin/BannersPreview'), 'BannersPreview');
+ const EditorInicioAdmin = lazyWithRetry(() => import('./pages/admin/editor-inicio/EditorInicioAdmin'), 'EditorInicioAdmin');
++const EditorInicioPreview = lazyWithRetry(() => import('./pages/admin/editor-inicio/EditorInicioPreview'), 'EditorInicioPreview');
+ 
+ // Página de Gift Card
+ const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'), 'GiftCardPage');
+@@ -85,7 +86,7 @@ function RootRoute() {
+ 
+ function App() {
+   const location = useLocation();
+-  const bannerStudio = ['/banners-admin', '/banners-preview'].includes(location.pathname) || /^\/editor-inicio-admin(\/|$)/.test(location.pathname);
++  const bannerStudio = ['/banners-admin', '/banners-preview', '/editor-inicio-preview'].includes(location.pathname) || /^\/editor-inicio-admin(\/|$)/.test(location.pathname);
+   return (
+     <AuthProvider>
+       <LazyMotion features={domAnimation}>
+@@ -141,6 +142,7 @@ function App() {
+             <Route path="/banners-admin" element={<BannersAdmin />} />
+             <Route path="/banners-preview" element={<BannersPreview />} />
+             <Route path="/editor-inicio-admin/*" element={<EditorInicioAdmin />} />
++            <Route path="/editor-inicio-preview" element={<EditorInicioPreview />} />
+ 
+             {/* Ruta de Gift Card */}
+             <Route path="/gift-card" element={<GiftCardPage />} />
+diff --git a/Frontend/src/components/inicio/FeaturedPreview.test.jsx b/Frontend/src/components/inicio/FeaturedPreview.test.jsx
+new file mode 100644
+index 0000000..a2eb8d2
+--- /dev/null
++++ b/Frontend/src/components/inicio/FeaturedPreview.test.jsx
+@@ -0,0 +1,45 @@
++import React from 'react';
++import '@testing-library/jest-dom';
++import { render, screen, waitFor } from '@testing-library/react';
++import FeaturedSection from './perfumeria/FeaturedSection';
++import FeaturedSectionHogar from './hogar/FeaturedSectionHogar';
++
++jest.mock('react-router-dom', () => ({
++  useNavigate: () => jest.fn(),
++  Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
++}), { virtual: true });
++jest.mock('../../hooks/useConfiguracionGeneral', () => ({ useConfiguracionGeneral: () => ({ config: {} }) }));
++jest.mock('../shared/FavoriteButton', () => () => null);
++
++const previewData = {
++  seccionInfo: { titulo_cursiva: 'Borrador cursiva', titulo_normal: 'borrador normal', color_titulo_cursiva: '#C2A15C', subtitulo: 'Subtítulo en borrador', imagen_desktop: { url: '/uploads/borrador.webp' }, imagen_mobile: null },
++  banners: [{ titulo: 'Banner en borrador', imagen: { url: '/uploads/banner.webp' }, texto_boton: 'Ver más', link_boton: '/tienda' }],
++  productos: [{ id: 1, documentId: 'p1', nombre: 'Producto en borrador', marca: 'QA', precio: 1000 }],
++};
++
++const originalFetch = global.fetch;
++beforeEach(() => { global.fetch = jest.fn(() => Promise.resolve({ json: () => Promise.resolve({ data: null }) })); });
++afterEach(() => { global.fetch = originalFetch; });
++
++test('FeaturedSection muestra los datos del editor sin consultar la API', async () => {
++  render(<FeaturedSection seccion="perfumeria" previewData={previewData} />);
++  expect(screen.getByText('Borrador cursiva')).toHaveStyle({ color: '#C2A15C' });
++  expect(screen.getByText('Subtítulo en borrador')).toBeInTheDocument();
++  expect(screen.getByText('Producto en borrador')).toBeInTheDocument();
++  expect(screen.getByText('Banner en borrador')).toBeInTheDocument();
++  expect(screen.getByAltText('Fragancias destacadas')).toHaveAttribute('src', expect.stringContaining('/uploads/borrador.webp'));
++  await waitFor(() => expect(global.fetch).not.toHaveBeenCalled());
++});
++
++test('sin previewData la sección sigue consultando Strapi como antes', async () => {
++  render(<FeaturedSection seccion="perfumeria" />);
++  await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/seccion-principal')));
++  expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('filters[destacado][$eq]=true'));
++});
++
++test('FeaturedSectionHogar muestra los datos del editor sin consultar la API', async () => {
++  render(<FeaturedSectionHogar previewData={{ ...previewData, banners: [] }} />);
++  expect(screen.getByText('Borrador cursiva')).toBeInTheDocument();
++  expect(screen.getByText('Producto en borrador')).toBeInTheDocument();
++  await waitFor(() => expect(global.fetch).not.toHaveBeenCalled());
++});
+diff --git a/Frontend/src/components/inicio/hogar/FeaturedSectionHogar.jsx b/Frontend/src/components/inicio/hogar/FeaturedSectionHogar.jsx
+index 79071aa..e92b11b 100644
+--- a/Frontend/src/components/inicio/hogar/FeaturedSectionHogar.jsx
++++ b/Frontend/src/components/inicio/hogar/FeaturedSectionHogar.jsx
+@@ -489,16 +489,20 @@ const formatPrice = (price) => {
+   return '$' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+ };
+ 
+-export default function FeaturedSectionHogar() {
++export default function FeaturedSectionHogar({ previewData }) {
+   const { config } = useConfiguracionGeneral();
+-  const [productos, setProductos] = useState([]);
++  const [productosApi, setProductos] = useState([]);
+   const scrollRef = useRef(null);
+   const navigate = useNavigate();
+   const isDragging = useRef(false);
+ 
+   const [selectedProduct, setSelectedProduct] = useState(null);
+   const [isModalOpen, setIsModalOpen] = useState(false);
+-  const [seccionInfo, setSeccionInfo] = useState(null);
++  const [seccionInfoApi, setSeccionInfo] = useState(null);
++  const isPreview = Boolean(previewData);
++  // previewData (Editor de Inicio) reemplaza los datos publicados sin consultar la API.
++  const productos = isPreview ? previewData.productos || [] : productosApi;
++  const seccionInfo = isPreview ? previewData.seccionInfo : seccionInfoApi;
+ 
+   const handleAddClick = (product, e) => {
+     e.stopPropagation();
+@@ -507,6 +511,7 @@ export default function FeaturedSectionHogar() {
+   };
+ 
+   useEffect(() => {
++    if (isPreview) return;
+     fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[destacado][$eq]=true&filters[seccion][$eq]=Hogar&populate=*`)
+       .then(res => res.json())
+       .then(data => {
+@@ -530,7 +535,7 @@ export default function FeaturedSectionHogar() {
+         }
+       })
+       .catch(err => console.error('Error fetching seccion-principal:', err));
+-  }, []);
++  }, [isPreview]);
+ 
+   const isDown = useRef(false);
+   const startX = useRef(0);
+@@ -599,7 +604,7 @@ export default function FeaturedSectionHogar() {
+     <SectionWrapper>
+       <HaloLuz src="/inicio/haloHogar.png" alt="Efecto de luz" />
+       <TopHeader>
+-        <TextBlock>
++        <TextBlock data-editor-part="textos">
+           <Title>
+             <span className="italic-text" style={cmsColorStyle(seccionInfo?.color_titulo_cursiva)}>
+               {seccionInfo?.titulo_cursiva || 'Tu espacio,'}
+@@ -612,7 +617,7 @@ export default function FeaturedSectionHogar() {
+             {seccionInfo?.subtitulo || 'Calidez, diseño y aromas para ambientar cada rincón.'}
+           </Subtitle>
+         </TextBlock>
+-        <BannerSlot name="featured_hogar" side><FeaturedPicture>
++        <BannerSlot name="featured_hogar" side><FeaturedPicture data-editor-part="imagen">
+           <picture>
+             {seccionInfo?.imagen_mobile?.url ? (
+               <source media="(max-width: 768px)" srcSet={`${seccionInfo.imagen_mobile.url.startsWith('http') ? '' : process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${seccionInfo.imagen_mobile.url}`} />
+@@ -637,6 +642,7 @@ export default function FeaturedSectionHogar() {
+         </ArrowBtn>
+         <ProductsGrid
+           ref={scrollRef}
++          data-editor-part="productos"
+           onMouseDown={handleMouseDown}
+           onMouseLeave={handleMouseLeave}
+           onMouseUp={handleMouseUp}
+diff --git a/Frontend/src/components/inicio/perfumeria/FeaturedSection.jsx b/Frontend/src/components/inicio/perfumeria/FeaturedSection.jsx
+index 1dc7f8e..d9e165e 100644
+--- a/Frontend/src/components/inicio/perfumeria/FeaturedSection.jsx
++++ b/Frontend/src/components/inicio/perfumeria/FeaturedSection.jsx
+@@ -558,17 +558,22 @@ const ChevronRight = () => (
+   <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
+ );
+ 
+-export default function FeaturedSection({ seccion = 'perfumeria' }) {
++export default function FeaturedSection({ seccion = 'perfumeria', previewData }) {
+   const { config } = useConfiguracionGeneral();
+-  const [productos, setProductos] = useState([]);
+-  const [bannersDestacados, setBannersDestacados] = useState([]);
++  const [productosApi, setProductos] = useState([]);
++  const [bannersApi, setBannersDestacados] = useState([]);
+   const scrollRef = useRef(null);
+   const navigate = useNavigate();
+   const isDragging = useRef(false);
+ 
+   const [selectedProduct, setSelectedProduct] = useState(null);
+   const [isModalOpen, setIsModalOpen] = useState(false);
+-  const [seccionInfo, setSeccionInfo] = useState(null);
++  const [seccionInfoApi, setSeccionInfo] = useState(null);
++  const isPreview = Boolean(previewData);
++  // previewData (Editor de Inicio) reemplaza los datos publicados sin consultar la API.
++  const productos = isPreview ? previewData.productos || [] : productosApi;
++  const bannersDestacados = isPreview ? previewData.banners || [] : bannersApi;
++  const seccionInfo = isPreview ? previewData.seccionInfo : seccionInfoApi;
+ 
+   const handleAddClick = (product, e) => {
+     e.stopPropagation();
+@@ -579,6 +584,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
+   const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
+ 
+   useEffect(() => {
++    if (isPreview) return;
+     fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[destacado][$eq]=true&filters[seccion][$eq]=${seccionName}&populate=*`)
+       .then(res => res.json())
+       .then(data => {
+@@ -606,7 +612,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
+       })
+       .catch(err => console.error('Error fetching seccion-principal:', err));
+ 
+-  }, [seccionName, seccion]);
++  }, [seccionName, seccion, isPreview]);
+ 
+   const isDown = useRef(false);
+   const startX = useRef(0);
+@@ -708,7 +714,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
+     <SectionWrapper>
+       <HaloLuz src="/inicio/halo-luz.webp" alt="Efecto de luz" width="1000" height="800" fetchPriority="high" loading="eager" decoding="sync" />
+       <TopHeader>
+-        <TextBlock>
++        <TextBlock data-editor-part="textos">
+           <Title>
+             <span className="italic-text" style={cmsColorStyle(seccionInfo?.color_titulo_cursiva)}>
+               {seccionInfo?.titulo_cursiva || 'Lo nuevo'}
+@@ -721,7 +727,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
+             {seccionInfo?.subtitulo || 'Intensidad, seducción y carácter en un solo lugar.'}
+           </Subtitle>
+         </TextBlock>
+-        <BannerSlot name="featured_perfumeria" side><FeaturedPicture>
++        <BannerSlot name="featured_perfumeria" side><FeaturedPicture data-editor-part="imagen">
+           {seccion === 'hogar' ? (
+             <img src="/inicio/hogar-featured.webp" alt="Hogar destacado" style={{ maxHeight: '42vh' }} loading="eager" decoding="sync" />
+           ) : (
+@@ -753,6 +759,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
+         </ArrowBtn>
+         <ProductsGrid
+           ref={scrollRef}
++          data-editor-part="productos"
+           onMouseDown={handleMouseDown}
+           onMouseLeave={handleMouseLeave}
+           onMouseUp={handleMouseUp}
+@@ -843,7 +850,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
+                 imgUrl = getFullUrl(banner.imagen.url);
+               }
+               return (
+-                <BannerSlot key={index} name={`categoria_${index}`}><BottomBanner>
++                <BannerSlot key={index} name={`categoria_${index}`}><BottomBanner data-editor-part={`banner-${index}`}>
+                   <BannerTitle>{banner.titulo}</BannerTitle>
+                   {imgUrl && (
+                     <BannerImageWrapper>
+@@ -858,7 +865,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
+             })
+           ) : (
+             <>
+-              <BannerSlot name="categoria_0"><BottomBanner>
++              <BannerSlot name="categoria_0"><BottomBanner data-editor-part="banner-0">
+                 <BannerTitle>El poder del elixir</BannerTitle>
+                 <BannerImageWrapper>
+                   <img src="/inicio/elixir.webp" alt="El poder del elixir" width="220" height="220" loading="eager" decoding="sync" />
+@@ -866,7 +873,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
+                 <BannerButton onClick={() => { navigate('/tienda?banner=elixir&seccion=Perfumer%C3%ADa'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Conocer más</BannerButton>
+               </BottomBanner></BannerSlot>
+ 
+-              <BannerSlot name="categoria_1"><BottomBanner>
++              <BannerSlot name="categoria_1"><BottomBanner data-editor-part="banner-1">
+                 <BannerTitle>Toda la línea de Azzaro</BannerTitle>
+                 <BannerImageWrapper>
+                   <img src="/inicio/azzaro.webp" alt="Línea Azzaro" width="220" height="220" loading="eager" decoding="sync" />
+diff --git a/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.jsx b/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.jsx
+index 86fde76..abc0c18 100644
+--- a/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.jsx
++++ b/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.jsx
+@@ -8,13 +8,13 @@ import SectionPlaceholder from './components/SectionPlaceholder';
+ import { EDITOR_INICIO_PATH, findSection } from './editorInicioSections';
+ import { SECTION_EDITORS } from './sectionEditors';
+ 
+-function SectionRoute({ onLogout }) {
++function SectionRoute({ token, onLogout }) {
+   const { sectionId } = useParams();
+   const navigate = useNavigate();
+   const section = findSection(sectionId);
+   if (!section) return <Navigate to={EDITOR_INICIO_PATH} replace />;
+   const Editor = SECTION_EDITORS[section.id];
+-  if (Editor) return <Editor section={section} onBack={() => navigate(EDITOR_INICIO_PATH)} onLogout={onLogout} />;
++  if (Editor) return <Editor section={section} token={token} onBack={() => navigate(EDITOR_INICIO_PATH)} onLogout={onLogout} />;
+   return (
+     <EditorInicioLayout currentSection={section} onLogout={onLogout}>
+       <SectionPlaceholder section={section} />
+@@ -33,7 +33,7 @@ export default function EditorInicioAdmin() {
+   return (
+     <Routes>
+       <Route index element={<EditorInicioLayout onLogout={signOut}><SectionSelector /></EditorInicioLayout>} />
+-      <Route path=":sectionId" element={<SectionRoute onLogout={signOut} />} />
++      <Route path=":sectionId" element={<SectionRoute token={token} onLogout={signOut} />} />
+       <Route path="*" element={<Navigate to={EDITOR_INICIO_PATH} replace />} />
+     </Routes>
+   );
+diff --git a/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.test.jsx b/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.test.jsx
+index c8591f6..2743677 100644
+--- a/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.test.jsx
++++ b/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.test.jsx
+@@ -57,8 +57,8 @@ describe('configuración de secciones', () => {
+     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+   });
+ 
+-  test('solo Banners tiene editor real en esta etapa', () => {
+-    expect(EDITOR_INICIO_SECTIONS.filter(section => hasSectionEditor(section.id)).map(section => section.id)).toEqual(['banners']);
++  test('Banners y Sección Destacada tienen editor real', () => {
++    expect(EDITOR_INICIO_SECTIONS.filter(section => hasSectionEditor(section.id)).map(section => section.id)).toEqual(['banners', 'seccion-destacada']);
+   });
+ });
+ 
+@@ -76,7 +76,8 @@ describe('selector de secciones', () => {
+       expect(link).toHaveAccessibleDescription(expect.stringContaining(section.description));
+     });
+     expect(within(links[0]).getByText('Editar sección')).toBeInTheDocument();
+-    expect(within(links[1]).getByText('Próximamente')).toBeInTheDocument();
++    expect(within(links[1]).getByText('Editar sección')).toBeInTheDocument();
++    expect(within(links[2]).getByText('Próximamente')).toBeInTheDocument();
+   });
+ });
+ 
+diff --git a/Frontend/src/pages/admin/editor-inicio/EditorInicioPreview.jsx b/Frontend/src/pages/admin/editor-inicio/EditorInicioPreview.jsx
+new file mode 100644
+index 0000000..9e61332
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/EditorInicioPreview.jsx
+@@ -0,0 +1,92 @@
++import React, { useState, useEffect } from 'react';
++import styled from 'styled-components';
++import FeaturedSection from '../../../components/inicio/perfumeria/FeaturedSection';
++import FeaturedSectionHogar from '../../../components/inicio/hogar/FeaturedSectionHogar';
++
++const PreviewPage = styled.main`
++  min-height: 100px;
++  padding: 30px 0 40px;
++  background: var(--color-blanco);
++  font-family: var(--font-family-secondary);
++
++  &[data-mode='edit'] [data-editor-part] {
++    cursor: pointer;
++    transition: outline-color 0.15s ease;
++    outline: 2px dashed transparent;
++    outline-offset: 4px;
++  }
++
++  &[data-mode='edit'] [data-editor-part]:hover {
++    outline-color: rgba(242, 220, 143, 0.9);
++  }
++
++  ${({ $selected }) => $selected && `
++    &[data-mode='edit'] [data-editor-part='${$selected}'] {
++      outline: 3px solid #f2dc8f;
++      outline-offset: 4px;
++    }
++  `}
++`;
++
++const PREVIEWS = {
++  'seccion-destacada': ({ area, previewData }) => (area === 'hogar'
++    ? <FeaturedSectionHogar previewData={previewData} />
++    : <FeaturedSection seccion="perfumeria" previewData={previewData} />),
++};
++
++const send = data => window.parent.postMessage(data, window.location.origin);
++
++// Lienzo interno del Editor de Inicio: recibe borradores del editor (mismo origen) y renderiza
++// las secciones reales de la landing. No consulta borradores en la API pública.
++export default function EditorInicioPreview() {
++  const [preview, setPreview] = useState(null);
++
++  useEffect(() => {
++    const receive = event => {
++      if (event.origin !== window.location.origin || event.source !== window.parent || event.data?.type !== 'MARYBE_EDITOR_PREVIEW') return;
++      setPreview(event.data.payload);
++    };
++    window.addEventListener('message', receive);
++    send({ type: 'MARYBE_EDITOR_READY' });
++    // Evita que el fondo oscuro del sitio asome mientras el lienzo ajusta su alto.
++    const previousBackground = document.body.style.backgroundColor;
++    document.body.style.backgroundColor = '#ffffff';
++    return () => {
++      window.removeEventListener('message', receive);
++      document.body.style.backgroundColor = previousBackground;
++    };
++  }, []);
++
++  useEffect(() => {
++    const target = document.getElementById('editor-inicio-preview-content');
++    if (!target) return undefined;
++    const observer = new ResizeObserver(() => send({ type: 'MARYBE_EDITOR_HEIGHT', height: target.getBoundingClientRect().height }));
++    observer.observe(target);
++    return () => observer.disconnect();
++  }, [preview]);
++
++  useEffect(() => {
++    if (preview?.mode !== 'view') return undefined;
++    const keyboard = event => { if (event.key === 'Escape') send({ type: 'MARYBE_EDITOR_CLOSE_PREVIEW' }); };
++    window.addEventListener('keydown', keyboard);
++    return () => window.removeEventListener('keydown', keyboard);
++  }, [preview?.mode]);
++
++  if (!preview) return <p style={{ textAlign: 'center', padding: 32 }}>Preparando vista previa…</p>;
++  const Preview = PREVIEWS[preview.section];
++  if (!Preview) return <p style={{ textAlign: 'center', padding: 32 }}>Sección sin vista previa.</p>;
++
++  const handleClickCapture = event => {
++    if (event.target.closest('[aria-label="Anterior"], [aria-label="Siguiente"]')) return;
++    event.preventDefault();
++    event.stopPropagation();
++    const part = event.target.closest('[data-editor-part]')?.dataset.editorPart;
++    if (preview.mode === 'edit' && part) send({ type: 'MARYBE_EDITOR_SELECT', part });
++  };
++
++  return (
++    <PreviewPage id="editor-inicio-preview-content" data-mode={preview.mode} $selected={/^[a-z0-9-]+$/.test(preview.selected || '') ? preview.selected : ''} onClickCapture={handleClickCapture}>
++      <Preview area={preview.area} previewData={preview.previewData} />
++    </PreviewPage>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/EditorPreviewDialog.jsx b/Frontend/src/pages/admin/editor-inicio/components/EditorPreviewDialog.jsx
+new file mode 100644
+index 0000000..ac6827f
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/EditorPreviewDialog.jsx
+@@ -0,0 +1,56 @@
++import React, { useEffect, useMemo, useRef, useState } from 'react';
++import { createPortal } from 'react-dom';
++import { DEVICES, DEVICE_WIDTHS } from '../../../../utils/bannerDesign';
++import EditorPreviewFrame from './EditorPreviewFrame';
++
++const NAMES = { desktop: 'Computadora', tablet: 'Tablet', mobile: 'Celular' };
++
++// Vista previa limpia (sin marcas de edición) a pantalla completa, igual que en el editor de banners.
++export default function EditorPreviewDialog({ payload, title, initialDevice = 'desktop', onClose }) {
++  const [device, setDevice] = useState(initialDevice);
++  const [availableWidth, setAvailableWidth] = useState(1280);
++  const [fit, setFit] = useState(true);
++  const canvas = useRef(null);
++  const close = useRef(null);
++  const width = DEVICE_WIDTHS[device];
++  const scale = fit ? Math.min(1, Math.max(0.2, (availableWidth - 40) / width)) : 1;
++  const viewPayload = useMemo(() => ({ ...payload, mode: 'view' }), [payload]);
++
++  useEffect(() => {
++    const previousOverflow = document.body.style.overflow;
++    const previousFocus = document.activeElement;
++    document.body.style.overflow = 'hidden';
++    close.current?.focus();
++    const keyboard = event => { if (event.key === 'Escape') { event.preventDefault(); onClose(); } };
++    document.addEventListener('keydown', keyboard);
++    return () => {
++      document.body.style.overflow = previousOverflow;
++      document.removeEventListener('keydown', keyboard);
++      previousFocus?.focus?.();
++    };
++  }, [onClose]);
++
++  useEffect(() => {
++    const observer = new ResizeObserver(entries => setAvailableWidth(entries[0].contentRect.width));
++    if (canvas.current) observer.observe(canvas.current);
++    return () => observer.disconnect();
++  }, []);
++
++  return createPortal(
++    <section className="ba-app ba-live-preview" role="dialog" aria-modal="true" aria-labelledby="editor-inicio-preview-title">
++      <header className="ba-live-preview-header">
++        <div><p className="ba-eyebrow">VISTA PREVIA PRIVADA</p><h2 id="editor-inicio-preview-title">{title}</h2><p>Revisá la sección completa antes de publicar.</p></div>
++        <button ref={close} className="ba-primary" onClick={onClose}>Volver al editor</button>
++      </header>
++      <div className="ba-live-preview-toolbar">
++        <div className="ba-device-tabs">{DEVICES.map(value => <button key={value} aria-pressed={device === value} className={device === value ? 'is-active' : ''} onClick={() => setDevice(value)}>{NAMES[value]}</button>)}</div>
++        <span>{width} px · {Math.round(scale * 100)}%</span>
++        <div className="ba-live-preview-zoom"><button aria-pressed={fit} onClick={() => setFit(true)}>Ajustar a pantalla</button><button aria-pressed={!fit} onClick={() => setFit(false)}>Tamaño real 100%</button></div>
++      </div>
++      <div className="ba-live-preview-canvas" ref={canvas}>
++        <EditorPreviewFrame payload={viewPayload} width={width} scale={scale} title={`Vista previa limpia: ${title}`} onClose={onClose} />
++      </div>
++    </section>,
++    document.body,
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/EditorPreviewFrame.jsx b/Frontend/src/pages/admin/editor-inicio/components/EditorPreviewFrame.jsx
+new file mode 100644
+index 0000000..e50ab3f
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/EditorPreviewFrame.jsx
+@@ -0,0 +1,38 @@
++import React, { useEffect, useRef, useState } from 'react';
++
++// Iframe del lienzo /editor-inicio-preview: envía el borrador y recibe alto, selección y cierre.
++export default function EditorPreviewFrame({ payload, width, scale, title, onSelect, onClose }) {
++  const frame = useRef(null);
++  const [ready, setReady] = useState(0);
++  const [height, setHeight] = useState(720);
++
++  useEffect(() => {
++    const receive = event => {
++      if (event.origin !== window.location.origin || event.source !== frame.current?.contentWindow) return;
++      const { data } = event;
++      if (data?.type === 'MARYBE_EDITOR_READY') setReady(value => value + 1);
++      if (data?.type === 'MARYBE_EDITOR_HEIGHT' && Number.isFinite(data.height)) setHeight(Math.min(16000, Math.max(200, Math.ceil(data.height))));
++      if (data?.type === 'MARYBE_EDITOR_SELECT' && typeof data.part === 'string') onSelect?.(data.part);
++      if (data?.type === 'MARYBE_EDITOR_CLOSE_PREVIEW') onClose?.();
++    };
++    window.addEventListener('message', receive);
++    return () => window.removeEventListener('message', receive);
++  }, [onSelect, onClose]);
++
++  useEffect(() => {
++    const timer = setTimeout(() => frame.current?.contentWindow?.postMessage({ type: 'MARYBE_EDITOR_PREVIEW', payload }, window.location.origin), 60);
++    return () => clearTimeout(timer);
++  }, [payload, ready]);
++
++  return (
++    <div className="ba-frame-shell" style={{ width: width * scale, height: height * scale }}>
++      <iframe
++        title={title}
++        src="/editor-inicio-preview"
++        ref={frame}
++        onLoad={() => setReady(value => value + 1)}
++        style={{ width, height, transform: `scale(${scale})` }}
++      />
++    </div>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/MediaLibraryDialog.jsx b/Frontend/src/pages/admin/editor-inicio/components/MediaLibraryDialog.jsx
+new file mode 100644
+index 0000000..6c9783f
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/MediaLibraryDialog.jsx
+@@ -0,0 +1,75 @@
++import React, { useEffect, useState } from 'react';
++import axios from 'axios';
++import { imageUrl } from '../../../../utils/bannerDesign';
++
++const API = process.env.REACT_APP_STRAPI_URL || process.env.REACT_APP_API_URL || 'http://localhost:1337';
++
++// Biblioteca de imágenes del Editor de Inicio: reutiliza los endpoints del editor de banners.
++export default function MediaLibraryDialog({ token, title, onChoose, onClose }) {
++  const [media, setMedia] = useState([]);
++  const [search, setSearch] = useState('');
++  const [busy, setBusy] = useState(false);
++  const [loading, setLoading] = useState(true);
++  const [error, setError] = useState('');
++  const auth = { headers: { Authorization: `Bearer ${token}` } };
++
++  useEffect(() => {
++    let active = true;
++    axios.get(`${API}/api/banners-admin/media`, { headers: { Authorization: `Bearer ${token}` } })
++      .then(response => { if (active) setMedia(response.data.data || []); })
++      .catch(requestError => { if (active) setError(requestError.response?.data?.error?.message || 'No se pudo cargar la biblioteca.'); })
++      .finally(() => { if (active) setLoading(false); });
++    return () => { active = false; };
++  }, [token]);
++
++  useEffect(() => {
++    const keyboard = event => { if (event.key === 'Escape' && !busy) onClose(); };
++    document.addEventListener('keydown', keyboard);
++    return () => document.removeEventListener('keydown', keyboard);
++  }, [busy, onClose]);
++
++  async function upload(file) {
++    if (!file) return;
++    setBusy(true);
++    setError('');
++    try {
++      const data = new FormData();
++      data.append('files', file);
++      const response = await axios.post(`${API}/api/banners-admin/upload`, data, auth);
++      onChoose(response.data.data[0]);
++    } catch (requestError) {
++      setError(requestError.response?.data?.error?.message || 'No se pudo subir la imagen.');
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  const visible = media.filter(file => file.name?.toLowerCase().includes(search.toLowerCase()));
++
++  return (
++    <div className="ba-modal-backdrop" onClick={() => !busy && onClose()}>
++      <section className="ba-media-modal" role="dialog" aria-modal="true" aria-label="Biblioteca de imágenes" onClick={event => event.stopPropagation()}>
++        <header>
++          <div><p className="ba-eyebrow">BIBLIOTECA MARYBE</p><h2>{title}</h2></div>
++          <button aria-label="Cerrar biblioteca" disabled={busy} onClick={onClose}>×</button>
++        </header>
++        {error && <p role="alert" style={{ color: '#a53a37' }}>{error}</p>}
++        <div className="ba-media-toolbar">
++          <input aria-label="Buscar imagen" placeholder="Buscar en las últimas 200 imágenes…" value={search} onChange={event => setSearch(event.target.value)} />
++          <label className="ba-upload">{busy ? 'Subiendo…' : '＋ Subir imagen'}<input type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" disabled={busy} onChange={event => upload(event.target.files[0])} /></label>
++        </div>
++        <p>JPG, PNG, WebP, GIF o AVIF · máximo 10 MB</p>
++        {loading && <p role="status">Cargando imágenes…</p>}
++        <div className="ba-media-grid">
++          {visible.map(file => (
++            <button key={file.id} disabled={busy} onClick={() => onChoose(file)}>
++              <img src={imageUrl(file, API)} alt={file.name} loading="lazy" />
++              <strong>{file.name}</strong>
++              <small>{file.width} × {file.height}</small>
++            </button>
++          ))}
++        </div>
++      </section>
++    </div>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/destacada/BannerInferiorPanel.jsx b/Frontend/src/pages/admin/editor-inicio/components/destacada/BannerInferiorPanel.jsx
+new file mode 100644
+index 0000000..372e9b5
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/destacada/BannerInferiorPanel.jsx
+@@ -0,0 +1,25 @@
++import React from 'react';
++import { imageUrl } from '../../../../../utils/bannerDesign';
++
++export default function BannerInferiorPanel({ index, banner, onChooseImage, onChange, onRemove }) {
++  const url = imageUrl(banner.imagen);
++  const update = (key, value) => onChange(draft => { draft.banners[index][key] = value; });
++  return (
++    <>
++      <p className="ba-inspector-help">Tarjeta debajo de los productos con un título, una imagen y un botón.</p>
++      <details open>
++        <summary>Contenido</summary>
++        <label>Título<input id={`dd-banner-${index}-titulo`} value={banner.titulo} maxLength={120} onChange={event => update('titulo', event.target.value)} /></label>
++        <div className="ba-image-current">{url ? <img src={url} alt={`Imagen del banner inferior ${index + 1}`} /> : <span>Sin imagen</span>}</div>
++        <button className="ba-library-button" onClick={() => onChooseImage(`banner-${index}`)}>Elegir imagen</button>
++      </details>
++      <details open>
++        <summary>Botón</summary>
++        <label>Texto del botón<input value={banner.texto_boton} maxLength={60} onChange={event => update('texto_boton', event.target.value)} /></label>
++        <label>Enlace<input value={banner.link_boton} maxLength={2048} placeholder="/tienda?categoria=… o https://…" onChange={event => update('link_boton', event.target.value)} /></label>
++        <small className="ba-hint">Usá una ruta de la tienda que empiece con / o una dirección https. Vacío lleva a /tienda.</small>
++      </details>
++      <button className="ba-reset-device" onClick={onRemove}>Eliminar banner inferior {index + 1}</button>
++    </>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/destacada/ColorField.jsx b/Frontend/src/pages/admin/editor-inicio/components/destacada/ColorField.jsx
+new file mode 100644
+index 0000000..5be31eb
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/destacada/ColorField.jsx
+@@ -0,0 +1,20 @@
++import React from 'react';
++import styled from 'styled-components';
++
++const ResetButton = styled.button`
++  grid-column: 1 / -1;
++  justify-self: start;
++  padding: 4px 8px !important;
++  font-size: 10px !important;
++`;
++
++export default function ColorField({ label, value, fallback, onChange }) {
++  return (
++    <label className="ba-control ba-color">
++      <span>{label}</span>
++      <input aria-label={label} type="color" value={(value || fallback).toLowerCase()} onChange={event => onChange(event.target.value.toUpperCase())} />
++      <code>{value || 'Original'}</code>
++      {value && <ResetButton type="button" onClick={event => { event.preventDefault(); onChange(''); }}>Usar color original</ResetButton>}
++    </label>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/destacada/DestacadaEditor.jsx b/Frontend/src/pages/admin/editor-inicio/components/destacada/DestacadaEditor.jsx
+new file mode 100644
+index 0000000..494fea5
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/destacada/DestacadaEditor.jsx
+@@ -0,0 +1,269 @@
++import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
++import axios from 'axios';
++import '../../../BannersAdmin.css';
++import { DEVICES, DEVICE_WIDTHS } from '../../../../../utils/bannerDesign';
++import EditorPreviewFrame from '../EditorPreviewFrame';
++import EditorPreviewDialog from '../EditorPreviewDialog';
++import MediaLibraryDialog from '../MediaLibraryDialog';
++import DestacadaPartsPanel from './DestacadaPartsPanel';
++import TextosPanel from './TextosPanel';
++import ImagenPanel from './ImagenPanel';
++import ProductosPanel from './ProductosPanel';
++import BannerInferiorPanel from './BannerInferiorPanel';
++import { DESTACADA_AREAS, areaInfo, bannerIndex, copy, destacadaParts, newBottomBanner, publishProblems, toPreviewData } from './destacadaModel';
++
++const API = process.env.REACT_APP_STRAPI_URL || process.env.REACT_APP_API_URL || 'http://localhost:1337';
++const NAMES = { desktop: 'Computadora', tablet: 'Tablet', mobile: 'Celular' };
++const HISTORY_LIMIT = 60;
++
++const entryFor = serverArea => {
++  const data = copy(serverArea.draft || serverArea.published);
++  return { history: [data], index: 0, baseline: JSON.stringify(data) };
++};
++const currentData = entry => entry?.history[entry.index];
++const isDirty = entry => Boolean(entry) && JSON.stringify(currentData(entry)) !== entry.baseline;
++
++export default function DestacadaEditor({ token, onBack, onLogout }) {
++  const auth = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
++  const [overview, setOverview] = useState(null);
++  const [work, setWork] = useState({});
++  const [productIndex, setProductIndex] = useState({});
++  const [areaKey, setAreaKey] = useState('perfumeria');
++  const [part, setPart] = useState('textos');
++  const [device, setDevice] = useState('desktop');
++  const [loading, setLoading] = useState(true);
++  const [busy, setBusy] = useState(false);
++  const [error, setError] = useState('');
++  const [message, setMessage] = useState('');
++  const [library, setLibrary] = useState(null);
++  const [showPreview, setShowPreview] = useState(false);
++  const [scale, setScale] = useState(0.65);
++  const canvas = useRef(null);
++
++  const area = areaInfo(areaKey);
++  const entry = work[areaKey];
++  const data = currentData(entry);
++  const dirty = isDirty(entry);
++  const hasUnsaved = Object.values(work).some(isDirty);
++  const serverArea = overview?.areas?.[areaKey];
++  const hasDraft = Boolean(serverArea?.draft);
++  const parts = useMemo(() => (data ? destacadaParts(areaKey, data) : []), [areaKey, data]);
++  const activePart = parts.find(item => item.id === part) || parts[0];
++
++  const handleError = useCallback(requestError => {
++    setError(requestError.response?.data?.error?.message || requestError.message || 'No se pudo completar la operación.');
++  }, []);
++
++  const applyOverview = useCallback((next, resetArea) => {
++    setOverview(next);
++    setProductIndex(previous => ({ ...previous, ...next.products }));
++    setWork(previous => Object.fromEntries(DESTACADA_AREAS.map(({ key }) => [
++      key,
++      !previous[key] || resetArea === 'all' || key === resetArea || !isDirty(previous[key]) ? entryFor(next.areas[key]) : previous[key],
++    ])));
++  }, []);
++
++  useEffect(() => {
++    let active = true;
++    setLoading(true);
++    axios.get(`${API}/api/destacada-admin`, auth)
++      .then(response => { if (active) applyOverview(response.data.data, 'all'); })
++      .catch(requestError => { if (active) handleError(requestError); })
++      .finally(() => { if (active) setLoading(false); });
++    return () => { active = false; };
++  }, [auth, applyOverview, handleError]);
++
++  useEffect(() => {
++    const warn = event => { if (hasUnsaved) { event.preventDefault(); event.returnValue = ''; } };
++    window.addEventListener('beforeunload', warn);
++    return () => window.removeEventListener('beforeunload', warn);
++  }, [hasUnsaved]);
++
++  useEffect(() => {
++    const observer = new ResizeObserver(entries => setScale(Math.min(1, Math.max(0.2, (entries[0].contentRect.width - 40) / DEVICE_WIDTHS[device]))));
++    if (canvas.current) observer.observe(canvas.current);
++    return () => observer.disconnect();
++  }, [device, loading]);
++
++  const change = useCallback(mutator => {
++    if (busy) return;
++    setWork(previous => {
++      const current = previous[areaKey];
++      if (!current) return previous;
++      const next = copy(currentData(current));
++      mutator(next);
++      const history = [...current.history.slice(0, current.index + 1), next].slice(-HISTORY_LIMIT);
++      return { ...previous, [areaKey]: { ...current, history, index: history.length - 1 } };
++    });
++    setMessage('');
++  }, [areaKey, busy]);
++
++  const moveHistory = step => setWork(previous => {
++    const current = previous[areaKey];
++    const index = current.index + step;
++    if (index < 0 || index >= current.history.length) return previous;
++    return { ...previous, [areaKey]: { ...current, index } };
++  });
++
++  const searchProducts = useCallback(async query => {
++    const response = await axios.get(`${API}/api/destacada-admin/productos`, { ...auth, params: { area: areaKey, q: query } });
++    const list = response.data.data || [];
++    setProductIndex(previous => ({ ...previous, ...Object.fromEntries(list.map(product => [product.documentId, product])) }));
++    return list;
++  }, [auth, areaKey]);
++
++  const selectPart = useCallback(id => {
++    setPart(id);
++    setError('');
++  }, []);
++
++  const selectFromPreview = useCallback(id => {
++    if (parts.some(item => item.id === id)) selectPart(id);
++    // Los banners predeterminados (sin banners cargados) no tienen panel propio.
++    else if (bannerIndex(id) !== null && area.banners) setMessage('Ese banner es el predeterminado de la tienda. Agregá un banner inferior para reemplazarlo.');
++  }, [parts, selectPart, area.banners]);
++
++  const closePreview = useCallback(() => setShowPreview(false), []);
++
++  function selectArea(nextArea) {
++    if (busy || nextArea === areaKey) return;
++    setAreaKey(nextArea);
++    setError('');
++    setMessage('');
++    if (!areaInfo(nextArea).banners && bannerIndex(part) !== null) setPart('textos');
++  }
++
++  async function save(publish) {
++    if (publish) {
++      const problems = publishProblems(data, areaKey);
++      if (problems.length) {
++        setError(`Antes de publicar: ${problems.map(problem => problem.message).join(' ')}`);
++        setPart(problems[0].part);
++        return;
++      }
++    }
++    setBusy(true);
++    setError('');
++    setMessage('');
++    try {
++      const response = await axios.put(`${API}/api/destacada-admin/${areaKey}`, { version: overview.version, data, publish }, auth);
++      applyOverview(response.data.data, areaKey);
++      setMessage(publish ? `Publicado. La Sección Destacada de ${area.label} ya está actualizada en Inicio.` : 'Borrador guardado. La tienda sigue mostrando la última publicación.');
++    } catch (requestError) {
++      handleError(requestError);
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  async function discardDraft() {
++    if (!window.confirm(`¿Descartar el borrador guardado de ${area.label}? Se recupera lo que está publicado.`)) return;
++    setBusy(true);
++    setError('');
++    try {
++      const response = await axios.delete(`${API}/api/destacada-admin/${areaKey}/borrador`, { ...auth, params: { version: overview.version } });
++      applyOverview(response.data.data, areaKey);
++      setMessage('Borrador descartado.');
++    } catch (requestError) {
++      handleError(requestError);
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  function chooseMedia(file) {
++    const image = { id: file.id, url: file.url, name: file.name, width: file.width, height: file.height };
++    const target = library;
++    change(draft => {
++      const index = bannerIndex(target);
++      if (index !== null) draft.banners[index].imagen = image;
++      else draft[target] = image;
++    });
++    setLibrary(null);
++  }
++
++  function addBanner() {
++    const index = data.banners.length;
++    change(draft => { draft.banners.push(newBottomBanner()); });
++    setPart(`banner-${index}`);
++  }
++
++  function removeBanner(index) {
++    change(draft => { draft.banners.splice(index, 1); });
++    setPart(index > 0 ? `banner-${index - 1}` : 'productos');
++  }
++
++  const leave = action => { if (!hasUnsaved || window.confirm('Hay cambios sin guardar. ¿Querés salir igual?')) action(); };
++
++  const previewPayload = useMemo(() => (data ? { section: 'seccion-destacada', area: areaKey, previewData: toPreviewData(data, productIndex), selected: activePart?.id, mode: 'edit' } : null), [data, areaKey, productIndex, activePart]);
++
++  const statusText = !data ? 'Cargando…' : dirty ? '● Cambios sin guardar' : hasDraft ? '● Borrador sin publicar' : hasUnsaved ? '● Otros cambios pendientes' : '● Publicado';
++  const libraryTitle = library === 'imagen_mobile' ? 'Imagen para celular' : library === 'imagen_desktop' ? 'Imagen para computadora' : 'Imagen del banner inferior';
++  const index = bannerIndex(activePart?.id);
++
++  return (
++    <main className="ba-app" inert={showPreview}>
++      {showPreview && previewPayload && <EditorPreviewDialog payload={previewPayload} title={`Sección Destacada · ${area.label}`} initialDevice={device} onClose={closePreview} />}
++      <header className="ba-topbar">
++        <button type="button" className="ba-back" disabled={busy} onClick={() => leave(onBack)}>← Editor de Inicio</button>
++        <div className="ba-brand"><img src="/logo-marybe.png" alt="Marybe" width="629" height="168" /><span>Sección Destacada</span></div>
++        <span className={`ba-status ${dirty || hasDraft || hasUnsaved ? 'ba-status--dirty' : ''}`} role="status">{statusText}</span>
++        <div className="ba-top-actions">
++          <details className="ba-top-more">
++            <summary>Más opciones</summary>
++            <div>
++              <button disabled={!data || busy || !hasDraft} onClick={discardDraft}>Descartar borrador guardado</button>
++              <button disabled={!data || busy} onClick={() => change(draft => Object.assign(draft, copy(serverArea.published)))}>Volver a lo publicado</button>
++              <button disabled={busy} onClick={() => leave(onLogout)}>Salir</button>
++            </div>
++          </details>
++          <button className="ba-preview-open" disabled={!data || loading} onClick={() => setShowPreview(true)}>Vista previa</button>
++          <button disabled={!data || busy || !dirty} onClick={() => save(false)}>Guardar borrador</button>
++          <button className="ba-primary" disabled={!data || busy || (!dirty && !hasDraft)} onClick={() => save(true)}>{busy ? 'Guardando…' : 'Publicar cambios'}</button>
++        </div>
++      </header>
++      <div className="ba-locationbar">
++        <div><p className="ba-eyebrow">TIENDA / EDITOR VISUAL</p><h1>Sección Destacada</h1></div>
++        <div className="ba-area-tabs" role="group" aria-label="Área de Inicio">
++          {DESTACADA_AREAS.map(item => <button key={item.key} disabled={busy || loading} aria-pressed={areaKey === item.key} onClick={() => selectArea(item.key)}>{item.label}{isDirty(work[item.key]) ? ' •' : ''}</button>)}
++        </div>
++        <p>«Lo nuevo en Marybe» de <strong>{area.label}</strong></p>
++      </div>
++      {(error || message) && <div className={`ba-notice ${error ? 'ba-notice--error' : ''}`} role={error ? 'alert' : 'status'}>{error || message}<button onClick={() => { setError(''); setMessage(''); }} aria-label="Cerrar mensaje">×</button></div>}
++      <div className="ba-workspace">
++        {data ? <DestacadaPartsPanel areaKey={areaKey} data={data} selected={activePart?.id} busy={busy} onSelect={selectPart} onAddBanner={addBanner} /> : <aside className="ba-sidebar"><p role="status">{loading ? 'Cargando sección…' : 'No se pudo cargar la sección.'}</p></aside>}
++
++        <section className="ba-stage">
++          <div className="ba-preview-toolbar">
++            <div className="ba-device-tabs">{DEVICES.map(value => <button key={value} className={device === value ? 'is-active' : ''} aria-pressed={device === value} onClick={() => setDevice(value)}>{NAMES[value]}</button>)}</div>
++            <span>{DEVICE_WIDTHS[device]} px · {Math.round(scale * 100)}%</span>
++            <div className="ba-undo">
++              <button aria-label="Deshacer" disabled={!entry || entry.index <= 0 || busy} onClick={() => moveHistory(-1)}>↶</button>
++              <button aria-label="Rehacer" disabled={!entry || entry.index >= entry.history.length - 1 || busy} onClick={() => moveHistory(1)}>↷</button>
++            </div>
++          </div>
++          <div className="ba-canvas" ref={canvas}>
++            {previewPayload ? <>
++              <div className="ba-canvas-caption">VISTA PREVIA · LO NUEVO EN MARYBE · {area.label.toUpperCase()}</div>
++              <EditorPreviewFrame payload={previewPayload} width={DEVICE_WIDTHS[device]} scale={scale} title="Vista previa de la Sección Destacada" onSelect={selectFromPreview} />
++              <p className="ba-canvas-tip">Hacé clic en una parte de la sección para editarla. Tu vista previa es privada.</p>
++            </> : <div className="ba-empty"><h2>{loading ? 'Cargando…' : 'No se pudo cargar la Sección Destacada'}</h2></div>}
++          </div>
++        </section>
++
++        <aside className="ba-inspector">
++          <div className="ba-inspector-title">
++            <p className="ba-eyebrow">PERSONALIZAR</p>
++            <h2>{activePart?.label || 'Sección Destacada'}</h2>
++            <span>{area.label} · {NAMES[device]}</span>
++          </div>
++          {data && activePart?.id === 'textos' && <TextosPanel areaKey={areaKey} data={data} onChange={change} />}
++          {data && activePart?.id === 'imagen' && <ImagenPanel data={data} device={device} onChooseImage={setLibrary} onChange={change} />}
++          {data && activePart?.id === 'productos' && <ProductosPanel areaLabel={area.label} data={data} productIndex={productIndex} searchProducts={searchProducts} onChange={change} />}
++          {data && index !== null && data.banners[index] && <BannerInferiorPanel index={index} banner={data.banners[index]} onChooseImage={setLibrary} onChange={change} onRemove={() => removeBanner(index)} />}
++        </aside>
++      </div>
++      {library && <MediaLibraryDialog token={token} title={libraryTitle} onChoose={chooseMedia} onClose={() => setLibrary(null)} />}
++    </main>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/destacada/DestacadaEditor.test.jsx b/Frontend/src/pages/admin/editor-inicio/components/destacada/DestacadaEditor.test.jsx
+new file mode 100644
+index 0000000..572b7e9
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/destacada/DestacadaEditor.test.jsx
+@@ -0,0 +1,106 @@
++import React from 'react';
++import '@testing-library/jest-dom';
++import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
++import axios from 'axios';
++import DestacadaEditor from './DestacadaEditor';
++import { publishProblems, toPreviewData } from './destacadaModel';
++
++jest.mock('axios');
++jest.mock('react-router-dom', () => ({ Link: ({ children }) => <span>{children}</span> }), { virtual: true });
++
++const image = { id: 10, url: '/uploads/hero.webp', name: 'hero.webp' };
++const published = { titulo_cursiva: 'Lo nuevo', titulo_normal: 'en Marybe', color_titulo_cursiva: '', color_titulo_normal: '', subtitulo: 'Sub', imagen_desktop: image, imagen_mobile: null, banners: [{ titulo: 'Elixir', imagen: image, texto_boton: 'Conocer más', link_boton: '/tienda' }], productos: ['p1'] };
++const overview = (overrides = {}) => ({
++  version: 'v1',
++  exists: true,
++  areas: {
++    perfumeria: { published, draft: null, draftSavedAt: null },
++    hogar: { published: { ...published, titulo_cursiva: 'Tu espacio,', banners: [], productos: [] }, draft: null, draftSavedAt: null },
++  },
++  products: { p1: { id: 1, documentId: 'p1', nombre: 'Perfume Uno', marca: 'QA', precio: 1000 } },
++  ...overrides,
++});
++
++beforeEach(() => {
++  jest.clearAllMocks();
++  global.ResizeObserver = class { observe() {} disconnect() {} };
++  axios.get.mockImplementation(async url => (url.endsWith('/productos')
++    ? { data: { data: [{ id: 2, documentId: 'p2', nombre: 'Perfume Dos', marca: 'QA', precio: 2000 }] } }
++    : { data: { data: overview() } }));
++  axios.put.mockImplementation(async (url, body) => ({ data: { data: overview({ version: 'v2', areas: { ...overview().areas, perfumeria: body.publish ? { published: body.data, draft: null } : { published, draft: body.data } } }) } }));
++});
++
++const renderEditor = props => render(<DestacadaEditor token="fixture-token" onBack={jest.fn()} onLogout={jest.fn()} {...props} />);
++
++test('carga la sección con el token administrativo y muestra sus partes', async () => {
++  renderEditor();
++  expect(await screen.findByLabelText('Primera parte (cursiva)')).toHaveValue('Lo nuevo');
++  expect(axios.get).toHaveBeenCalledWith(expect.stringMatching(/\/api\/destacada-admin$/), { headers: { Authorization: 'Bearer fixture-token' } });
++  const parts = screen.getByRole('navigation', { name: 'Partes de la Sección Destacada' });
++  expect(within(parts).getAllByRole('button').map(button => button.getAttribute('aria-label'))).toEqual(['Editar Título y subtítulo', 'Editar Imagen principal', 'Editar Productos destacados', 'Editar Banner inferior 1']);
++  expect(screen.getByTitle('Vista previa de la Sección Destacada')).toHaveAttribute('src', '/editor-inicio-preview');
++});
++
++test('guardar borrador y publicar envían el área, la versión y los datos editados', async () => {
++  renderEditor();
++  fireEvent.change(await screen.findByLabelText('Primera parte (cursiva)'), { target: { value: 'Lo más nuevo' } });
++  expect(screen.getByText('● Cambios sin guardar')).toBeInTheDocument();
++  fireEvent.click(screen.getByRole('button', { name: 'Guardar borrador' }));
++  await waitFor(() => expect(axios.put).toHaveBeenCalledTimes(1));
++  const [url, body] = axios.put.mock.calls[0];
++  expect(url).toMatch(/\/api\/destacada-admin\/perfumeria$/);
++  expect(body).toEqual(expect.objectContaining({ version: 'v1', publish: false }));
++  expect(body.data.titulo_cursiva).toBe('Lo más nuevo');
++  await screen.findByText('Borrador guardado. La tienda sigue mostrando la última publicación.');
++  expect(screen.getByText('● Borrador sin publicar')).toBeInTheDocument();
++  fireEvent.click(screen.getByRole('button', { name: 'Publicar cambios' }));
++  await waitFor(() => expect(axios.put).toHaveBeenCalledTimes(2));
++  expect(axios.put.mock.calls[1][1]).toEqual(expect.objectContaining({ version: 'v2', publish: true }));
++});
++
++test('no publica si falta el título y lleva al panel con el problema', async () => {
++  renderEditor();
++  fireEvent.click(await screen.findByRole('button', { name: 'Editar Imagen principal' }));
++  fireEvent.click(screen.getByRole('button', { name: 'Editar Título y subtítulo' }));
++  fireEvent.change(screen.getByLabelText('Segunda parte'), { target: { value: '' } });
++  fireEvent.click(screen.getByRole('button', { name: 'Editar Productos destacados' }));
++  fireEvent.click(screen.getByRole('button', { name: 'Publicar cambios' }));
++  expect(await screen.findByRole('alert')).toHaveTextContent('Completá las dos partes del título.');
++  expect(screen.getByRole('heading', { level: 2, name: 'Título y subtítulo' })).toBeInTheDocument();
++  expect(axios.put).not.toHaveBeenCalled();
++});
++
++test('agrega productos desde la búsqueda y Hogar no ofrece banners inferiores', async () => {
++  renderEditor();
++  fireEvent.click(await screen.findByRole('button', { name: 'Editar Productos destacados' }));
++  fireEvent.click(await screen.findByRole('button', { name: 'Agregar Perfume Dos' }));
++  expect(screen.getByText('2 de 40 productos')).toBeInTheDocument();
++  expect(axios.get).toHaveBeenCalledWith(expect.stringMatching(/\/api\/destacada-admin\/productos$/), expect.objectContaining({ params: { area: 'perfumeria', q: '' } }));
++  fireEvent.click(screen.getByRole('button', { name: 'Hogar' }));
++  expect(screen.getByText('0 de 40 productos')).toBeInTheDocument();
++  fireEvent.click(screen.getByRole('button', { name: 'Editar Título y subtítulo' }));
++  expect(screen.getByLabelText('Primera parte (cursiva)')).toHaveValue('Tu espacio,');
++  expect(screen.queryByRole('button', { name: 'Editar Banner inferior 1' })).toBeNull();
++  expect(screen.getByRole('button', { name: 'Perfumería •' })).toBeInTheDocument();
++});
++
++test('volver al selector pide confirmación con cambios sin guardar', async () => {
++  const onBack = jest.fn();
++  const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
++  renderEditor({ onBack });
++  fireEvent.change(await screen.findByLabelText('Primera parte (cursiva)'), { target: { value: 'Otro' } });
++  fireEvent.click(screen.getByRole('button', { name: '← Editor de Inicio' }));
++  expect(onBack).not.toHaveBeenCalled();
++  confirm.mockReturnValue(true);
++  fireEvent.click(screen.getByRole('button', { name: '← Editor de Inicio' }));
++  expect(onBack).toHaveBeenCalledTimes(1);
++  confirm.mockRestore();
++});
++
++test('la vista previa usa el orden del catálogo y la validación replica la del backend', () => {
++  const index = { a: { id: 9, documentId: 'a' }, b: { id: 3, documentId: 'b' } };
++  expect(toPreviewData({ ...published, productos: ['a', 'b', 'gone'] }, index).productos.map(product => product.documentId)).toEqual(['b', 'a']);
++  expect(publishProblems(published, 'perfumeria')).toEqual([]);
++  expect(publishProblems({ ...published, imagen_desktop: null, banners: [{ titulo: '', imagen: null, texto_boton: '' }] }, 'perfumeria').map(problem => problem.part)).toEqual(['imagen', 'banner-0']);
++  expect(publishProblems({ ...published, banners: [{ titulo: '' }] }, 'hogar')).toEqual([]);
++});
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/destacada/DestacadaPartsPanel.jsx b/Frontend/src/pages/admin/editor-inicio/components/destacada/DestacadaPartsPanel.jsx
+new file mode 100644
+index 0000000..6dd83a3
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/destacada/DestacadaPartsPanel.jsx
+@@ -0,0 +1,47 @@
++import React from 'react';
++import { imageUrl } from '../../../../../utils/bannerDesign';
++import { MAX_BOTTOM_BANNERS, areaInfo, destacadaParts } from './destacadaModel';
++
++function partSummary(part, data, area) {
++  if (part.id === 'textos') return `${data.titulo_cursiva || area.defaults.cursiva} ${data.titulo_normal || area.defaults.normal}`;
++  if (part.id === 'imagen') return data.imagen_desktop ? (data.imagen_mobile ? 'Computadora y celular' : 'Computadora') : 'Sin imagen';
++  if (part.id === 'productos') return `${data.productos.length} ${data.productos.length === 1 ? 'producto' : 'productos'}`;
++  return data.banners[part.index]?.titulo || 'Sin título';
++}
++
++function partThumbnail(part, data) {
++  if (part.id === 'imagen') return imageUrl(data.imagen_desktop);
++  if (part.index != null) return imageUrl(data.banners[part.index]?.imagen);
++  return '';
++}
++
++const ICONS = { textos: 'T', productos: '▦', imagen: '▧' };
++
++export default function DestacadaPartsPanel({ areaKey, data, selected, busy, onSelect, onAddBanner }) {
++  const area = areaInfo(areaKey);
++  const parts = destacadaParts(areaKey, data);
++  return (
++    <aside className="ba-sidebar ba-layers">
++      <div className="ba-layers-heading"><div><p className="ba-eyebrow">LO NUEVO EN MARYBE</p><h2>Partes de la sección</h2></div><span>{parts.length}</span></div>
++      <p className="ba-scope-note">Elegí una parte o hacé clic sobre ella en la vista previa para editarla.</p>
++      <nav aria-label="Partes de la Sección Destacada">
++        <ul className="ba-layer-list">
++          {parts.map(part => {
++            const active = selected === part.id;
++            const image = partThumbnail(part, data);
++            return (
++              <li key={part.id} className={`ba-layer-banner ${active ? 'is-active' : ''}`} data-selected={active}>
++                <button className="ba-layer-banner-select" aria-label={`Editar ${part.label}`} aria-pressed={active} onClick={() => onSelect(part.id)}>
++                  <span className="ba-thumbnail" aria-hidden="true">{image ? <img src={image} alt="" /> : ICONS[part.id] || '▭'}</span>
++                  <span>{part.label}<small>{partSummary(part, data, area)}</small></span>
++                </button>
++              </li>
++            );
++          })}
++        </ul>
++      </nav>
++      {area.banners && data.banners.length < MAX_BOTTOM_BANNERS && <button className="ba-add-section" disabled={busy} onClick={onAddBanner}>＋ Agregar banner inferior</button>}
++      {!area.banners && <p className="ba-scope-note">En Hogar esta sección no muestra banners inferiores.</p>}
++    </aside>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/destacada/ImagenPanel.jsx b/Frontend/src/pages/admin/editor-inicio/components/destacada/ImagenPanel.jsx
+new file mode 100644
+index 0000000..b43a717
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/destacada/ImagenPanel.jsx
+@@ -0,0 +1,28 @@
++import React from 'react';
++import { imageUrl } from '../../../../../utils/bannerDesign';
++
++const SLOTS = [
++  { key: 'imagen_desktop', device: 'desktop', label: 'Computadora y tablet', hint: 'Obligatoria. Se usa en pantallas de más de 768 px.' },
++  { key: 'imagen_mobile', device: 'mobile', label: 'Celular', hint: 'Opcional. Si la dejás vacía se usa la imagen predeterminada para celular.' },
++];
++
++export default function ImagenPanel({ data, device, onChooseImage, onChange }) {
++  return (
++    <>
++      <p className="ba-inspector-help">La imagen acompaña al título en la parte superior de la sección.</p>
++      {SLOTS.map(slot => {
++        const url = imageUrl(data[slot.key]);
++        const current = slot.device === 'mobile' ? device === 'mobile' : device !== 'mobile';
++        return (
++          <details open key={slot.key}>
++            <summary>{slot.label}{current ? ' · vista actual' : ''}</summary>
++            <div className="ba-image-current">{url ? <img src={url} alt={`Imagen para ${slot.label.toLowerCase()}`} /> : <span>Sin imagen</span>}</div>
++            <button className="ba-library-button" onClick={() => onChooseImage(slot.key)}>Elegir imagen · {slot.label}</button>
++            {slot.key === 'imagen_mobile' && data.imagen_mobile && <button onClick={() => onChange(draft => { draft.imagen_mobile = null; })}>Quitar imagen de celular</button>}
++            <small className="ba-hint">{slot.hint}</small>
++          </details>
++        );
++      })}
++    </>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/destacada/ProductosPanel.jsx b/Frontend/src/pages/admin/editor-inicio/components/destacada/ProductosPanel.jsx
+new file mode 100644
+index 0000000..9edba31
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/destacada/ProductosPanel.jsx
+@@ -0,0 +1,141 @@
++import React, { useEffect, useState } from 'react';
++import styled from 'styled-components';
++import { imageUrl } from '../../../../../utils/bannerDesign';
++import { getProductPrice } from '../../../../../utils/productPrice';
++import { MAX_PRODUCTS } from './destacadaModel';
++
++const ProductList = styled.ul`
++  display: flex;
++  flex-direction: column;
++  gap: 6px;
++  margin: 0 0 12px;
++  padding: 0;
++  list-style: none;
++`;
++
++const ProductRow = styled.li`
++  display: grid;
++  grid-template-columns: 40px minmax(0, 1fr) auto;
++  align-items: center;
++  gap: 9px;
++  padding: 6px;
++  border: 1px solid #eee5e3;
++  border-radius: var(--radius-md);
++  background: ${({ $selected }) => ($selected ? '#f7eeee' : 'var(--color-blanco)')};
++
++  img, span[aria-hidden] {
++    width: 40px;
++    height: 40px;
++    border-radius: 6px;
++    background: #f6f2f0;
++    object-fit: contain;
++  }
++
++  button {
++    padding: 6px 9px !important;
++    font-size: 11px !important;
++    white-space: nowrap;
++  }
++`;
++
++const ProductText = styled.div`
++  min-width: 0;
++  font-size: 11px;
++  line-height: 1.35;
++
++  small {
++    display: block;
++    color: #a08c93;
++    font-size: 9px;
++    letter-spacing: 0.06em;
++    text-transform: uppercase;
++  }
++
++  strong {
++    display: block;
++    overflow: hidden;
++    color: var(--color-marron-cuarto);
++    font-weight: 600;
++    text-overflow: ellipsis;
++    white-space: nowrap;
++  }
++
++  span { color: var(--color-bordo-secundario); font-weight: 600; }
++`;
++
++const Counter = styled.p`
++  margin: 0 0 10px;
++  color: #7d6c72;
++  font-size: 11px;
++  font-weight: 600;
++`;
++
++const formatPrice = value => `$${Number(value || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`;
++
++function ProductLine({ product, selected, disabled, onToggle }) {
++  const image = product.portada ? imageUrl(product.portada) : '';
++  const { price, offerPrice } = getProductPrice(product);
++  return (
++    <ProductRow $selected={selected}>
++      {image ? <img src={image} alt="" loading="lazy" /> : <span aria-hidden="true" />}
++      <ProductText><small>{product.marca || 'Sin marca'}</small><strong title={product.nombre}>{product.nombre}</strong><span>{formatPrice(offerPrice || price)}</span></ProductText>
++      <button type="button" aria-pressed={selected} disabled={disabled && !selected} aria-label={`${selected ? 'Quitar' : 'Agregar'} ${product.nombre}`} onClick={() => onToggle(product)}>{selected ? 'Quitar' : 'Agregar'}</button>
++    </ProductRow>
++  );
++}
++
++export default function ProductosPanel({ areaLabel, data, productIndex, searchProducts, onChange }) {
++  const [query, setQuery] = useState('');
++  const [results, setResults] = useState([]);
++  const [searching, setSearching] = useState(false);
++  const [searchError, setSearchError] = useState('');
++  const selected = data.productos.map(id => productIndex[id]).filter(Boolean).sort((a, b) => a.id - b.id);
++  const missing = data.productos.length - selected.length;
++  const full = data.productos.length >= MAX_PRODUCTS;
++
++  useEffect(() => {
++    let active = true;
++    const timer = setTimeout(() => {
++      setSearching(true);
++      setSearchError('');
++      searchProducts(query.trim())
++        .then(list => { if (active) setResults(list); })
++        .catch(() => { if (active) setSearchError('No se pudo buscar productos.'); })
++        .finally(() => { if (active) setSearching(false); });
++    }, 300);
++    return () => { active = false; clearTimeout(timer); };
++  }, [query, searchProducts]);
++
++  const toggle = product => onChange(draft => {
++    draft.productos = draft.productos.includes(product.documentId)
++      ? draft.productos.filter(id => id !== product.documentId)
++      : [...draft.productos, product.documentId];
++  });
++
++  return (
++    <>
++      <p className="ba-inspector-help">Estos productos aparecen en el carrusel de la sección. En la tienda se ordenan según el catálogo.</p>
++      <details open>
++        <summary>Seleccionados</summary>
++        <Counter role="status">{data.productos.length} de {MAX_PRODUCTS} productos</Counter>
++        {!data.productos.length && <small className="ba-hint">Sin productos, la tienda muestra tarjetas vacías en el carrusel.</small>}
++        {missing > 0 && <small className="ba-hint">{missing} producto(s) seleccionados ya no están disponibles. Quitalos antes de publicar.</small>}
++        <ProductList aria-label="Productos seleccionados">
++          {selected.map(product => <ProductLine key={product.documentId} product={product} selected onToggle={toggle} />)}
++        </ProductList>
++        {missing > 0 && <button type="button" onClick={() => onChange(draft => { draft.productos = draft.productos.filter(id => productIndex[id]); })}>Quitar productos no disponibles</button>}
++      </details>
++      <details open>
++        <summary>Agregar productos</summary>
++        <label>Buscar en {areaLabel}<input type="search" value={query} placeholder="Nombre, marca o SKU" maxLength={80} onChange={event => setQuery(event.target.value)} /></label>
++        {full && <small className="ba-hint">Llegaste al máximo de {MAX_PRODUCTS} productos.</small>}
++        {searching && <p className="ba-hint" role="status">Buscando…</p>}
++        {searchError && <p className="ba-hint" role="alert">{searchError}</p>}
++        {!searching && !searchError && !results.length && <p className="ba-hint">No se encontraron productos publicados.</p>}
++        <ProductList aria-label="Resultados de búsqueda">
++          {results.map(product => <ProductLine key={product.documentId} product={product} selected={data.productos.includes(product.documentId)} disabled={full} onToggle={toggle} />)}
++        </ProductList>
++      </details>
++    </>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/destacada/TextosPanel.jsx b/Frontend/src/pages/admin/editor-inicio/components/destacada/TextosPanel.jsx
+new file mode 100644
+index 0000000..6bb65a9
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/destacada/TextosPanel.jsx
+@@ -0,0 +1,24 @@
++import React from 'react';
++import ColorField from './ColorField';
++import { areaInfo } from './destacadaModel';
++
++export default function TextosPanel({ areaKey, data, onChange }) {
++  const { defaults } = areaInfo(areaKey);
++  return (
++    <>
++      <p className="ba-inspector-help">El título se muestra en dos partes: la primera en cursiva y la segunda resaltada.</p>
++      <details open>
++        <summary>Título</summary>
++        <label>Primera parte (cursiva)<input id="dd-titulo-cursiva" value={data.titulo_cursiva} maxLength={120} placeholder={defaults.cursiva} onChange={event => onChange(draft => { draft.titulo_cursiva = event.target.value; })} /></label>
++        <label>Segunda parte<input value={data.titulo_normal} maxLength={120} placeholder={defaults.normal} onChange={event => onChange(draft => { draft.titulo_normal = event.target.value; })} /></label>
++        <ColorField label="Color de la primera parte" value={data.color_titulo_cursiva} fallback={defaults.colorCursiva} onChange={value => onChange(draft => { draft.color_titulo_cursiva = value; })} />
++        <ColorField label="Color de la segunda parte" value={data.color_titulo_normal} fallback={defaults.colorNormal} onChange={value => onChange(draft => { draft.color_titulo_normal = value; })} />
++      </details>
++      <details open>
++        <summary>Subtítulo</summary>
++        <label>Texto debajo del título<textarea rows={3} maxLength={500} value={data.subtitulo} placeholder={defaults.subtitulo} onChange={event => onChange(draft => { draft.subtitulo = event.target.value; })} /></label>
++        <small className="ba-hint">Si lo dejás vacío se muestra el texto predeterminado.</small>
++      </details>
++    </>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/destacada/destacadaModel.js b/Frontend/src/pages/admin/editor-inicio/components/destacada/destacadaModel.js
+new file mode 100644
+index 0000000..0e424bd
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/destacada/destacadaModel.js
+@@ -0,0 +1,58 @@
++export const DESTACADA_AREAS = [
++  { key: 'perfumeria', label: 'Perfumería', banners: true, defaults: { cursiva: 'Lo nuevo', normal: 'en Marybe', subtitulo: 'Intensidad, seducción y carácter en un solo lugar.', colorCursiva: '#FFFFFF', colorNormal: '#F2DC8F' } },
++  { key: 'hogar', label: 'Hogar', banners: false, defaults: { cursiva: 'Tu espacio,', normal: 'tu hogar', subtitulo: 'Calidez, diseño y aromas para ambientar cada rincón.', colorCursiva: '#FFFFFF', colorNormal: '#FFFFFF' } },
++];
++export const MAX_PRODUCTS = 40;
++export const MAX_BOTTOM_BANNERS = 2;
++
++export const areaInfo = key => DESTACADA_AREAS.find(area => area.key === key) || DESTACADA_AREAS[0];
++
++export function destacadaParts(areaKey, data) {
++  const parts = [
++    { id: 'textos', label: 'Título y subtítulo' },
++    { id: 'imagen', label: 'Imagen principal' },
++    { id: 'productos', label: 'Productos destacados' },
++  ];
++  if (areaInfo(areaKey).banners) (data?.banners || []).forEach((banner, index) => parts.push({ id: `banner-${index}`, label: `Banner inferior ${index + 1}`, index }));
++  return parts;
++}
++
++export const bannerIndex = part => (/^banner-(\d)$/.test(part || '') ? Number(part.slice(7)) : null);
++
++export function newBottomBanner() {
++  return { titulo: 'Nuevo banner', imagen: null, texto_boton: 'Conocer más', link_boton: '/tienda' };
++}
++
++export function copy(value) {
++  return JSON.parse(JSON.stringify(value));
++}
++
++export function toPreviewData(data, productIndex) {
++  return {
++    seccionInfo: {
++      titulo_cursiva: data.titulo_cursiva,
++      titulo_normal: data.titulo_normal,
++      color_titulo_cursiva: data.color_titulo_cursiva,
++      color_titulo_normal: data.color_titulo_normal,
++      subtitulo: data.subtitulo,
++      imagen_desktop: data.imagen_desktop,
++      imagen_mobile: data.imagen_mobile,
++    },
++    banners: (data.banners || []).map(banner => ({ ...banner })),
++    // La tienda lista los destacados en el orden del catálogo (id ascendente).
++    productos: (data.productos || []).map(id => productIndex[id]).filter(Boolean).sort((a, b) => a.id - b.id),
++  };
++}
++
++// Espejo de la validación estricta del backend al publicar.
++export function publishProblems(data, areaKey) {
++  const problems = [];
++  if (!data.titulo_cursiva?.trim() || !data.titulo_normal?.trim()) problems.push({ part: 'textos', message: 'Completá las dos partes del título.' });
++  if (!data.imagen_desktop) problems.push({ part: 'imagen', message: 'Elegí la imagen para computadora.' });
++  if (areaInfo(areaKey).banners) {
++    (data.banners || []).forEach((banner, index) => {
++      if (!banner.titulo?.trim() || !banner.imagen || !banner.texto_boton?.trim()) problems.push({ part: `banner-${index}`, message: `El banner inferior ${index + 1} necesita título, imagen y texto del botón.` });
++    });
++  }
++  return problems;
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/sectionEditors.js b/Frontend/src/pages/admin/editor-inicio/sectionEditors.js
+index ff50513..f881010 100644
+--- a/Frontend/src/pages/admin/editor-inicio/sectionEditors.js
++++ b/Frontend/src/pages/admin/editor-inicio/sectionEditors.js
+@@ -1,11 +1,13 @@
+ import { lazyWithRetry } from '../../../utils/lazyWithRetry';
+ 
+ const BannersSectionEditor = lazyWithRetry(() => import('./components/BannersSectionEditor'), 'BannersSectionEditor');
++const DestacadaEditor = lazyWithRetry(() => import('./components/destacada/DestacadaEditor'), 'DestacadaEditor');
+ 
+ // Editores reales por identificador de sección. Las secciones sin entrada muestran
+ // la vista "Editor próximamente disponible"; para habilitar un editor nuevo basta con registrarlo acá.
+ export const SECTION_EDITORS = {
+   banners: BannersSectionEditor,
++  'seccion-destacada': DestacadaEditor,
+ };
+ 
+ export const hasSectionEditor = (id) => Boolean(SECTION_EDITORS[id]);
+-- 
+2.43.0
+

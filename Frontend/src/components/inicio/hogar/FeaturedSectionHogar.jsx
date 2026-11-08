@@ -9,6 +9,7 @@ import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
 import { cmsColorStyle } from '../../../utils/cmsColor';
+import { imageScaleCss, imageScaleProps } from '../../../utils/imageScale';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-hogar);
@@ -130,7 +131,8 @@ const FeaturedPicture = styled.picture`
   @media (min-width: 769px) {
     position: absolute;
     right: 0%;
-    top: 29vh;
+    /* --editor-vh solo existe en la vista previa del Editor de Inicio; en la tienda equivale a 1vh. */
+    top: calc(var(--editor-vh, 1vh) * 29);
     width: 45%;
     height: 100%;
     display: flex;
@@ -162,9 +164,11 @@ const FeaturedPicture = styled.picture`
     }
     
     @media (max-width: 768px) {
-      max-height: 40vh;
+      max-height: calc(var(--editor-vh, 1vh) * 40);
     }
   }
+
+  ${imageScaleCss('right center', 'center')}
 `;
 
 const ProductsGrid = styled(motion.div)`
@@ -182,6 +186,12 @@ const ProductsGrid = styled(motion.div)`
   padding-bottom: 10px;
   margin-top: 30px;
 
+  /* Reserva el alto de una fila de tarjetas: la imagen va en posición absoluta y,
+     sin productos, la sección quedaría cortada. */
+  @media (min-width: 769px) {
+    min-height: 474px;
+  }
+
   &:active {
     cursor: grabbing;
   }
@@ -191,7 +201,7 @@ const ProductsGrid = styled(motion.div)`
   }
 
   @media (min-width: 1250px) and (max-width: 1524px) {
-    margin-top: -5vh;
+    margin-top: calc(var(--editor-vh, 1vh) * -5);
   }
 
   @media (max-width: 1024px) {
@@ -489,16 +499,20 @@ const formatPrice = (price) => {
   return '$' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
-export default function FeaturedSectionHogar() {
+export default function FeaturedSectionHogar({ previewData }) {
   const { config } = useConfiguracionGeneral();
-  const [productos, setProductos] = useState([]);
+  const [productosApi, setProductos] = useState([]);
   const scrollRef = useRef(null);
   const navigate = useNavigate();
   const isDragging = useRef(false);
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [seccionInfo, setSeccionInfo] = useState(null);
+  const [seccionInfoApi, setSeccionInfo] = useState(null);
+  const isPreview = Boolean(previewData);
+  // previewData (Editor de Inicio) reemplaza los datos publicados sin consultar la API.
+  const productos = isPreview ? previewData.productos || [] : productosApi;
+  const seccionInfo = isPreview ? previewData.seccionInfo : seccionInfoApi;
 
   const handleAddClick = (product, e) => {
     e.stopPropagation();
@@ -507,6 +521,7 @@ export default function FeaturedSectionHogar() {
   };
 
   useEffect(() => {
+    if (isPreview) return;
     fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[destacado][$eq]=true&filters[seccion][$eq]=Hogar&populate=*`)
       .then(res => res.json())
       .then(data => {
@@ -530,7 +545,7 @@ export default function FeaturedSectionHogar() {
         }
       })
       .catch(err => console.error('Error fetching seccion-principal:', err));
-  }, []);
+  }, [isPreview]);
 
   const isDown = useRef(false);
   const startX = useRef(0);
@@ -599,7 +614,7 @@ export default function FeaturedSectionHogar() {
     <SectionWrapper>
       <HaloLuz src="/inicio/haloHogar.png" alt="Efecto de luz" />
       <TopHeader>
-        <TextBlock>
+        <TextBlock data-editor-part="textos">
           <Title>
             <span className="italic-text" style={cmsColorStyle(seccionInfo?.color_titulo_cursiva)}>
               {seccionInfo?.titulo_cursiva || 'Tu espacio,'}
@@ -612,7 +627,7 @@ export default function FeaturedSectionHogar() {
             {seccionInfo?.subtitulo || 'Calidez, diseño y aromas para ambientar cada rincón.'}
           </Subtitle>
         </TextBlock>
-        <BannerSlot name="featured_hogar" side><FeaturedPicture>
+        <BannerSlot name="featured_hogar" side><FeaturedPicture data-editor-part="imagen" {...imageScaleProps(seccionInfo)}>
           <picture>
             {seccionInfo?.imagen_mobile?.url ? (
               <source media="(max-width: 768px)" srcSet={`${seccionInfo.imagen_mobile.url.startsWith('http') ? '' : process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${seccionInfo.imagen_mobile.url}`} />
@@ -637,6 +652,7 @@ export default function FeaturedSectionHogar() {
         </ArrowBtn>
         <ProductsGrid
           ref={scrollRef}
+          data-editor-part="productos"
           onMouseDown={handleMouseDown}
           onMouseLeave={handleMouseLeave}
           onMouseUp={handleMouseUp}

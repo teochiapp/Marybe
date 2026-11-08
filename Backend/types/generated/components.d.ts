@@ -72,6 +72,7 @@ export interface InicioDestacada extends Struct.ComponentSchema {
       'oneToOne',
       'api::categoria.categoria'
     >;
+    productos_orden: Schema.Attribute.JSON;
     titulo: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
@@ -302,6 +303,22 @@ export interface SharedBannerDestacado extends Struct.ComponentSchema {
     icon: 'star';
   };
   attributes: {
+    escala_imagen_desktop: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 200;
+          min: 30;
+        },
+        number
+      >;
+    escala_imagen_mobile: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 200;
+          min: 30;
+        },
+        number
+      >;
     imagen: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
     link_boton: Schema.Attribute.String & Schema.Attribute.Required;
     texto_boton: Schema.Attribute.String &
@@ -358,6 +375,22 @@ export interface SharedSeccionPrincipalItem extends Struct.ComponentSchema {
       Schema.Attribute.CustomField<'global::paleta-color'>;
     color_titulo_normal: Schema.Attribute.String &
       Schema.Attribute.CustomField<'global::paleta-color'>;
+    escala_imagen_desktop: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 200;
+          min: 30;
+        },
+        number
+      >;
+    escala_imagen_mobile: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 200;
+          min: 30;
+        },
+        number
+      >;
     imagen_desktop: Schema.Attribute.Media<'images'> &
       Schema.Attribute.Required;
     imagen_mobile: Schema.Attribute.Media<'images'>;

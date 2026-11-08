@@ -1,18 +1,22 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { SECCION_ALINEACIONES, SECCION_COLORES, SECCION_ESPACIADOS, SECCION_FONDOS, SECCION_FUENTES, SECCION_PESOS, SECCION_TAMANOS, disenoSeccion } from '../../../utils/disenoSeccion';
+
+const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+export const OFERTAS_TITULO = 'Disfrutá de las mejores ofertas';
 
 const SectionWrapper = styled.section`
-  padding: 40px 60px;
+  padding: ${({ $espaciado }) => SECCION_ESPACIADOS[$espaciado][0]} 60px;
   padding-right: 0 !important;
-  background-color: var(--color-blanco);
+  background-color: ${({ $fondo }) => SECCION_FONDOS[$fondo]};
   display: flex;
   flex-direction: column;
   gap: 30px;
   align-items: flex-start;
 
   @media (max-width: 1024px) {
-    padding: 30px 40px;
+    padding: ${({ $espaciado }) => SECCION_ESPACIADOS[$espaciado][1]} 40px;
   }
 
   @media (max-width: 768px) {
@@ -29,19 +33,28 @@ const SectionHeader = styled.div`
   width: 100%;
 `;
 
+// Con el título centrado o a la derecha se compensa la sección, que no tiene margen derecho (las insignias llegan al borde).
 const SectionTitle = styled.h2`
-  font-family: var(--font-family-secondary);
-  font-size: 2.5rem;
-  color: ${({ $seccion }) => ($seccion === 'hogar' ? 'var(--color-hogar)' : 'var(--color-bordo-secundario)')};
-  font-weight: 600;
+  font-family: ${({ $fuente }) => SECCION_FUENTES[$fuente]};
+  font-size: ${({ $tamano }) => SECCION_TAMANOS[$tamano][0]};
+  color: ${({ $color, $seccion }) => SECCION_COLORES[$color] || ($seccion === 'hogar' ? 'var(--color-hogar)' : 'var(--color-bordo-secundario)')};
+  font-weight: ${({ $peso }) => SECCION_PESOS[$peso]};
+  text-align: ${({ $alineacion }) => SECCION_ALINEACIONES[$alineacion]};
+  padding-right: ${({ $alineacion }) => ($alineacion === 'izquierda' ? '0' : '60px')};
+  visibility: ${({ $pending }) => ($pending ? 'hidden' : 'visible')};
   margin: 0;
 
-  @media (max-width: 768px) {
-    font-size: 1.4rem;
+  @media (max-width: 1024px) {
+    padding-right: ${({ $alineacion }) => ($alineacion === 'izquierda' ? '0' : '40px')};
   }
 
-    @media (max-width: 400px) {
-    font-size: 1.2rem;
+  @media (max-width: 768px) {
+    font-size: ${({ $tamano }) => SECCION_TAMANOS[$tamano][1]};
+    padding-right: ${({ $alineacion }) => ($alineacion === 'izquierda' ? '0' : '30px')};
+  }
+
+  @media (max-width: 400px) {
+    font-size: ${({ $tamano }) => SECCION_TAMANOS[$tamano][2]};
   }
 `;
 
@@ -116,8 +129,25 @@ const BadgeButton = styled.button`
   }
 `;
 
-export default function OfertasSection({ seccion }) {
+export default function OfertasSection({ seccion, previewData }) {
   const navigate = useNavigate();
+  const isPreview = Boolean(previewData);
+  const [disenoApi, setDisenoApi] = useState(null);
+  const [loading, setLoading] = useState(!isPreview);
+  const area = seccion === 'hogar' ? 'hogar' : 'perfumeria';
+  const diseno = disenoSeccion(isPreview ? previewData : disenoApi?.[area], OFERTAS_TITULO);
+
+  // Título y tipografía configurados en el Editor de Inicio; sin configuración se usa el diseño original.
+  useEffect(() => {
+    if (isPreview) return undefined;
+    let active = true;
+    fetch(`${STRAPI_URL}/api/seccion-principal?fields[0]=diseno_secciones`)
+      .then(res => res.json())
+      .then(json => { if (active) setDisenoApi(json?.data?.diseno_secciones?.ofertas || null); })
+      .catch(() => {})
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [isPreview]);
   const discountValores = [60, 50, 40, 35, 30, 25, 20, 15, 10];
   const scrollRef = useRef(null);
 
@@ -186,9 +216,20 @@ export default function OfertasSection({ seccion }) {
   };
 
   return (
-    <SectionWrapper>
+    <SectionWrapper data-editor-part="seccion" $fondo={diseno.fondo} $espaciado={diseno.espaciado}>
       <SectionHeader>
-        <SectionTitle $seccion={seccion}>Disfrutá de las mejores ofertas</SectionTitle>
+        <SectionTitle
+          data-editor-part="titulo"
+          $seccion={seccion}
+          $fuente={diseno.fuente}
+          $tamano={diseno.tamano}
+          $peso={diseno.peso}
+          $alineacion={diseno.alineacion}
+          $color={diseno.color}
+          $pending={loading}
+        >
+          {diseno.titulo}
+        </SectionTitle>
         <BadgesContainer
           ref={scrollRef}
           onMouseDown={handleMouseDown}

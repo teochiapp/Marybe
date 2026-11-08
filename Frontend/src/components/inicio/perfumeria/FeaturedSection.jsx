@@ -10,6 +10,7 @@ import FavoriteButton from '../../shared/FavoriteButton';
 import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
 import { cmsColorStyle } from '../../../utils/cmsColor';
+import { imageScaleCss, imageScaleProps } from '../../../utils/imageScale';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
@@ -113,7 +114,8 @@ const Subtitle = styled.p`
 
 const FeaturedPicture = styled.picture`
   width: 50%;
-  max-height: 40vh;
+  /* --editor-vh solo existe en la vista previa del Editor de Inicio; en la tienda equivale a 1vh. */
+  max-height: calc(var(--editor-vh, 1vh) * 40);
   max-width: 100%;
   padding-right: 60px;
   display: flex;
@@ -128,10 +130,12 @@ const FeaturedPicture = styled.picture`
   img {
     width: 100%;
     height: 100%;
-    max-height: 45vh;
+    max-height: calc(var(--editor-vh, 1vh) * 45);
     object-fit: contain;
     filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
   }
+
+  ${imageScaleCss('center')}
 `;
 
 const ProductsGrid = styled(motion.div)`
@@ -158,7 +162,7 @@ const ProductsGrid = styled(motion.div)`
   }
 
   @media (min-width: 1250px) and (max-width: 1524px) {
-    margin-top: -5vh;
+    margin-top: calc(var(--editor-vh, 1vh) * -5);
   }
 
   @media (max-width: 1024px) {
@@ -532,6 +536,8 @@ const BannerImageWrapper = styled.div`
     object-fit: contain;
     filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));
   }
+
+  ${imageScaleCss('bottom center')}
 `;
 
 // Helper SVG Icons
@@ -558,17 +564,22 @@ const ChevronRight = () => (
   <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
 );
 
-export default function FeaturedSection({ seccion = 'perfumeria' }) {
+export default function FeaturedSection({ seccion = 'perfumeria', previewData }) {
   const { config } = useConfiguracionGeneral();
-  const [productos, setProductos] = useState([]);
-  const [bannersDestacados, setBannersDestacados] = useState([]);
+  const [productosApi, setProductos] = useState([]);
+  const [bannersApi, setBannersDestacados] = useState([]);
   const scrollRef = useRef(null);
   const navigate = useNavigate();
   const isDragging = useRef(false);
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [seccionInfo, setSeccionInfo] = useState(null);
+  const [seccionInfoApi, setSeccionInfo] = useState(null);
+  const isPreview = Boolean(previewData);
+  // previewData (Editor de Inicio) reemplaza los datos publicados sin consultar la API.
+  const productos = isPreview ? previewData.productos || [] : productosApi;
+  const bannersDestacados = isPreview ? previewData.banners || [] : bannersApi;
+  const seccionInfo = isPreview ? previewData.seccionInfo : seccionInfoApi;
 
   const handleAddClick = (product, e) => {
     e.stopPropagation();
@@ -579,6 +590,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
   const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
 
   useEffect(() => {
+    if (isPreview) return;
     fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[destacado][$eq]=true&filters[seccion][$eq]=${seccionName}&populate=*`)
       .then(res => res.json())
       .then(data => {
@@ -606,7 +618,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
       })
       .catch(err => console.error('Error fetching seccion-principal:', err));
 
-  }, [seccionName, seccion]);
+  }, [seccionName, seccion, isPreview]);
 
   const isDown = useRef(false);
   const startX = useRef(0);
@@ -708,7 +720,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
     <SectionWrapper>
       <HaloLuz src="/inicio/halo-luz.webp" alt="Efecto de luz" width="1000" height="800" fetchPriority="high" loading="eager" decoding="sync" />
       <TopHeader>
-        <TextBlock>
+        <TextBlock data-editor-part="textos">
           <Title>
             <span className="italic-text" style={cmsColorStyle(seccionInfo?.color_titulo_cursiva)}>
               {seccionInfo?.titulo_cursiva || 'Lo nuevo'}
@@ -721,7 +733,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             {seccionInfo?.subtitulo || 'Intensidad, seducción y carácter en un solo lugar.'}
           </Subtitle>
         </TextBlock>
-        <BannerSlot name="featured_perfumeria" side><FeaturedPicture>
+        <BannerSlot name="featured_perfumeria" side><FeaturedPicture data-editor-part="imagen" {...imageScaleProps(seccionInfo)}>
           {seccion === 'hogar' ? (
             <img src="/inicio/hogar-featured.webp" alt="Hogar destacado" style={{ maxHeight: '42vh' }} loading="eager" decoding="sync" />
           ) : (
@@ -753,6 +765,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
         </ArrowBtn>
         <ProductsGrid
           ref={scrollRef}
+          data-editor-part="productos"
           onMouseDown={handleMouseDown}
           onMouseLeave={handleMouseLeave}
           onMouseUp={handleMouseUp}
@@ -843,10 +856,10 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
                 imgUrl = getFullUrl(banner.imagen.url);
               }
               return (
-                <BannerSlot key={index} name={`categoria_${index}`}><BottomBanner>
+                <BannerSlot key={index} name={`categoria_${index}`}><BottomBanner data-editor-part={`banner-${index}`}>
                   <BannerTitle>{banner.titulo}</BannerTitle>
                   {imgUrl && (
-                    <BannerImageWrapper>
+                    <BannerImageWrapper {...imageScaleProps(banner)}>
                       <img src={imgUrl} alt={banner.titulo} width="220" height="220" loading="eager" decoding="sync" />
                     </BannerImageWrapper>
                   )}
@@ -858,7 +871,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
             })
           ) : (
             <>
-              <BannerSlot name="categoria_0"><BottomBanner>
+              <BannerSlot name="categoria_0"><BottomBanner data-editor-part="banner-0">
                 <BannerTitle>El poder del elixir</BannerTitle>
                 <BannerImageWrapper>
                   <img src="/inicio/elixir.webp" alt="El poder del elixir" width="220" height="220" loading="eager" decoding="sync" />
@@ -866,7 +879,7 @@ export default function FeaturedSection({ seccion = 'perfumeria' }) {
                 <BannerButton onClick={() => { navigate('/tienda?banner=elixir&seccion=Perfumer%C3%ADa'); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Conocer más</BannerButton>
               </BottomBanner></BannerSlot>
 
-              <BannerSlot name="categoria_1"><BottomBanner>
+              <BannerSlot name="categoria_1"><BottomBanner data-editor-part="banner-1">
                 <BannerTitle>Toda la línea de Azzaro</BannerTitle>
                 <BannerImageWrapper>
                   <img src="/inicio/azzaro.webp" alt="Línea Azzaro" width="220" height="220" loading="eager" decoding="sync" />

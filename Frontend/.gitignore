@@ -8,6 +8,7 @@
 # testing
 /coverage
 /tmp/banners-qa/
+/tmp/editor-inicio-qa/
 /tmp/heading-colors-qa/
 /tmp/pdfs/
 /output/pdf/comprobante-marybe-ejemplo.pdf

@@ -17,6 +17,19 @@
       "private": true,
       "description": "Borrador y versión publicada de las piezas visuales del editor /banners-admin"
     },
+    "borradores_editor_inicio": {
+      "type": "json",
+      "private": true,
+      "description": "Borradores del Editor de Inicio (/editor-inicio-admin) por sección y área"
+    },
+    "diseno_categorias": {
+      "type": "json",
+      "description": "Sección Categorías de Inicio por área: orden de las categorías (documentId), forma de las tarjetas y estilo de los botones. Lo administra /editor-inicio-admin."
+    },
+    "diseno_secciones": {
+      "type": "json",
+      "description": "Título y tipografía de las secciones de Inicio que no tienen modelo propio (hoy: Ofertas), por sección y área. Lo administra /editor-inicio-admin."
+    },
     "texto_toggle_perfumeria": {
       "type": "string",
       "default": "Perfumería"

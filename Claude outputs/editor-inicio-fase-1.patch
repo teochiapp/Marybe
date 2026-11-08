@@ -1,0 +1,1393 @@
+From 50e6ef56f623fce50811c32e8af824836cb087ea Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 7 Nov 2026 21:18:04 +0000
+Subject: [PATCH] Editor de Inicio fase 1: selector de secciones
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Nueva ruta /editor-inicio-admin con el panel "¿Qué querés modificar hoy?"
+  y las diez secciones de Inicio en su orden real.
+- Reutiliza el login y el token administrativo de /banners-admin.
+- Banners abre el editor existente; las demás secciones muestran
+  "Editor próximamente disponible" con regreso al selector.
+- /banners-admin se mantiene sin cambios de comportamiento.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01DYCRcLQwfELKi4kAvBeRJk
+---
+ Frontend/.gitignore                           |   1 +
+ Frontend/docs/editor-inicio-admin.md          |  49 +++++
+ Frontend/informe-mensual-Noviembre.md         |   9 +
+ Frontend/scripts/qa-editor-inicio.cjs         | 179 ++++++++++++++++++
+ Frontend/src/App.js                           |   4 +-
+ Frontend/src/hooks/useAdminSession.js         |  44 +++++
+ Frontend/src/pages/admin/BannersAdmin.jsx     |   5 +-
+ .../pages/admin/BannersAdminEmbedded.test.jsx |  54 ++++++
+ .../admin/editor-inicio/EditorInicioAdmin.jsx |  40 ++++
+ .../editor-inicio/EditorInicioAdmin.test.jsx  | 134 +++++++++++++
+ .../components/AdminLoginCard.jsx             |  63 ++++++
+ .../components/BannersSectionEditor.jsx       |   7 +
+ .../components/EditorInicioLayout.jsx         | 154 +++++++++++++++
+ .../editor-inicio/components/SectionCard.jsx  | 154 +++++++++++++++
+ .../components/SectionPlaceholder.jsx         | 101 ++++++++++
+ .../components/SectionSelector.jsx            |  87 +++++++++
+ .../editor-inicio/editorInicioSections.js     |  93 +++++++++
+ .../admin/editor-inicio/sectionEditors.js     |  11 ++
+ 18 files changed, 1186 insertions(+), 3 deletions(-)
+ create mode 100644 Frontend/docs/editor-inicio-admin.md
+ create mode 100644 Frontend/scripts/qa-editor-inicio.cjs
+ create mode 100644 Frontend/src/hooks/useAdminSession.js
+ create mode 100644 Frontend/src/pages/admin/BannersAdminEmbedded.test.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.test.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/AdminLoginCard.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/BannersSectionEditor.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/EditorInicioLayout.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/SectionCard.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/SectionPlaceholder.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/components/SectionSelector.jsx
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/editorInicioSections.js
+ create mode 100644 Frontend/src/pages/admin/editor-inicio/sectionEditors.js
+
+diff --git a/Frontend/.gitignore b/Frontend/.gitignore
+index 7dd942c..c4a4a6c 100644
+--- a/Frontend/.gitignore
++++ b/Frontend/.gitignore
+@@ -8,6 +8,7 @@
+ # testing
+ /coverage
+ /tmp/banners-qa/
++/tmp/editor-inicio-qa/
+ /tmp/heading-colors-qa/
+ /tmp/pdfs/
+ /output/pdf/comprobante-marybe-ejemplo.pdf
+diff --git a/Frontend/docs/editor-inicio-admin.md b/Frontend/docs/editor-inicio-admin.md
+new file mode 100644
+index 0000000..d7b7537
+--- /dev/null
++++ b/Frontend/docs/editor-inicio-admin.md
+@@ -0,0 +1,49 @@
++# Editor de Inicio
++
++Ruta: `/editor-inicio-admin`. Punto de entrada para administrar las secciones de la página principal. Reemplazará progresivamente a `/banners-admin`, que sigue disponible sin cambios.
++
++## Acceso
++
++Usa el mismo acceso administrativo que Banners, Pedidos e Importación: login en `/api/importacion-admin/login` y JWT guardado en `localStorage.admin_jwt` (validado en el backend con `isAdminImport`). Iniciar sesión en cualquiera de esos paneles habilita los demás, y cerrar sesión en uno la cierra en todos. La sesión se maneja con `src/hooks/useAdminSession.js`, que descarta tokens vencidos y reacciona al evento de sesión expirada (`sessionManager`).
++
++## Rutas
++
++| Ruta | Vista |
++|---|---|
++| `/editor-inicio-admin` | Selector «¿Qué querés modificar hoy?» |
++| `/editor-inicio-admin/banners` | Editor de banners existente (`BannersAdmin`) |
++| `/editor-inicio-admin/<id>` | Editor de la sección o vista «Editor próximamente disponible» |
++| `/editor-inicio-admin/<id-inexistente>` | Redirige al selector |
++
++Identificadores, en el orden de Inicio (Perfumería): `banners`, `seccion-destacada`, `categorias`, `categoria-destacada-1`, `ofertas`, `descuentos`, `categoria-destacada-2`, `beneficios`, `gift-card`, `proximos-eventos`.
++
++## Estructura
++
++```
++src/pages/admin/editor-inicio/
++├── EditorInicioAdmin.jsx       ← control de sesión y rutas internas
++├── editorInicioSections.js     ← configuración central: id, título, descripción, ícono, componente de la landing
++├── sectionEditors.js           ← registro id → editor real (hoy solo banners)
++└── components/
++    ├── AdminLoginCard.jsx      ← login con el endpoint administrativo existente
++    ├── EditorInicioLayout.jsx  ← barra superior, ubicación y cierre de sesión
++    ├── SectionSelector.jsx     ← panel con la grilla de secciones
++    ├── SectionCard.jsx         ← tarjeta de sección
++    ├── SectionPlaceholder.jsx  ← vista temporal de editores pendientes
++    └── BannersSectionEditor.jsx← integra BannersAdmin con «← Editor de Inicio»
++```
++
++Para habilitar el editor de otra sección: crear su componente y registrarlo en `SECTION_EDITORS` con el `id` de la sección. Recibe `section`, `onBack` y `onLogout`. La tarjeta pasa automáticamente de «Próximamente» a «Editar sección».
++
++`BannersAdmin` acepta dos props opcionales, usadas solo dentro del Editor de Inicio: `onBack` (muestra el botón de regreso y pide confirmación si hay cambios sin guardar) y `onLogout` (se llama al usar **Salir**). Sin props, `/banners-admin` se comporta igual que antes.
++
++## Validación
++
++```powershell
++# Desde Frontend
++npm test -- --watchAll=false
++npm run build
++node scripts/qa-editor-inicio.cjs <ruta-a-playwright> http://localhost:3000
++```
++
++`scripts/qa-editor-inicio.cjs` usa un CMS simulado (no guarda ni publica): acceso directo protegido, credenciales válidas e inválidas, las diez secciones en orden, vistas temporales, recarga, rutas inexistentes, editor de banners integrado, confirmación de cambios sin guardar, `/banners-admin`, celular/tablet y cierre de sesión. Guarda capturas en `tmp/editor-inicio-qa`.
+diff --git a/Frontend/informe-mensual-Noviembre.md b/Frontend/informe-mensual-Noviembre.md
+index ebbc5de..9460162 100644
+--- a/Frontend/informe-mensual-Noviembre.md
++++ b/Frontend/informe-mensual-Noviembre.md
+@@ -319,3 +319,12 @@ Cambios realizados:
+   - **Lógica de Negocio y Gift Cards (`LOG-01`..`LOG-03`):** Se habilitó el checkout de pedidos cubiertos al 100% por Gift Card ($0 a pagar) en [custom-pedido.js (servicio)](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/pedido/services/custom-pedido.js) y [custom-pedido.js (controlador)](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/pedido/controllers/custom-pedido.js), se implementó la conservación del saldo remanente en consumos parciales de Gift Cards en [checkout-lifecycle.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/mercado-pago/services/checkout-lifecycle.js), y se restringió la emisión de Gift Cards a montos enteros ≥ $1.000.
+   - **Concurrencia, Integridad y Gestión (`COM-01`, `COM-02`, `MGT-01`, `MGT-02`, `INT-01`, `INT-02`):** Se unificó la confirmación de pedidos offline bajo transacción atómica y bloqueo de concurrencia (`fulfill` + `strapi.db.transaction`) impidiendo sobreventa de stock, se añadieron registros de auditoría (`[AUDIT]`) en borrados administrativos, se configuró `ADMIN_NOTIFICATION_EMAIL` en [correo.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/correo/services/correo.js), se sanitizaron con `escapeHtml` las variables en plantillas de correo y se eliminó la dependencia obsoleta `xlsx` de [package.json](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/package.json).
+ - Validación: Se agregó la suite [security-audit-remediation.test.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/tests/security-audit-remediation.test.js) (90/90 pruebas de backend aprobadas).
++
++Editor de Inicio — Fase 1: selector de secciones ✅
++
++Cambios realizados:
++- Nueva ruta `/editor-inicio-admin` con el panel «¿Qué querés modificar hoy?»: diez tarjetas (Banners, Sección Destacada, Categorías, Categoría Destacada (1), Ofertas, Descuentos, Categoría Destacada (2), Beneficios, Gift Card y Próximos Eventos) en el orden real de Inicio (Perfumería), con ícono, descripción, estado e indicador de navegación. Grilla de 1 a 5 columnas según el ancho.
++- Acceso con el mismo login y token administrativo de `/banners-admin` (`/api/importacion-admin/login`, `admin_jwt`); se descartan tokens vencidos y se cierra la vista ante sesión expirada. Sin backend, modelos ni endpoints nuevos.
++- Banners abre el editor existente en `/editor-inicio-admin/banners`, con botón «← Editor de Inicio» (pide confirmación si hay cambios sin guardar). `/banners-admin` sigue funcionando igual.
++- Las demás secciones tienen ruta propia (`/editor-inicio-admin/<id>`) con la vista «Editor próximamente disponible» y regreso al selector; rutas inexistentes vuelven al selector. Configuración central en `editorInicioSections.js` y registro de editores en `sectionEditors.js`. Documentación en `docs/editor-inicio-admin.md`.
++- Validación: 200 pruebas de frontend aprobadas (13 nuevas), lint sin errores en los archivos tocados, `npm run build` correcto y QA en navegador con CMS simulado (`scripts/qa-editor-inicio.cjs`) en escritorio, tablet y celular.
+diff --git a/Frontend/scripts/qa-editor-inicio.cjs b/Frontend/scripts/qa-editor-inicio.cjs
+new file mode 100644
+index 0000000..b722660
+--- /dev/null
++++ b/Frontend/scripts/qa-editor-inicio.cjs
+@@ -0,0 +1,179 @@
++// Verificación en navegador del Editor de Inicio con un CMS simulado. Nunca guarda ni publica datos reales.
++// node scripts/qa-editor-inicio.cjs <path-to-playwright-package> [base-url]
++const { chromium } = require(process.argv[2] || 'playwright');
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const path = require('node:path');
++
++const baseUrl = process.argv[3] || 'http://localhost:3000';
++const output = path.resolve(__dirname, '../tmp/editor-inicio-qa');
++const JWT = 'qa-only-admin-token';
++const SECTIONS = [
++  ['banners', 'Banners'],
++  ['seccion-destacada', 'Sección Destacada'],
++  ['categorias', 'Categorías'],
++  ['categoria-destacada-1', 'Categoría Destacada (1)'],
++  ['ofertas', 'Ofertas'],
++  ['descuentos', 'Descuentos'],
++  ['categoria-destacada-2', 'Categoría Destacada (2)'],
++  ['beneficios', 'Beneficios'],
++  ['gift-card', 'Gift Card'],
++  ['proximos-eventos', 'Próximos Eventos'],
++];
++const group = { documentId: 'qa-promo', updatedAt: 'v1', titulo: 'Campaña QA', seccion: 'Perfumería', Filas: [{ id: 1, __component: 'layout.fila-1-columna', diseno: { desktop: { columns: 1 } }, banners: [{ id: 2, titulo: 'Banner QA', imagen_desktop: { id: 3, url: '/inicio/giftcard.webp' }, diseno: { desktop: { height: 420 } } }] }] };
++
++const noOverflow = page => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
++
++async function mockApi(page, log) {
++  await page.route('**/api/**', async route => {
++    const request = route.request();
++    const url = new URL(request.url());
++    log.push({ method: request.method(), path: url.pathname, auth: request.headers().authorization || '' });
++    if (url.pathname === '/api/importacion-admin/login') {
++      const body = request.postDataJSON();
++      if (body.identifier === 'admin@marybe.com' && body.password === 'correcta') return route.fulfill({ json: { jwt: JWT } });
++      return route.fulfill({ status: 400, json: { error: { message: 'Credenciales inválidas' } } });
++    }
++    if (url.pathname.startsWith('/api/banners-admin')) {
++      if (request.headers().authorization !== `Bearer ${JWT}`) return route.fulfill({ status: 401, json: { error: { message: 'No autorizado' } } });
++      if (url.pathname === '/api/banners-admin') return route.fulfill({ json: { data: { promotions: [group] } } });
++      assert.fail(`El QA no debe guardar ni consultar ${url.pathname}`);
++    }
++    return route.fulfill({ json: { data: [] } });
++  });
++}
++
++async function expectSelector(page) {
++  await page.getByRole('heading', { level: 1, name: '¿Qué querés modificar hoy?' }).waitFor();
++  const cards = page.getByRole('list', { name: 'Secciones de la página de inicio' }).getByRole('link');
++  assert.equal(await cards.count(), 10);
++  return cards;
++}
++
++(async () => {
++  fs.mkdirSync(output, { recursive: true });
++  const browser = await chromium.launch(process.env.QA_CHROME_CHANNEL ? { channel: process.env.QA_CHROME_CHANNEL } : {});
++  try {
++    const context = await browser.newContext({ viewport: { width: 1440, height: 960 } });
++    const page = await context.newPage();
++    const errors = [];
++    const log = [];
++    page.on('pageerror', error => errors.push(error.message));
++    await mockApi(page, log);
++
++    // Acceso directo sin sesión: solo se ve el login y no se consulta la API administrativa.
++    await page.goto(`${baseUrl}/editor-inicio-admin/banners`);
++    await page.getByRole('button', { name: 'Iniciar sesión' }).waitFor();
++    assert.equal(await page.getByText('¿Qué querés modificar hoy?').count(), 0);
++    assert.equal(await page.getByRole('spinbutton', { name: 'Alto', exact: true }).count(), 0);
++    assert.equal(log.filter(entry => entry.path.startsWith('/api/banners-admin')).length, 0);
++    await page.goto(`${baseUrl}/editor-inicio-admin/ofertas`);
++    await page.getByRole('button', { name: 'Iniciar sesión' }).waitFor();
++    assert.equal(await page.getByText('Editor próximamente disponible').count(), 0);
++    assert.equal(await page.locator('footer').count(), 0, 'El editor no muestra el footer de la tienda');
++    await page.screenshot({ path: path.join(output, 'login.png'), fullPage: true });
++
++    // Credenciales: rechazo y acceso con las credenciales administrativas existentes.
++    await page.goto(`${baseUrl}/editor-inicio-admin`);
++    await page.getByLabel('Email administrador').fill('admin@marybe.com');
++    await page.getByLabel('Contraseña', { exact: true }).fill('incorrecta');
++    await page.getByRole('button', { name: 'Iniciar sesión' }).click();
++    await page.getByRole('alert').filter({ hasText: 'Credenciales inválidas' }).waitFor();
++    await page.getByLabel('Contraseña', { exact: true }).fill('correcta');
++    await page.getByRole('button', { name: 'Iniciar sesión' }).click();
++    const cards = await expectSelector(page);
++    assert.equal(await page.evaluate(() => localStorage.getItem('admin_jwt')), JWT);
++    assert.deepEqual(await cards.evaluateAll(links => links.map(link => link.getAttribute('aria-label'))), SECTIONS.map(([, title]) => title));
++    await page.screenshot({ path: path.join(output, 'selector-desktop.png'), fullPage: true });
++
++    // Cada sección pendiente abre su vista temporal y permite volver.
++    for (const [id, title] of SECTIONS.slice(1)) {
++      await page.getByRole('link', { name: title, exact: true }).click();
++      await page.waitForURL(`${baseUrl}/editor-inicio-admin/${id}`);
++      await page.getByRole('heading', { level: 1, name: title }).waitFor();
++      await page.getByText('Editor próximamente disponible').waitFor();
++      if (id === 'categoria-destacada-1') await page.screenshot({ path: path.join(output, 'placeholder-desktop.png'), fullPage: true });
++      await page.getByRole('link', { name: 'Volver al selector', exact: true }).click();
++      await expectSelector(page);
++    }
++
++    // Recarga y navegación directa con sesión activa.
++    await page.goto(`${baseUrl}/editor-inicio-admin/categoria-destacada-2`);
++    await page.getByRole('heading', { level: 1, name: 'Categoría Destacada (2)' }).waitFor();
++    await page.reload();
++    await page.getByRole('heading', { level: 1, name: 'Categoría Destacada (2)' }).waitFor();
++    await page.getByRole('link', { name: 'Editor de Inicio', exact: true }).click();
++    await expectSelector(page);
++    await page.goto(`${baseUrl}/editor-inicio-admin/no-existe`);
++    await page.waitForURL(`${baseUrl}/editor-inicio-admin`);
++    await expectSelector(page);
++    await page.goto(`${baseUrl}/editor-inicio-admin/`);
++    await expectSelector(page);
++
++    // Banners abre el editor existente con el mismo token y vuelve al selector.
++    await page.getByRole('link', { name: 'Banners', exact: true }).click();
++    await page.waitForURL(`${baseUrl}/editor-inicio-admin/banners`);
++    await page.getByRole('spinbutton', { name: 'Alto', exact: true }).waitFor();
++    assert.ok(log.some(entry => entry.path === '/api/banners-admin' && entry.auth === `Bearer ${JWT}`));
++    await page.getByRole('heading', { name: 'Página de Inicio' }).waitFor();
++    await page.screenshot({ path: path.join(output, 'banners-integrado.png') });
++    await page.reload();
++    await page.getByRole('spinbutton', { name: 'Alto', exact: true }).waitFor();
++    await page.getByRole('button', { name: '← Editor de Inicio' }).click();
++    await expectSelector(page);
++
++    // Con cambios sin guardar, volver pide confirmación.
++    await page.getByRole('link', { name: 'Banners', exact: true }).click();
++    await page.getByRole('spinbutton', { name: 'Alto', exact: true }).fill('500');
++    page.once('dialog', dialog => dialog.dismiss());
++    await page.getByRole('button', { name: '← Editor de Inicio' }).click();
++    assert.ok(page.url().endsWith('/editor-inicio-admin/banners'));
++    page.once('dialog', dialog => dialog.accept());
++    await page.getByRole('button', { name: '← Editor de Inicio' }).click();
++    await expectSelector(page);
++
++    // /banners-admin sigue funcionando por separado con la misma sesión.
++    await page.goto(`${baseUrl}/banners-admin`);
++    await page.getByRole('spinbutton', { name: 'Alto', exact: true }).waitFor();
++    assert.equal(await page.getByRole('button', { name: '← Editor de Inicio' }).count(), 0);
++
++    // Responsive.
++    for (const [name, viewport] of [['phone', { width: 390, height: 844 }], ['tablet', { width: 820, height: 1180 }]]) {
++      await page.setViewportSize(viewport);
++      await page.goto(`${baseUrl}/editor-inicio-admin`);
++      await expectSelector(page);
++      assert.ok(await noOverflow(page), `El selector no debe desbordarse en ${name}`);
++      await page.screenshot({ path: path.join(output, `selector-${name}.png`), fullPage: true });
++      await page.goto(`${baseUrl}/editor-inicio-admin/gift-card`);
++      await page.getByText('Editor próximamente disponible').waitFor();
++      assert.ok(await noOverflow(page), `La vista temporal no debe desbordarse en ${name}`);
++      await page.screenshot({ path: path.join(output, `placeholder-${name}.png`), fullPage: true });
++    }
++    await page.setViewportSize({ width: 1440, height: 960 });
++
++    // Cierre de sesión desde el selector y desde el editor de banners.
++    await page.goto(`${baseUrl}/editor-inicio-admin/beneficios`);
++    await page.getByRole('button', { name: 'Cerrar sesión' }).click();
++    await page.getByRole('button', { name: 'Iniciar sesión' }).waitFor();
++    assert.equal(await page.evaluate(() => localStorage.getItem('admin_jwt')), null);
++    await page.goto(`${baseUrl}/editor-inicio-admin/banners`);
++    await page.getByRole('button', { name: 'Iniciar sesión' }).waitFor();
++    await page.getByLabel('Email administrador').fill('admin@marybe.com');
++    await page.getByLabel('Contraseña', { exact: true }).fill('correcta');
++    await page.getByRole('button', { name: 'Iniciar sesión' }).click();
++    await page.getByRole('spinbutton', { name: 'Alto', exact: true }).waitFor();
++    await page.getByText('Más opciones').click();
++    await page.getByRole('button', { name: 'Salir', exact: true }).click();
++    await page.getByText('Editor de Inicio', { exact: true }).waitFor();
++    await page.getByRole('button', { name: 'Iniciar sesión' }).waitFor();
++    assert.equal(await page.evaluate(() => localStorage.getItem('admin_jwt')), null);
++
++    assert.deepEqual(errors, []);
++
++    // La landing pública conserva su estructura (header y footer de la tienda).
++    await page.goto(`${baseUrl}/inicio`);
++    await page.locator('footer').first().waitFor();
++    console.log('Browser QA OK: login, acceso directo protegido, 10 secciones en orden, vistas temporales, recarga, rutas inválidas, banners integrado, confirmación de cambios, /banners-admin, responsive y cierre de sesión.');
++    console.log(output);
++  } finally { await browser.close(); }
++})().catch(error => { console.error(error); process.exitCode = 1; });
+diff --git a/Frontend/src/App.js b/Frontend/src/App.js
+index 6609d18..dfbd818 100644
+--- a/Frontend/src/App.js
++++ b/Frontend/src/App.js
+@@ -64,6 +64,7 @@ const PedidosAdmin = lazyWithRetry(() => import('./pages/admin/PedidosAdmin'), '
+ const EditorAdmin  = lazyWithRetry(() => import('./pages/admin/editor-admin/EditorAdmin'), 'EditorAdmin');
+ const BannersAdmin = lazyWithRetry(() => import('./pages/admin/BannersAdmin'), 'BannersAdmin');
+ const BannersPreview = lazyWithRetry(() => import('./pages/admin/BannersPreview'), 'BannersPreview');
++const EditorInicioAdmin = lazyWithRetry(() => import('./pages/admin/editor-inicio/EditorInicioAdmin'), 'EditorInicioAdmin');
+ 
+ // Página de Gift Card
+ const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'), 'GiftCardPage');
+@@ -84,7 +85,7 @@ function RootRoute() {
+ 
+ function App() {
+   const location = useLocation();
+-  const bannerStudio = ['/banners-admin', '/banners-preview'].includes(location.pathname);
++  const bannerStudio = ['/banners-admin', '/banners-preview'].includes(location.pathname) || /^\/editor-inicio-admin(\/|$)/.test(location.pathname);
+   return (
+     <AuthProvider>
+       <LazyMotion features={domAnimation}>
+@@ -139,6 +140,7 @@ function App() {
+             <Route path="/editor-admin" element={<EditorAdmin />} />
+             <Route path="/banners-admin" element={<BannersAdmin />} />
+             <Route path="/banners-preview" element={<BannersPreview />} />
++            <Route path="/editor-inicio-admin/*" element={<EditorInicioAdmin />} />
+ 
+             {/* Ruta de Gift Card */}
+             <Route path="/gift-card" element={<GiftCardPage />} />
+diff --git a/Frontend/src/hooks/useAdminSession.js b/Frontend/src/hooks/useAdminSession.js
+new file mode 100644
+index 0000000..751ca90
+--- /dev/null
++++ b/Frontend/src/hooks/useAdminSession.js
+@@ -0,0 +1,44 @@
++import { useState, useEffect, useCallback } from 'react';
++import { SESSION_EXPIRED_EVENT, clearCredentials, isTokenExpired } from '../utils/sessionManager';
++
++const ADMIN_TOKEN_KEY = 'admin_jwt';
++
++const readStoredToken = () => {
++  const stored = localStorage.getItem(ADMIN_TOKEN_KEY) || '';
++  if (stored && isTokenExpired(stored)) {
++    clearCredentials('admin');
++    return '';
++  }
++  return stored;
++};
++
++// Sesión administrativa compartida con los paneles existentes (/banners-admin, /pedidos-admin…):
++// mismo JWT en localStorage.admin_jwt, emitido por /api/importacion-admin/login.
++export default function useAdminSession() {
++  const [token, setToken] = useState(readStoredToken);
++
++  const sync = useCallback(() => setToken(readStoredToken()), []);
++
++  const signIn = useCallback((jwt) => {
++    localStorage.setItem(ADMIN_TOKEN_KEY, jwt);
++    setToken(jwt);
++  }, []);
++
++  const signOut = useCallback(() => {
++    clearCredentials('admin');
++    setToken('');
++  }, []);
++
++  useEffect(() => {
++    const handleExpired = ({ detail }) => { if (detail?.scope === 'admin') setToken(''); };
++    const handleStorage = (event) => { if (event.key === null || event.key === ADMIN_TOKEN_KEY) sync(); };
++    window.addEventListener(SESSION_EXPIRED_EVENT, handleExpired);
++    window.addEventListener('storage', handleStorage);
++    return () => {
++      window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpired);
++      window.removeEventListener('storage', handleStorage);
++    };
++  }, [sync]);
++
++  return { token, isAuthenticated: Boolean(token), signIn, signOut, sync };
++}
+diff --git a/Frontend/src/pages/admin/BannersAdmin.jsx b/Frontend/src/pages/admin/BannersAdmin.jsx
+index 1e610ae..4e77273 100644
+--- a/Frontend/src/pages/admin/BannersAdmin.jsx
++++ b/Frontend/src/pages/admin/BannersAdmin.jsx
+@@ -15,7 +15,7 @@ function normalized(document) {
+ function NumberControl({ label, value, min = 0, max = 100, step = 1, onChange, suffix = 'px' }) {
+   return <label className="ba-control"><span>{label} <small>{suffix}</small></span><div className="ba-range"><input aria-label={`${label} deslizador`} type="range" min={min} max={max} step={step} value={value ?? min} onChange={e => onChange(Number(e.target.value))} /><input aria-label={label} type="number" min={min} max={max} step={step} value={value ?? min} onChange={e => { if (e.target.value !== '') onChange(Math.max(min, Math.min(max, Number(e.target.value)))); }} /></div></label>;
+ }
+-export default function BannersAdmin() {
++export default function BannersAdmin({ onBack, onLogout } = {}) {
+   const [token, setToken] = useState(() => localStorage.getItem('admin_jwt') || '');
+   const [credentials, setCredentials] = useState({ identifier: '', password: '' });
+   const [showPassword, setShowPassword] = useState(false);
+@@ -326,10 +326,11 @@ export default function BannersAdmin() {
+   return <main className="ba-app" inert={showPreview}>
+     {showPreview && draft && <BannerPreviewDialog rows={rows} title={draft.titulo} initialDevice={device} onClose={closePreview} />}
+     <header className="ba-topbar">
++      {onBack && <button type="button" className="ba-back" disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Volver al Editor de Inicio con cambios sin guardar?')) onBack(); }}>← Editor de Inicio</button>}
+       <div className="ba-brand"><img src="/logo-marybe.png" alt="Marybe" width="629" height="168" /><span>Editor de banners</span></div>
+       <span className={`ba-status ${hasUnsaved ? 'ba-status--dirty' : ''}`}>{!draft?.documentId && draft ? '○ Sección nueva' : dirty ? '● Cambios sin guardar' : hasUnsaved ? '● Otros cambios pendientes' : '● Todo guardado'}</span>
+       <div className="ba-top-actions">
+-        <details className="ba-top-more"><summary>Más opciones</summary><div><button onClick={recover} disabled={!draft || busy}>Recuperar copia</button><button disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Salir con cambios sin guardar?')) { localStorage.removeItem('admin_jwt'); setToken(''); } }}>Salir</button></div></details>
++        <details className="ba-top-more"><summary>Más opciones</summary><div><button onClick={recover} disabled={!draft || busy}>Recuperar copia</button><button disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Salir con cambios sin guardar?')) { localStorage.removeItem('admin_jwt'); setToken(''); onLogout?.(); } }}>Salir</button></div></details>
+         <button className="ba-preview-open" disabled={!draft || loading} onClick={() => setShowPreview(true)}>Vista previa</button>
+         <button disabled={!draft || busy} onClick={() => save(false)}>Guardar borrador</button>
+         <button className="ba-primary" disabled={!draft || busy} onClick={() => save(true)}>{busy ? 'Guardando…' : 'Publicar cambios'}</button>
+diff --git a/Frontend/src/pages/admin/BannersAdminEmbedded.test.jsx b/Frontend/src/pages/admin/BannersAdminEmbedded.test.jsx
+new file mode 100644
+index 0000000..b8b90a1
+--- /dev/null
++++ b/Frontend/src/pages/admin/BannersAdminEmbedded.test.jsx
+@@ -0,0 +1,54 @@
++import React from 'react';
++import '@testing-library/jest-dom';
++import { render, screen, fireEvent } from '@testing-library/react';
++import axios from 'axios';
++import BannersAdmin from './BannersAdmin';
++
++jest.mock('axios');
++jest.mock('react-router-dom', () => ({ Link: ({ children }) => <span>{children}</span> }), { virtual: true });
++
++const group = { documentId: 'promo-1', updatedAt: 'v1', titulo: 'Campaña inicial', seccion: 'Perfumería', Filas: [{ id: 1, __component: 'layout.fila-1-columna', banners: [{ id: 2, titulo: 'Campaña inicial', imagen_desktop: { id: 3, url: '/uploads/test.webp' }, diseno: { desktop: { height: 480 } } }] }] };
++
++beforeEach(() => {
++  localStorage.clear(); sessionStorage.clear(); jest.clearAllMocks();
++  global.ResizeObserver = class { observe() {} disconnect() {} };
++  localStorage.setItem('admin_jwt', 'fixture-token');
++  axios.get.mockResolvedValue({ data: { data: { promotions: [group] } } });
++});
++afterEach(() => jest.restoreAllMocks());
++
++test('en /banners-admin no muestra el acceso al Editor de Inicio', async () => {
++  render(<BannersAdmin />);
++  await screen.findByRole('spinbutton', { name: 'Alto' });
++  expect(screen.queryByRole('button', { name: '← Editor de Inicio' })).toBeNull();
++});
++
++test('integrado en el Editor de Inicio permite volver al selector', async () => {
++  const onBack = jest.fn();
++  render(<BannersAdmin onBack={onBack} />);
++  await screen.findByRole('spinbutton', { name: 'Alto' });
++  fireEvent.click(screen.getByRole('button', { name: '← Editor de Inicio' }));
++  expect(onBack).toHaveBeenCalledTimes(1);
++});
++
++test('advierte antes de volver si hay cambios sin guardar', async () => {
++  const onBack = jest.fn();
++  const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
++  render(<BannersAdmin onBack={onBack} />);
++  fireEvent.change(await screen.findByRole('spinbutton', { name: 'Alto' }), { target: { value: '350' } });
++  fireEvent.click(screen.getByRole('button', { name: '← Editor de Inicio' }));
++  expect(confirm).toHaveBeenCalled();
++  expect(onBack).not.toHaveBeenCalled();
++  confirm.mockReturnValue(true);
++  fireEvent.click(screen.getByRole('button', { name: '← Editor de Inicio' }));
++  expect(onBack).toHaveBeenCalledTimes(1);
++});
++
++test('Salir cierra la sesión compartida y avisa al Editor de Inicio', async () => {
++  const onLogout = jest.fn();
++  render(<BannersAdmin onBack={jest.fn()} onLogout={onLogout} />);
++  await screen.findByRole('spinbutton', { name: 'Alto' });
++  fireEvent.click(screen.getByRole('button', { name: 'Salir' }));
++  expect(onLogout).toHaveBeenCalledTimes(1);
++  expect(localStorage.getItem('admin_jwt')).toBeNull();
++});
+diff --git a/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.jsx b/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.jsx
+new file mode 100644
+index 0000000..86fde76
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.jsx
+@@ -0,0 +1,40 @@
++import React, { useEffect } from 'react';
++import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
++import useAdminSession from '../../../hooks/useAdminSession';
++import AdminLoginCard from './components/AdminLoginCard';
++import EditorInicioLayout from './components/EditorInicioLayout';
++import SectionSelector from './components/SectionSelector';
++import SectionPlaceholder from './components/SectionPlaceholder';
++import { EDITOR_INICIO_PATH, findSection } from './editorInicioSections';
++import { SECTION_EDITORS } from './sectionEditors';
++
++function SectionRoute({ onLogout }) {
++  const { sectionId } = useParams();
++  const navigate = useNavigate();
++  const section = findSection(sectionId);
++  if (!section) return <Navigate to={EDITOR_INICIO_PATH} replace />;
++  const Editor = SECTION_EDITORS[section.id];
++  if (Editor) return <Editor section={section} onBack={() => navigate(EDITOR_INICIO_PATH)} onLogout={onLogout} />;
++  return (
++    <EditorInicioLayout currentSection={section} onLogout={onLogout}>
++      <SectionPlaceholder section={section} />
++    </EditorInicioLayout>
++  );
++}
++
++export default function EditorInicioAdmin() {
++  const { token, signIn, signOut, sync } = useAdminSession();
++  const { pathname } = useLocation();
++
++  useEffect(() => { sync(); }, [pathname, sync]);
++
++  if (!token) return <AdminLoginCard subtitle="Editor de Inicio" onAuthenticated={signIn} />;
++
++  return (
++    <Routes>
++      <Route index element={<EditorInicioLayout onLogout={signOut}><SectionSelector /></EditorInicioLayout>} />
++      <Route path=":sectionId" element={<SectionRoute onLogout={signOut} />} />
++      <Route path="*" element={<Navigate to={EDITOR_INICIO_PATH} replace />} />
++    </Routes>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.test.jsx b/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.test.jsx
+new file mode 100644
+index 0000000..c8591f6
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/EditorInicioAdmin.test.jsx
+@@ -0,0 +1,134 @@
++import React from 'react';
++import fs from 'fs';
++import path from 'path';
++import '@testing-library/jest-dom';
++import { render, screen, fireEvent, within, act } from '@testing-library/react';
++import axios from 'axios';
++import EditorInicioAdmin from './EditorInicioAdmin';
++import SectionSelector from './components/SectionSelector';
++import { EDITOR_INICIO_PATH, EDITOR_INICIO_SECTIONS, findSection, sectionPath } from './editorInicioSections';
++import { hasSectionEditor } from './sectionEditors';
++import { SESSION_EXPIRED_EVENT } from '../../../utils/sessionManager';
++
++jest.mock('axios');
++jest.mock('react-router-dom', () => ({
++  Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
++  Navigate: () => null,
++  Routes: ({ children }) => <>{children}</>,
++  Route: ({ index, element }) => (index ? element : null),
++  useLocation: () => ({ pathname: '/editor-inicio-admin' }),
++  useNavigate: () => jest.fn(),
++  useParams: () => ({}),
++}), { virtual: true });
++
++const EXPECTED_TITLES = [
++  'Banners',
++  'Sección Destacada',
++  'Categorías',
++  'Categoría Destacada (1)',
++  'Ofertas',
++  'Descuentos',
++  'Categoría Destacada (2)',
++  'Beneficios',
++  'Gift Card',
++  'Próximos Eventos',
++];
++
++beforeEach(() => {
++  localStorage.clear();
++  jest.clearAllMocks();
++});
++
++describe('configuración de secciones', () => {
++  test('define las diez secciones en el orden esperado con identificadores únicos', () => {
++    expect(EDITOR_INICIO_SECTIONS.map(section => section.title)).toEqual(EXPECTED_TITLES);
++    const ids = EDITOR_INICIO_SECTIONS.map(section => section.id);
++    expect(new Set(ids).size).toBe(ids.length);
++    ids.forEach(id => expect(id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/));
++    expect(findSection('categoria-destacada-1')).not.toBe(findSection('categoria-destacada-2'));
++    expect(sectionPath('ofertas')).toBe(`${EDITOR_INICIO_PATH}/ofertas`);
++  });
++
++  test('respeta el orden real de los componentes en Inicio (Perfumería)', () => {
++    const source = fs.readFileSync(path.join(__dirname, '../../inicio/Inicio.jsx'), 'utf8');
++    const perfumeria = source.slice(source.indexOf("seccionActiva === 'perfumeria' && ("), source.indexOf("seccionActiva === 'hogar' && ("));
++    const positions = EDITOR_INICIO_SECTIONS.map(section => perfumeria.search(new RegExp(`<${section.landingComponent}[\\s/>]`)));
++    positions.forEach(position => expect(position).toBeGreaterThan(-1));
++    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
++  });
++
++  test('solo Banners tiene editor real en esta etapa', () => {
++    expect(EDITOR_INICIO_SECTIONS.filter(section => hasSectionEditor(section.id)).map(section => section.id)).toEqual(['banners']);
++  });
++});
++
++describe('selector de secciones', () => {
++  test('muestra las diez tarjetas con su enlace, descripción e indicador', () => {
++    render(<SectionSelector />);
++    expect(screen.getByRole('heading', { level: 1, name: '¿Qué querés modificar hoy?' })).toBeInTheDocument();
++    const grid = screen.getByRole('list', { name: 'Secciones de la página de inicio' });
++    const links = within(grid).getAllByRole('link');
++    expect(links).toHaveLength(10);
++    links.forEach((link, index) => {
++      const section = EDITOR_INICIO_SECTIONS[index];
++      expect(link).toHaveAccessibleName(section.title);
++      expect(link).toHaveAttribute('href', sectionPath(section.id));
++      expect(link).toHaveAccessibleDescription(expect.stringContaining(section.description));
++    });
++    expect(within(links[0]).getByText('Editar sección')).toBeInTheDocument();
++    expect(within(links[1]).getByText('Próximamente')).toBeInTheDocument();
++  });
++});
++
++describe('autenticación del editor de inicio', () => {
++  test('sin sesión muestra el login y no las secciones', () => {
++    render(<EditorInicioAdmin />);
++    expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeDisabled();
++    expect(screen.queryByText('¿Qué querés modificar hoy?')).toBeNull();
++  });
++
++  test('usa el login administrativo existente y comparte el token admin_jwt', async () => {
++    axios.post.mockResolvedValue({ data: { jwt: 'admin-token' } });
++    render(<EditorInicioAdmin />);
++    fireEvent.change(screen.getByLabelText('Email administrador'), { target: { value: 'admin@marybe.com' } });
++    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'secreto' } });
++    fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
++    await screen.findByText('¿Qué querés modificar hoy?');
++    expect(axios.post).toHaveBeenCalledWith(expect.stringMatching(/\/api\/importacion-admin\/login$/), { identifier: 'admin@marybe.com', password: 'secreto' });
++    expect(localStorage.getItem('admin_jwt')).toBe('admin-token');
++  });
++
++  test('muestra el error del servidor cuando las credenciales son inválidas', async () => {
++    axios.post.mockRejectedValue({ response: { status: 400, data: { error: { message: 'Credenciales inválidas' } } } });
++    render(<EditorInicioAdmin />);
++    fireEvent.change(screen.getByLabelText('Email administrador'), { target: { value: 'x@marybe.com' } });
++    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'mal' } });
++    fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
++    expect(await screen.findByRole('alert')).toHaveTextContent('Credenciales inválidas');
++    expect(localStorage.getItem('admin_jwt')).toBeNull();
++  });
++
++  test('reutiliza una sesión existente y el cierre de sesión la elimina', () => {
++    localStorage.setItem('admin_jwt', 'fixture-token');
++    render(<EditorInicioAdmin />);
++    expect(screen.getByText('¿Qué querés modificar hoy?')).toBeInTheDocument();
++    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
++    expect(localStorage.getItem('admin_jwt')).toBeNull();
++    expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
++  });
++
++  test('descarta tokens vencidos y reacciona a la expiración de la sesión', async () => {
++    const encode = value => btoa(JSON.stringify(value)).replace(/=+$/, '');
++    localStorage.setItem('admin_jwt', `${encode({ alg: 'HS256' })}.${encode({ exp: 1 })}.firma`);
++    const { unmount } = render(<EditorInicioAdmin />);
++    expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
++    expect(localStorage.getItem('admin_jwt')).toBeNull();
++    unmount();
++
++    localStorage.setItem('admin_jwt', 'fixture-token');
++    render(<EditorInicioAdmin />);
++    expect(screen.getByText('¿Qué querés modificar hoy?')).toBeInTheDocument();
++    act(() => { window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { scope: 'admin' } })); });
++    expect(await screen.findByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
++  });
++});
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/AdminLoginCard.jsx b/Frontend/src/pages/admin/editor-inicio/components/AdminLoginCard.jsx
+new file mode 100644
+index 0000000..a797f8a
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/AdminLoginCard.jsx
+@@ -0,0 +1,63 @@
++import React, { useState } from 'react';
++import axios from 'axios';
++import '../../ImportacionAdmin.css';
++
++const API = process.env.REACT_APP_STRAPI_URL || process.env.REACT_APP_API_URL || 'http://localhost:1337';
++
++export default function AdminLoginCard({ subtitle, onAuthenticated }) {
++  const [credentials, setCredentials] = useState({ identifier: '', password: '' });
++  const [showPassword, setShowPassword] = useState(false);
++  const [busy, setBusy] = useState(false);
++  const [error, setError] = useState('');
++
++  async function login(event) {
++    event.preventDefault();
++    setBusy(true);
++    setError('');
++    try {
++      const response = await axios.post(`${API}/api/importacion-admin/login`, credentials);
++      onAuthenticated(response.data.jwt);
++    } catch (requestError) {
++      setError(requestError.response?.data?.error?.message || requestError.message || 'No se pudo iniciar sesión.');
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  return (
++    <main className="ia-wrapper">
++      <div className="ia-bg-particles">{[...Array(12)].map((_, index) => <div key={index} className={`ia-particle ia-particle--${index + 1}`} />)}</div>
++      <section className="ia-login-card" aria-labelledby="editor-inicio-login-title">
++        <div className="ia-login-brand">
++          <div className="ia-brand-icon">
++            <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M24 4L44 14V34L24 44L4 34V14L24 4Z" stroke="currentColor" strokeWidth="2" /><path d="M24 12L36 18V30L24 36L12 30V18L24 12Z" fill="currentColor" opacity=".2" /><path d="M24 20L30 23V29L24 32L18 29V23L24 20Z" fill="currentColor" /></svg>
++          </div>
++          <h1 id="editor-inicio-login-title" className="ia-brand-title">Marybe</h1>
++          <p className="ia-brand-sub">{subtitle}</p>
++        </div>
++        <form className="ia-login-form" onSubmit={login} noValidate>
++          <div className="ia-field">
++            <label htmlFor="editor-inicio-email" className="ia-label">Email administrador</label>
++            <div className="ia-input-wrap">
++              <span className="ia-input-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg></span>
++              <input id="editor-inicio-email" type="email" className="ia-input" placeholder="admin@marybe.com" autoComplete="email" required value={credentials.identifier} onChange={event => setCredentials({ ...credentials, identifier: event.target.value })} />
++            </div>
++          </div>
++          <div className="ia-field">
++            <label htmlFor="editor-inicio-password" className="ia-label">Contraseña</label>
++            <div className="ia-input-wrap">
++              <span className="ia-input-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a7 7 0 0114 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg></span>
++              <input id="editor-inicio-password" type={showPassword ? 'text' : 'password'} className="ia-input" placeholder="••••••••••••" autoComplete="current-password" required value={credentials.password} onChange={event => setCredentials({ ...credentials, password: event.target.value })} />
++              <button type="button" className="ia-show-pass" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{showPassword ? '◉' : '◌'}</button>
++            </div>
++          </div>
++          {error && <div className="ia-alert ia-alert--error" role="alert">{error}</div>}
++          <button type="submit" className="ia-btn ia-btn--primary" disabled={busy || !credentials.identifier || !credentials.password}>
++            {busy ? <><span className="ia-spinner" aria-hidden="true" /> Iniciando sesión...</> : 'Iniciar sesión'}
++          </button>
++        </form>
++        <p className="ia-login-hint">Acceso restringido · Solo administradores</p>
++      </section>
++    </main>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/BannersSectionEditor.jsx b/Frontend/src/pages/admin/editor-inicio/components/BannersSectionEditor.jsx
+new file mode 100644
+index 0000000..f2928f4
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/BannersSectionEditor.jsx
+@@ -0,0 +1,7 @@
++import React from 'react';
++import BannersAdmin from '../../BannersAdmin';
++
++// Integra el editor de banners existente sin alterar su lógica de carga, edición ni guardado.
++export default function BannersSectionEditor({ onBack, onLogout }) {
++  return <BannersAdmin onBack={onBack} onLogout={onLogout} />;
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/EditorInicioLayout.jsx b/Frontend/src/pages/admin/editor-inicio/components/EditorInicioLayout.jsx
+new file mode 100644
+index 0000000..ae54c9a
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/EditorInicioLayout.jsx
+@@ -0,0 +1,154 @@
++import React from 'react';
++import styled from 'styled-components';
++import { Link } from 'react-router-dom';
++import { FiChevronRight, FiLogOut } from 'react-icons/fi';
++import { EDITOR_INICIO_PATH } from '../editorInicioSections';
++
++const LayoutWrapper = styled.div`
++  min-height: 100vh;
++  display: flex;
++  flex-direction: column;
++  background:
++    radial-gradient(ellipse at 12% 0%, rgba(124, 4, 5, 0.07) 0%, transparent 55%),
++    radial-gradient(ellipse at 100% 100%, rgba(194, 161, 92, 0.12) 0%, transparent 50%),
++    var(--color-fondo-tarjetas-promo);
++  color: var(--color-marron-cuarto);
++  font-family: var(--font-family-secondary);
++`;
++
++const TopBar = styled.header`
++  position: sticky;
++  top: 0;
++  z-index: 20;
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: var(--spacing-md);
++  min-height: 64px;
++  padding: 10px var(--spacing-md);
++  background: rgba(255, 255, 255, 0.92);
++  backdrop-filter: blur(8px);
++  border-bottom: 1px solid #ebe3dc;
++
++  @media (min-width: 768px) {
++    min-height: 72px;
++    padding: 12px var(--spacing-xl);
++  }
++`;
++
++const BrandGroup = styled.div`
++  display: flex;
++  align-items: center;
++  gap: 14px;
++  min-width: 0;
++`;
++
++const BrandLink = styled(Link)`
++  display: flex;
++  flex-shrink: 0;
++  border-radius: var(--radius-sm);
++
++  img {
++    width: 96px;
++    height: auto;
++    aspect-ratio: 629 / 168;
++    object-fit: contain;
++  }
++
++  &:focus-visible { outline: 2px solid var(--color-bordo-secundario); outline-offset: 4px; }
++
++  @media (min-width: 768px) {
++    img { width: 118px; }
++  }
++`;
++
++const Breadcrumb = styled.nav`
++  display: flex;
++  align-items: center;
++  gap: 6px;
++  min-width: 0;
++  padding-left: 14px;
++  border-left: 1px solid #e6dcd5;
++  font-size: 0.85rem;
++  font-weight: 600;
++  white-space: nowrap;
++
++  a {
++    color: var(--color-marron-principal);
++    text-decoration: none;
++  }
++
++  a:hover { text-decoration: underline; }
++
++  span {
++    overflow: hidden;
++    text-overflow: ellipsis;
++    color: #7a6a6a;
++    font-weight: 500;
++  }
++
++  svg { flex-shrink: 0; color: #b3a4a4; }
++
++  @media (max-width: 600px) {
++    span, svg { display: none; }
++  }
++`;
++
++const LogoutButton = styled.button`
++  display: inline-flex;
++  align-items: center;
++  gap: 8px;
++  flex-shrink: 0;
++  min-height: 40px;
++  padding: 8px 14px;
++  border: 1px solid #e3d8d1;
++  border-radius: var(--radius-md);
++  background: var(--color-blanco);
++  color: var(--color-marron-principal);
++  font: inherit;
++  font-size: 0.85rem;
++  font-weight: 600;
++  cursor: pointer;
++  transition: var(--transition-fast);
++
++  &:hover { border-color: var(--color-bordo-secundario); background: var(--color-blanco-pero-no-tan-blanco); }
++  &:focus-visible { outline: 2px solid var(--color-bordo-secundario); outline-offset: 2px; }
++
++  @media (max-width: 480px) {
++    span { display: none; }
++    padding: 8px 11px;
++  }
++`;
++
++const Content = styled.main`
++  flex: 1;
++  display: flex;
++  justify-content: center;
++  padding: var(--spacing-lg) var(--spacing-md) var(--spacing-xxl);
++
++  @media (min-width: 768px) {
++    padding: var(--spacing-xxl) var(--spacing-xl);
++  }
++`;
++
++export default function EditorInicioLayout({ currentSection, onLogout, children }) {
++  return (
++    <LayoutWrapper>
++      <TopBar>
++        <BrandGroup>
++          <BrandLink to={EDITOR_INICIO_PATH} aria-label="Marybe · Editor de Inicio">
++            <img src="/logo-marybe.png" alt="Marybe" width="629" height="168" />
++          </BrandLink>
++          <Breadcrumb aria-label="Ubicación">
++            {currentSection ? <Link to={EDITOR_INICIO_PATH}>Editor de Inicio</Link> : <strong>Editor de Inicio</strong>}
++            {currentSection && <><FiChevronRight aria-hidden="true" /><span aria-current="page">{currentSection.title}</span></>}
++          </Breadcrumb>
++        </BrandGroup>
++        <LogoutButton type="button" onClick={onLogout} aria-label="Cerrar sesión">
++          <FiLogOut aria-hidden="true" /><span>Cerrar sesión</span>
++        </LogoutButton>
++      </TopBar>
++      <Content>{children}</Content>
++    </LayoutWrapper>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/SectionCard.jsx b/Frontend/src/pages/admin/editor-inicio/components/SectionCard.jsx
+new file mode 100644
+index 0000000..e94192c
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/SectionCard.jsx
+@@ -0,0 +1,154 @@
++import React from 'react';
++import styled from 'styled-components';
++import { Link } from 'react-router-dom';
++import { FiArrowRight } from 'react-icons/fi';
++
++const CardLink = styled(Link)`
++  position: relative;
++  display: flex;
++  flex-direction: column;
++  gap: 12px;
++  height: 100%;
++  min-height: 188px;
++  padding: 18px;
++  border: 1px solid #ebe2dc;
++  border-radius: 14px;
++  background: var(--color-blanco);
++  color: inherit;
++  text-decoration: none;
++  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
++
++  &:hover {
++    transform: translateY(-3px);
++    border-color: rgba(124, 4, 5, 0.45);
++    box-shadow: 0 14px 30px -14px rgba(62, 1, 2, 0.35);
++  }
++
++  &:focus-visible {
++    outline: 3px solid var(--color-bordo-secundario);
++    outline-offset: 3px;
++  }
++
++  &:active { transform: translateY(-1px); }
++
++  @media (max-width: 480px) {
++    min-height: 0;
++    padding: 16px;
++  }
++
++  @media (prefers-reduced-motion: reduce) {
++    transition: none;
++    &:hover, &:active { transform: none; }
++  }
++`;
++
++const CardTop = styled.div`
++  display: flex;
++  align-items: flex-start;
++  justify-content: space-between;
++`;
++
++const IconTile = styled.span`
++  display: grid;
++  place-items: center;
++  width: 46px;
++  height: 46px;
++  border-radius: var(--radius-lg);
++  background: var(--color-blanco-pero-no-tan-blanco);
++  color: var(--color-bordo-secundario);
++  transition: var(--transition-fast);
++
++  ${CardLink}:hover &, ${CardLink}:focus-visible & {
++    background: var(--color-bordo-secundario);
++    color: var(--color-blanco);
++  }
++`;
++
++const OrderNumber = styled.span`
++  color: #b9aaa6;
++  font-size: 0.75rem;
++  font-weight: 700;
++  letter-spacing: 0.08em;
++  font-variant-numeric: tabular-nums;
++`;
++
++const CardTitle = styled.h3`
++  margin: 0;
++  color: var(--color-marron-principal);
++  font-family: var(--font-family-secondary);
++  font-size: 1rem;
++  font-weight: 700;
++  line-height: 1.3;
++`;
++
++const CardDescription = styled.p`
++  flex: 1;
++  margin: 0;
++  color: #6f6262;
++  font-size: 0.84rem;
++  line-height: 1.5;
++`;
++
++const CardFooter = styled.div`
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 8px;
++  padding-top: 12px;
++  border-top: 1px solid #f1ebe6;
++`;
++
++const StatusPill = styled.span`
++  padding: 4px 9px;
++  border-radius: var(--radius-full);
++  background: ${({ $available }) => ($available ? 'rgba(124, 4, 5, 0.09)' : '#f1ede9')};
++  color: ${({ $available }) => ($available ? 'var(--color-bordo-secundario)' : '#837674')};
++  font-size: 0.7rem;
++  font-weight: 700;
++  letter-spacing: 0.02em;
++`;
++
++const ArrowCircle = styled.span`
++  display: grid;
++  place-items: center;
++  width: 30px;
++  height: 30px;
++  border-radius: var(--radius-full);
++  border: 1px solid #e6dcd5;
++  color: var(--color-marron-principal);
++  transition: var(--transition-fast);
++
++  ${CardLink}:hover &, ${CardLink}:focus-visible & {
++    border-color: var(--color-bordo-secundario);
++    background: var(--color-bordo-secundario);
++    color: var(--color-blanco);
++    transform: translateX(2px);
++  }
++`;
++
++const VisuallyHidden = styled.span`
++  position: absolute;
++  width: 1px;
++  height: 1px;
++  overflow: hidden;
++  clip: rect(0 0 0 0);
++  white-space: nowrap;
++`;
++
++export default function SectionCard({ section, order, to, available }) {
++  const Icon = section.icon;
++  return (
++    <CardLink to={to} data-section-id={section.id} aria-label={section.title} aria-describedby={`${section.id}-card-description`}>
++      <CardTop>
++        <IconTile aria-hidden="true"><Icon size={22} strokeWidth={1.8} /></IconTile>
++        <OrderNumber aria-hidden="true">{String(order).padStart(2, '0')}</OrderNumber>
++      </CardTop>
++      <CardTitle>{section.title}</CardTitle>
++      <CardDescription id={`${section.id}-card-description`}>{section.description}{!available && <VisuallyHidden> Editor próximamente disponible.</VisuallyHidden>}</CardDescription>
++      <CardFooter aria-hidden="true">
++        <StatusPill $available={available}>{available ? 'Editar sección' : 'Próximamente'}</StatusPill>
++        <ArrowCircle><FiArrowRight size={16} /></ArrowCircle>
++      </CardFooter>
++    </CardLink>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/SectionPlaceholder.jsx b/Frontend/src/pages/admin/editor-inicio/components/SectionPlaceholder.jsx
+new file mode 100644
+index 0000000..4bcf0bf
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/SectionPlaceholder.jsx
+@@ -0,0 +1,101 @@
++import React from 'react';
++import styled from 'styled-components';
++import { Link } from 'react-router-dom';
++import { FiArrowLeft, FiClock } from 'react-icons/fi';
++import { EDITOR_INICIO_PATH } from '../editorInicioSections';
++
++const PlaceholderPanel = styled.section`
++  align-self: flex-start;
++  width: 100%;
++  max-width: 620px;
++  margin-top: var(--spacing-md);
++  padding: var(--spacing-xl) var(--spacing-lg);
++  border: 1px solid #ece4de;
++  border-radius: var(--radius-xl);
++  background: var(--color-blanco);
++  box-shadow: 0 30px 70px -40px rgba(62, 1, 2, 0.35);
++  text-align: center;
++
++  @media (min-width: 768px) {
++    margin-top: var(--spacing-xl);
++    padding: 56px var(--spacing-xxl);
++  }
++`;
++
++const IconTile = styled.div`
++  display: grid;
++  place-items: center;
++  width: 64px;
++  height: 64px;
++  margin: 0 auto var(--spacing-lg);
++  border-radius: 18px;
++  background: var(--color-blanco-pero-no-tan-blanco);
++  color: var(--color-bordo-secundario);
++`;
++
++const SectionTitle = styled.h1`
++  margin: 0 0 10px;
++  color: var(--color-marron-principal);
++  font-family: var(--font-family-primary);
++  font-size: clamp(1.6rem, 4vw, 2.2rem);
++  font-weight: 600;
++  line-height: 1.2;
++`;
++
++const SectionDescription = styled.p`
++  margin: 0 0 var(--spacing-lg);
++  color: #6f6262;
++  font-size: 0.95rem;
++  line-height: 1.55;
++`;
++
++const ComingSoonBadge = styled.p`
++  display: inline-flex;
++  align-items: center;
++  gap: 8px;
++  margin: 0 0 var(--spacing-xl);
++  padding: 9px 16px;
++  border-radius: var(--radius-full);
++  background: #f4efea;
++  color: var(--color-marron-principal);
++  font-size: 0.88rem;
++  font-weight: 600;
++`;
++
++const BackLink = styled(Link)`
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  gap: 8px;
++  min-height: 46px;
++  padding: 11px 20px;
++  border-radius: var(--radius-md);
++  background: var(--color-marron-principal);
++  color: var(--color-blanco);
++  font-size: 0.9rem;
++  font-weight: 700;
++  text-decoration: none;
++  transition: var(--transition-fast);
++
++  &:hover { background: var(--color-bordo-secundario); }
++  &:focus-visible { outline: 3px solid var(--color-bordo-secundario); outline-offset: 3px; }
++
++  @media (max-width: 480px) {
++    width: 100%;
++  }
++`;
++
++export default function SectionPlaceholder({ section }) {
++  const Icon = section.icon;
++  return (
++    <PlaceholderPanel aria-labelledby="editor-inicio-section-title" data-section-id={section.id}>
++      <IconTile aria-hidden="true"><Icon size={30} strokeWidth={1.7} /></IconTile>
++      <SectionTitle id="editor-inicio-section-title">{section.title}</SectionTitle>
++      <SectionDescription>{section.description}</SectionDescription>
++      <ComingSoonBadge role="status"><FiClock aria-hidden="true" /> Editor próximamente disponible</ComingSoonBadge>
++      <div>
++        <BackLink to={EDITOR_INICIO_PATH}><FiArrowLeft aria-hidden="true" /> Volver al selector</BackLink>
++      </div>
++    </PlaceholderPanel>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/components/SectionSelector.jsx b/Frontend/src/pages/admin/editor-inicio/components/SectionSelector.jsx
+new file mode 100644
+index 0000000..4b25ce1
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/components/SectionSelector.jsx
+@@ -0,0 +1,87 @@
++import React from 'react';
++import styled from 'styled-components';
++import SectionCard from './SectionCard';
++import { EDITOR_INICIO_SECTIONS, sectionPath } from '../editorInicioSections';
++import { hasSectionEditor } from '../sectionEditors';
++
++const SelectorPanel = styled.section`
++  width: 100%;
++  max-width: 1320px;
++  padding: var(--spacing-lg) var(--spacing-md);
++  border: 1px solid #ece4de;
++  border-radius: var(--radius-xl);
++  background: rgba(255, 255, 255, 0.72);
++  box-shadow: 0 30px 70px -40px rgba(62, 1, 2, 0.35);
++
++  @media (min-width: 768px) {
++    padding: var(--spacing-xxl) var(--spacing-xl);
++  }
++`;
++
++const PanelHeader = styled.header`
++  max-width: 640px;
++  margin: 0 auto var(--spacing-xl);
++  text-align: center;
++
++  @media (min-width: 768px) {
++    margin-bottom: 40px;
++  }
++`;
++
++const Eyebrow = styled.p`
++  margin: 0 0 10px;
++  color: var(--color-bordo-secundario);
++  font-size: 0.72rem;
++  font-weight: 700;
++  letter-spacing: 0.16em;
++  text-transform: uppercase;
++`;
++
++const PanelTitle = styled.h1`
++  margin: 0 0 12px;
++  color: var(--color-marron-principal);
++  font-family: var(--font-family-primary);
++  font-size: clamp(1.7rem, 4.2vw, 2.6rem);
++  font-weight: 600;
++  line-height: 1.15;
++`;
++
++const PanelSubtitle = styled.p`
++  margin: 0;
++  color: #6f6262;
++  font-size: 0.95rem;
++  line-height: 1.55;
++`;
++
++const SectionsGrid = styled.ol`
++  display: grid;
++  grid-template-columns: 1fr;
++  gap: 14px;
++  margin: 0;
++  padding: 0;
++  list-style: none;
++
++  @media (min-width: 480px) { grid-template-columns: repeat(2, 1fr); }
++  @media (min-width: 768px) { grid-template-columns: repeat(3, 1fr); gap: 16px; }
++  @media (min-width: 992px) { grid-template-columns: repeat(4, 1fr); }
++  @media (min-width: 1200px) { grid-template-columns: repeat(5, 1fr); gap: 18px; }
++`;
++
++export default function SectionSelector() {
++  return (
++    <SelectorPanel aria-labelledby="editor-inicio-selector-title">
++      <PanelHeader>
++        <Eyebrow>Editor de Inicio</Eyebrow>
++        <PanelTitle id="editor-inicio-selector-title">¿Qué querés modificar hoy?</PanelTitle>
++        <PanelSubtitle>Elegí una sección de la página principal. Están ordenadas tal como aparecen en la tienda.</PanelSubtitle>
++      </PanelHeader>
++      <SectionsGrid aria-label="Secciones de la página de inicio">
++        {EDITOR_INICIO_SECTIONS.map((section, index) => (
++          <li key={section.id}>
++            <SectionCard section={section} order={index + 1} to={sectionPath(section.id)} available={hasSectionEditor(section.id)} />
++          </li>
++        ))}
++      </SectionsGrid>
++    </SelectorPanel>
++  );
++}
+diff --git a/Frontend/src/pages/admin/editor-inicio/editorInicioSections.js b/Frontend/src/pages/admin/editor-inicio/editorInicioSections.js
+new file mode 100644
+index 0000000..41ea731
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/editorInicioSections.js
+@@ -0,0 +1,93 @@
++import {
++  FiImage,
++  FiStar,
++  FiGrid,
++  FiBookmark,
++  FiTag,
++  FiPercent,
++  FiLayers,
++  FiCreditCard,
++  FiGift,
++  FiCalendar,
++} from 'react-icons/fi';
++
++export const EDITOR_INICIO_PATH = '/editor-inicio-admin';
++
++// Orden verificado contra la sección Perfumería de pages/inicio/Inicio.jsx.
++// `landingComponent` indica qué componente de la landing pública representa cada sección.
++export const EDITOR_INICIO_SECTIONS = [
++  {
++    id: 'banners',
++    title: 'Banners',
++    description: 'Imágenes principales que abren Inicio en Perfumería y Hogar.',
++    icon: FiImage,
++    landingComponent: 'PromoCarousel',
++  },
++  {
++    id: 'seccion-destacada',
++    title: 'Sección Destacada',
++    description: 'Productos destacados que aparecen debajo de los banners.',
++    icon: FiStar,
++    landingComponent: 'FeaturedSection',
++  },
++  {
++    id: 'categorias',
++    title: 'Categorías',
++    description: 'Accesos rápidos a las categorías de la tienda.',
++    icon: FiGrid,
++    landingComponent: 'CategoriesSection',
++  },
++  {
++    id: 'categoria-destacada-1',
++    title: 'Categoría Destacada (1)',
++    description: 'Primera categoría con una selección de sus productos.',
++    icon: FiBookmark,
++    landingComponent: 'FeaturedCategorySection',
++  },
++  {
++    id: 'ofertas',
++    title: 'Ofertas',
++    description: 'Bloque «Disfrutá de las mejores ofertas» con accesos a promociones.',
++    icon: FiTag,
++    landingComponent: 'OfertasSection',
++  },
++  {
++    id: 'descuentos',
++    title: 'Descuentos',
++    description: 'Productos con precio rebajado.',
++    icon: FiPercent,
++    landingComponent: 'DiscountedSection',
++  },
++  {
++    id: 'categoria-destacada-2',
++    title: 'Categoría Destacada (2)',
++    description: 'Segunda categoría con una selección de sus productos.',
++    icon: FiLayers,
++    landingComponent: 'SpecificCategorySection',
++  },
++  {
++    id: 'beneficios',
++    title: 'Beneficios',
++    description: 'Promociones y beneficios de tarjetas bancarias.',
++    icon: FiCreditCard,
++    landingComponent: 'TarjetasPromociones',
++  },
++  {
++    id: 'gift-card',
++    title: 'Gift Card',
++    description: 'Banner que invita a regalar una tarjeta Marybe.',
++    icon: FiGift,
++    landingComponent: 'GiftCard',
++  },
++  {
++    id: 'proximos-eventos',
++    title: 'Próximos Eventos',
++    description: 'Agenda de eventos y actividades de la tienda.',
++    icon: FiCalendar,
++    landingComponent: 'ProximosEventos',
++  },
++];
++
++export const sectionPath = (id) => `${EDITOR_INICIO_PATH}/${id}`;
++
++export const findSection = (id) => EDITOR_INICIO_SECTIONS.find(section => section.id === id);
+diff --git a/Frontend/src/pages/admin/editor-inicio/sectionEditors.js b/Frontend/src/pages/admin/editor-inicio/sectionEditors.js
+new file mode 100644
+index 0000000..ff50513
+--- /dev/null
++++ b/Frontend/src/pages/admin/editor-inicio/sectionEditors.js
+@@ -0,0 +1,11 @@
++import { lazyWithRetry } from '../../../utils/lazyWithRetry';
++
++const BannersSectionEditor = lazyWithRetry(() => import('./components/BannersSectionEditor'), 'BannersSectionEditor');
++
++// Editores reales por identificador de sección. Las secciones sin entrada muestran
++// la vista "Editor próximamente disponible"; para habilitar un editor nuevo basta con registrarlo acá.
++export const SECTION_EDITORS = {
++  banners: BannersSectionEditor,
++};
++
++export const hasSectionEditor = (id) => Boolean(SECTION_EDITORS[id]);
+-- 
+2.43.0
+
