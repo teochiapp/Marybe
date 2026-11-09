@@ -6,7 +6,8 @@ import useSectionDraft from '../../hooks/useSectionDraft';
 import CategoriaDestacadaPartsPanel from './CategoriaDestacadaPartsPanel';
 import ContenidoPanel from './ContenidoPanel';
 import ProductosCategoriaPanel from './ProductosCategoriaPanel';
-import { CATEGORIA_DESTACADA_AREAS, CATEGORIA_DESTACADA_MODULES, CATEGORIA_DESTACADA_PARTS, moveItem, publishProblems, shownProducts, toPreviewData } from './categoriaDestacadaModel';
+import DisenoCategoriaDestacadaPanel from './DisenoCategoriaDestacadaPanel';
+import { AREA_COLORS, CATEGORIA_DESTACADA_AREAS, CATEGORIA_DESTACADA_MODULES, CATEGORIA_DESTACADA_PARTS, moveItem, publishProblems, shownProducts, toPreviewData } from './categoriaDestacadaModel';
 
 const PRODUCTS_ENDPOINT = '/api/categoria-destacada-admin/productos';
 const AREA_KEYS = CATEGORIA_DESTACADA_AREAS.map(area => area.key);
@@ -55,6 +56,7 @@ export default function CategoriaDestacadaEditor({ token, onBack, onLogout, modu
   const selectFromPreview = useCallback(id => {
     if (id === 'titulo') selectPart('contenido');
     if (id === 'productos') selectPart('productos');
+    if (id === 'seccion') selectPart('diseno');
   }, [selectPart]);
 
   // Cambiar de categoría descarta la selección anterior: sus productos no pertenecen a la nueva.
@@ -78,7 +80,9 @@ export default function CategoriaDestacadaEditor({ token, onBack, onLogout, modu
     draft.save(true, `Publicado. ${moduleInfo.title} de ${area.label} ya está actualizada en Inicio.`, 'No se publicó ningún cambio:');
   }
 
-  const previewPayload = useMemo(() => (data ? { section: moduleInfo.key, area: areaKey, previewData: toPreviewData(data, productIndex, automaticItems), selected: part === 'contenido' ? 'titulo' : 'productos', mode: 'edit' } : null), [data, moduleInfo.key, areaKey, productIndex, automaticItems, part]);
+  const areaColor = AREA_COLORS[areaKey] || AREA_COLORS.perfumeria;
+  const selectedPreviewPart = part === 'contenido' ? 'titulo' : part === 'diseno' ? 'seccion' : 'productos';
+  const previewPayload = useMemo(() => (data ? { section: moduleInfo.key, area: areaKey, previewData: toPreviewData(data, productIndex, automaticItems), selected: selectedPreviewPart, mode: 'edit' } : null), [data, moduleInfo.key, areaKey, productIndex, automaticItems, selectedPreviewPart]);
   const selectedProducts = data ? data.productos.map(id => productIndex[id]).filter(Boolean) : [];
 
   return (
@@ -114,8 +118,9 @@ export default function CategoriaDestacadaEditor({ token, onBack, onLogout, modu
       inspectorTitle={activePart?.label}
     >
       {!shown.length && categoria && <p className="ba-notice" role="status">Sin productos para mostrar: en la tienda esta sección no aparece.</p>}
-      {part === 'contenido' && <ContenidoPanel data={data} categories={categories} defaultTitle={overview?.defaultTitle} onChange={change} onCategoryChange={changeCategory} />}
+      {part === 'contenido' && <ContenidoPanel data={data} categories={categories} defaultTitle={overview?.defaultTitle} areaColor={areaColor} onChange={change} onCategoryChange={changeCategory} />}
       {part === 'productos' && <ProductosCategoriaPanel data={data} categoryName={categoryName} productIndex={productIndex} automatic={automaticItems} loadProducts={loadProducts} onChange={change} onMove={moveProduct} />}
+      {part === 'diseno' && <DisenoCategoriaDestacadaPanel data={data} device={device} areaColor={areaColor} onChange={change} onShowDevice={setDevice} />}
     </SectionEditorShell>
   );
 }

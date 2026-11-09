@@ -41,7 +41,7 @@ export function CategoriaDestacadaTitleIcon({ icono }) {
   if (!entry) return null;
   const { Icon } = entry;
   return (
-    <TitleEndIcon data-title-icon={entry.value} aria-hidden="true">
+    <TitleEndIcon data-testid={`title-icon-${entry.value}`} data-title-icon={entry.value} aria-hidden="true">
       <Icon />
     </TitleEndIcon>
   );

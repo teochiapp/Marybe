@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import FeaturedCategorySection from './perfumeria/FeaturedCategorySection';
 import SpecificCategorySection from './perfumeria/SpecificCategorySection';
 
@@ -9,7 +9,7 @@ jest.mock('../../hooks/useConfiguracionGeneral', () => ({ useConfiguracionGenera
 jest.mock('../shared/FavoriteButton', () => () => null);
 jest.mock('../carrito/AddToCartModal', () => () => null);
 
-const product = (documentId, nombre) => ({ id: documentId.length, documentId, nombre, marca: 'QA', precio: 1000, publicado: true });
+const product = (documentId, nombre) => ({ id: documentId, documentId, nombre, marca: 'QA', precio: 1000, publicado: true });
 const respond = body => Promise.resolve({ json: () => Promise.resolve(body) });
 const productNames = () => screen.getAllByRole('heading', { level: 3 }).map(heading => heading.textContent);
 
@@ -61,7 +61,7 @@ test('renderiza el ícono opcional al final del título en ambas secciones y lo 
     />
   );
   const heading1 = screen.getByRole('heading', { name: 'Favoritos de hoy' });
-  expect(heading1.querySelector('[data-title-icon="estrella"]')).toBeInTheDocument();
+  expect(within(heading1).getByTestId('title-icon-estrella')).toBeInTheDocument();
   unmount();
 
   render(
@@ -71,7 +71,7 @@ test('renderiza el ícono opcional al final del título en ambas secciones y lo 
     />
   );
   const heading2 = screen.getByRole('heading', { name: 'Regalos para el hogar' });
-  expect(heading2.querySelector('[data-title-icon="regalo"]')).toBeInTheDocument();
+  expect(within(heading2).getByTestId('title-icon-regalo')).toBeInTheDocument();
 });
 
 test('Categoría Destacada (2) respeta productos_orden e icono_titulo publicados desde Strapi', async () => {
@@ -80,6 +80,77 @@ test('Categoría Destacada (2) respeta productos_orden e icono_titulo publicados
     : respond({ data: [product('p1', 'Primero'), product('p2', 'Segundo')] })));
   render(<SpecificCategorySection seccion="perfumeria" />);
   const heading = await screen.findByRole('heading', { name: 'Selección exclusiva' });
-  expect(heading.querySelector('[data-title-icon="destellos"]')).toBeInTheDocument();
+  expect(within(heading).getByTestId('title-icon-destellos')).toBeInTheDocument();
   expect(productNames()).toEqual(['Segundo', 'Primero']);
+});
+
+test('aplica alineación, tamaño, fondo, espaciado y herencia por dispositivo de densidad y encuadre en Categoría Destacada 1 y 2', () => {
+  global.fetch = jest.fn();
+  const { unmount } = render(
+    <FeaturedCategorySection
+      seccion="perfumeria"
+      previewData={{
+        titulo: 'Destacada con diseño',
+        tamano: 'muy-grande',
+        alineacion: 'centro',
+        fondo: 'arena',
+        espaciado: 'amplio',
+        densidad: 'compacta',
+        densidad_mobile: 'amplia',
+        encuadre: 'cubrir',
+        encuadre_tablet: 'original',
+        productos: [product('a', 'Uno')],
+      }}
+    />
+  );
+
+  const section1 = screen.getByTestId('categoria-destacada-seccion');
+  const heading1 = screen.getByRole('heading', { name: 'Destacada con diseño' });
+  const grid1 = screen.getByTestId('categoria-destacada-productos');
+
+  expect(section1).toHaveAttribute('data-fondo', 'arena');
+  expect(section1).toHaveAttribute('data-espaciado', 'amplio');
+  expect(heading1).toHaveAttribute('data-tamano', 'muy-grande');
+  expect(heading1).toHaveAttribute('data-alineacion', 'centro');
+  expect(grid1).toHaveAttribute('data-densidad-desktop', 'compacta');
+  expect(grid1).toHaveAttribute('data-densidad-tablet', 'compacta');
+  expect(grid1).toHaveAttribute('data-densidad-mobile', 'amplia');
+  expect(grid1).toHaveAttribute('data-encuadre-desktop', 'cubrir');
+  expect(grid1).toHaveAttribute('data-encuadre-tablet', 'original');
+  expect(grid1).toHaveAttribute('data-encuadre-mobile', 'cubrir');
+  unmount();
+
+  render(
+    <SpecificCategorySection
+      seccion="hogar"
+      previewData={{
+        titulo: 'Destacada 2 con diseño',
+        tamano: 'chico',
+        alineacion: 'derecha',
+        fondo: 'rosado',
+        espaciado: 'compacto',
+        densidad: 'amplia',
+        densidad_desktop: 'compacta',
+        encuadre: 'original',
+        encuadre_mobile: 'cubrir',
+        productos: [product('b', 'Dos')],
+      }}
+    />
+  );
+
+  const section2 = screen.getByTestId('categoria-destacada-seccion');
+  const titleWrap2 = screen.getByTestId('categoria-destacada-titulo-wrap');
+  const heading2 = screen.getByRole('heading', { name: 'Destacada 2 con diseño' });
+  const grid2 = screen.getByTestId('categoria-destacada-productos');
+
+  expect(section2).toHaveAttribute('data-fondo', 'rosado');
+  expect(section2).toHaveAttribute('data-espaciado', 'compacto');
+  expect(titleWrap2).toHaveAttribute('data-alineacion', 'derecha');
+  expect(heading2).toHaveAttribute('data-tamano', 'chico');
+  expect(grid2).toHaveAttribute('data-densidad-desktop', 'compacta');
+  expect(grid2).toHaveAttribute('data-densidad-tablet', 'amplia');
+  expect(grid2).toHaveAttribute('data-densidad-mobile', 'amplia');
+  expect(grid2).toHaveAttribute('data-encuadre-desktop', 'original');
+  expect(grid2).toHaveAttribute('data-encuadre-tablet', 'original');
+  expect(grid2).toHaveAttribute('data-encuadre-mobile', 'cubrir');
 });

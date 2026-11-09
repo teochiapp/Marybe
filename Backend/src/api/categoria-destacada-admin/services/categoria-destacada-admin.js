@@ -14,6 +14,57 @@ const PAGE_SIZE = 30;
 // Íconos opcionales disponibles para acompañar el final del título principal.
 const ICONOS = ['', 'estrella', 'corazon', 'regalo', 'destellos', 'etiqueta', 'flecha', 'bolsa'];
 
+// Opciones de diseño del título, fondo, separación vertical y tarjetas (general + por dispositivo con herencia).
+const DISENO_OPTIONS = {
+  tamano: ['grande', 'original', 'chico', 'mediano', 'muy-grande'],
+  alineacion: ['izquierda', 'original', 'centro', 'derecha'],
+  fondo: ['blanco', 'original', 'arena', 'rosado'],
+  espaciado: ['original', 'compacto', 'amplio'],
+  densidad: ['original', 'compacta', 'amplia'],
+  densidad_desktop: ['heredar', 'original', 'compacta', 'amplia'],
+  densidad_tablet: ['heredar', 'original', 'compacta', 'amplia'],
+  densidad_mobile: ['heredar', 'original', 'compacta', 'amplia'],
+  encuadre: ['original', 'contener', 'cubrir'],
+  encuadre_desktop: ['heredar', 'original', 'contener', 'cubrir'],
+  encuadre_tablet: ['heredar', 'original', 'contener', 'cubrir'],
+  encuadre_mobile: ['heredar', 'original', 'contener', 'cubrir'],
+};
+
+const DISENO_DEFAULTS = Object.freeze({
+  tamano: 'grande',
+  alineacion: 'izquierda',
+  fondo: 'blanco',
+  espaciado: 'original',
+  densidad: 'original',
+  densidad_desktop: 'heredar',
+  densidad_tablet: 'heredar',
+  densidad_mobile: 'heredar',
+  encuadre: 'original',
+  encuadre_desktop: 'heredar',
+  encuadre_tablet: 'heredar',
+  encuadre_mobile: 'heredar',
+});
+
+function canonicalDisenoValue(key, val) {
+  if (key === 'tamano' && val === 'original') return 'grande';
+  if (key === 'alineacion' && val === 'original') return 'izquierda';
+  if (key === 'fondo' && val === 'original') return 'blanco';
+  if (key.startsWith('encuadre') && val === 'contener') return 'original';
+  return val;
+}
+
+function normalizeDiseno(raw = {}) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const out = {};
+  for (const [key, allowed] of Object.entries(DISENO_OPTIONS)) {
+    const val = source[key];
+    out[key] = typeof val === 'string' && allowed.includes(val)
+      ? canonicalDisenoValue(key, val)
+      : DISENO_DEFAULTS[key];
+  }
+  return out;
+}
+
 // Configuración reutilizable de ambos módulos de Categoría Destacada (1 y 2).
 const MODULES = {
   'categoria-destacada-1': {
@@ -72,6 +123,7 @@ module.exports = ({ strapi }) => {
       icono: normalizeIcon(value?.icono_titulo),
       categoria: value?.categoria?.documentId || null,
       productos: Array.isArray(value?.productos_orden) ? value.productos_orden.filter(isDocumentId) : [],
+      ...normalizeDiseno(value?.diseno),
     };
   }
 
@@ -82,6 +134,7 @@ module.exports = ({ strapi }) => {
       icono: normalizeIcon(data.icono),
       categoria: isDocumentId(data.categoria) ? data.categoria : null,
       productos: Array.isArray(data.productos) ? data.productos.filter(isDocumentId) : [],
+      ...normalizeDiseno(data),
     };
   }
 
@@ -143,11 +196,16 @@ module.exports = ({ strapi }) => {
       const found = await strapi.documents(PRODUCT).findMany({ status: 'published', fields: ['nombre'], filters: productFilters(categoria, { documentId: { $in: productos } }), limit: MAX_PRODUCTS });
       if (found.length !== productos.length) fail('Algunos productos no pertenecen a la categoría elegida o ya no están publicados. Quitalos y volvé a intentar.');
     }
+    for (const [key, allowed] of Object.entries(DISENO_OPTIONS)) {
+      if (input[key] != null && (typeof input[key] !== 'string' || !allowed.includes(input[key]))) {
+        fail('Opción de diseño inválida.');
+      }
+    }
     if (strict) {
       if (!titulo.trim()) fail('Escribí el título de la sección antes de publicar.');
       if (!categoria) fail('Elegí la categoría de la sección antes de publicar.');
     }
-    return { titulo, icono, categoria, productos };
+    return { titulo, icono, categoria, productos, ...normalizeDiseno(input) };
   }
 
   async function writeMain(main, data) {
@@ -192,8 +250,9 @@ module.exports = ({ strapi }) => {
       }
       delete drafts[mod.draftKey][areaKey];
       const previousMediaIcon = area.hasMediaIcon && main?.[area.field]?.icono?.id ? { icono: main[area.field].icono.id } : {};
+      const diseno = normalizeDiseno(data);
       await writeMain(main, {
-        [area.field]: { ...previousMediaIcon, titulo: data.titulo.trim(), icono_titulo: data.icono, categoria: data.categoria, productos_orden: data.productos },
+        [area.field]: { ...previousMediaIcon, titulo: data.titulo.trim(), icono_titulo: data.icono, categoria: data.categoria, productos_orden: data.productos, diseno },
         borradores_editor_inicio: drafts,
       });
       return overview(moduleKey);
@@ -217,4 +276,6 @@ module.exports = ({ strapi }) => {
 module.exports.AREAS = AREAS;
 module.exports.MODULES = MODULES;
 module.exports.ICONOS = ICONOS;
+module.exports.DISENO_OPTIONS = DISENO_OPTIONS;
+module.exports.DISENO_DEFAULTS = DISENO_DEFAULTS;
 module.exports.MAX_PRODUCTS = MAX_PRODUCTS;

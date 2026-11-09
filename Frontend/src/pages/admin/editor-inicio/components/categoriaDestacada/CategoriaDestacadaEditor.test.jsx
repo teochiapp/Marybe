@@ -152,3 +152,61 @@ test('Categoría Destacada (2) reutiliza el editor con su propio endpoint y conf
   expect(url).toMatch(/\/api\/categoria-destacada-admin\/modulo\/categoria-destacada-2\/perfumeria$/);
   expect(body.data).toEqual({ titulo: 'Segunda destacada', icono: 'corazon', categoria: 'c1', productos: [] });
 });
+
+test('configura tamaño y alineación del título, fondo, separación vertical y densidad/encuadre general y por dispositivo con herencia', async () => {
+  renderEditor();
+  await screen.findByRole('combobox', { name: 'Categoría de la tienda' });
+
+  // Valores iniciales "Original" en tamaño y alineación del título
+  const sizeGroup = screen.getByRole('radiogroup', { name: 'Tamaño del título' });
+  const alignGroup = screen.getByRole('radiogroup', { name: 'Alineación del título' });
+  expect(within(sizeGroup).getByRole('radio', { name: /Original/i })).toHaveAttribute('aria-checked', 'true');
+  expect(within(alignGroup).getByRole('radio', { name: /Original/i })).toHaveAttribute('aria-checked', 'true');
+
+  fireEvent.click(within(sizeGroup).getByRole('radio', { name: /Muy grande/i }));
+  fireEvent.click(within(alignGroup).getByRole('radio', { name: /Centro/i }));
+
+  // Abrir panel de Diseño (fondo, espaciado y tarjetas)
+  fireEvent.click(screen.getByRole('button', { name: /Fondo, espaciado y tarjetas/i }));
+
+  const fondoGroup = await screen.findByRole('radiogroup', { name: 'Fondo de la sección' });
+  const espaciadoGroup = screen.getByRole('radiogroup', { name: 'Espaciado superior e inferior' });
+  const densidadGroup = screen.getByRole('radiogroup', { name: 'Densidad de las tarjetas' });
+  const encuadreGroup = screen.getByRole('radiogroup', { name: 'Encuadre de las imágenes' });
+
+  expect(within(fondoGroup).getByRole('radio', { name: /Diseño original/i })).toHaveAttribute('aria-checked', 'true');
+  expect(within(espaciadoGroup).getByRole('radio', { name: /Original/i })).toHaveAttribute('aria-checked', 'true');
+  expect(within(densidadGroup).getByRole('radio', { name: /Original/i })).toHaveAttribute('aria-checked', 'true');
+  expect(within(encuadreGroup).getByRole('radio', { name: /Original/i })).toHaveAttribute('aria-checked', 'true');
+
+  fireEvent.click(within(fondoGroup).getByRole('radio', { name: /Arena/i }));
+  fireEvent.click(within(espaciadoGroup).getByRole('radio', { name: /Amplio/i }));
+  fireEvent.click(within(densidadGroup).getByRole('radio', { name: /Compacta/i }));
+  fireEvent.click(within(encuadreGroup).getByRole('radio', { name: /Cubrir/i }));
+
+  // Verificar que los dispositivos heredan del ajuste general ("Compacta" y "Cubrir")
+  expect(screen.getAllByText(/Densidad efectiva:/i)[0]).toHaveTextContent('Compacta (heredada)');
+  expect(screen.getAllByText(/Encuadre efectivo:/i)[0]).toHaveTextContent('Cubrir (heredado)');
+
+  // Sobrescribir densidad en celular y encuadre en tablet
+  const mobileDensidadGroup = screen.getByRole('radiogroup', { name: 'Densidad en celular' });
+  const tabletEncuadreGroup = screen.getByRole('radiogroup', { name: 'Encuadre en tablet' });
+  fireEvent.click(within(mobileDensidadGroup).getByRole('radio', { name: /Amplia/i }));
+  fireEvent.click(within(tabletEncuadreGroup).getByRole('radio', { name: /Original/i }));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar borrador' }));
+  await waitFor(() => expect(axios.put).toHaveBeenCalledTimes(1));
+  expect(axios.put.mock.calls[0][1].data).toEqual({
+    titulo: 'Cuidado de la piel',
+    categoria: 'c1',
+    productos: [],
+    tamano: 'muy-grande',
+    alineacion: 'centro',
+    fondo: 'arena',
+    espaciado: 'amplio',
+    densidad: 'compacta',
+    densidad_mobile: 'amplia',
+    encuadre: 'cubrir',
+    encuadre_tablet: 'original',
+  });
+});

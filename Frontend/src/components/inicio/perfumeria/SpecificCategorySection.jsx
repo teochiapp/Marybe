@@ -9,21 +9,28 @@ import FavoriteButton from '../../shared/FavoriteButton';
 import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
 import { CategoriaDestacadaTitleIcon } from '../../../utils/categoriaDestacadaIconos';
+import {
+  CATEGORIA_DESTACADA_ESPACIADOS,
+  CATEGORIA_DESTACADA_TAMANOS,
+  SECCION_ALINEACIONES,
+  SECCION_FONDOS,
+  disenoCategoriaDestacada,
+} from '../../../utils/disenoSeccion';
 
 const SectionWrapper = styled.section`
-  padding: 40px 60px;
+  padding: ${({ $espaciado }) => (CATEGORIA_DESTACADA_ESPACIADOS[$espaciado] || CATEGORIA_DESTACADA_ESPACIADOS.original)[0]} 60px;
   padding-right: 0px;
-  background-color: var(--color-blanco);
+  background-color: ${({ $fondo }) => SECCION_FONDOS[$fondo] || 'var(--color-blanco)'};
   display: flex;
   flex-direction: column;
   gap: 30px;
 
   @media (max-width: 1024px) {
-    padding: 30px 40px;
+    padding: ${({ $espaciado }) => (CATEGORIA_DESTACADA_ESPACIADOS[$espaciado] || CATEGORIA_DESTACADA_ESPACIADOS.original)[1]} 40px;
   }
 
   @media (max-width: 768px) {
-    padding: 20px;
+    padding: ${({ $espaciado }) => (CATEGORIA_DESTACADA_ESPACIADOS[$espaciado] || CATEGORIA_DESTACADA_ESPACIADOS.original)[2]} 20px;
     gap: 20px;
   }
 `;
@@ -31,10 +38,17 @@ const SectionWrapper = styled.section`
 const TitleWrapper = styled.div`
   display: flex;
   align-items: center;
+  justify-content: ${({ $alineacion }) => ($alineacion === 'centro' ? 'center' : $alineacion === 'derecha' ? 'flex-end' : 'flex-start')};
+  padding-right: ${({ $alineacion }) => ($alineacion && $alineacion !== 'izquierda' ? '60px' : '0')};
   gap: 15px;
+
+  @media (max-width: 1024px) {
+    padding-right: ${({ $alineacion }) => ($alineacion && $alineacion !== 'izquierda' ? '40px' : '0')};
+  }
 
   @media (max-width: 768px) {
     gap: 10px;
+    padding-right: 0;
   }
 `;
 
@@ -51,13 +65,14 @@ const TitleIcon = styled.img`
 
 const SectionTitle = styled.h2`
   font-family: var(--font-family-secondary);
-  font-size: 2.5rem;
+  font-size: ${({ $tamano }) => (CATEGORIA_DESTACADA_TAMANOS[$tamano] || CATEGORIA_DESTACADA_TAMANOS.grande)[0]};
   color: ${({ $seccion }) => ($seccion === 'hogar' ? 'var(--color-hogar)' : 'var(--color-bordo-secundario)')};
   font-weight: 600;
+  text-align: ${({ $alineacion }) => SECCION_ALINEACIONES[$alineacion] || 'left'};
   margin: 0;
 
   @media (max-width: 768px) {
-    font-size: 2rem;
+    font-size: ${({ $tamano }) => (CATEGORIA_DESTACADA_TAMANOS[$tamano] || CATEGORIA_DESTACADA_TAMANOS.grande)[1]};
   }
 `;
 
@@ -67,7 +82,7 @@ const ProductsGrid = styled(motion.div)`
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  gap: 40px;
+  gap: ${({ $metrics }) => $metrics?.desktop?.gap || '40px'};
   position: relative;
   z-index: 1;
   cursor: grab;
@@ -82,7 +97,7 @@ const ProductsGrid = styled(motion.div)`
   }
 
   @media (max-width: 1024px) {
-    gap: 30px;
+    gap: ${({ $metrics }) => $metrics?.tablet?.gap || '30px'};
   }
 
   @media (max-width: 768px) {
@@ -93,14 +108,14 @@ const ProductsGrid = styled(motion.div)`
   }
 
   @media (max-width: 600px) {
-    gap: 20px;
+    gap: ${({ $metrics }) => $metrics?.mobile?.gap || '20px'};
   }
 `;
 
 const ProductCard = styled(motion.div)`
   background-color: var(--color-blanco);
-  border-radius: 24px;
-  padding: 20px;
+  border-radius: ${({ $metrics }) => $metrics?.desktop?.cardRadius || '24px'};
+  padding: ${({ $metrics }) => $metrics?.desktop?.cardPadding || '20px'};
   display: flex;
   flex-direction: column;
   position: relative;
@@ -112,28 +127,30 @@ const ProductCard = styled(motion.div)`
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 
   /* Pantallas muy grandes (> 1600px): 5.5 tarjetas */
-  width: 290px;
+  width: ${({ $metrics }) => $metrics?.desktop?.cardWidth || '290px'};
   
   @media (max-width: 1600px) {
     /* Pantallas grandes (1401px - 1600px): 4.5 tarjetas */
-    width: 290px;
+    width: ${({ $metrics }) => $metrics?.desktop?.cardWidth || '290px'};
   }
 
   @media (max-width: 1400px) {
     /* Notebooks (998px - 1400px): 3.5 tarjetas */
-    width: 290px;
+    width: ${({ $metrics }) => $metrics?.desktop?.cardWidth || '290px'};
   }
 
   @media (max-width: 997px) {
     /* Tablets (601px - 997px): 2.5 tarjetas */
-    width: 280px;
+    width: ${({ $metrics }) => $metrics?.tablet?.cardWidth || '280px'};
+    padding: ${({ $metrics }) => $metrics?.tablet?.cardPadding || '20px'};
+    border-radius: ${({ $metrics }) => $metrics?.tablet?.cardRadius || '24px'};
   }
 
   @media (max-width: 600px) {
     /* Mobile (<= 600px): 1.5 tarjetas */
-    width: 240px;
-    padding: 12px;
-    border-radius: 18px;
+    width: ${({ $metrics }) => $metrics?.mobile?.cardWidth || '240px'};
+    padding: ${({ $metrics }) => $metrics?.mobile?.cardPadding || '12px'};
+    border-radius: ${({ $metrics }) => $metrics?.mobile?.cardRadius || '18px'};
   }
 
   &:hover {
@@ -144,7 +161,7 @@ const ProductCard = styled(motion.div)`
 
 const CardImageContainer = styled.div`
   width: 100%;
-  height: 250px;
+  height: ${({ $metrics }) => $metrics?.desktop?.imageHeight || '250px'};
   background-color: #fff;
   border-radius: var(--radius-md);
   margin-bottom: 15px;
@@ -155,15 +172,27 @@ const CardImageContainer = styled.div`
   position: relative;
   cursor: pointer;
 
+  @media (max-width: 997px) {
+    height: ${({ $metrics }) => $metrics?.tablet?.imageHeight || '250px'};
+  }
+
   @media (max-width: 600px) {
-    height: 160px;
+    height: ${({ $metrics }) => $metrics?.mobile?.imageHeight || '160px'};
     margin-bottom: 10px;
   }
 
   img.product-img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: ${({ $fit }) => $fit?.desktop || 'contain'};
+
+    @media (max-width: 997px) {
+      object-fit: ${({ $fit }) => $fit?.tablet || 'contain'};
+    }
+
+    @media (max-width: 600px) {
+      object-fit: ${({ $fit }) => $fit?.mobile || 'contain'};
+    }
   }
 `;
 
@@ -396,6 +425,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria', previe
   // previewData (Editor de Inicio) reemplaza título, ícono y productos publicados sin consultar la API.
   const isPreview = Boolean(previewData);
   const config = isPreview ? { titulo: previewData.titulo, icono_titulo: previewData.icono } : configApi;
+  const diseno = disenoCategoriaDestacada(isPreview ? previewData : configApi);
   const productos = isPreview ? previewData.productos || [] : productosApi;
   const loading = isPreview ? false : loadingApi;
   const scrollRef = useRef(null);
@@ -571,10 +601,10 @@ export default function SpecificCategorySection({ seccion = 'perfumeria', previe
   }
 
   return (
-    <SectionWrapper>
-      <TitleWrapper data-editor-part="titulo">
+    <SectionWrapper data-testid="categoria-destacada-seccion" data-editor-part="seccion" $fondo={diseno.fondo} $espaciado={diseno.espaciado} data-fondo={diseno.fondo} data-espaciado={diseno.espaciado}>
+      <TitleWrapper data-testid="categoria-destacada-titulo-wrap" data-editor-part="titulo" $alineacion={diseno.alineacion} data-alineacion={diseno.alineacion}>
         {iconUrl && <TitleIcon src={iconUrl} alt={titulo} />}
-        <SectionTitle $seccion={seccion}>
+        <SectionTitle $seccion={seccion} $tamano={diseno.tamano} $alineacion={diseno.alineacion} data-tamano={diseno.tamano}>
           {titulo}
           <CategoriaDestacadaTitleIcon icono={config.icono_titulo} />
         </SectionTitle>
@@ -586,7 +616,15 @@ export default function SpecificCategorySection({ seccion = 'perfumeria', previe
         </ArrowBtn>
         <ProductsGrid
           ref={scrollRef}
+          data-testid="categoria-destacada-productos"
           data-editor-part="productos"
+          $metrics={diseno.metrics}
+          data-densidad-desktop={diseno.effectiveDensidad.desktop}
+          data-densidad-tablet={diseno.effectiveDensidad.tablet}
+          data-densidad-mobile={diseno.effectiveDensidad.mobile}
+          data-encuadre-desktop={diseno.effectiveEncuadre.desktop}
+          data-encuadre-tablet={diseno.effectiveEncuadre.tablet}
+          data-encuadre-mobile={diseno.effectiveEncuadre.mobile}
           onMouseDown={handleMouseDown}
           onMouseLeave={handleMouseLeave}
           onMouseUp={handleMouseUp}
@@ -614,8 +652,8 @@ export default function SpecificCategorySection({ seccion = 'perfumeria', previe
             const stampVal = descuentoCalc > 0 ? getStampValue(descuentoCalc) : null;
 
             return (
-              <ProductCard key={id} variants={staggerItemLeftVariants}>
-                <CardImageContainer onClick={() => handleProductClick(id, nombre)}>
+              <ProductCard key={id} $metrics={diseno.metrics} variants={staggerItemLeftVariants}>
+                <CardImageContainer $metrics={diseno.metrics} $fit={diseno.objectFit} onClick={() => handleProductClick(id, nombre)}>
                   {descuentoCalc > 0 && stampVal && (
                     <StampOverlay src={`/ofertas/${stampVal}.png`} alt={`Hasta ${stampVal}% OFF`} />
                   )}

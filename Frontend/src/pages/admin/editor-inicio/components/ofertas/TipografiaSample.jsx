@@ -54,11 +54,11 @@ const Band = styled.span`
 `;
 
 // Muestra dibujada de una opción del título o de la sección para los selectores visuales.
-export default function TipografiaSample({ kind, value, diseno, areaColor }) {
+export default function TipografiaSample({ kind, value, diseno = {}, areaColor }) {
   const color = SECCION_COLORES[kind === 'color' ? value : diseno.color] || areaColor;
   if (kind === 'alineacion') return <Lines $alineacion={value} $color={color}><i /><i /><i /></Lines>;
   if (kind === 'fondo') return <Band $fondo={value} $espaciado="original"><i /><i /><i /></Band>;
-  if (kind === 'espaciado') return <Band $fondo={diseno.fondo} $espaciado={value}><i /><i /><i /></Band>;
-  const sample = { fuente: diseno.fuente, tamano: 'grande', peso: diseno.peso, [kind]: value };
+  if (kind === 'espaciado') return <Band $fondo={diseno.fondo || 'blanco'} $espaciado={value}><i /><i /><i /></Band>;
+  const sample = { fuente: diseno.fuente || 'secundaria', tamano: 'grande', peso: diseno.peso || 'semibold', [kind]: value };
   return <Text $color={color} $fuente={sample.fuente} $tamano={sample.tamano} $peso={sample.peso} $alineacion="centro">Ofertas</Text>;
 }

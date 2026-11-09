@@ -1,6 +1,8 @@
 import React from 'react';
 import OptionTiles from '../OptionTiles';
+import TipografiaSample from '../ofertas/TipografiaSample';
 import { CATEGORIA_DESTACADA_ICONOS } from '../../../../../utils/categoriaDestacadaIconos';
+import { ALINEACION_OPTIONS, AREA_COLORS, TAMANO_OPTIONS } from './categoriaDestacadaModel';
 
 const SECTION_ORDER = ['Perfumería', 'Hogar', ''];
 
@@ -16,10 +18,12 @@ function renderIconSample(value) {
   );
 }
 
-export default function ContenidoPanel({ data, categories, defaultTitle, onChange, onCategoryChange }) {
+export default function ContenidoPanel({ data, categories, defaultTitle, areaColor = AREA_COLORS.perfumeria, onChange, onCategoryChange }) {
   const current = categories.find(category => category.documentId === data.categoria);
   const groups = SECTION_ORDER.map(seccion => ({ seccion, items: categories.filter(category => (category.seccion || '') === seccion) })).filter(group => group.items.length);
   const activeIcon = data.icono || '';
+  const tamano = data.tamano || 'grande';
+  const alineacion = data.alineacion || 'izquierda';
 
   return (
     <>
@@ -64,6 +68,25 @@ export default function ContenidoPanel({ data, categories, defaultTitle, onChang
           columns={2}
         />
         <small className="ba-hint">El ícono es opcional y aparece al final del texto heredando el color y el tamaño del título.</small>
+      </details>
+      <details open>
+        <summary>Tamaño y alineación del título</summary>
+        <OptionTiles
+          label="Tamaño del título"
+          options={TAMANO_OPTIONS}
+          value={tamano}
+          columns={2}
+          onChange={value => onChange(next => { next.tamano = value; })}
+          renderSample={value => <TipografiaSample kind="tamano" value={value} diseno={data} areaColor={areaColor} />}
+        />
+        <OptionTiles
+          label="Alineación del título"
+          options={ALINEACION_OPTIONS}
+          value={alineacion}
+          columns={3}
+          onChange={value => onChange(next => { next.alineacion = value; })}
+          renderSample={value => <TipografiaSample kind="alineacion" value={value} diseno={data} areaColor={areaColor} />}
+        />
       </details>
     </>
   );

@@ -58,7 +58,7 @@ describe('configuración de secciones', () => {
   });
 
   test('las secciones con editor real están registradas', () => {
-    expect(EDITOR_INICIO_SECTIONS.filter(section => hasSectionEditor(section.id)).map(section => section.id)).toEqual(['banners', 'seccion-destacada', 'categorias', 'categoria-destacada-1', 'ofertas', 'descuentos', 'categoria-destacada-2', 'beneficios', 'gift-card']);
+    expect(EDITOR_INICIO_SECTIONS.filter(section => hasSectionEditor(section.id)).map(section => section.id)).toEqual(['banners', 'seccion-destacada', 'categorias', 'categoria-destacada-1', 'ofertas', 'descuentos', 'categoria-destacada-2', 'beneficios', 'gift-card', 'proximos-eventos']);
   });
 });
 
@@ -87,7 +87,7 @@ describe('selector de secciones', () => {
     expect(within(links[6]).getByText('Editar sección')).toBeInTheDocument();
     expect(within(links[7]).getByText('Editar sección')).toBeInTheDocument();
     expect(within(links[8]).getByText('Editar sección')).toBeInTheDocument();
-    expect(within(links[9]).getByText('Próximamente')).toBeInTheDocument();
+    expect(within(links[9]).getByText('Editar sección')).toBeInTheDocument();
   });
 });
 

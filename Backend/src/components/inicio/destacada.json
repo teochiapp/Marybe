@@ -23,6 +23,10 @@
     "productos_orden": {
       "type": "json",
       "description": "Productos elegidos (documentId) en el orden en que se muestran. Vacío: todos los productos publicados de la categoría, en el orden del catálogo. Lo administra /editor-inicio-admin."
+    },
+    "diseno": {
+      "type": "json",
+      "description": "Opciones visuales de la sección (tamaño y alineación del título, fondo, separación vertical, densidad y encuadre general y por dispositivo)."
     }
   }
 }

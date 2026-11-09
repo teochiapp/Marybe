@@ -1,8 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
+import {
+  applyProximosEventosConfig,
+  buildWhatsappReservaUrl,
+  resolveCardDesignProps,
+  resolveHeaderCustomIcon,
+  resolveHeaderStyleProps,
+} from '../../../utils/proximosEventosSection';
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
-const WHATSAPP_NUMBER = "5403854211687";
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -24,36 +30,43 @@ const Section = styled.section`
 const Header = styled.div`
   display: flex;
   flex-direction: column;
+  align-items: ${({ $alignItems }) => $alignItems || 'flex-start'};
+  text-align: ${({ $textAlign }) => $textAlign || 'left'};
   gap: 12px;
   margin-bottom: 40px;
 
   @media (max-width: 600px) {
     margin-bottom: 28px;
-    align-items: flex-start;
   }
 `;
 
 const HeaderIconWrap = styled.div`
   display: flex;
   align-items: center;
+  color: #160000;
+
+  svg {
+    width: 32px;
+    height: 32px;
+  }
 `;
 
 const Title = styled.h2`
-  font-family: var(--font-family-primary);
-  font-style: italic;
-  font-weight: 600;
+  font-family: ${({ $fontFamily }) => $fontFamily || 'var(--font-family-primary)'};
+  font-style: ${({ $fontStyle }) => $fontStyle || 'italic'};
+  font-weight: ${({ $fontWeight }) => $fontWeight || 600};
   letter-spacing: -2%;
-  font-size: 48px;
+  font-size: ${({ $desktopSize }) => $desktopSize || '48px'};
   color: var(--color-marron-tercero);
   margin: 0;
   line-height: 1.1;
 
   @media (max-width: 992px) {
-    font-size: 40px;
+    font-size: ${({ $tabletSize }) => $tabletSize || '40px'};
   }
 
   @media (max-width: 600px) {
-    font-size: 32px;
+    font-size: ${({ $mobileSize }) => $mobileSize || '32px'};
   }
 `;
 
@@ -62,7 +75,7 @@ const Title = styled.h2`
 const CardsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: ${({ $gap }) => $gap || '24px'};
   width: 100%;
 
   @media (max-width: 992px) {
@@ -79,15 +92,15 @@ const CardsGrid = styled.div`
 
 const Card = styled.article`
   background-color: var(--color-blanco);
-  border-radius: 16px;
-  padding: 28px;
+  border-radius: ${({ $radius }) => $radius || '16px'};
+  padding: ${({ $padding }) => $padding || '28px'};
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   gap: 16px;
 
   @media (max-width: 600px) {
-    padding: 24px;
+    padding: ${({ $mobilePadding }) => $mobilePadding || '24px'};
   }
 `;
 
@@ -166,7 +179,7 @@ const ReservarBtn = styled.button`
   font-size: 16px;
   font-weight: 500;
   padding: 16px 24px;
-  border-radius: 12px;
+  border-radius: ${({ $radius }) => $radius || '12px'};
   border: none;
   cursor: pointer;
   display: flex;
@@ -292,58 +305,144 @@ const ChevronIcon = () => (
   </svg>
 );
 
+function SectionHeaderIcon({ value }) {
+  if (value === 'ninguno') return null;
+  if (!value || value === 'original') {
+    return (
+      <HeaderIconWrap>
+        <HeaderIcon />
+      </HeaderIconWrap>
+    );
+  }
+  const CustomIcon = resolveHeaderCustomIcon(value);
+  if (!CustomIcon) {
+    return (
+      <HeaderIconWrap>
+        <HeaderIcon />
+      </HeaderIconWrap>
+    );
+  }
+  return (
+    <HeaderIconWrap data-header-icon={value}>
+      <CustomIcon aria-hidden="true" />
+    </HeaderIconWrap>
+  );
+}
+
 // ─── Componente ───────────────────────────────────────────────────────────────
 
-export default function ProximosEventos() {
-  const [eventos, setEventos] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function ProximosEventos({ previewData = null }) {
+  const isPreview = Boolean(previewData);
+  const [rawEventos, setRawEventos] = useState([]);
+  const [publishedConfig, setPublishedConfig] = useState(null);
+  const [loading, setLoading] = useState(!isPreview);
 
   useEffect(() => {
-    fetch(`${STRAPI_URL}/api/eventos?populate=*`)
+    if (isPreview) {
+      setLoading(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    fetch(`${STRAPI_URL}/api/eventos?populate=*`, { signal: controller.signal })
       .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
-          setEventos(data.data);
+      .then(async data => {
+        const items = data && Array.isArray(data.data) ? data.data : [];
+        let cfg = null;
+        if (items.length > 0) {
+          try {
+            const secRes = await fetch(
+              `${STRAPI_URL}/api/seccion-principal?fields[0]=diseno_secciones`,
+              { signal: controller.signal }
+            );
+            if (secRes && secRes.ok) {
+              const secJson = await secRes.json();
+              cfg = secJson?.data?.diseno_secciones?.['proximos-eventos']?.general || null;
+            }
+          } catch (_) {
+            cfg = null;
+          }
         }
+        setRawEventos(items);
+        setPublishedConfig(cfg);
         setLoading(false);
       })
       .catch(err => {
-        console.error('Error fetching eventos:', err);
-        setLoading(false);
+        if (err.name !== 'AbortError') {
+          console.error('Error fetching eventos:', err);
+          setLoading(false);
+        }
       });
-  }, []);
 
-  const handleReservar = (ev) => {
-    const message = `Hola, me gustaría reservar un turno para el evento "${ev.titulo}" el día ${ev.fecha} en ${ev.ubicacion}.`;
-    const targetNumber = ev.whatsapp_numero || WHATSAPP_NUMBER;
-    const url = `https://wa.me/${targetNumber}?text=${encodeURIComponent(message)}`;
+    return () => controller.abort();
+  }, [isPreview]);
+
+  const sectionState = useMemo(() => {
+    if (isPreview) {
+      return applyProximosEventosConfig(previewData.eventos || [], previewData);
+    }
+    return applyProximosEventosConfig(rawEventos, publishedConfig);
+  }, [isPreview, previewData, rawEventos, publishedConfig]);
+
+  const headerProps = useMemo(() => resolveHeaderStyleProps(sectionState), [sectionState]);
+  const cardDesign = useMemo(() => resolveCardDesignProps(sectionState), [sectionState]);
+
+  const handleReservar = ev => {
+    if (isPreview) return;
+    if (ev.boton_enlace) {
+      if (/^https?:\/\//i.test(ev.boton_enlace)) {
+        window.open(ev.boton_enlace, '_blank', 'noopener,noreferrer');
+      } else {
+        window.location.assign(ev.boton_enlace);
+      }
+      return;
+    }
+    const url = buildWhatsappReservaUrl(ev);
     window.open(url, '_blank');
   };
 
-  if (loading || eventos.length === 0) return null;
+  if (!isPreview && (loading || sectionState.eventos.length === 0)) return null;
 
   return (
-    <Section>
-      <Header>
-        <HeaderIconWrap>
-          <HeaderIcon />
-        </HeaderIconWrap>
-        <Title>Próximos eventos</Title>
+    <Section aria-label="Próximos eventos">
+      <Header
+        $alignItems={headerProps.alignItems}
+        $textAlign={headerProps.textAlign}
+        data-editor-part="encabezado"
+      >
+        <SectionHeaderIcon value={sectionState.icono} />
+        <Title
+          $fontFamily={headerProps.fontFamily}
+          $fontStyle={headerProps.fontStyle}
+          $fontWeight={headerProps.fontWeight}
+          $desktopSize={headerProps.desktopSize}
+          $tabletSize={headerProps.tabletSize}
+          $mobileSize={headerProps.mobileSize}
+        >
+          {sectionState.titulo}
+        </Title>
       </Header>
 
-      <CardsGrid>
-        {eventos.map((item) => {
-          const id = item.id || item.documentId;
-          const ev = item.attributes || item;
+      <CardsGrid $gap={cardDesign.gridGap} data-editor-part="orden">
+        {sectionState.eventos.map(ev => {
+          const id = ev.documentId || ev.id;
+          const partKey = ev.documentId ? `evento-${ev.documentId}` : 'orden';
 
           return (
-            <Card key={id}>
+            <Card
+              key={id}
+              $radius={cardDesign.cardRadius}
+              $padding={cardDesign.cardPadding}
+              $mobilePadding={cardDesign.cardMobilePadding}
+              data-editor-part={partKey}
+            >
               <CardTitle>{ev.titulo}</CardTitle>
               {ev.descripcion ? (
                 <EventDescList>
                   {ev.descripcion
                     .split('\n')
-                    .map(line => line.replace(/^\d+[\.\-\)]?\s*/, '').trim())
+                    .map(line => line.replace(/^\d+(?:[.)]|-)?\s*/, '').trim())
                     .filter(Boolean)
                     .map((line, i) => (
                       <EventDescItem key={i}>{line}</EventDescItem>
@@ -364,8 +463,13 @@ export default function ProximosEventos() {
                 </InfoRow>
               </InfoList>
 
-              <ReservarBtn onClick={() => handleReservar(ev)}>
-                Reservar turno
+              <ReservarBtn
+                type="button"
+                $radius={cardDesign.buttonRadius}
+                data-enlace={ev.boton_enlace || undefined}
+                onClick={() => handleReservar(ev)}
+              >
+                {ev.boton_texto || 'Reservar turno'}
                 <WhatsAppIcon />
               </ReservarBtn>
             </Card>
@@ -373,9 +477,9 @@ export default function ProximosEventos() {
         })}
       </CardsGrid>
 
-      <Footer>
-        <VerTodosLink href="#">
-          Ver todos los eventos
+      <Footer data-editor-part="enlace-inferior">
+        <VerTodosLink href={sectionState.enlace_inferior_url || '#'}>
+          {sectionState.enlace_inferior_texto}
           <ChevronIcon />
         </VerTodosLink>
       </Footer>

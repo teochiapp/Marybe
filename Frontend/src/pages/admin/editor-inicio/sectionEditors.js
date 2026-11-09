@@ -12,6 +12,7 @@ const CategoriaDestacada2Editor = lazyWithRetry(
 const DescuentosEditor = lazyWithRetry(() => import('./components/descuentos/DescuentosEditor'), 'DescuentosEditor');
 const BeneficiosEditor = lazyWithRetry(() => import('./components/beneficios/BeneficiosEditor'), 'BeneficiosEditor');
 const GiftCardEditor = lazyWithRetry(() => import('./components/giftCard/GiftCardEditor'), 'GiftCardEditor');
+const ProximosEventosEditor = lazyWithRetry(() => import('./components/proximosEventos/ProximosEventosEditor'), 'ProximosEventosEditor');
 
 // Editores reales por identificador de sección. Las secciones sin entrada muestran
 // la vista "Editor próximamente disponible"; para habilitar un editor nuevo basta con registrarlo acá.
@@ -25,6 +26,7 @@ export const SECTION_EDITORS = {
   'categoria-destacada-2': CategoriaDestacada2Editor,
   beneficios: BeneficiosEditor,
   'gift-card': GiftCardEditor,
+  'proximos-eventos': ProximosEventosEditor,
 };
 
 export const hasSectionEditor = (id) => Boolean(SECTION_EDITORS[id]);

@@ -10,6 +10,7 @@ import DiscountedSection from '../../../components/inicio/perfumeria/DiscountedS
 import DiscountedSectionHogar from '../../../components/inicio/hogar/DiscountedSectionHogar';
 import TarjetasPromociones from '../../../components/inicio/perfumeria/TarjetasPromociones';
 import GiftCard from '../../../components/inicio/shared/GiftCard';
+import ProximosEventos from '../../../components/inicio/perfumeria/ProximosEventos';
 
 const PreviewPage = styled.main`
   --editor-vh: ${({ $viewportHeight }) => ($viewportHeight ? `${$viewportHeight / 100}px` : '1vh')};
@@ -51,6 +52,7 @@ const PREVIEWS = {
     : <DiscountedSection seccion="perfumeria" previewData={previewData} />),
   beneficios: ({ previewData }) => <TarjetasPromociones previewData={previewData} />,
   'gift-card': ({ area, previewData }) => <GiftCard seccion={area || 'perfumeria'} previewData={previewData} />,
+  'proximos-eventos': ({ previewData }) => <ProximosEventos previewData={previewData} />,
 };
 
 const send = data => window.parent.postMessage(data, window.location.origin);

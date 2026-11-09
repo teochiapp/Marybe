@@ -204,6 +204,7 @@ module.exports = {
 
     // ── Permisos públicos para secciones del inicio (promociones, categorías) ───
     await grantPublicPermission(strapi, 'api::promocion-bancaria.promocion-bancaria.find');
+    await grantPublicPermission(strapi, 'api::evento.evento.find');
     await grantPublicPermission(strapi, 'api::promociones-inicio.promociones-inicio.find');
     await grantPublicPermission(strapi, 'api::promociones-inicio.promociones-inicio.findOne');
     await grantPublicPermission(strapi, 'api::seccion-categorias-destacadas.seccion-categorias-destacadas.find');
@@ -230,6 +231,46 @@ module.exports = {
       }
     } catch (err) {
       strapi.log.warn(`[Seed] ⚠ Error en el seed de Promociones Bancarias: ${err.message}`);
+    }
+
+    // ── Auto-seed de Eventos (Próximos Eventos) si está vacío ─────────────
+    try {
+      const UID_EV = 'api::evento.evento';
+      const existingEV = await strapi.documents(UID_EV).findFirst();
+      if (!existingEV) {
+        const defaultEventos = [
+          {
+            titulo: 'Masterclass de Maquillaje y Piel Luminosa',
+            descripcion: 'Diagnóstico personalizado de piel\nTécnicas de contorno e iluminación\nDegustación y obsequios exclusivos',
+            fecha: 'Sábado 22 de Noviembre · 18:00 hs',
+            ubicacion: 'Sucursal Pellegrini 141, Santiago del Estero',
+            whatsapp_numero: '5403854211687',
+          },
+          {
+            titulo: 'Experiencia Olfativa: Fragancias de Autor',
+            descripcion: 'Descubrí las notas de la nueva temporada\nAsesoramiento con especialistas en perfumería\nBeneficios especiales para asistentes',
+            fecha: 'Viernes 28 de Noviembre · 19:00 hs',
+            ubicacion: 'Sucursal 25 de Mayo 256, San Miguel de Tucumán',
+            whatsapp_numero: '5403854211687',
+          },
+          {
+            titulo: 'Taller de Rutina Facial Dermocosmética',
+            descripcion: 'Rutina de día y noche paso a paso\nTesteo de activos hidratantes y solares\nCupos limitados con reserva previa',
+            fecha: 'Sábado 6 de Diciembre · 17:30 hs',
+            ubicacion: 'Sucursal Absalón Rojas 55, Santiago del Estero',
+            whatsapp_numero: '5403854211687',
+          },
+        ];
+        for (const ev of defaultEventos) {
+          await strapi.documents(UID_EV).create({
+            data: ev,
+            status: 'published',
+          });
+        }
+        strapi.log.info('[Seed] ✔ Creados eventos iniciales para Próximos Eventos.');
+      }
+    } catch (err) {
+      strapi.log.warn(`[Seed] ⚠ Error en el seed de Eventos: ${err.message}`);
     }
 
     // ── Auto-seed de la sección destacada si está vacía ───────────────────
