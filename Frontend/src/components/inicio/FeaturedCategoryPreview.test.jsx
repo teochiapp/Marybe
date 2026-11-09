@@ -2,6 +2,7 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import FeaturedCategorySection from './perfumeria/FeaturedCategorySection';
+import SpecificCategorySection from './perfumeria/SpecificCategorySection';
 
 jest.mock('react-router-dom', () => ({ useNavigate: () => jest.fn() }), { virtual: true });
 jest.mock('../../hooks/useConfiguracionGeneral', () => ({ useConfiguracionGeneral: () => ({ config: {} }) }));
@@ -49,4 +50,36 @@ test('sin selección guardada mantiene el comportamiento original (productos de 
   const productsUrl = global.fetch.mock.calls[1][0];
   expect(productsUrl).not.toContain('$in');
   expect(productsUrl).not.toContain('pageSize');
+});
+
+test('renderiza el ícono opcional al final del título en ambas secciones y lo omite cuando está vacío', async () => {
+  global.fetch = jest.fn();
+  const { unmount } = render(
+    <FeaturedCategorySection
+      seccion="perfumeria"
+      previewData={{ titulo: 'Favoritos de hoy', icono: 'estrella', productos: [product('a', 'Uno')] }}
+    />
+  );
+  const heading1 = screen.getByRole('heading', { name: 'Favoritos de hoy' });
+  expect(heading1.querySelector('[data-title-icon="estrella"]')).toBeInTheDocument();
+  unmount();
+
+  render(
+    <SpecificCategorySection
+      seccion="hogar"
+      previewData={{ titulo: 'Regalos para el hogar', icono: 'regalo', productos: [product('b', 'Dos')] }}
+    />
+  );
+  const heading2 = screen.getByRole('heading', { name: 'Regalos para el hogar' });
+  expect(heading2.querySelector('[data-title-icon="regalo"]')).toBeInTheDocument();
+});
+
+test('Categoría Destacada (2) respeta productos_orden e icono_titulo publicados desde Strapi', async () => {
+  global.fetch = jest.fn(url => (url.includes('/api/seccion-principal')
+    ? respond({ data: { categoria_especifica_perfumeria: { titulo: 'Selección exclusiva', icono_titulo: 'destellos', categoria: { documentId: 'cat2' }, productos_orden: ['p2', 'p1'] } } })
+    : respond({ data: [product('p1', 'Primero'), product('p2', 'Segundo')] })));
+  render(<SpecificCategorySection seccion="perfumeria" />);
+  const heading = await screen.findByRole('heading', { name: 'Selección exclusiva' });
+  expect(heading.querySelector('[data-title-icon="destellos"]')).toBeInTheDocument();
+  expect(productNames()).toEqual(['Segundo', 'Primero']);
 });

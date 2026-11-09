@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
-import { FiChevronRight, FiLogOut } from 'react-icons/fi';
+import { FiChevronRight, FiExternalLink, FiLogOut } from 'react-icons/fi';
 import { EDITOR_INICIO_PATH } from '../editorInicioSections';
 
 const LayoutWrapper = styled.div`
@@ -9,9 +9,10 @@ const LayoutWrapper = styled.div`
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(ellipse at 12% 0%, rgba(124, 4, 5, 0.07) 0%, transparent 55%),
-    radial-gradient(ellipse at 100% 100%, rgba(194, 161, 92, 0.12) 0%, transparent 50%),
-    var(--color-fondo-tarjetas-promo);
+    radial-gradient(ellipse at 20% 10%, rgba(124, 4, 5, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 90%, rgba(62, 1, 2, 0.4) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(22, 0, 0, 0.6) 0%, transparent 80%),
+    linear-gradient(135deg, #160000 0%, #1e0a00 50%, #160000 100%);
   color: var(--color-marron-cuarto);
   font-family: var(--font-family-secondary);
 `;
@@ -26,9 +27,9 @@ const TopBar = styled.header`
   gap: var(--spacing-md);
   min-height: 64px;
   padding: 10px var(--spacing-md);
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid #ebe3dc;
+  background: rgba(25, 4, 5, 0.82);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(194, 161, 92, 0.22);
 
   @media (min-width: 768px) {
     min-height: 72px;
@@ -46,19 +47,22 @@ const BrandGroup = styled.div`
 const BrandLink = styled(Link)`
   display: flex;
   flex-shrink: 0;
-  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 248, 244, 0.94);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
 
   img {
-    width: 96px;
+    width: 92px;
     height: auto;
     aspect-ratio: 629 / 168;
     object-fit: contain;
   }
 
-  &:focus-visible { outline: 2px solid var(--color-bordo-secundario); outline-offset: 4px; }
+  &:focus-visible { outline: 2px solid #c2a15c; outline-offset: 4px; }
 
   @media (min-width: 768px) {
-    img { width: 118px; }
+    img { width: 112px; }
   }
 `;
 
@@ -68,13 +72,14 @@ const Breadcrumb = styled.nav`
   gap: 6px;
   min-width: 0;
   padding-left: 14px;
-  border-left: 1px solid #e6dcd5;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  color: #f5ebe6;
   font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
 
   a {
-    color: var(--color-marron-principal);
+    color: #f2dc8f;
     text-decoration: none;
   }
 
@@ -83,14 +88,52 @@ const Breadcrumb = styled.nav`
   span {
     overflow: hidden;
     text-overflow: ellipsis;
-    color: #7a6a6a;
+    color: rgba(245, 235, 230, 0.78);
     font-weight: 500;
   }
 
-  svg { flex-shrink: 0; color: #b3a4a4; }
+  svg { flex-shrink: 0; color: rgba(242, 220, 143, 0.65); }
 
   @media (max-width: 600px) {
     span, svg { display: none; }
+  }
+`;
+
+const TopActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+`;
+
+const ViewWebLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid rgba(242, 220, 143, 0.55);
+  border-radius: var(--radius-md);
+  background: rgba(242, 220, 143, 0.14);
+  color: #f2dc8f;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+
+  &:hover {
+    border-color: #f2dc8f;
+    background: rgba(242, 220, 143, 0.26);
+    color: #ffffff;
+  }
+  &:focus-visible { outline: 2px solid #f2dc8f; outline-offset: 2px; }
+
+  @media (max-width: 480px) {
+    span { display: none; }
+    padding: 8px 11px;
   }
 `;
 
@@ -101,18 +144,21 @@ const LogoutButton = styled.button`
   flex-shrink: 0;
   min-height: 40px;
   padding: 8px 14px;
-  border: 1px solid #e3d8d1;
+  border: 1px solid rgba(194, 161, 92, 0.35);
   border-radius: var(--radius-md);
-  background: var(--color-blanco);
-  color: var(--color-marron-principal);
+  background: rgba(124, 4, 5, 0.35);
+  color: #f7efe8;
   font: inherit;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition-fast);
 
-  &:hover { border-color: var(--color-bordo-secundario); background: var(--color-blanco-pero-no-tan-blanco); }
-  &:focus-visible { outline: 2px solid var(--color-bordo-secundario); outline-offset: 2px; }
+  &:hover {
+    border-color: rgba(242, 220, 143, 0.7);
+    background: rgba(124, 4, 5, 0.6);
+  }
+  &:focus-visible { outline: 2px solid #f2dc8f; outline-offset: 2px; }
 
   @media (max-width: 480px) {
     span { display: none; }
@@ -144,9 +190,14 @@ export default function EditorInicioLayout({ currentSection, onLogout, children 
             {currentSection && <><FiChevronRight aria-hidden="true" /><span aria-current="page">{currentSection.title}</span></>}
           </Breadcrumb>
         </BrandGroup>
-        <LogoutButton type="button" onClick={onLogout} aria-label="Cerrar sesión">
-          <FiLogOut aria-hidden="true" /><span>Cerrar sesión</span>
-        </LogoutButton>
+        <TopActions>
+          <ViewWebLink href="/" target="_blank" rel="noopener noreferrer" aria-label="Ver web">
+            <FiExternalLink aria-hidden="true" /><span>Ver web</span>
+          </ViewWebLink>
+          <LogoutButton type="button" onClick={onLogout} aria-label="Cerrar sesión">
+            <FiLogOut aria-hidden="true" /><span>Cerrar sesión</span>
+          </LogoutButton>
+        </TopActions>
       </TopBar>
       <Content>{children}</Content>
     </LayoutWrapper>

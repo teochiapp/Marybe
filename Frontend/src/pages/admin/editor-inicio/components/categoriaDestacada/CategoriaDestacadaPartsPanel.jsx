@@ -1,7 +1,9 @@
 import React from 'react';
 import styled from 'styled-components';
 import { imageUrl } from '../../../../../utils/bannerDesign';
+import { findTitleIcon } from '../../../../../utils/categoriaDestacadaIconos';
 import PartButton from '../PartButton';
+import { CATEGORIA_DESTACADA_MODULES } from './categoriaDestacadaModel';
 
 const GroupTitle = styled.p`
   margin: 18px 0 6px;
@@ -12,15 +14,17 @@ const GroupTitle = styled.p`
   text-transform: uppercase;
 `;
 
-export default function CategoriaDestacadaPartsPanel({ data, categoryName, shown, selected, onSelect }) {
+export default function CategoriaDestacadaPartsPanel({ moduleInfo = CATEGORIA_DESTACADA_MODULES['categoria-destacada-1'], data, categoryName, shown, selected, onSelect }) {
+  const iconEntry = findTitleIcon(data.icono);
+  const titleDetail = `${data.titulo || 'Sin título'}${iconEntry ? ` · ícono ${iconEntry.label.toLowerCase()}` : ''}`;
   return (
     <aside className="ba-sidebar ba-layers">
-      <div className="ba-layers-heading"><div><p className="ba-eyebrow">CATEGORÍA DESTACADA (1)</p><h2>Partes de la sección</h2></div><span>2</span></div>
-      <p className="ba-scope-note">Esta configuración solo afecta a Categoría Destacada (1). Categoría Destacada (2) es independiente.</p>
-      <nav aria-label="Partes de Categoría Destacada">
+      <div className="ba-layers-heading"><div><p className="ba-eyebrow">{moduleInfo.eyebrow}</p><h2>Partes de la sección</h2></div><span>2</span></div>
+      <p className="ba-scope-note">Esta configuración solo afecta a {moduleInfo.title}. {moduleInfo.otherTitle} es independiente.</p>
+      <nav aria-label={`Partes de ${moduleInfo.title}`}>
         <GroupTitle>Contenido</GroupTitle>
         <ul className="ba-layer-list">
-          <PartButton id="contenido" label="Categoría y título" detail={categoryName ? `${categoryName} · ${data.titulo || 'Sin título'}` : 'Sin categoría'} icon="T" selected={selected} onSelect={onSelect} />
+          <PartButton id="contenido" label="Categoría y título" detail={categoryName ? `${categoryName} · ${titleDetail}` : 'Sin categoría'} icon="T" selected={selected} onSelect={onSelect} />
         </ul>
         <GroupTitle>Productos</GroupTitle>
         <ul className="ba-layer-list">

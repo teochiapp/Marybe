@@ -10,6 +10,10 @@ import FavoriteButton from '../../shared/FavoriteButton';
 import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
 import { cmsColorStyle } from '../../../utils/cmsColor';
+import { imageUrl } from '../../../utils/bannerDesign';
+import { imageScaleCss, imageScaleProps } from '../../../utils/imageScale';
+import { DESCUENTOS_DEFAULTS, botonDestino, descuentosDefaultUrl, entidadProductosUrl, imagenEstilo, isExternalUrl } from '../../../utils/descuentosBloque';
+import useDescuentosBloque from '../../../hooks/useDescuentosBloque';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-hogar);
@@ -138,6 +142,8 @@ const FeaturedPicture = styled.picture`
       max-height: 50vh;
     }
   }
+
+  ${imageScaleCss('center')}
 `;
 
 const ProductsGrid = styled(motion.div)`
@@ -501,13 +507,15 @@ const ChevronRight = () => (
   <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
 );
 
-export default function DiscountedSectionHogar() {
+export default function DiscountedSectionHogar({ previewData }) {
   const { config } = useConfiguracionGeneral();
+  const { config: bloque, entidadActual, loading: bloqueLoading } = useDescuentosBloque('hogar', previewData);
   const [productos, setProductos] = useState([]);
   const [tituloCursiva, setTituloCursiva] = useState('Descuentos');
   const [tituloNormal, setTituloNormal] = useState('de Hogar');
   const [imagenUrl, setImagenUrl] = useState(null);
   const [coloresTitulo, setColoresTitulo] = useState(null);
+  const [seccionLoading, setSeccionLoading] = useState(!previewData);
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
@@ -521,12 +529,13 @@ export default function DiscountedSectionHogar() {
   };
 
   const singleTypeEndpoint = `${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[descuento_hogar][populate]=*`;
+  const entidadEndpoint = entidadProductosUrl(bloque);
 
-  const fetchFallbackProducts = useCallback(() => {
+  const fetchFallbackProducts = useCallback((isActive = () => true) => {
     fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[descuento][$gt]=0&filters[seccion][$eq]=Hogar&populate=*`)
       .then(res => res.json())
       .then(data => {
-        if (data && data.data) {
+        if (isActive() && Array.isArray(data?.data)) {
           setProductos(data.data);
         }
       })
@@ -534,10 +543,14 @@ export default function DiscountedSectionHogar() {
   }, []);
 
   useEffect(() => {
-    setProductos([]);
+    if (bloqueLoading) return undefined;
+    let active = true;
+    const isActive = () => active;
+    if (!entidadEndpoint) setProductos([]);
     setColoresTitulo(null);
     setTituloCursiva('Descuentos');
     setTituloNormal('de Hogar');
+    setSeccionLoading(true);
 
     fetch(singleTypeEndpoint)
       .then(res => {
@@ -547,6 +560,7 @@ export default function DiscountedSectionHogar() {
         return res.json();
       })
       .then(data => {
+        if (!active) return;
         if (data && data.data) {
           const mainAttrs = data.data.attributes || data.data;
           const attrs = mainAttrs.descuento_hogar;
@@ -569,25 +583,54 @@ export default function DiscountedSectionHogar() {
               setImagenUrl(mediaUrl);
             }
 
-            let prods = attrs.productos?.data || attrs.productos || [];
+            if (!entidadEndpoint) {
+              let prods = attrs.productos?.data || attrs.productos || [];
 
-            if (Array.isArray(prods) && prods.length > 0) {
-              setProductos(prods);
-            } else {
-              fetchFallbackProducts();
+              if (Array.isArray(prods) && prods.length > 0) {
+                setProductos(prods);
+              } else {
+                fetchFallbackProducts(isActive);
+              }
             }
-          } else {
-            fetchFallbackProducts();
+          } else if (!entidadEndpoint) {
+            fetchFallbackProducts(isActive);
           }
-        } else {
-          fetchFallbackProducts();
+        } else if (!entidadEndpoint) {
+          fetchFallbackProducts(isActive);
         }
       })
       .catch(err => {
+        if (!active || entidadEndpoint) return;
         console.warn('Using fallback for discounted products (Hogar):', err);
-        fetchFallbackProducts();
+        fetchFallbackProducts(isActive);
+      })
+      .finally(() => {
+        if (active) setSeccionLoading(false);
       });
-  }, [singleTypeEndpoint, fetchFallbackProducts]);
+    return () => { active = false; };
+  }, [singleTypeEndpoint, fetchFallbackProducts, entidadEndpoint, bloqueLoading]);
+
+  // Si el bloque promociona una categoría, marca o proveedor específico, mostrar sus productos publicados.
+  useEffect(() => {
+    if (!entidadEndpoint) return undefined;
+    let active = true;
+    const isActive = () => active;
+    fetch(entidadEndpoint)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!active) return;
+        const prods = data?.data || [];
+        if (Array.isArray(prods) && prods.length > 0) {
+          setProductos(prods);
+        } else {
+          fetchFallbackProducts(isActive);
+        }
+      })
+      .catch(() => {
+        if (active) fetchFallbackProducts(isActive);
+      });
+    return () => { active = false; };
+  }, [entidadEndpoint, fetchFallbackProducts]);
 
   const isDown = useRef(false);
   const startX = useRef(0);
@@ -670,24 +713,54 @@ export default function DiscountedSectionHogar() {
     return 60;
   };
 
+  // Evita mostrar los textos o imagen predeterminados mientras se consulta la configuración del backend.
+  const configLoading = bloqueLoading || (!bloque && seccionLoading);
+  const textoSuperior = configLoading ? '' : (bloque ? bloque.texto_superior : DESCUENTOS_DEFAULTS.texto_superior);
+  const cursivaMostrada = configLoading ? '' : (bloque?.titulo_cursiva || tituloCursiva);
+  const normalMostrada = configLoading ? '' : (bloque?.titulo_normal || tituloNormal);
+  const coloresMostrados = bloque ? { color_titulo_cursiva: bloque.color_titulo_cursiva, color_titulo_normal: bloque.color_titulo_normal } : coloresTitulo;
+  const imagenMostrada = configLoading ? '' : ((bloque && imageUrl(bloque.imagen)) || imagenUrl || '/inicio/discountedSectionHogar.webp');
+  const imagenMobileMostrada = !configLoading && bloque ? imageUrl(bloque.imagen_mobile) : '';
+  const estiloImagen = imagenEstilo(bloque);
+  const botonTexto = configLoading ? '' : (bloque?.boton_texto || DESCUENTOS_DEFAULTS.boton_texto);
+  const destinoBoton = botonDestino(bloque, descuentosDefaultUrl('hogar'), entidadActual);
+
+  const handleBottomLink = () => {
+    if (isExternalUrl(destinoBoton)) {
+      window.location.assign(destinoBoton);
+      return;
+    }
+    navigate(destinoBoton);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  const pictureElement = (
+    <FeaturedPicture data-editor-part="imagen" {...imageScaleProps(bloque)}>
+      {imagenMobileMostrada && <source media="(max-width: 768px)" srcSet={imagenMobileMostrada} />}
+      {imagenMostrada && (
+        <img
+          src={imagenMostrada}
+          alt={`${cursivaMostrada} ${normalMostrada}`}
+          style={estiloImagen}
+          onError={event => { if (!event.currentTarget.src.endsWith('/inicio/discountedSectionHogar.webp')) event.currentTarget.src = '/inicio/discountedSectionHogar.webp'; }}
+        />
+      )}
+    </FeaturedPicture>
+  );
+
   return (
     <SectionWrapper>
       <TopHeader>
         <TextBlock>
-          <DeliveryInfo>
-            <TruckIcon /> Envíos a todo el país
+          <DeliveryInfo data-editor-part="texto" style={configLoading ? { visibility: 'hidden' } : undefined}>
+            <TruckIcon /> {textoSuperior}
           </DeliveryInfo>
-          <Title>
-            <span className="italic-text" style={cmsColorStyle(coloresTitulo?.color_titulo_cursiva)}>{tituloCursiva}</span>
-            <span className="regular-text" style={cmsColorStyle(coloresTitulo?.color_titulo_normal)}>{tituloNormal}</span>
+          <Title data-editor-part="texto">
+            <span className="italic-text" style={cmsColorStyle(coloresMostrados?.color_titulo_cursiva)}>{cursivaMostrada}</span>
+            <span className="regular-text" style={cmsColorStyle(coloresMostrados?.color_titulo_normal)}>{normalMostrada}</span>
           </Title>
         </TextBlock>
-        <BannerSlot name="descuento_hogar" side><FeaturedPicture>
-          <img
-            src={imagenUrl || '/inicio/discountedSectionHogar.webp'}
-            alt={`${tituloCursiva} ${tituloNormal}`}
-          />
-        </FeaturedPicture></BannerSlot>
+        {bloque ? pictureElement : <BannerSlot name="descuento_hogar" side>{pictureElement}</BannerSlot>}
       </TopHeader>
 
       <ScrollWrapper>
@@ -768,8 +841,8 @@ export default function DiscountedSectionHogar() {
         </ArrowBtn>
       </ScrollWrapper>
 
-      <BottomLink onClick={() => { navigate(`/tienda?descuento=todas&seccion=Hogar`); window.scrollTo({ top: 0, behavior: 'instant' }); }}>
-        Conocer más <ChevronRightIcon />
+      <BottomLink data-editor-part="boton" onClick={handleBottomLink} style={configLoading ? { visibility: 'hidden' } : undefined}>
+        {botonTexto} <ChevronRightIcon />
       </BottomLink>
 
       {selectedProduct && (

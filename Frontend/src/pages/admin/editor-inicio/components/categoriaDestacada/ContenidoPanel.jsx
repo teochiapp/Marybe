@@ -1,13 +1,29 @@
 import React from 'react';
+import OptionTiles from '../OptionTiles';
+import { CATEGORIA_DESTACADA_ICONOS } from '../../../../../utils/categoriaDestacadaIconos';
 
 const SECTION_ORDER = ['Perfumería', 'Hogar', ''];
+
+function renderIconSample(value) {
+  const option = CATEGORIA_DESTACADA_ICONOS.find(item => item.value === value);
+  if (!option || !option.Icon) return <span style={{ color: '#9a8c90', fontSize: 13, fontWeight: 600 }}>Aa</span>;
+  const { Icon } = option;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--color-bordo-secundario)', fontSize: 14, fontWeight: 700 }}>
+      <span>Aa</span>
+      <Icon size={20} strokeWidth={2.1} />
+    </span>
+  );
+}
 
 export default function ContenidoPanel({ data, categories, defaultTitle, onChange, onCategoryChange }) {
   const current = categories.find(category => category.documentId === data.categoria);
   const groups = SECTION_ORDER.map(seccion => ({ seccion, items: categories.filter(category => (category.seccion || '') === seccion) })).filter(group => group.items.length);
+  const activeIcon = data.icono || '';
+
   return (
     <>
-      <p className="ba-inspector-help">Elegí qué categoría de la tienda se muestra en esta sección y el título que la acompaña.</p>
+      <p className="ba-inspector-help">Elegí qué categoría de la tienda se muestra en esta sección, el título que la acompaña y, si querés, un ícono al final del título.</p>
       <details open>
         <summary>Categoría</summary>
         <label>Categoría de la tienda
@@ -28,6 +44,26 @@ export default function ContenidoPanel({ data, categories, defaultTitle, onChang
         <summary>Título principal</summary>
         <label>Título<input id="cd-titulo" value={data.titulo} maxLength={120} placeholder={defaultTitle} onChange={event => onChange(next => { next.titulo = event.target.value; })} /></label>
         <small className="ba-hint">Se muestra con la tipografía y el estilo actuales de la sección.</small>
+      </details>
+      <details open>
+        <summary>Ícono al final del título</summary>
+        <label>
+          <input
+            type="checkbox"
+            checked={Boolean(activeIcon)}
+            onChange={event => onChange(next => { next.icono = event.target.checked ? (activeIcon || 'estrella') : ''; })}
+          />{' '}
+          Mostrar ícono al final del título
+        </label>
+        <OptionTiles
+          label="Ícono del título"
+          options={CATEGORIA_DESTACADA_ICONOS}
+          value={activeIcon}
+          onChange={value => onChange(next => { next.icono = value; })}
+          renderSample={renderIconSample}
+          columns={2}
+        />
+        <small className="ba-hint">El ícono es opcional y aparece al final del texto heredando el color y el tamaño del título.</small>
       </details>
     </>
   );

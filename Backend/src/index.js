@@ -203,10 +203,34 @@ module.exports = {
     await grantPublicPermission(strapi, 'api::pagina-historia.pagina-historia.find');
 
     // ── Permisos públicos para secciones del inicio (promociones, categorías) ───
+    await grantPublicPermission(strapi, 'api::promocion-bancaria.promocion-bancaria.find');
     await grantPublicPermission(strapi, 'api::promociones-inicio.promociones-inicio.find');
     await grantPublicPermission(strapi, 'api::promociones-inicio.promociones-inicio.findOne');
     await grantPublicPermission(strapi, 'api::seccion-categorias-destacadas.seccion-categorias-destacadas.find');
     await grantPublicPermission(strapi, 'api::seccion-categorias-destacadas.seccion-categorias-destacadas.findOne');
+
+    // ── Auto-seed de Promociones Bancarias (Beneficios) si está vacío ──────
+    try {
+      const UID_PB = 'api::promocion-bancaria.promocion-bancaria';
+      const existingPB = await strapi.documents(UID_PB).findFirst();
+      if (!existingPB) {
+        const defaultPromos = [
+          { nombre: 'Tarjeta Naranja X', cuotas_cantidad: [3, 6], cuotas_descripcion: 'sin interés con Plan Z', monto_minimo: '$30.000', orden: 1, activo: true },
+          { nombre: 'Visa y Mastercard', cuotas_cantidad: [3, 6], cuotas_descripcion: 'sin interés bancarias', monto_minimo: '$40.000', orden: 2, activo: true },
+          { nombre: 'Banco Macro', cuotas_cantidad: [3, 6], cuotas_descripcion: 'sin interés todos los días', monto_minimo: '$35.000', orden: 3, activo: true },
+          { nombre: 'Mercado Pago', cuotas_cantidad: [3], cuotas_descripcion: 'sin interés con dinero en cuenta', monto_minimo: '$25.000', orden: 4, activo: true },
+        ];
+        for (const item of defaultPromos) {
+          await strapi.documents(UID_PB).create({
+            data: item,
+            status: 'published',
+          });
+        }
+        strapi.log.info('[Seed] ✔ Creadas promociones bancarias iniciales para Beneficios.');
+      }
+    } catch (err) {
+      strapi.log.warn(`[Seed] ⚠ Error en el seed de Promociones Bancarias: ${err.message}`);
+    }
 
     // ── Auto-seed de la sección destacada si está vacía ───────────────────
     try {

@@ -8,6 +8,7 @@ import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
 import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
+import { CategoriaDestacadaTitleIcon } from '../../../utils/categoriaDestacadaIconos';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
@@ -387,11 +388,16 @@ const ImagePlaceholder = () => (
   </svg>
 );
 
-export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
+export default function SpecificCategorySection({ seccion = 'perfumeria', previewData }) {
   const { config: globalConfig } = useConfiguracionGeneral();
-  const [config, setConfig] = useState(null);
-  const [productos, setProductos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [configApi, setConfig] = useState(null);
+  const [productosApi, setProductos] = useState([]);
+  const [loadingApi, setLoading] = useState(true);
+  // previewData (Editor de Inicio) reemplaza título, ícono y productos publicados sin consultar la API.
+  const isPreview = Boolean(previewData);
+  const config = isPreview ? { titulo: previewData.titulo, icono_titulo: previewData.icono } : configApi;
+  const productos = isPreview ? previewData.productos || [] : productosApi;
+  const loading = isPreview ? false : loadingApi;
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
@@ -409,6 +415,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
 
   // 1. Obtener configuración de Categoría Específica
   useEffect(() => {
+    if (isPreview) return;
     setConfig(null);
     setProductos([]);
     setLoading(true);
@@ -430,10 +437,11 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
         console.error('Error fetching categoria-especifica config:', err);
         setLoading(false);
       });
-  }, [endpoint, fieldName]);
+  }, [endpoint, fieldName, isPreview]);
 
   // 2. Obtener productos de la categoría seleccionada
   useEffect(() => {
+    const config = configApi;
     if (!config) return;
 
     const cat = config.categoria?.data || config.categoria || config.Categoria?.data || config.Categoria;
@@ -448,11 +456,16 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
       return;
     }
 
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[categoria][documentId][$eq]=${catDocId}&populate=*`)
+    // Productos elegidos en el Editor de Inicio (en su orden); sin selección, todos los de la categoría.
+    const elegidos = Array.isArray(config.productos_orden) ? config.productos_orden : [];
+    const seleccion = elegidos.map((id, index) => `&filters[documentId][$in][${index}]=${encodeURIComponent(id)}`).join('');
+    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[categoria][documentId][$eq]=${catDocId}${seleccion}&populate=*${elegidos.length ? '&pagination[pageSize]=100' : ''}`)
       .then(res => res.json())
       .then(data => {
         if (data && data.data) {
-          setProductos(data.data);
+          setProductos(elegidos.length
+            ? elegidos.map(id => data.data.find(item => item.documentId === id)).filter(Boolean)
+            : data.data);
         }
         setLoading(false);
       })
@@ -460,7 +473,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
         console.error('Error fetching specific category products:', err);
         setLoading(false);
       });
-  }, [config]);
+  }, [configApi]);
 
   const isDown = useRef(false);
   const startX = useRef(0);
@@ -559,9 +572,12 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
 
   return (
     <SectionWrapper>
-      <TitleWrapper>
+      <TitleWrapper data-editor-part="titulo">
         {iconUrl && <TitleIcon src={iconUrl} alt={titulo} />}
-        <SectionTitle $seccion={seccion}>{titulo}</SectionTitle>
+        <SectionTitle $seccion={seccion}>
+          {titulo}
+          <CategoriaDestacadaTitleIcon icono={config.icono_titulo} />
+        </SectionTitle>
       </TitleWrapper>
 
       <ScrollWrapper>
@@ -570,6 +586,7 @@ export default function SpecificCategorySection({ seccion = 'perfumeria' }) {
         </ArrowBtn>
         <ProductsGrid
           ref={scrollRef}
+          data-editor-part="productos"
           onMouseDown={handleMouseDown}
           onMouseLeave={handleMouseLeave}
           onMouseUp={handleMouseUp}

@@ -2,7 +2,7 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import axios from 'axios';
-import CategoriaDestacadaEditor from './CategoriaDestacadaEditor';
+import CategoriaDestacadaEditor, { CategoriaDestacada2Editor } from './CategoriaDestacadaEditor';
 import { moveItem, publishProblems, shownProducts, toPreviewData } from './categoriaDestacadaModel';
 
 jest.mock('axios');
@@ -105,6 +105,50 @@ test('helpers de orden, productos visibles, vista previa y validación', () => {
   expect(shownProducts({ productos: ['b', 'zz', 'a'] }, index, automatic).map(item => item.documentId)).toEqual(['b', 'a']);
   expect(shownProducts({ productos: [] }, index, automatic)).toHaveLength(25);
   expect(toPreviewData({ titulo: 'T', productos: ['a'] }, index, automatic)).toEqual({ titulo: 'T', productos: [index.a] });
+  expect(toPreviewData({ titulo: 'T', icono: 'estrella', productos: ['a'] }, index, automatic)).toEqual({ titulo: 'T', icono: 'estrella', productos: [index.a] });
   expect(publishProblems({ titulo: '', categoria: null, productos: [] }).map(problem => problem.part)).toEqual(['contenido', 'contenido']);
   expect(publishProblems({ titulo: 'T', categoria: 'c', productos: Array(26).fill('a') })[0].part).toBe('productos');
+});
+
+test('permite activar, cambiar y desactivar el ícono del título', async () => {
+  renderEditor();
+  const checkbox = await screen.findByRole('checkbox', { name: /Mostrar ícono al final del título/i });
+  expect(checkbox).not.toBeChecked();
+  expect(screen.getByRole('radio', { name: /Sin ícono/i })).toHaveAttribute('aria-checked', 'true');
+
+  // Activar con el checkbox selecciona Estrella por defecto
+  fireEvent.click(checkbox);
+  expect(checkbox).toBeChecked();
+  expect(screen.getByRole('radio', { name: /Estrella/i })).toHaveAttribute('aria-checked', 'true');
+
+  // Cambiar a Regalo desde el selector visual
+  fireEvent.click(screen.getByRole('radio', { name: /Regalo/i }));
+  expect(screen.getByRole('radio', { name: /Regalo/i })).toHaveAttribute('aria-checked', 'true');
+  expect(screen.getByText(/ícono regalo/i)).toBeInTheDocument();
+
+  // Guardar borrador incluye el ícono elegido
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar borrador' }));
+  await waitFor(() => expect(axios.put).toHaveBeenCalledTimes(1));
+  expect(axios.put.mock.calls[0][1].data).toEqual({ titulo: 'Cuidado de la piel', icono: 'regalo', categoria: 'c1', productos: [] });
+
+  // Desactivar desde Sin ícono
+  fireEvent.click(screen.getByRole('radio', { name: /Sin ícono/i }));
+  expect(checkbox).not.toBeChecked();
+});
+
+test('Categoría Destacada (2) reutiliza el editor con su propio endpoint y configuración independiente', async () => {
+  render(<CategoriaDestacada2Editor token="fixture-token" onBack={jest.fn()} onLogout={jest.fn()} />);
+  const select = await screen.findByRole('combobox', { name: 'Categoría de la tienda' });
+  expect(select).toHaveValue('c1');
+  expect(axios.get).toHaveBeenCalledWith(expect.stringMatching(/\/api\/categoria-destacada-admin\/modulo\/categoria-destacada-2$/), { headers: { Authorization: 'Bearer fixture-token' } });
+  expect(screen.getByTitle('Vista previa de Categoría Destacada (2)')).toHaveAttribute('src', '/editor-inicio-preview');
+  expect(screen.getByText(/Esta configuración solo afecta a Categoría Destacada \(2\)\. Categoría Destacada \(1\) es independiente\./)).toBeInTheDocument();
+
+  fireEvent.change(screen.getByRole('textbox', { name: 'Título' }), { target: { value: 'Segunda destacada' } });
+  fireEvent.click(screen.getByRole('radio', { name: /Corazón/i }));
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar borrador' }));
+  await waitFor(() => expect(axios.put).toHaveBeenCalledTimes(1));
+  const [url, body] = axios.put.mock.calls[0];
+  expect(url).toMatch(/\/api\/categoria-destacada-admin\/modulo\/categoria-destacada-2\/perfumeria$/);
+  expect(body.data).toEqual({ titulo: 'Segunda destacada', icono: 'corazon', categoria: 'c1', productos: [] });
 });

@@ -58,7 +58,7 @@ describe('configuración de secciones', () => {
   });
 
   test('las secciones con editor real están registradas', () => {
-    expect(EDITOR_INICIO_SECTIONS.filter(section => hasSectionEditor(section.id)).map(section => section.id)).toEqual(['banners', 'seccion-destacada', 'categorias', 'categoria-destacada-1', 'ofertas']);
+    expect(EDITOR_INICIO_SECTIONS.filter(section => hasSectionEditor(section.id)).map(section => section.id)).toEqual(['banners', 'seccion-destacada', 'categorias', 'categoria-destacada-1', 'ofertas', 'descuentos', 'categoria-destacada-2', 'beneficios', 'gift-card']);
   });
 });
 
@@ -74,13 +74,20 @@ describe('selector de secciones', () => {
       expect(link).toHaveAccessibleName(section.title);
       expect(link).toHaveAttribute('href', sectionPath(section.id));
       expect(link).toHaveAccessibleDescription(expect.stringContaining(section.description));
+      expect(section.previewImage).toMatch(/^\/capturas-admin-editor\/\d{2}[-_].+\.png$/);
+      expect(fs.existsSync(path.join(__dirname, '../../../../public', section.previewImage))).toBe(true);
+      expect(link.querySelector('[data-preview-image]')).toHaveAttribute('data-preview-image', section.previewImage);
     });
     expect(within(links[0]).getByText('Editar sección')).toBeInTheDocument();
     expect(within(links[1]).getByText('Editar sección')).toBeInTheDocument();
     expect(within(links[2]).getByText('Editar sección')).toBeInTheDocument();
     expect(within(links[3]).getByText('Editar sección')).toBeInTheDocument();
     expect(within(links[4]).getByText('Editar sección')).toBeInTheDocument();
-    expect(within(links[5]).getByText('Próximamente')).toBeInTheDocument();
+    expect(within(links[5]).getByText('Editar sección')).toBeInTheDocument();
+    expect(within(links[6]).getByText('Editar sección')).toBeInTheDocument();
+    expect(within(links[7]).getByText('Editar sección')).toBeInTheDocument();
+    expect(within(links[8]).getByText('Editar sección')).toBeInTheDocument();
+    expect(within(links[9]).getByText('Próximamente')).toBeInTheDocument();
   });
 });
 
@@ -116,6 +123,9 @@ describe('autenticación del editor de inicio', () => {
     localStorage.setItem('admin_jwt', 'fixture-token');
     render(<EditorInicioAdmin />);
     expect(screen.getByText('¿Qué querés modificar hoy?')).toBeInTheDocument();
+    const viewWebLink = screen.getByRole('link', { name: 'Ver web' });
+    expect(viewWebLink).toHaveAttribute('href', '/');
+    expect(viewWebLink).toHaveAttribute('target', '_blank');
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
     expect(localStorage.getItem('admin_jwt')).toBeNull();
     expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();

@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
-
+import {
+  applyBeneficiosConfig,
+  formatCuotas,
+  logoImgStyle,
+  resolveLogoUrl,
+} from '../../../utils/beneficiosSection';
 
 const STRAPI_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
@@ -233,33 +238,16 @@ const InfoButton = styled.a`
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Formatea el array de cuotas como texto legible.
- * Ej: [3, 6] → "3 y 6"  |  [6] → "6"  |  6 → "6"
- */
-function formatCuotas(cuotas_cantidad) {
-  if (!cuotas_cantidad) return null;
-  const arr = Array.isArray(cuotas_cantidad) ? cuotas_cantidad : [cuotas_cantidad];
-  if (arr.length === 0) return null;
-  if (arr.length === 1) return String(arr[0]);
-  const last = arr[arr.length - 1];
-  const rest = arr.slice(0, -1);
-  return `${rest.join(', ')} y ${last}`;
-}
-
-/**
- * Construye el JSX de texto de cuotas a partir de los campos estructurados:
- * cuotas_descripcion, cuotas_cantidad (number | number[]), monto_minimo
- */
 function buildCuotasTexto(promo) {
   const { cuotas_descripcion, cuotas_cantidad, monto_minimo } = promo;
   const cuotasStr = formatCuotas(cuotas_cantidad);
+  const condicion = cuotas_descripcion || 'sin interés';
 
   return (
     <>
       {cuotasStr ? (
         <>
-          Hasta <strong>{cuotasStr} cuotas</strong> sin interés
+          Hasta <strong>{cuotasStr}</strong> {condicion}
         </>
       ) : cuotas_descripcion ? (
         cuotas_descripcion
@@ -276,12 +264,20 @@ function buildCuotasTexto(promo) {
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
-export default function TarjetasPromociones() {
-  const [promociones, setPromociones] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function TarjetasPromociones({ previewData = null }) {
+  const isPreview = Boolean(previewData);
+  const [rawPromociones, setRawPromociones] = useState([]);
+  const [publishedConfig, setPublishedConfig] = useState(null);
+  const [loading, setLoading] = useState(!isPreview);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    if (isPreview) {
+      setLoading(false);
+      setError(false);
+      return undefined;
+    }
+
     const controller = new AbortController();
 
     fetch(
@@ -292,8 +288,25 @@ export default function TarjetasPromociones() {
         if (!res.ok) throw new Error('Error al cargar promociones');
         return res.json();
       })
-      .then((json) => {
-        setPromociones(json.data || []);
+      .then(async (json) => {
+        const items = json.data || [];
+        let cfg = null;
+        if (items.length > 0) {
+          try {
+            const secRes = await fetch(
+              `${STRAPI_URL}/api/seccion-principal?fields[0]=diseno_secciones`,
+              { signal: controller.signal }
+            );
+            if (secRes && secRes.ok) {
+              const secJson = await secRes.json();
+              cfg = secJson?.data?.diseno_secciones?.beneficios?.general || null;
+            }
+          } catch (_) {
+            cfg = null;
+          }
+        }
+        setRawPromociones(items);
+        setPublishedConfig(cfg);
         setLoading(false);
       })
       .catch((err) => {
@@ -305,33 +318,46 @@ export default function TarjetasPromociones() {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [isPreview]);
+
+  const sectionState = useMemo(() => {
+    if (isPreview) {
+      return applyBeneficiosConfig(previewData.promociones || [], previewData);
+    }
+    return applyBeneficiosConfig(rawPromociones, publishedConfig);
+  }, [isPreview, previewData, rawPromociones, publishedConfig]);
+
+  const { promociones, titulo, info_titulo, info_descripcion, boton_texto, boton_enlace } =
+    sectionState;
 
   return (
     <Section>
       <Container>
-        <Title>Beneficios para vos</Title>
+        <Title data-editor-part="contenido-general">{titulo}</Title>
 
-        <CardsGrid>
+        <CardsGrid data-editor-part="orden">
           {loading ? (
-            // Skeleton mientras carga
             Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
           ) : error || promociones.length === 0 ? (
-            // Silencioso si no hay datos — no rompe el layout
             null
           ) : (
             promociones.map((item) => {
-              const { id, nombre, logo, cuotas_descripcion, cuotas_cantidad, monto_minimo } = item;
-              const logoUrl = logo?.url
-                ? logo.url.startsWith('http')
-                  ? logo.url
-                  : `${STRAPI_URL}${logo.url}`
-                : null;
+              const { id, documentId, nombre, logo, cuotas_descripcion, cuotas_cantidad, monto_minimo } =
+                item;
+              const logoUrl = resolveLogoUrl(logo);
+              const imgStyle = logoImgStyle(item);
+              const partKey = documentId ? `beneficio-${documentId}` : 'orden';
 
               return (
-                <Card key={id}>
+                <Card key={documentId || id} data-editor-part={partKey}>
                   {logoUrl ? (
-                    <CardImage src={logoUrl} alt={nombre} width="140" height="50" />
+                    <CardImage
+                      src={logoUrl}
+                      alt={nombre}
+                      width="140"
+                      height="50"
+                      style={imgStyle}
+                    />
                   ) : (
                     <CardImagePlaceholder>{nombre}</CardImagePlaceholder>
                   )}
@@ -344,14 +370,12 @@ export default function TarjetasPromociones() {
           )}
         </CardsGrid>
 
-        <InfoBox>
+        <InfoBox data-editor-part="contenido-general">
           <InfoTextWrapper>
-            <InfoTitle>¿Necesitás más información?</InfoTitle>
-            <InfoDesc>
-              Consultá todas las promociones vigentes y encontrá la que más te conviene.
-            </InfoDesc>
+            <InfoTitle>{info_titulo}</InfoTitle>
+            <InfoDesc>{info_descripcion}</InfoDesc>
           </InfoTextWrapper>
-          <InfoButton href="#">Ver todas las promociones</InfoButton>
+          <InfoButton href={boton_enlace || '#'}>{boton_texto}</InfoButton>
         </InfoBox>
       </Container>
     </Section>

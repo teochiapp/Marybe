@@ -10,6 +10,10 @@ import FavoriteButton from '../../shared/FavoriteButton';
 import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
 import { cmsColorStyle } from '../../../utils/cmsColor';
+import { imageUrl } from '../../../utils/bannerDesign';
+import { imageScaleCss, imageScaleProps } from '../../../utils/imageScale';
+import { DESCUENTOS_DEFAULTS, botonDestino, descuentosDefaultUrl, entidadProductosUrl, imagenEstilo, isExternalUrl } from '../../../utils/descuentosBloque';
+import useDescuentosBloque from '../../../hooks/useDescuentosBloque';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
@@ -136,6 +140,8 @@ const FeaturedPicture = styled.picture`
       max-height: 32vh;
     }
   }
+
+  ${imageScaleCss('center')}
 `;
 
 const ProductsGrid = styled(motion.div)`
@@ -522,13 +528,15 @@ const ChevronRight = () => (
   <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
 );
 
-export default function DiscountedSection({ seccion = 'perfumeria' }) {
+export default function DiscountedSection({ seccion = 'perfumeria', previewData }) {
   const { config } = useConfiguracionGeneral();
+  const { config: bloque, entidadActual, loading: bloqueLoading } = useDescuentosBloque(seccion, previewData);
   const [productos, setProductos] = useState([]);
   const [tituloCursiva, setTituloCursiva] = useState('Descuentos');
   const [tituloNormal, setTituloNormal] = useState('de Miércoles');
   const [imagenUrl, setImagenUrl] = useState(null);
   const [coloresTitulo, setColoresTitulo] = useState(null);
+  const [seccionLoading, setSeccionLoading] = useState(!previewData);
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
@@ -545,12 +553,13 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
   const singleTypeEndpoint = `${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[${fieldName}][populate]=*`;
 
   const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
+  const entidadEndpoint = entidadProductosUrl(bloque);
 
-  const fetchFallbackProducts = useCallback(() => {
+  const fetchFallbackProducts = useCallback((isActive = () => true) => {
     fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[descuento][$gt]=0&filters[seccion][$eq]=${seccionName}&populate=*`)
       .then(res => res.json())
       .then(data => {
-        if (data && data.data) {
+        if (isActive() && Array.isArray(data?.data)) {
           setProductos(data.data);
         }
       })
@@ -559,10 +568,14 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
 
   // Obtener configuración de la sección de descuentos
   useEffect(() => {
-    setProductos([]);
+    if (bloqueLoading) return undefined;
+    let active = true;
+    const isActive = () => active;
+    if (!entidadEndpoint) setProductos([]);
     setColoresTitulo(null);
     setTituloCursiva('Descuentos');
     setTituloNormal(seccion === 'hogar' ? 'de Hogar' : 'de Miércoles');
+    setSeccionLoading(true);
     fetch(singleTypeEndpoint)
       .then(res => {
         if (!res.ok) {
@@ -571,6 +584,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
         return res.json();
       })
       .then(data => {
+        if (!active) return;
         if (data && data.data) {
           const mainAttrs = data.data.attributes || data.data;
           const attrs = mainAttrs[fieldName];
@@ -593,25 +607,53 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
               setImagenUrl(mediaUrl);
             }
 
-            let prods = attrs.productos?.data || attrs.productos || [];
-
-            if (Array.isArray(prods) && prods.length > 0) {
-              setProductos(prods);
-            } else {
-              fetchFallbackProducts();
+            if (!entidadEndpoint) {
+              let prods = attrs.productos?.data || attrs.productos || [];
+              if (Array.isArray(prods) && prods.length > 0) {
+                setProductos(prods);
+              } else {
+                fetchFallbackProducts(isActive);
+              }
             }
-          } else {
-            fetchFallbackProducts();
+          } else if (!entidadEndpoint) {
+            fetchFallbackProducts(isActive);
           }
-        } else {
-          fetchFallbackProducts();
+        } else if (!entidadEndpoint) {
+          fetchFallbackProducts(isActive);
         }
       })
       .catch(err => {
+        if (!active || entidadEndpoint) return;
         console.warn('Using fallback for discounted products:', err);
-        fetchFallbackProducts();
+        fetchFallbackProducts(isActive);
+      })
+      .finally(() => {
+        if (active) setSeccionLoading(false);
       });
-  }, [singleTypeEndpoint, fieldName, fetchFallbackProducts, seccion]);
+    return () => { active = false; };
+  }, [singleTypeEndpoint, fieldName, fetchFallbackProducts, seccion, entidadEndpoint, bloqueLoading]);
+
+  // Si el bloque promociona una categoría, marca o proveedor específico, mostrar sus productos publicados.
+  useEffect(() => {
+    if (!entidadEndpoint) return undefined;
+    let active = true;
+    const isActive = () => active;
+    fetch(entidadEndpoint)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!active) return;
+        const prods = data?.data || [];
+        if (Array.isArray(prods) && prods.length > 0) {
+          setProductos(prods);
+        } else {
+          fetchFallbackProducts(isActive);
+        }
+      })
+      .catch(() => {
+        if (active) fetchFallbackProducts(isActive);
+      });
+    return () => { active = false; };
+  }, [entidadEndpoint, fetchFallbackProducts]);
 
   const [visibleCount, setVisibleCount] = useState(5);
   const isDown = useRef(false);
@@ -691,28 +733,58 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
     return '$' + Number(price).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   };
 
+  // Evita mostrar los textos o imagen predeterminados mientras se consulta la configuración del backend.
+  const configLoading = bloqueLoading || (!bloque && seccionLoading);
+  const textoSuperior = configLoading ? '' : (bloque ? bloque.texto_superior : DESCUENTOS_DEFAULTS.texto_superior);
+  const cursivaMostrada = configLoading ? '' : (bloque?.titulo_cursiva || tituloCursiva);
+  const normalMostrada = configLoading ? '' : (bloque?.titulo_normal || tituloNormal);
+  const coloresMostrados = bloque ? { color_titulo_cursiva: bloque.color_titulo_cursiva, color_titulo_normal: bloque.color_titulo_normal } : coloresTitulo;
+  const imagenMostrada = configLoading ? '' : ((bloque && imageUrl(bloque.imagen)) || imagenUrl || '/inicio/discountedSection.webp');
+  const imagenMobileMostrada = !configLoading && bloque ? imageUrl(bloque.imagen_mobile) : '';
+  const estiloImagen = imagenEstilo(bloque);
+  const botonTexto = configLoading ? '' : (bloque?.boton_texto || DESCUENTOS_DEFAULTS.boton_texto);
+  const destinoBoton = botonDestino(bloque, descuentosDefaultUrl(seccion), entidadActual);
+
+  const handleBottomLink = () => {
+    if (isExternalUrl(destinoBoton)) {
+      window.location.assign(destinoBoton);
+      return;
+    }
+    navigate(destinoBoton);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  const pictureElement = (
+    <FeaturedPicture data-editor-part="imagen" {...imageScaleProps(bloque)}>
+      {imagenMobileMostrada && <source media="(max-width: 768px)" srcSet={imagenMobileMostrada} />}
+      {imagenMostrada && (
+        <img
+          src={imagenMostrada}
+          alt={`${cursivaMostrada} ${normalMostrada}`}
+          width="500"
+          height="400"
+          loading="eager"
+          decoding="sync"
+          style={estiloImagen}
+          onError={event => { if (!event.currentTarget.src.endsWith('/inicio/discountedSection.webp')) event.currentTarget.src = '/inicio/discountedSection.webp'; }}
+        />
+      )}
+    </FeaturedPicture>
+  );
+
   return (
     <SectionWrapper>
       <TopHeader>
         <TextBlock>
-          <DeliveryInfo>
-            <TruckIcon /> Envíos a todo el país
+          <DeliveryInfo data-editor-part="texto" style={configLoading ? { visibility: 'hidden' } : undefined}>
+            <TruckIcon /> {textoSuperior}
           </DeliveryInfo>
-          <Title>
-            <span className="italic-text" style={cmsColorStyle(coloresTitulo?.color_titulo_cursiva)}>{tituloCursiva}</span>
-            <span className="regular-text" style={cmsColorStyle(coloresTitulo?.color_titulo_normal)}>{tituloNormal}</span>
+          <Title data-editor-part="texto">
+            <span className="italic-text" style={cmsColorStyle(coloresMostrados?.color_titulo_cursiva)}>{cursivaMostrada}</span>
+            <span className="regular-text" style={cmsColorStyle(coloresMostrados?.color_titulo_normal)}>{normalMostrada}</span>
           </Title>
         </TextBlock>
-        <BannerSlot name={`descuento_${seccion === 'hogar' ? 'hogar' : 'perfumeria'}`} side><FeaturedPicture>
-          <img
-            src={imagenUrl || '/inicio/discountedSection.webp'}
-            alt={`${tituloCursiva} ${tituloNormal}`}
-            width="500"
-            height="400"
-            loading="eager"
-            decoding="sync"
-          />
-        </FeaturedPicture></BannerSlot>
+        {bloque ? pictureElement : <BannerSlot name={`descuento_${seccion === 'hogar' ? 'hogar' : 'perfumeria'}`} side>{pictureElement}</BannerSlot>}
       </TopHeader>
 
       <ScrollWrapper>
@@ -729,7 +801,7 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
           onTouchStart={handleInteract}
           variants={staggerContainerVariants}
           initial="hidden"
-          animate="show"
+          animate={productos.length ? 'show' : 'hidden'}
         >
           {productos.length === 0 ? (
             <>
@@ -803,8 +875,8 @@ export default function DiscountedSection({ seccion = 'perfumeria' }) {
         </ArrowBtn>
       </ScrollWrapper>
 
-      <BottomLink onClick={() => { navigate(`/tienda?descuento=todas&seccion=${seccion === 'hogar' ? 'Hogar' : 'Perfumer%C3%ADa'}`); window.scrollTo({ top: 0, behavior: 'instant' }); }}>
-        Conocer más <ChevronRightIcon />
+      <BottomLink data-editor-part="boton" onClick={handleBottomLink} style={configLoading ? { visibility: 'hidden' } : undefined}>
+        {botonTexto} <ChevronRightIcon />
       </BottomLink>
       {selectedProduct && (
         <AddToCartModal

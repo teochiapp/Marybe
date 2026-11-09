@@ -4,7 +4,12 @@ import FeaturedSection from '../../../components/inicio/perfumeria/FeaturedSecti
 import FeaturedSectionHogar from '../../../components/inicio/hogar/FeaturedSectionHogar';
 import CategoriesSection from '../../../components/inicio/perfumeria/CategoriesSection';
 import FeaturedCategorySection from '../../../components/inicio/perfumeria/FeaturedCategorySection';
+import SpecificCategorySection from '../../../components/inicio/perfumeria/SpecificCategorySection';
 import OfertasSection from '../../../components/inicio/perfumeria/OfertasSection';
+import DiscountedSection from '../../../components/inicio/perfumeria/DiscountedSection';
+import DiscountedSectionHogar from '../../../components/inicio/hogar/DiscountedSectionHogar';
+import TarjetasPromociones from '../../../components/inicio/perfumeria/TarjetasPromociones';
+import GiftCard from '../../../components/inicio/shared/GiftCard';
 
 const PreviewPage = styled.main`
   --editor-vh: ${({ $viewportHeight }) => ($viewportHeight ? `${$viewportHeight / 100}px` : '1vh')};
@@ -38,7 +43,14 @@ const PREVIEWS = {
     : <FeaturedSection seccion="perfumeria" previewData={previewData} />),
   categorias: ({ area, previewData }) => <CategoriesSection seccion={area} previewData={previewData} />,
   'categoria-destacada-1': ({ area, previewData }) => <FeaturedCategorySection seccion={area} previewData={previewData} />,
+  'categoria-destacada-2': ({ area, previewData }) => <SpecificCategorySection seccion={area} previewData={previewData} />,
   ofertas: ({ area, previewData }) => <OfertasSection seccion={area} previewData={previewData} />,
+  // En Descuentos el área es el identificador estable del bloque (bloque-1 · bloque-2).
+  descuentos: ({ area, previewData }) => (area === 'bloque-2'
+    ? <DiscountedSectionHogar previewData={previewData} />
+    : <DiscountedSection seccion="perfumeria" previewData={previewData} />),
+  beneficios: ({ previewData }) => <TarjetasPromociones previewData={previewData} />,
+  'gift-card': ({ area, previewData }) => <GiftCard seccion={area || 'perfumeria'} previewData={previewData} />,
 };
 
 const send = data => window.parent.postMessage(data, window.location.origin);
@@ -92,7 +104,7 @@ export default function EditorInicioPreview() {
   };
 
   return (
-    <PreviewPage id="editor-inicio-preview-content" data-mode={preview.mode} $viewportHeight={Number.isFinite(preview.viewportHeight) ? preview.viewportHeight : 0} $selected={/^[a-z0-9-]+$/.test(preview.selected || '') ? preview.selected : ''} onClickCapture={handleClickCapture}>
+    <PreviewPage id="editor-inicio-preview-content" data-mode={preview.mode} $viewportHeight={Number.isFinite(preview.viewportHeight) ? preview.viewportHeight : 0} $selected={/^[a-z0-9_-]+$/i.test(preview.selected || '') ? preview.selected : ''} onClickCapture={handleClickCapture}>
       <Preview area={preview.area} previewData={preview.previewData} />
     </PreviewPage>
   );

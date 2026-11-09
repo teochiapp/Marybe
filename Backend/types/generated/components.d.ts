@@ -35,6 +35,8 @@ export interface InicioCategoriaEspecifica extends Struct.ComponentSchema {
       'api::categoria.categoria'
     >;
     icono: Schema.Attribute.Media<'images'>;
+    icono_titulo: Schema.Attribute.String;
+    productos_orden: Schema.Attribute.JSON;
     titulo: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
@@ -72,6 +74,7 @@ export interface InicioDestacada extends Struct.ComponentSchema {
       'oneToOne',
       'api::categoria.categoria'
     >;
+    icono_titulo: Schema.Attribute.String;
     productos_orden: Schema.Attribute.JSON;
     titulo: Schema.Attribute.String & Schema.Attribute.Required;
   };

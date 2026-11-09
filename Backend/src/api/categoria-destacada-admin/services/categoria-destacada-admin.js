@@ -6,20 +6,43 @@ const MAIN = 'api::seccion-principal.seccion-principal';
 const CATEGORY = 'api::categoria.categoria';
 const PRODUCT = 'api::producto.producto';
 
-// Campos de seccion-principal (componente inicio.destacada) de cada área.
-const AREAS = {
-  perfumeria: { label: 'Perfumería', field: 'destacada_perfumeria' },
-  hogar: { label: 'Hogar', field: 'destacada_hogar' },
-};
+const DEFAULT_MODULE = 'categoria-destacada-1';
 const DEFAULT_TITLE = 'Categoría destacada';
 // La landing pide los productos sin paginar: Strapi devuelve como máximo 25 (config/api.js).
 const MAX_PRODUCTS = 25;
 const PAGE_SIZE = 30;
-const DRAFT_KEY = 'categoriaDestacada';
+// Íconos opcionales disponibles para acompañar el final del título principal.
+const ICONOS = ['', 'estrella', 'corazon', 'regalo', 'destellos', 'etiqueta', 'flecha', 'bolsa'];
+
+// Configuración reutilizable de ambos módulos de Categoría Destacada (1 y 2).
+const MODULES = {
+  'categoria-destacada-1': {
+    draftKey: 'categoriaDestacada',
+    defaultTitle: DEFAULT_TITLE,
+    areas: {
+      perfumeria: { label: 'Perfumería', field: 'destacada_perfumeria', hasMediaIcon: false },
+      hogar: { label: 'Hogar', field: 'destacada_hogar', hasMediaIcon: false },
+    },
+  },
+  'categoria-destacada-2': {
+    draftKey: 'categoriaDestacada2',
+    defaultTitle: DEFAULT_TITLE,
+    areas: {
+      perfumeria: { label: 'Perfumería', field: 'categoria_especifica_perfumeria', hasMediaIcon: true },
+      hogar: { label: 'Hogar', field: 'categoria_especifica_hogar', hasMediaIcon: true },
+    },
+  },
+};
+const AREAS = MODULES[DEFAULT_MODULE].areas;
 
 function fail(message, status = 400) { const error = new Error(message); error.status = status; throw error; }
-function areaFor(key) {
-  const area = AREAS[key];
+function moduleFor(key = DEFAULT_MODULE) {
+  const mod = Object.prototype.hasOwnProperty.call(MODULES, key) ? MODULES[key] : null;
+  if (!mod) fail('Módulo de categoría destacada inválido.', 404);
+  return mod;
+}
+function areaFor(mod, key) {
+  const area = Object.prototype.hasOwnProperty.call(mod.areas, key) ? mod.areas[key] : null;
   if (!area) fail('Área inválida.', 404);
   return area;
 }
@@ -28,20 +51,37 @@ function text(value, max) {
   if (typeof value !== 'string' || value.length > max) fail('Texto demasiado largo o inválido.');
   return value;
 }
+const normalizeIcon = value => (typeof value === 'string' && ICONOS.includes(value) ? value : '');
 const isDocumentId = value => typeof value === 'string' && /^[a-z0-9]{1,64}$/i.test(value);
 // Mismo criterio que la landing: productos publicados de la categoría.
 const productFilters = (categoryId, extra = {}) => ({ publicado: true, categoria: { documentId: categoryId }, ...extra });
 
 module.exports = ({ strapi }) => {
-  const populate = Object.fromEntries(Object.values(AREAS).map(area => [area.field, { populate: { categoria: { fields: ['nombre', 'seccion'] } } }]));
+  const populate = Object.fromEntries(
+    Object.values(MODULES).flatMap(mod => Object.values(mod.areas).map(area => [
+      area.field,
+      { populate: { categoria: { fields: ['nombre', 'seccion'] }, ...(area.hasMediaIcon ? { icono: { fields: ['url'] } } : {}) } },
+    ]))
+  );
   const loadMain = () => strapi.documents(MAIN).findFirst({ fields: ['updatedAt', 'borradores_editor_inicio'], populate });
 
   function publishedState(main, area) {
     const value = main?.[area.field];
     return {
       titulo: value?.titulo || '',
+      icono: normalizeIcon(value?.icono_titulo),
       categoria: value?.categoria?.documentId || null,
       productos: Array.isArray(value?.productos_orden) ? value.productos_orden.filter(isDocumentId) : [],
+    };
+  }
+
+  function normalizeDraft(data) {
+    if (!data || typeof data !== 'object') return null;
+    return {
+      titulo: typeof data.titulo === 'string' ? data.titulo : '',
+      icono: normalizeIcon(data.icono),
+      categoria: isDocumentId(data.categoria) ? data.categoria : null,
+      productos: Array.isArray(data.productos) ? data.productos.filter(isDocumentId) : [],
     };
   }
 
@@ -57,14 +97,15 @@ module.exports = ({ strapi }) => {
 
   const cards = filters => strapi.documents(PRODUCT).findMany({ status: 'published', fields: productFields, populate: productPopulate, filters, sort: 'id:asc', limit: 200 });
 
-  async function overview() {
+  async function overview(moduleKey = DEFAULT_MODULE) {
+    const mod = moduleFor(moduleKey);
     const main = await loadMain();
-    const drafts = main?.borradores_editor_inicio?.[DRAFT_KEY] || {};
+    const drafts = main?.borradores_editor_inicio?.[mod.draftKey] || {};
     const areas = {};
     const referenced = new Set();
-    for (const [key, area] of Object.entries(AREAS)) {
+    for (const [key, area] of Object.entries(mod.areas)) {
       const published = publishedState(main, area);
-      const draft = drafts[key]?.data || null;
+      const draft = normalizeDraft(drafts[key]?.data);
       [...published.productos, ...(draft?.productos || [])].forEach(id => referenced.add(id));
       areas[key] = { published, draft, draftSavedAt: drafts[key]?.savedAt || null };
     }
@@ -72,8 +113,9 @@ module.exports = ({ strapi }) => {
     return {
       version: main?.updatedAt || null,
       exists: Boolean(main),
-      defaultTitle: DEFAULT_TITLE,
+      defaultTitle: mod.defaultTitle,
       maxProducts: MAX_PRODUCTS,
+      iconos: ICONOS,
       areas,
       categorias: await categoryList(),
       products: Object.fromEntries(products.map(product => [product.documentId, product])),
@@ -83,6 +125,8 @@ module.exports = ({ strapi }) => {
   async function clean(input, strict) {
     if (!input || typeof input !== 'object' || Array.isArray(input)) fail('Datos inválidos.');
     const titulo = text(input.titulo, 120);
+    const icono = input.icono == null ? '' : input.icono;
+    if (typeof icono !== 'string' || !ICONOS.includes(icono)) fail('Ícono de título inválido.');
     const categoria = input.categoria == null || input.categoria === '' ? null : input.categoria;
     if (categoria !== null && !isDocumentId(categoria)) fail('Categoría inválida.');
     if (categoria) {
@@ -103,7 +147,7 @@ module.exports = ({ strapi }) => {
       if (!titulo.trim()) fail('Escribí el título de la sección antes de publicar.');
       if (!categoria) fail('Elegí la categoría de la sección antes de publicar.');
     }
-    return { titulo, categoria, productos };
+    return { titulo, icono, categoria, productos };
   }
 
   async function writeMain(main, data) {
@@ -132,40 +176,45 @@ module.exports = ({ strapi }) => {
       return { items, total, page, pageSize: PAGE_SIZE };
     },
 
-    async save(areaKey, body = {}) {
-      const area = areaFor(areaKey);
+    async save(areaKey, body = {}, moduleKey = DEFAULT_MODULE) {
+      const mod = moduleFor(moduleKey);
+      const area = areaFor(mod, areaKey);
       const main = await loadMain();
       checkVersion(main, body.version);
       const publish = body.publish === true;
       const data = await clean(body.data, publish);
       const stored = main?.borradores_editor_inicio || {};
-      const drafts = { ...stored, [DRAFT_KEY]: { ...(stored[DRAFT_KEY] || {}) } };
+      const drafts = { ...stored, [mod.draftKey]: { ...(stored[mod.draftKey] || {}) } };
       if (!publish) {
-        drafts[DRAFT_KEY][areaKey] = { data, savedAt: new Date().toISOString() };
+        drafts[mod.draftKey][areaKey] = { data, savedAt: new Date().toISOString() };
         await writeMain(main, { borradores_editor_inicio: drafts });
-        return overview();
+        return overview(moduleKey);
       }
-      delete drafts[DRAFT_KEY][areaKey];
+      delete drafts[mod.draftKey][areaKey];
+      const previousMediaIcon = area.hasMediaIcon && main?.[area.field]?.icono?.id ? { icono: main[area.field].icono.id } : {};
       await writeMain(main, {
-        [area.field]: { titulo: data.titulo.trim(), categoria: data.categoria, productos_orden: data.productos },
+        [area.field]: { ...previousMediaIcon, titulo: data.titulo.trim(), icono_titulo: data.icono, categoria: data.categoria, productos_orden: data.productos },
         borradores_editor_inicio: drafts,
       });
-      return overview();
+      return overview(moduleKey);
     },
 
-    async discard(areaKey, body = {}) {
-      areaFor(areaKey);
+    async discard(areaKey, body = {}, moduleKey = DEFAULT_MODULE) {
+      const mod = moduleFor(moduleKey);
+      areaFor(mod, areaKey);
       const main = await loadMain();
       checkVersion(main, body.version);
       const stored = main?.borradores_editor_inicio || {};
-      if (!stored[DRAFT_KEY]?.[areaKey]) return overview();
-      const section = { ...stored[DRAFT_KEY] };
+      if (!stored[mod.draftKey]?.[areaKey]) return overview(moduleKey);
+      const section = { ...stored[mod.draftKey] };
       delete section[areaKey];
-      await writeMain(main, { borradores_editor_inicio: { ...stored, [DRAFT_KEY]: section } });
-      return overview();
+      await writeMain(main, { borradores_editor_inicio: { ...stored, [mod.draftKey]: section } });
+      return overview(moduleKey);
     },
   };
 };
 
 module.exports.AREAS = AREAS;
+module.exports.MODULES = MODULES;
+module.exports.ICONOS = ICONOS;
 module.exports.MAX_PRODUCTS = MAX_PRODUCTS;

@@ -13,9 +13,9 @@ async function run(ctx, action, fallback = 'No se guardaron los cambios de Categ
 }
 
 module.exports = {
-  overview: ctx => run(ctx, service => service.overview(), 'No se pudo cargar Categoría Destacada.'),
+  overview: ctx => run(ctx, service => service.overview(ctx.params.modulo), 'No se pudo cargar Categoría Destacada.'),
   products: ctx => run(ctx, service => service.products(ctx.query), 'No se pudieron cargar los productos de la categoría.'),
-  save: ctx => run(ctx, service => service.save(ctx.params.area, ctx.request.body)),
+  save: ctx => run(ctx, service => service.save(ctx.params.area, ctx.request.body, ctx.params.modulo)),
   // DELETE no lleva cuerpo: la versión viaja como parámetro de consulta.
-  discard: ctx => run(ctx, service => service.discard(ctx.params.area, { version: ctx.query.version })),
+  discard: ctx => run(ctx, service => service.discard(ctx.params.area, { version: ctx.query.version }, ctx.params.modulo)),
 };

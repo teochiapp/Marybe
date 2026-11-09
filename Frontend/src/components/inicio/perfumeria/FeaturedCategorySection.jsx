@@ -8,6 +8,7 @@ import AddToCartModal from '../../carrito/AddToCartModal';
 import FavoriteButton from '../../shared/FavoriteButton';
 import { staggerContainerVariants, staggerItemLeftVariants } from '../../animations/ScrollAnimations';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
+import { CategoriaDestacadaTitleIcon } from '../../../utils/categoriaDestacadaIconos';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
@@ -372,9 +373,9 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria', previe
   const [configApi, setConfig] = useState(null);
   const [productosApi, setProductos] = useState([]);
   const [loadingApi, setLoading] = useState(true);
-  // previewData (Editor de Inicio) reemplaza título y productos publicados sin consultar la API.
+  // previewData (Editor de Inicio) reemplaza título, ícono y productos publicados sin consultar la API.
   const isPreview = Boolean(previewData);
-  const config = isPreview ? { titulo: previewData.titulo } : configApi;
+  const config = isPreview ? { titulo: previewData.titulo, icono_titulo: previewData.icono } : configApi;
   const productos = isPreview ? previewData.productos || [] : productosApi;
   const loading = isPreview ? false : loadingApi;
   const scrollRef = useRef(null);
@@ -542,7 +543,10 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria', previe
 
   return (
     <SectionWrapper>
-      <SectionTitle data-editor-part="titulo">{titulo}</SectionTitle>
+      <SectionTitle data-editor-part="titulo">
+        {titulo}
+        <CategoriaDestacadaTitleIcon icono={config.icono_titulo} />
+      </SectionTitle>
 
       <ScrollWrapper>
         <ArrowBtn $side="left" type="button" aria-label="Anterior" onClick={() => scrollByStep(-1)}>

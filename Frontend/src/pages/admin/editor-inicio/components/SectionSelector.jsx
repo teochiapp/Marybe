@@ -6,12 +6,12 @@ import { hasSectionEditor } from '../sectionEditors';
 
 const SelectorPanel = styled.section`
   width: 100%;
-  max-width: 1320px;
+  max-width: 1360px;
   padding: var(--spacing-lg) var(--spacing-md);
   border: 1px solid #ece4de;
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 30px 70px -40px rgba(62, 1, 2, 0.35);
+  background: var(--color-blanco);
+  box-shadow: 0 32px 72px -28px rgba(0, 0, 0, 0.65);
 
   @media (min-width: 768px) {
     padding: var(--spacing-xxl) var(--spacing-xl);
@@ -19,17 +19,22 @@ const SelectorPanel = styled.section`
 `;
 
 const PanelHeader = styled.header`
-  max-width: 640px;
+  max-width: 680px;
   margin: 0 auto var(--spacing-xl);
   text-align: center;
 
   @media (min-width: 768px) {
-    margin-bottom: 40px;
+    margin-bottom: 42px;
   }
 `;
 
 const Eyebrow = styled.p`
-  margin: 0 0 10px;
+  display: inline-block;
+  margin: 0 0 12px;
+  padding: 5px 14px;
+  border: 1px solid rgba(124, 4, 5, 0.22);
+  border-radius: var(--radius-full);
+  background: rgba(124, 4, 5, 0.08);
   color: var(--color-bordo-secundario);
   font-size: 0.72rem;
   font-weight: 700;
@@ -41,7 +46,7 @@ const PanelTitle = styled.h1`
   margin: 0 0 12px;
   color: var(--color-marron-principal);
   font-family: var(--font-family-primary);
-  font-size: clamp(1.7rem, 4.2vw, 2.6rem);
+  font-size: clamp(1.8rem, 4.2vw, 2.65rem);
   font-weight: 600;
   line-height: 1.15;
 `;
@@ -49,22 +54,21 @@ const PanelTitle = styled.h1`
 const PanelSubtitle = styled.p`
   margin: 0;
   color: #6f6262;
-  font-size: 0.95rem;
+  font-size: 0.96rem;
   line-height: 1.55;
 `;
 
 const SectionsGrid = styled.ol`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 14px;
+  gap: 16px;
   margin: 0;
   padding: 0;
   list-style: none;
 
-  @media (min-width: 480px) { grid-template-columns: repeat(2, 1fr); }
-  @media (min-width: 768px) { grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  @media (min-width: 992px) { grid-template-columns: repeat(4, 1fr); }
-  @media (min-width: 1200px) { grid-template-columns: repeat(5, 1fr); gap: 18px; }
+  @media (min-width: 540px) { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 900px) { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (min-width: 1240px) { grid-template-columns: repeat(4, 1fr); gap: 22px; }
 `;
 
 export default function SectionSelector() {

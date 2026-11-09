@@ -20,6 +20,15 @@
       "type": "relation",
       "relation": "oneToOne",
       "target": "api::categoria.categoria"
+    },
+    "icono_titulo": {
+      "type": "string",
+      "required": false,
+      "description": "Ícono opcional al final del título principal (estrella, corazon, regalo, destellos, etiqueta, flecha, bolsa). Vacío: sin ícono."
+    },
+    "productos_orden": {
+      "type": "json",
+      "description": "Productos elegidos (documentId) en el orden en que se muestran. Vacío: todos los productos publicados de la categoría, en el orden del catálogo. Lo administra /editor-inicio-admin."
     }
   }
 }

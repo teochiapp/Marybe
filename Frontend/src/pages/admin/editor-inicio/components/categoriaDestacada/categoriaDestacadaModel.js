@@ -4,6 +4,25 @@ export const CATEGORIA_DESTACADA_AREAS = [
 ];
 export const MAX_PRODUCTS = 25;
 
+export const CATEGORIA_DESTACADA_MODULES = {
+  'categoria-destacada-1': {
+    key: 'categoria-destacada-1',
+    title: 'Categoría Destacada (1)',
+    eyebrow: 'CATEGORÍA DESTACADA (1)',
+    ordinal: 'Primera categoría destacada',
+    otherTitle: 'Categoría Destacada (2)',
+    endpoint: '/api/categoria-destacada-admin',
+  },
+  'categoria-destacada-2': {
+    key: 'categoria-destacada-2',
+    title: 'Categoría Destacada (2)',
+    eyebrow: 'CATEGORÍA DESTACADA (2)',
+    ordinal: 'Segunda categoría destacada',
+    otherTitle: 'Categoría Destacada (1)',
+    endpoint: '/api/categoria-destacada-admin/modulo/categoria-destacada-2',
+  },
+};
+
 export const CATEGORIA_DESTACADA_PARTS = [
   { id: 'contenido', label: 'Categoría y título', group: 'contenido' },
   { id: 'productos', label: 'Productos de la sección', group: 'productos' },
@@ -23,7 +42,11 @@ export function shownProducts(data, productIndex, automatic) {
 }
 
 export function toPreviewData(data, productIndex, automatic) {
-  return { titulo: data.titulo, productos: shownProducts(data, productIndex, automatic) };
+  return {
+    titulo: data.titulo,
+    ...(data.icono ? { icono: data.icono } : {}),
+    productos: shownProducts(data, productIndex, automatic),
+  };
 }
 
 export function publishProblems(data) {
