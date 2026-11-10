@@ -8,6 +8,7 @@
   "options": {},
   "attributes": {
     "diseno": { "type": "json" },
+    "config_carrusel": { "type": "json" },
     "es_carrusel": {
       "type": "boolean",
       "default": false,

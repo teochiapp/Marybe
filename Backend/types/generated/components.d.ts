@@ -98,6 +98,7 @@ export interface LayoutFila1Columna extends Struct.ComponentSchema {
         },
         number
       >;
+    config_carrusel: Schema.Attribute.JSON;
     diseno: Schema.Attribute.JSON;
     es_carrusel: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
@@ -121,6 +122,7 @@ export interface LayoutFila2Columnas extends Struct.ComponentSchema {
         },
         number
       >;
+    config_carrusel: Schema.Attribute.JSON;
     diseno: Schema.Attribute.JSON;
     es_carrusel: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
@@ -144,6 +146,7 @@ export interface LayoutFila4Columnas extends Struct.ComponentSchema {
         },
         number
       >;
+    config_carrusel: Schema.Attribute.JSON;
     diseno: Schema.Attribute.JSON;
     es_carrusel: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
@@ -167,6 +170,7 @@ export interface LayoutFilaMixta extends Struct.ComponentSchema {
         },
         number
       >;
+    config_carrusel: Schema.Attribute.JSON;
     diseno: Schema.Attribute.JSON;
     es_carrusel: Schema.Attribute.Boolean &
       Schema.Attribute.Required &

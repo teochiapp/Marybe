@@ -719,6 +719,7 @@ export interface ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader
     draftAndPublish: false;
   };
   attributes: {
+    borradoresMenu: Schema.Attribute.JSON & Schema.Attribute.Private;
     categoriasGeneral: Schema.Attribute.Relation<
       'oneToMany',
       'api::categoria.categoria'
@@ -740,6 +741,7 @@ export interface ApiOrdenamientoMenuHeaderOrdenamientoMenuHeader
       'api::ordenamiento-menu-header.ordenamiento-menu-header'
     > &
       Schema.Attribute.Private;
+    ordenVisual: Schema.Attribute.JSON;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &

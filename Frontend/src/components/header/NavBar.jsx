@@ -7,7 +7,7 @@ import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
 import { useMegaMenu } from '../../hooks/useMegaMenu';
 import { useMegaMenuContext } from '../../hooks/useMegaMenuContext';
-import { categoryUrl, menuCategoryUrl, discountUrl, SECTION_MAP } from '../../data/megamenu';
+import { categoryUrl, menuCategoryUrl, discountUrl, SECTION_MAP, menuItemsWithSections } from '../../data/megamenu';
 import { generateProductUrl } from '../../utils/productUrl';
 
 /* ── Animaciones ── */
@@ -541,7 +541,7 @@ const RocketIcon = () => (
 
 
 
-export default function NavBar() {
+export default function NavBar({ preview }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMounted, setDrawerMounted] = useState(false);
   const [openSection, setOpenSection] = useState(null);      // Nivel 1: categoría
@@ -551,7 +551,8 @@ export default function NavBar() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [mobileSearchFocused, setMobileSearchFocused] = useState(false);
-  const navigate = useNavigate();
+  const navigateTo = useNavigate();
+  const navigate = (...args) => { if (!preview) navigateTo(...args); };
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const searchContainerRef = useRef(null);
@@ -560,12 +561,16 @@ export default function NavBar() {
   const { isAuthenticated, openAuthModal } = useContext(AuthContext);
 
   // ─── Datos dinámicos del mega menu (mismos que desktop) ───
-  const { context, getCategoriesForContext } = useMegaMenuContext();
-  const { getColumnsForCategory, getSectionForCategory, menuLanzOfertas } = useMegaMenu();
-  const dynamicCategories = getCategoriesForContext(context);
+  const contextState = useMegaMenuContext();
+  const context = preview?.context || contextState.context;
+  const { getMenuItemsForContext } = contextState;
+  const { getColumnsForCategory, getColumnsInSection, getSectionForCategory, menuLanzOfertas: publicMenu } = useMegaMenu();
+  const menuLanzOfertas = preview?.menu || publicMenu;
+  const dynamicCategories = menuItemsWithSections(preview?.categories || getMenuItemsForContext(context), context);
 
   // ─── Columnas dinámicas para mobile (igual lógica que desktop CategoryNav) ───
-  const getMobileColumnsForCategory = (cat) => {
+  const getMobileColumnsForCategory = (item) => {
+    const cat = item.nombre;
     if (cat === 'Ofertas') {
       const colData = [];
       const ofertasConf = menuLanzOfertas?.ofertas;
@@ -620,7 +625,7 @@ export default function NavBar() {
       return colData;
     }
 
-    return getColumnsForCategory(cat, context) || [];
+    return item.useSection ? getColumnsInSection(cat, item.seccionMapped) : getColumnsForCategory(cat, context) || [];
   };
 
   // ─── Helper: navega al inicio y hace scroll suave a una sección por ID ───
@@ -882,35 +887,36 @@ export default function NavBar() {
                 const hasColumns = columns.length > 0;
 
                 return (
-                  <div key={cat}>
+                  <div key={cat.key}>
                     {/* ── Nivel 1: Categoría ── */}
                     <DrawerItem
+                      aria-label={cat.accessibleLabel}
                       onClick={() => {
                         if (hasColumns) {
-                          toggleSection(cat);
+                          toggleSection(cat.key);
                         } else {
                           closeDrawer();
-                          const catContext = (context === 'GENERAL' ? getSectionForCategory(cat, context) : context) || context;
-                          navigate(menuCategoryUrl(cat, catContext));
+                          const catContext = (cat.useSection && cat.seccionMapped) || getSectionForCategory(cat.nombre, context) || context;
+                          navigate(menuCategoryUrl(cat.nombre, catContext));
                         }
                       }}
                     >
-                      <span style={{ fontWeight: 500 }}>{cat}</span>
-                      {hasColumns && <ChevronIcon open={openSection === cat} />}
+                      <span style={{ fontWeight: 500 }}>{cat.label}</span>
+                      {hasColumns && <ChevronIcon open={openSection === cat.key} />}
                     </DrawerItem>
 
                     {/* ── Nivel 2: Subcategorías ── */}
                     {hasColumns && (
-                      <SubList $open={openSection === cat}>
+                      <SubList $open={openSection === cat.key}>
                         <DrawerSubItem onClick={() => {
                           closeDrawer();
-                          const catContext = (context === 'GENERAL' ? getSectionForCategory(cat, context) : context) || context;
-                          navigate(menuCategoryUrl(cat, catContext));
+                          const catContext = (cat.useSection && cat.seccionMapped) || getSectionForCategory(cat.nombre, context) || context;
+                          navigate(menuCategoryUrl(cat.nombre, catContext));
                         }}>
-                          Ver todos en {cat}
+                          Ver todos en {cat.label}
                         </DrawerSubItem>
                         {columns.map((col) => {
-                          const subKey = `${cat}::${col.title}`;
+                          const subKey = `${cat.key}::${col.title}`;
                           const verTodoItem = col.items?.find(
                             (i) => typeof i === 'object' && i.isVerTodo
                           );

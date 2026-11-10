@@ -22,6 +22,7 @@ jest.mock('react-router-dom', () => ({
 }), { virtual: true });
 
 const EXPECTED_TITLES = [
+  'Menú Header / Mega Menú',
   'Banners',
   'Sección Destacada',
   'Categorías',
@@ -52,13 +53,13 @@ describe('configuración de secciones', () => {
   test('respeta el orden real de los componentes en Inicio (Perfumería)', () => {
     const source = fs.readFileSync(path.join(__dirname, '../../inicio/Inicio.jsx'), 'utf8');
     const perfumeria = source.slice(source.indexOf("seccionActiva === 'perfumeria' && ("), source.indexOf("seccionActiva === 'hogar' && ("));
-    const positions = EDITOR_INICIO_SECTIONS.map(section => perfumeria.search(new RegExp(`<${section.landingComponent}[\\s/>]`)));
+    const positions = EDITOR_INICIO_SECTIONS.filter(section => section.landingComponent).map(section => perfumeria.search(new RegExp(`<${section.landingComponent}[\\s/>]`)));
     positions.forEach(position => expect(position).toBeGreaterThan(-1));
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
   });
 
   test('las secciones con editor real están registradas', () => {
-    expect(EDITOR_INICIO_SECTIONS.filter(section => hasSectionEditor(section.id)).map(section => section.id)).toEqual(['banners', 'seccion-destacada', 'categorias', 'categoria-destacada-1', 'ofertas', 'descuentos', 'categoria-destacada-2', 'beneficios', 'gift-card', 'proximos-eventos']);
+    expect(EDITOR_INICIO_SECTIONS.filter(section => hasSectionEditor(section.id)).map(section => section.id)).toEqual(['menu-header', 'banners', 'seccion-destacada', 'categorias', 'categoria-destacada-1', 'ofertas', 'descuentos', 'categoria-destacada-2', 'beneficios', 'gift-card', 'proximos-eventos']);
   });
 });
 
@@ -68,15 +69,18 @@ describe('selector de secciones', () => {
     expect(screen.getByRole('heading', { level: 1, name: '¿Qué querés modificar hoy?' })).toBeInTheDocument();
     const grid = screen.getByRole('list', { name: 'Secciones de la página de inicio' });
     const links = within(grid).getAllByRole('link');
-    expect(links).toHaveLength(10);
+    expect(links).toHaveLength(11);
+    expect(links[0].querySelector('[data-preview-image]')).toHaveAttribute('data-preview-image', '/capturas-admin-editor/00-header.png');
     links.forEach((link, index) => {
       const section = EDITOR_INICIO_SECTIONS[index];
       expect(link).toHaveAccessibleName(section.title);
       expect(link).toHaveAttribute('href', sectionPath(section.id));
       expect(link).toHaveAccessibleDescription(expect.stringContaining(section.description));
-      expect(section.previewImage).toMatch(/^\/capturas-admin-editor\/\d{2}[-_].+\.png$/);
-      expect(fs.existsSync(path.join(__dirname, '../../../../public', section.previewImage))).toBe(true);
-      expect(link.querySelector('[data-preview-image]')).toHaveAttribute('data-preview-image', section.previewImage);
+      if (section.previewImage) {
+        expect(section.previewImage).toMatch(/^\/capturas-admin-editor\/\d{2}[-_].+\.png$/);
+        expect(fs.existsSync(path.join(__dirname, '../../../../public', section.previewImage))).toBe(true);
+        expect(link.querySelector('[data-preview-image]')).toHaveAttribute('data-preview-image', section.previewImage);
+      }
     });
     expect(within(links[0]).getByText('Editar sección')).toBeInTheDocument();
     expect(within(links[1]).getByText('Editar sección')).toBeInTheDocument();

@@ -1,6 +1,7 @@
 import { lazyWithRetry } from '../../../utils/lazyWithRetry';
 
 const BannersSectionEditor = lazyWithRetry(() => import('./components/BannersSectionEditor'), 'BannersSectionEditor');
+const MenuHeaderEditor = lazyWithRetry(() => import('./components/menuHeader/MenuHeaderEditor'), 'MenuHeaderEditor');
 const DestacadaEditor = lazyWithRetry(() => import('./components/destacada/DestacadaEditor'), 'DestacadaEditor');
 const CategoriasEditor = lazyWithRetry(() => import('./components/categorias/CategoriasEditor'), 'CategoriasEditor');
 const OfertasEditor = lazyWithRetry(() => import('./components/ofertas/OfertasEditor'), 'OfertasEditor');
@@ -17,6 +18,7 @@ const ProximosEventosEditor = lazyWithRetry(() => import('./components/proximosE
 // Editores reales por identificador de sección. Las secciones sin entrada muestran
 // la vista "Editor próximamente disponible"; para habilitar un editor nuevo basta con registrarlo acá.
 export const SECTION_EDITORS = {
+  'menu-header': MenuHeaderEditor,
   banners: BannersSectionEditor,
   'seccion-destacada': DestacadaEditor,
   categorias: CategoriasEditor,

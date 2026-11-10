@@ -88,13 +88,12 @@ export default function BannerStructure({ documents, source, selected, inspect, 
           {!collapsed && <ul id={`layers-${key}`} className="ba-layer-children">
             {(section.Filas || []).map((row, ri) => {
               const rowKey = `${key}:${ri}`;
-              const multiple = section.Filas.length > 1 || (isCurrent && inspect === 'row');
               return <li key={row.id ? `row-${row.id}` : `new-${ri}`}>
-                {multiple && <div className={`ba-layer-distribution ${isCurrent && selected.row === ri && inspect === 'row' ? 'is-active' : ''}`} draggable={isCurrent && !busy} onDragStart={() => { dragged.current = ri; }} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); if (isCurrent && dragged.current !== null) onMoveDistribution(dragged.current, ri - dragged.current); dragged.current = null; }}>
+                <div className={`ba-layer-distribution ${isCurrent && selected.row === ri && inspect === 'row' ? 'is-active' : ''}`} draggable={isCurrent && !busy} onDragStart={() => { dragged.current = ri; }} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); if (isCurrent && dragged.current !== null) onMoveDistribution(dragged.current, ri - dragged.current); dragged.current = null; }}>
                   <button className="ba-layer-chevron" aria-label={`${closed[rowKey] ? 'Expandir' : 'Contraer'} distribución ${ri + 1}`} aria-expanded={!closed[rowKey]} onClick={() => toggle(rowKey)}>{closed[rowKey] ? '›' : '⌄'}</button>
                   <button onClick={() => chooseElement(key, ri, 0, 'row')}>Distribución {ri + 1}<small>{row.es_carrusel ? 'Carrusel' : 'Grilla'}{deviceDesign(row.diseno, device, {}).hidden ? ' · Oculta' : ''}</small></button>
                   {trigger(`distribución ${ri + 1}`, 'distribution', key, ri)}
-                </div>}
+                </div>
                 {!closed[rowKey] && <ul className="ba-layer-banners">{row.banners.map((banner, bi) => {
                   const title = banner.titulo || `Banner ${bi + 1}`;
                   const selectedBanner = isCurrent && selected.row === ri && selected.banner === bi && inspect === 'banner';
@@ -112,7 +111,7 @@ export default function BannerStructure({ documents, source, selected, inspect, 
       })}</ul>
     </nav>
     <button className="ba-add-section" disabled={busy || loading} onClick={onCreate}>＋ Agregar sección</button>
-    <div className="ba-help"><strong>Tu próximo cambio, en tres pasos</strong><ol><li>Elegí Perfumería o Hogar.</li><li>Seleccioná la imagen que querés editar.</li><li>Revisá la vista previa y guardá el borrador.</li></ol><a href="/inicio" target="_blank" rel="noreferrer">Abrir la tienda ↗</a></div>
+    <div className="ba-help"><strong>Tu próximo cambio, en tres pasos</strong><ol><li>Elegí Perfumería o Hogar.</li><li>Organizá la distribución y seleccioná un banner.</li><li>Revisá la vista previa y guardá el borrador.</li></ol><a href="/inicio" target="_blank" rel="noreferrer">Abrir la tienda ↗</a></div>
     {menu && createPortal(<div className="ba-app ba-layer-menu" ref={menuRef} role="menu" aria-label="Acciones del elemento" style={{ left: menu.left, top: menu.top }}>{actions.map(([action, label, disabled]) => <button role="menuitem" key={action} disabled={busy || disabled} className={action.startsWith('delete') ? 'ba-menu-danger' : ''} onClick={() => { setMenu(null); onAction(action, menu); }}>{label}</button>)}</div>, document.body)}
   </aside>;
 }

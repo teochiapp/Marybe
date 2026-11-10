@@ -19,14 +19,14 @@ afterEach(() => jest.restoreAllMocks());
 
 test('en /banners-admin no muestra el acceso al Editor de Inicio', async () => {
   render(<BannersAdmin />);
-  await screen.findByRole('spinbutton', { name: 'Alto' });
+  fireEvent.click((await screen.findAllByRole('button', { name: /^Editar banner:/ }))[0]);
   expect(screen.queryByRole('button', { name: '← Editor de Inicio' })).toBeNull();
 });
 
 test('integrado en el Editor de Inicio permite volver al selector', async () => {
   const onBack = jest.fn();
   render(<BannersAdmin onBack={onBack} />);
-  await screen.findByRole('spinbutton', { name: 'Alto' });
+  fireEvent.click((await screen.findAllByRole('button', { name: /^Editar banner:/ }))[0]);
   fireEvent.click(screen.getByRole('button', { name: '← Editor de Inicio' }));
   expect(onBack).toHaveBeenCalledTimes(1);
 });
@@ -35,7 +35,8 @@ test('advierte antes de volver si hay cambios sin guardar', async () => {
   const onBack = jest.fn();
   const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
   render(<BannersAdmin onBack={onBack} />);
-  fireEvent.change(await screen.findByRole('spinbutton', { name: 'Alto' }), { target: { value: '350' } });
+  fireEvent.click((await screen.findAllByRole('button', { name: /^Editar banner:/ }))[0]);
+  fireEvent.change(screen.getByRole('spinbutton', { name: 'Alto' }), { target: { value: '350' } });
   fireEvent.click(screen.getByRole('button', { name: '← Editor de Inicio' }));
   expect(confirm).toHaveBeenCalled();
   expect(onBack).not.toHaveBeenCalled();
@@ -47,7 +48,7 @@ test('advierte antes de volver si hay cambios sin guardar', async () => {
 test('Salir cierra la sesión compartida y avisa al Editor de Inicio', async () => {
   const onLogout = jest.fn();
   render(<BannersAdmin onBack={jest.fn()} onLogout={onLogout} />);
-  await screen.findByRole('spinbutton', { name: 'Alto' });
+  fireEvent.click((await screen.findAllByRole('button', { name: /^Editar banner:/ }))[0]);
   fireEvent.click(screen.getByRole('button', { name: 'Salir' }));
   expect(onLogout).toHaveBeenCalledTimes(1);
   expect(localStorage.getItem('admin_jwt')).toBeNull();

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import VisualBanners from '../../banners/VisualBanners';
+import BannerCarousel from '../../banners/BannerCarousel';
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
@@ -28,25 +29,6 @@ const SkeletonCard = styled.div`
     0% { background-color: #f5f5f5; }
     50% { background-color: #e0e0e0; }
     100% { background-color: #f5f5f5; }
-  }
-`;
-
-const TrackOuter = styled.div`
-  width: 100%;
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 60px;
-    height: 100%;
-    background: linear-gradient(to right, transparent, rgba(255,255,255,0.85));
-    pointer-events: none;
-    z-index: 2;
-    border-radius: 0 16px 16px 0;
-    transition: opacity 0.3s;
   }
 `;
 
@@ -156,18 +138,16 @@ const BannerCard = styled.div`
   }
 
   /* Si está dentro de un carrusel, debe tener un ancho fijo */
-  ${({ $isCarousel, $cols, $customWidth }) => $isCarousel && `
+  ${({ $isCarousel, $cols, $customWidth, $peek }) => $isCarousel && `
     flex-shrink: 0;
     scroll-snap-align: start;
     /* En mobile 1 slide al 100% */
-    width: 100%;
-    min-width: 100%;
+    width: ${$peek ? '88%' : '100%'};
+    min-width: ${$peek ? '88%' : '100%'};
 
     @media (min-width: 768px) {
-      /* En desktop hacemos peek para 1 y 2 cols (85% y 42%). La fila 4 cols queda exacta (calc(25% - 24px)) */
-      /* Si hay customWidth (Fila Personalizada), se respeta también en carrusel */
-      width: ${$customWidth ? `calc(${$customWidth}% - 16px)` : ($cols === 1 ? '85%' : $cols === 2 ? '42%' : 'calc(25% - 24px)')};
-      min-width: ${$customWidth ? `calc(${$customWidth}% - 16px)` : ($cols === 1 ? '85%' : $cols === 2 ? '42%' : 'calc(25% - 24px)')};
+      width: ${$customWidth ? `calc((${$customWidth}% - 16px) * ${$peek ? '.88' : '1'})` : `calc((100% - ${($cols - 1) * 16}px) / ${$cols} * ${$peek ? '.88' : '1'})`};
+      min-width: ${$customWidth ? `calc((${$customWidth}% - 16px) * ${$peek ? '.88' : '1'})` : `calc((100% - ${($cols - 1) * 16}px) / ${$cols} * ${$peek ? '.88' : '1'})`};
     }
   `}
 
@@ -220,7 +200,7 @@ const StyledPicture = styled.picture`
 `;
 
 // ─── Componente Auxiliar: Responsive Banner ──────────────────────────────────
-const ResponsiveBanner = ({ banner, isCarousel, cols }) => {
+const ResponsiveBanner = ({ banner, isCarousel, cols, peek }) => {
   const navigate = useNavigate();
   if (!banner) return null;
 
@@ -256,7 +236,7 @@ const ResponsiveBanner = ({ banner, isCarousel, cols }) => {
   const customWidth = banner.ancho_porcentaje;
 
   return (
-    <BannerCard $isCarousel={isCarousel} $cols={cols} $customWidth={customWidth}>
+    <BannerCard $isCarousel={isCarousel} $cols={cols} $customWidth={customWidth} $peek={peek}>
       {banner.enlace ? (
         <a href={banner.enlace} onClick={handleClick} title={banner.titulo} style={{ display: 'flex', flexDirection: 'column', flex: 1, textDecoration: 'none' }}>
           {inner}
@@ -268,163 +248,8 @@ const ResponsiveBanner = ({ banner, isCarousel, cols }) => {
   );
 };
 
-const ArrowBtn = styled.button`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  ${({ $side }) => $side}: 8px;
-  z-index: 3;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: none;
-  background-color: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  color: var(--color-marron-principal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+const CarouselTrack = ({ children, settings }) => <BannerCarousel Track={ScrollRow} settings={settings}>{children}</BannerCarousel>;
 
-  &:hover {
-    background-color: #fff;
-    transform: translateY(-50%) scale(1.08);
-  }
-
-  svg {
-    width: 16px;
-    height: 16px;
-    stroke: currentColor;
-    stroke-width: 2.5;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  @media (max-width: 600px) {
-    width: 34px;
-    height: 34px;
-    ${({ $side }) => $side}: 0px;
-    svg { width: 16px; height: 16px; }
-  }
-`;
-
-const ChevronLeft = () => (
-  <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
-);
-const ChevronRight = () => (
-  <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
-);
-
-// ─── Componente Auxiliar: Carousel Track ─────────────────────────────────────
-const CarouselTrack = ({ children }) => {
-  const scrollRef = useRef(null);
-
-  const isDown = useRef(false);
-  const startX = useRef(0);
-  const scrollLeftVal = useRef(0);
-  const offsetLeftVal = useRef(0);
-  const stepRef = useRef(0);
-  const maxScrollRef = useRef(0);
-
-  const handleMouseDown = useCallback((e) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    isDown.current = true;
-    el.style.scrollSnapType = 'none';
-    el.style.scrollBehavior = 'auto';
-    offsetLeftVal.current = el.offsetLeft;
-    startX.current = e.pageX - offsetLeftVal.current;
-    scrollLeftVal.current = el.scrollLeft;
-  }, []);
-
-  const handleMouseLeaveOrUp = useCallback(() => {
-    if (!isDown.current) return;
-    isDown.current = false;
-    const el = scrollRef.current;
-    if (el) {
-      el.style.scrollSnapType = 'x mandatory';
-      el.style.scrollBehavior = '';
-    }
-  }, []);
-
-  const handleMouseMove = useCallback((e) => {
-    if (!isDown.current) return;
-    e.preventDefault();
-    const el = scrollRef.current;
-    if (!el) return;
-    const x = e.pageX - offsetLeftVal.current;
-    const walk = (x - startX.current) * 1.5;
-    el.scrollLeft = scrollLeftVal.current - walk;
-  }, []);
-
-  const count = React.Children.count(children);
-
-  const scrollByDir = useCallback((dir) => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    // Solo recalcular propiedades geométricas pesadas si no están cacheadas o cambió el tamaño
-    if (!stepRef.current || !maxScrollRef.current) {
-      const first = el.children[0];
-      const gap = 16; // Propiedad constante de diseño (16px en CSS)
-      stepRef.current = first ? first.getBoundingClientRect().width + gap : el.clientWidth;
-      maxScrollRef.current = el.scrollWidth - el.clientWidth;
-    }
-
-    const step = stepRef.current;
-    const maxScroll = maxScrollRef.current;
-    let target = el.scrollLeft + dir * step;
-    if (dir > 0 && el.scrollLeft >= maxScroll - 5) target = 0;
-    else if (dir < 0 && el.scrollLeft <= 5) target = maxScroll;
-    el.scrollTo({ left: target, behavior: 'smooth' });
-  }, []);
-
-  // Limpiar caché en caso de redimensionamiento de pantalla
-  useEffect(() => {
-    const handleResize = () => {
-      stepRef.current = 0;
-      maxScrollRef.current = 0;
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Autoplay cada 7s (solo si hay mas de 1 banner = carrusel real)
-  useEffect(() => {
-    if (count <= 1) return undefined;
-    const id = setInterval(() => scrollByDir(1), 7000);
-    return () => clearInterval(id);
-  }, [count, scrollByDir]);
-
-  return (
-    <TrackOuter>
-      {count > 1 && (
-        <ArrowBtn $side="left" type="button" aria-label="Anterior" onClick={() => scrollByDir(-1)}>
-          <ChevronLeft />
-        </ArrowBtn>
-      )}
-      <ScrollRow
-        ref={scrollRef}
-        onMouseDown={handleMouseDown}
-        onMouseLeave={handleMouseLeaveOrUp}
-        onMouseUp={handleMouseLeaveOrUp}
-        onMouseMove={handleMouseMove}
-      >
-        {children}
-      </ScrollRow>
-      {count > 1 && (
-        <ArrowBtn $side="right" type="button" aria-label="Siguiente" onClick={() => scrollByDir(1)}>
-          <ChevronRight />
-        </ArrowBtn>
-      )}
-    </TrackOuter>
-  );
-};
-
-
-// ─── Componente Principal ────────────────────────────────────────────────────
 export default function PromoCarousel({ seccion = 'perfumeria' }) {
   const [filas, setFilas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -517,8 +342,8 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
 
           if (fila.es_carrusel) {
             return (
-              <CarouselTrack key={index}>
-                {banners.map((b, i) => <ResponsiveBanner key={i} banner={b} isCarousel={true} cols={1} />)}
+              <CarouselTrack key={index} settings={fila.config_carrusel}>
+                {banners.map((b, i) => <ResponsiveBanner key={i} banner={b} isCarousel={true} cols={1} peek={fila.config_carrusel?.vistaParcial} />)}
               </CarouselTrack>
             );
           }
@@ -533,8 +358,8 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
           const banners = fila.banners || [];
           if (fila.es_carrusel) {
             return (
-              <CarouselTrack key={index}>
-                {banners.map((b, i) => <ResponsiveBanner key={i} banner={b} isCarousel={true} cols={2} />)}
+              <CarouselTrack key={index} settings={fila.config_carrusel}>
+                {banners.map((b, i) => <ResponsiveBanner key={i} banner={b} isCarousel={true} cols={2} peek={fila.config_carrusel?.vistaParcial} />)}
               </CarouselTrack>
             );
           }
@@ -549,8 +374,8 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
           const banners = fila.banners || [];
           if (fila.es_carrusel) {
             return (
-              <CarouselTrack key={index}>
-                {banners.map((b, i) => <ResponsiveBanner key={i} banner={b} isCarousel={true} cols={4} />)}
+              <CarouselTrack key={index} settings={fila.config_carrusel}>
+                {banners.map((b, i) => <ResponsiveBanner key={i} banner={b} isCarousel={true} cols={4} peek={fila.config_carrusel?.vistaParcial} />)}
               </CarouselTrack>
             );
           }
@@ -565,8 +390,8 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
           const banners = fila.banners || [];
           if (fila.es_carrusel) {
             return (
-              <CarouselTrack key={index}>
-                {banners.map((b, i) => <ResponsiveBanner key={i} banner={b} isCarousel={true} cols={3} />)}
+              <CarouselTrack key={index} settings={fila.config_carrusel}>
+                {banners.map((b, i) => <ResponsiveBanner key={i} banner={b} isCarousel={true} cols={3} peek={fila.config_carrusel?.vistaParcial} />)}
               </CarouselTrack>
             );
           }

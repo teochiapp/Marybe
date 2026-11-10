@@ -10,10 +10,9 @@
 }
 .vb-track { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 1px); width: 100%; }
 .vb-cell { display: var(--vc-hidden-0, flex); flex: 0 0 calc(var(--custom-width, 100% / var(--cols)) - (var(--gap) * 1px * (1 - var(--custom-fraction, 1 / var(--cols))))); min-width: 0; }
-.vb-track--carousel { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: thin; overscroll-behavior-x: contain; }
+.vb-track--carousel { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
 .vb-track--carousel .vb-cell { scroll-snap-align: start; }
-.vb-arrows { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
-.vb-arrows button { border: 1px solid #dfd2ca; border-radius: 50%; width: 36px; height: 36px; background: white; color: #560203; font-size: 24px; cursor: pointer; }
+.vb-track--peek .vb-cell { flex-basis: calc((var(--custom-width, 100% / var(--cols)) - (var(--gap) * 1px * (1 - var(--custom-fraction, 1 / var(--cols))))) * .88); }
 .vb-banner {
   --h: var(--vb-height-0); --w: var(--vb-width-0); --rad: var(--vb-radius-0); --pad: var(--vb-padding-0); --fit: var(--vb-fit-0); --px: var(--vb-positionX-0); --py: var(--vb-positionY-0); --tx: var(--vb-textX-0); --ty: var(--vb-textY-0); --tw: var(--vb-textWidth-0); --fs: var(--vb-fontSize-0); --ss: var(--vb-subtitleSize-0); --bs: var(--vb-buttonSize-0); --bg: var(--vb-background-0); --fg: var(--vb-color-0); --bb: var(--vb-buttonBackground-0); --bc: var(--vb-buttonColor-0); --ov: var(--vb-overlay-0); --align: var(--vb-align-0);
   position: relative; box-sizing: border-box; width: calc(var(--w) * 1%); min-height: 80px; height: var(--h); margin: 0 auto; overflow: hidden; border-radius: calc(var(--rad) * 1px); background: var(--bg); color: var(--fg); display: var(--vb-hidden-0, flex); font-family: var(--font-family-secondary, Arial, sans-serif);
@@ -32,9 +31,24 @@
 .vb-banner--selected { outline: 3px solid #5c0a0a; outline-offset: -3px; }
 .vb-edit-label { position: absolute; z-index: 3; top: 8px; left: 8px; max-width: 90%; padding: 4px 8px; border-radius: 4px; background: #24172de6; color: white; font: 11px/1.4 Arial, sans-serif; pointer-events: none; }
 .vb-content--drag { cursor: move; touch-action: none; pointer-events: auto; user-select: none; }
+.vb-cell--editable { cursor: grab; user-select: none; }
+.vb-row--reordering .vb-track--carousel { scroll-snap-type: none; }
+.vb-cell--dragging { position: relative; z-index: 6; cursor: grabbing; opacity: .72; }
+.vb-cell--drop-target { outline: 3px dashed #5c0a0a; outline-offset: -3px; border-radius: 8px; }
+.vb-reorder-handle, .vb-height-handle { position: absolute; z-index: 4; border: 2px solid #5c0a0a; background: #fff; color: #5c0a0a; border-radius: 10px; touch-action: none; }
+.vb-reorder-handle { top: 8px; right: 8px; width: 34px; height: 32px; font-size: 21px; line-height: 1; cursor: grab; }
+.vb-cell--dragging .vb-reorder-handle { cursor: grabbing; }
+.vb-height-handle { left: 50%; transform: translateX(-50%); width: 48px; height: 20px; cursor: ns-resize; }
+.vb-height-handle--top { top: 0; }
+.vb-height-handle--bottom { bottom: 0; }
+.vb-height-handle::before { content: ''; display: block; width: 16px; height: 2px; margin: auto; border-block: 2px dotted #5c0a0a; }
+.vb-reorder-handle:focus-visible, .vb-height-handle:focus-visible { outline: 3px solid #d46a6a; outline-offset: -4px; }
 .vb-width-handle { position: absolute; z-index: 4; top: 50%; right: -9px; width: 18px; height: 42px; transform: translateY(-50%); border: 2px solid #5c0a0a; border-radius: 10px; background: #fff; box-shadow: 0 1px 5px #5c0a0a33; cursor: ew-resize; touch-action: none; }
 .vb-width-handle::before { content: ''; display: block; width: 2px; height: 16px; margin: auto; border-inline: 2px dotted #5c0a0a; }
 .vb-width-handle:focus-visible { outline: 3px solid #d46a6a; outline-offset: 2px; }
+.vb-focal-layer { position: absolute; inset: 0; z-index: 5; cursor: crosshair; touch-action: none; }
+.vb-focal-layer:active { cursor: grabbing; }
+.vb-focal-marker { position: absolute; width: 22px; height: 22px; transform: translate(-50%, -50%); border: 2px solid white; border-radius: 50%; background: #5c0a0a99; box-shadow: 0 0 0 2px #5c0a0a; pointer-events: none; }
 @media (max-width: 1023px) {
   .vb-banner { --zoom: var(--vb-imageScale-1); --font: var(--vb-fontFamily-1); --weight: var(--vb-fontWeight-1); --line: var(--vb-lineHeight-1); --letter: var(--vb-letterSpacing-1); --button-radius: var(--vb-buttonRadius-1); }
   .vb-cell { display: var(--vc-hidden-1, flex); }

@@ -14,6 +14,8 @@
 
                       },
     "attributes":  {
+                       "ordenVisual": { "type": "json" },
+                       "borradoresMenu": { "type": "json", "private": true },
                        "categoriasPerfumeria":  {
                                                     "type":  "relation",
                                                     "relation":  "oneToMany",

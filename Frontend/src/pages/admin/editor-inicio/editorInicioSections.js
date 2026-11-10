@@ -9,6 +9,7 @@ import {
   FiCreditCard,
   FiGift,
   FiCalendar,
+  FiMenu,
 } from 'react-icons/fi';
 
 export const EDITOR_INICIO_PATH = '/editor-inicio-admin';
@@ -16,6 +17,13 @@ export const EDITOR_INICIO_PATH = '/editor-inicio-admin';
 // Orden verificado contra la sección Perfumería de pages/inicio/Inicio.jsx.
 // `landingComponent` indica qué componente de la landing pública representa cada sección.
 export const EDITOR_INICIO_SECTIONS = [
+  {
+    id: 'menu-header',
+    title: 'Menú Header / Mega Menú',
+    description: 'Administrá Ofertas, Lanzamientos y el orden del menú principal de la tienda.',
+    icon: FiMenu,
+    previewImage: '/capturas-admin-editor/00-header.png',
+  },
   {
     id: 'banners',
     title: 'Banners',

@@ -5,6 +5,35 @@ const STATIC_CATEGORIES = new Set(['Ofertas', 'Lanzamientos']);
 
 const MegaMenuCtx = createContext(null);
 
+function orderMenuEntries(items, savedOrder) {
+  const defaults = [
+    { key: 'ofertas', nombre: 'Ofertas' },
+    { key: 'lanzamientos', nombre: 'Lanzamientos' },
+    ...items.filter(item => !STATIC_CATEGORIES.has(item.nombre)).map(item => ({
+      key: item.documentId ? `categoria:${item.documentId}` : null,
+      nombre: item.nombre,
+      seccion: item.seccion,
+      seccionMapped: item.seccionMapped,
+    })),
+  ];
+  if (!Array.isArray(savedOrder)) return defaults;
+  const known = new Map(defaults.filter(item => item.key).map(item => [item.key, item]));
+  const ordered = [];
+  const seen = new Set();
+  savedOrder.forEach(key => {
+    if (known.has(key) && !seen.has(key)) {
+      ordered.push(known.get(key));
+      seen.add(key);
+    }
+  });
+  defaults.forEach(item => { if (!item.key || !seen.has(item.key)) ordered.push(item); });
+  return ordered;
+}
+
+export function orderMenuItems(items, savedOrder) {
+  return orderMenuEntries(items, savedOrder).map(item => item.nombre);
+}
+
 function mergeColumns(existing, incoming) {
   const result = existing.map(column => ({ ...column, items: [...column.items] }));
   incoming.forEach(column => {
@@ -23,10 +52,18 @@ function mergeColumns(existing, incoming) {
 
 export function MegaMenuProvider({ children }) {
   const [megaMap, setMegaMap] = useState(new Map());
+  const [sectionColumns, setSectionColumns] = useState(new Map());
   const [categorySectionMap, setCategorySectionMap] = useState(new Map());
   const [menuArrays, setMenuArrays] = useState({ PERFUMERIA: [], HOGAR: [], GENERAL: [] });
   const [menuLanzOfertas, setMenuLanzOfertas] = useState({ ofertas: null, lanzamientos: null });
   const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setRevision(value => value + 1);
+    window.addEventListener('marybe-menu-updated', refresh);
+    return () => window.removeEventListener('marybe-menu-updated', refresh);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -100,8 +137,7 @@ export function MegaMenuProvider({ children }) {
           for (const c of arr) {
             const attrs = c.attributes || c;
             const nombre = attrs.nombre;
-            if (!nombre || seen.has(nombre)) continue;
-            seen.add(nombre);
+            if (!nombre) continue;
 
             let seccion = attrs.seccion || null;
             if (!seccion) {
@@ -116,7 +152,10 @@ export function MegaMenuProvider({ children }) {
             }
 
             const seccionMapped = seccion ? (SECTION_MAP[seccion] || null) : targetContext;
-            items.push({ nombre, seccion, seccionMapped });
+            const identity = `${seccionMapped || ''}\u0000${nombre}`;
+            if (seen.has(identity)) continue;
+            seen.add(identity);
+            items.push({ nombre, seccion, seccionMapped, documentId: c.documentId || attrs.documentId });
           }
           return items;
         };
@@ -124,6 +163,7 @@ export function MegaMenuProvider({ children }) {
         const listPerfumeria = resolveCategoryItems(menuData.categoriasPerfumeria, 'PERFUMERIA');
         const listHogar = resolveCategoryItems(menuData.categoriasHogar, 'HOGAR');
         const listGeneral = resolveCategoryItems(menuData.categoriasGeneral, null);
+        const baseColumns = new Map(colMap);
 
         // Para categoriasGeneral, tomar exactamente la categoría seleccionada en Strapi sin mezclar secciones
         listGeneral.forEach(({ nombre, seccionMapped }) => {
@@ -142,19 +182,26 @@ export function MegaMenuProvider({ children }) {
           colMap.set(`GENERAL-${nombre}`, columns);
         });
 
+        const originalColumns = new Map(colMap);
+        [['perfumeria', 'PERFUMERIA', listPerfumeria], ['hogar', 'HOGAR', listHogar]].forEach(([area, target, items]) => {
+          const saved = menuData.ordenVisual?.categoriasAgregadas?.[area];
+          const added = Array.isArray(saved) ? saved : [];
+          items.forEach(({ documentId, nombre, seccionMapped }) => {
+            if (!added.includes(documentId) || !seccionMapped) return;
+            const source = `${seccionMapped}-${nombre}`;
+            colMap.set(`${target}-${nombre}`, originalColumns.get(source) || []);
+            secMap.set(`${target}-${nombre}`, seccionMapped);
+          });
+        });
+
         setMegaMap(colMap);
+        setSectionColumns(baseColumns);
         setCategorySectionMap(secMap);
 
-        const addStatics = (list) => {
-          if (list.length === 0) return [];
-          const filtered = list.filter((c) => c !== 'Ofertas' && c !== 'Lanzamientos');
-          return ['Ofertas', 'Lanzamientos', ...filtered];
-        };
-
         setMenuArrays({
-          PERFUMERIA: addStatics(listPerfumeria.map(i => i.nombre)),
-          HOGAR: addStatics(listHogar.map(i => i.nombre)),
-          GENERAL: addStatics(listGeneral.map(i => i.nombre)),
+          PERFUMERIA: orderMenuEntries(listPerfumeria, menuData.ordenVisual?.perfumeria),
+          HOGAR: orderMenuEntries(listHogar, menuData.ordenVisual?.hogar),
+          GENERAL: orderMenuEntries(listGeneral, menuData.ordenVisual?.general),
         });
 
         try {
@@ -179,7 +226,7 @@ export function MegaMenuProvider({ children }) {
     }
     fetchAll();
     return () => controller.abort();
-  }, []);
+  }, [revision]);
 
   const getColumnsForCategory = useCallback(
     (catName, context) => { 
@@ -202,13 +249,18 @@ export function MegaMenuProvider({ children }) {
     },
     [categorySectionMap]
   );
+  const getColumnsInSection = useCallback((name, section) => sectionColumns.get(`${section}-${name}`) || [], [sectionColumns]);
   const getCategoriesForContext = useCallback(
-    (context) => { const list = menuArrays[context]; if (!list || list.length === 0) return ['Ofertas', 'Lanzamientos']; return list; },
+    (context) => { const list = menuArrays[context]; if (!list || list.length === 0) return ['Ofertas', 'Lanzamientos']; return list.map(item => item.nombre); },
+    [menuArrays]
+  );
+  const getMenuItemsForContext = useCallback(
+    context => menuArrays[context]?.length ? menuArrays[context] : [{ key: 'ofertas', nombre: 'Ofertas' }, { key: 'lanzamientos', nombre: 'Lanzamientos' }],
     [menuArrays]
   );
 
   return (
-    <MegaMenuCtx.Provider value={{ megaMap, categorySectionMap, menuArrays, loading, getColumnsForCategory, getSectionForCategory, getCategoriesForContext, menuLanzOfertas }}>
+    <MegaMenuCtx.Provider value={{ megaMap, categorySectionMap, menuArrays, loading, getColumnsForCategory, getColumnsInSection, getSectionForCategory, getCategoriesForContext, getMenuItemsForContext, menuLanzOfertas }}>
       {children}
     </MegaMenuCtx.Provider>
   );

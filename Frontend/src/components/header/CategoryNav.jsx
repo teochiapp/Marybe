@@ -9,6 +9,7 @@ import {
   menuCategoryUrl,
   discountUrl,
   SECTION_MAP,
+  menuItemsWithSections,
 } from '../../data/megamenu';
 import { useMegaMenu } from '../../hooks/useMegaMenu';
 import { useMegaMenuContext } from '../../hooks/useMegaMenuContext';
@@ -21,7 +22,7 @@ const NavWrapper = styled.div`
   width: 100%;
 
   @media (max-width: 768px) {
-    display: none;
+    display: ${({ $preview }) => ($preview ? 'block' : 'none')};
   }
 `;
 
@@ -305,20 +306,24 @@ const MobilePill = styled.a`
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
-export default function CategoryNav() {
+export default function CategoryNav({ preview }) {
   const [activeCategory, setActiveCategory] = useState(null);
   const navRef = useRef(null);
-  const navigate = useNavigate();
+  const navigateTo = useNavigate();
+  const navigate = (...args) => { if (!preview) navigateTo(...args); };
   const location = useLocation();
 
   // Hook de contexto: provee el contexto actual Y la lista de categorias sincronizada
   // (ambos vienen de la misma instancia de useMegaMenu -> sin stacking al cambiar seccion)
-  const { context, getCategoriesForContext } = useMegaMenuContext();
+  const contextState = useMegaMenuContext();
+  const context = preview?.context || contextState.context;
+  const { getMenuItemsForContext } = contextState;
 
   // Hook de megamenu solo para las columnas del dropdown (columnas/subcategorias)
-  const { getColumnsForCategory, getSectionForCategory, menuLanzOfertas } = useMegaMenu();
+  const { getColumnsForCategory, getColumnsInSection, getSectionForCategory, menuLanzOfertas: publicMenu } = useMegaMenu();
+  const menuLanzOfertas = preview?.menu || publicMenu;
 
-  const dynamicCategories = getCategoriesForContext(context);
+  const dynamicCategories = menuItemsWithSections(preview?.categories || getMenuItemsForContext(context), context);
 
   // ─── Helper: navega al inicio y hace scroll suave a una sección por ID ───
   const scrollToHomeSection = (sectionId) => {
@@ -350,7 +355,7 @@ export default function CategoryNav() {
   };
 
   const handleCategoryClick = (cat) => {
-    setActiveCategory((prev) => (prev === cat ? null : cat));
+    setActiveCategory((prev) => (prev?.key === cat.key ? null : cat));
   };
 
   useEffect(() => {
@@ -366,7 +371,8 @@ export default function CategoryNav() {
 
 
   // Columnas del MegaMenu según la categoría activa
-  const getMegaColumnsForCategory = (cat) => {
+  const getMegaColumnsForCategory = (item) => {
+    const cat = item.nombre;
     if (cat === 'Ofertas') {
       const colData = [];
       const ofertasConf = menuLanzOfertas?.ofertas;
@@ -437,23 +443,24 @@ export default function CategoryNav() {
       return colData;
     }
     
-    return getColumnsForCategory(cat, context) || [];
+    return item.useSection ? getColumnsInSection(cat, item.seccionMapped) : getColumnsForCategory(cat, context) || [];
   };
 
   return (
     <>
       {/* Desktop */}
-      <NavWrapper ref={navRef}>
+      <NavWrapper ref={navRef} $preview={Boolean(preview)}>
         <DesktopNav>
           <CategoryList>
             {dynamicCategories.map((cat) => (
-              <CategoryItem key={cat}>
+              <CategoryItem key={cat.key}>
                 <CategoryBtn
-                  $active={activeCategory === cat}
+                  aria-label={cat.accessibleLabel}
+                  $active={activeCategory?.key === cat.key}
                   onClick={() => handleCategoryClick(cat)}
                 >
-                  {cat}
-                  <ChevronRight active={activeCategory === cat} />
+                  {cat.label}
+                  <ChevronRight active={activeCategory?.key === cat.key} />
                 </CategoryBtn>
               </CategoryItem>
             ))}
@@ -469,12 +476,12 @@ export default function CategoryNav() {
                 <MegaTitleText
                   onClick={() => {
                     setActiveCategory(null);
-                    const catContext = (context === 'GENERAL' ? getSectionForCategory(activeCategory, context) : context) || context;
-                    navigate(menuCategoryUrl(activeCategory, catContext));
+                    const catContext = (activeCategory.useSection && activeCategory.seccionMapped) || getSectionForCategory(activeCategory.nombre, context) || context;
+                    navigate(menuCategoryUrl(activeCategory.nombre, catContext));
                   }}
-                  title={`Ver todo en ${activeCategory}`}
+                  title={`Ver todo en ${activeCategory.nombre}`}
                 >
-                  {activeCategory}
+                  {activeCategory.label}
                 </MegaTitleText>
               </MegaTitle>
 

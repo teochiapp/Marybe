@@ -155,6 +155,7 @@ export default function useSectionDraft({ token, endpoint, areaKeys, initialArea
     undo: () => moveHistory(-1),
     redo: () => moveHistory(1),
     isAreaDirty: key => isDirtyEntry(work[key]),
+    getAreaData: key => currentData(work[key]),
     save,
     discardDraft,
     revertToPublished,

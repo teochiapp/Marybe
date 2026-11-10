@@ -20,6 +20,20 @@ export const DEFAULT_CATEGORIES = [
   'Electro belleza',
 ];
 
+export function menuItemsWithSections(items, context) {
+  const entries = items.map(item => typeof item === 'string' ? { key: item, nombre: item } : item);
+  return entries.map(item => {
+    const duplicate = entries.some(other => other !== item && other.nombre === item.nombre && other.seccionMapped !== item.seccionMapped);
+    return {
+      ...item,
+      key: item.key || `${item.seccionMapped || ''}:${item.nombre}`,
+      label: duplicate && item.seccion && context !== 'GENERAL' ? `${item.nombre} · ${item.seccion}` : item.nombre,
+      accessibleLabel: duplicate && item.seccion ? `${item.nombre} · ${item.seccion}` : item.nombre,
+      useSection: Boolean(item.seccionMapped && (duplicate || item.forceSection)),
+    };
+  });
+}
+
 /**
  * Píldoras destacadas que aparecen en la versión móvil del nav.
  * `active: true` marca la seleccionada por defecto.

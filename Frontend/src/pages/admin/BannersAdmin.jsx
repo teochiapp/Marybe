@@ -1,19 +1,31 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import axios from 'axios';
-import { BANNER_DEFAULTS, DEVICES, DEVICE_WIDTHS, ROW_TYPES, deviceDesign, duplicateRow, imageUrl, newBanner, structuredCopy } from '../../utils/bannerDesign';
+import { BANNER_DEFAULTS, DEVICES, DEVICE_WIDTHS, designOrigin, deviceDesign, duplicateRow, imageUrl, newBanner, structuredCopy } from '../../utils/bannerDesign';
 import './BannersAdmin.css';
 import './ImportacionAdmin.css';
 import BannerPreviewDialog from '../../components/banners/BannerPreviewDialog';
 import BannerStructure from '../../components/banners/BannerStructure';
+import BannerRowInspector from '../../components/banners/BannerRowInspector';
 
 const API = process.env.REACT_APP_STRAPI_URL || process.env.REACT_APP_API_URL || 'http://localhost:1337';
 const NAMES = { desktop: 'Computadora', tablet: 'Tablet', mobile: 'Celular' };
 const TYPE_COLUMNS = { 'layout.fila-1-columna': 1, 'layout.fila-2-columnas': 2, 'layout.fila-4-columnas': 4, 'layout.fila-mixta': 1 };
 function normalized(document) {
-  return { ...document, Filas: (document.Filas || []).map(row => ({ ...row, diseno: { desktop: { columns: TYPE_COLUMNS[row.__component], ...row.diseno?.desktop }, tablet: row.diseno?.tablet || {}, mobile: { columns: 1, ...row.diseno?.mobile } }, banners: row.banners || [] })) };
+  return { ...document, Filas: (document.Filas || []).map(row => ({ ...row, diseno: row.diseno || {}, banners: row.banners || [] })) };
 }
-function NumberControl({ label, value, min = 0, max = 100, step = 1, onChange, suffix = 'px' }) {
-  return <label className="ba-control"><span>{label} <small>{suffix}</small></span><div className="ba-range"><input aria-label={`${label} deslizador`} type="range" min={min} max={max} step={step} value={value ?? min} onChange={e => onChange(Number(e.target.value))} /><input aria-label={label} type="number" min={min} max={max} step={step} value={value ?? min} onChange={e => { if (e.target.value !== '') onChange(Math.max(min, Math.min(max, Number(e.target.value)))); }} /></div></label>;
+function savedSelection(key) {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(`marybe-banner-selection:${key}`) || 'null');
+    if (!value || !Number.isInteger(value.row) || !Number.isInteger(value.banner) || value.row < 0 || value.banner < 0) return null;
+    return { selected: { row: value.row, banner: value.banner }, inspect: value.inspect === 'banner' ? 'banner' : 'row' };
+  } catch { return null; }
+}
+function Origin({ origin, onReset, label }) {
+  if (!origin) return null;
+  return <div className="ba-field-origin"><span>{origin.label}</span>{origin.own && <button type="button" aria-label={`Volver a heredar ${label}`} onClick={onReset}>Volver a heredar</button>}</div>;
+}
+function NumberControl({ label, value, min = 0, max = 100, step = 1, onChange, suffix = 'px', origin, onReset }) {
+  return <div><label className="ba-control"><span>{label} <small>{suffix}</small></span><div className="ba-range"><input aria-label={`${label} deslizador`} type="range" min={min} max={max} step={step} value={value ?? min} onChange={e => onChange(Number(e.target.value))} /><input aria-label={label} type="number" min={min} max={max} step={step} value={value ?? min} onChange={e => { if (e.target.value !== '') onChange(Math.max(min, Math.min(max, Number(e.target.value)))); }} /></div></label><Origin origin={origin} onReset={onReset} label={label} /></div>;
 }
 export default function BannersAdmin({ onBack, onLogout } = {}) {
   const [token, setToken] = useState(() => localStorage.getItem('admin_jwt') || '');
@@ -25,7 +37,18 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
   const [draft, setDraft] = useState(null);
   const [selected, setSelected] = useState({ row: 0, banner: 0 });
   const [device, setDevice] = useState('desktop');
-  const [inspect, setInspect] = useState('banner');
+  const [inspect, setInspect] = useState('row');
+  const [focalMode, setFocalMode] = useState(false);
+  const [openBlocks, setOpenBlocks] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('marybe-banner-inspector-blocks') || '{}'); } catch { return {}; }
+  });
+  function setBlock(name, open) {
+    setOpenBlocks(previous => {
+      const next = { ...previous, [name]: open };
+      try { sessionStorage.setItem('marybe-banner-inspector-blocks', JSON.stringify(next)); } catch { /* La edición sigue disponible sin almacenamiento de sesión. */ }
+      return next;
+    });
+  }
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -63,10 +86,10 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
     if ([401, 403].includes(error.response?.status)) { localStorage.removeItem('admin_jwt'); setToken(''); }
     setError(error.response?.data?.error?.message || error.message || 'No se pudo completar la operación.');
   }
-  function setInitial(value) {
+  function setInitial(value, selection = { row: 0, banner: 0 }) {
     const copy = structuredCopy(value);
     baseline.current = JSON.stringify(copy);
-    setDraft(copy); setHistory([copy]); setHistoryIndex(0); setSelected({ row: 0, banner: 0 });
+    setDraft(copy); setHistory([copy]); setHistoryIndex(0); setSelected(selection);
   }
   function rememberCurrent() {
     if (draft && source) {
@@ -76,17 +99,19 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
   }
   function selectSource(key, nextInspect) {
     if (busy) return;
+    setFocalMode(false);
     if (key === source) { setInspect(nextInspect || inspect); setSelected({ ...selected }); return; }
     const cached = navigation.current.get(key);
     const record = cached?.draft || promotions.find(p => p.documentId === key);
     if (!record) return;
     rememberCurrent();
-    setError(''); setMessage(''); setSource(key); setInspect(nextInspect || cached?.inspect || 'banner'); setArea(record.seccion);
+    const saved = savedSelection(key);
+    setError(''); setMessage(''); setSource(key); setInspect(nextInspect || cached?.inspect || saved?.inspect || 'row'); setArea(record.seccion);
     lastSource.current[record.seccion] = key;
     if (cached) {
       baseline.current = cached.baseline;
       setDraft(structuredCopy(cached.draft)); setHistory(cached.history); setHistoryIndex(cached.historyIndex); setSelected({ ...cached.selected });
-    } else setInitial(normalized(record));
+    } else setInitial(normalized(record), saved?.selected);
   }
   function selectArea(nextArea) {
     if (busy || nextArea === area) return;
@@ -109,13 +134,24 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
       setPromotions(records);
       navigation.current.clear();
       lastSource.current = {};
-      if (records.length) { setArea(records[0].seccion); setSource(records[0].documentId); setInitial(normalized(records[0])); }
+      if (records.length) {
+        const lastKey = sessionStorage.getItem('marybe-banner-last-source');
+        const record = records.find(item => item.documentId === lastKey) || records[0];
+        const saved = savedSelection(record.documentId);
+        setArea(record.seccion); setSource(record.documentId); setInspect(saved?.inspect || 'row'); setInitial(normalized(record), saved?.selected);
+      }
       else { setSource(''); setDraft(null); }
     }).catch(e => { if (active) handleError(e); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
     // Auth changes intentionally reload the document inventory.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+  useEffect(() => {
+    if (!source || !draft) return;
+    if (draft.documentId && draft.documentId !== source) return;
+    sessionStorage.setItem(`marybe-banner-selection:${source}`, JSON.stringify({ ...selected, inspect }));
+    if (draft.documentId) sessionStorage.setItem('marybe-banner-last-source', source);
+  }, [source, draft, selected, inspect]);
   useEffect(() => {
     if (dirty && source) sessionStorage.setItem(`marybe-banner-draft:${source}`, JSON.stringify({ version: draft.updatedAt, draft }));
     const warn = event => { if (hasUnsaved) { event.preventDefault(); event.returnValue = ''; } };
@@ -160,28 +196,46 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
       const data = event.data;
       if (data?.type === 'MARYBE_BANNERS_READY') setReady(value => value + 1);
       if (data?.type === 'MARYBE_BANNERS_HEIGHT' && Number.isFinite(data.height)) setPreviewHeight(Math.min(16000, Math.max(180, data.height)));
-      if (data?.type === 'MARYBE_BANNERS_SELECT' && rows[data.row]?.banners?.[data.banner]) { setSelected({ row: data.row, banner: data.banner }); setInspect('banner'); }
+      if (data?.type === 'MARYBE_BANNERS_SELECT' && rows[data.row]?.banners?.[data.banner]) { setSelected({ row: data.row, banner: data.banner }); setInspect('banner'); setFocalMode(false); }
+      if (data?.type === 'MARYBE_BANNERS_EXIT_FOCAL') setFocalMode(false);
+      if (data?.type === 'MARYBE_BANNERS_FOCAL' && rows[data.row]?.banners?.[data.banner] && Number.isFinite(data.value?.positionX) && Number.isFinite(data.value?.positionY)) {
+        change(copy => {
+          const item = copy.Filas[data.row].banners[data.banner];
+          item.diseno = { ...item.diseno, [device]: { ...item.diseno?.[device], positionX: Math.max(0, Math.min(100, data.value.positionX)), positionY: Math.max(0, Math.min(100, data.value.positionY)) } };
+        });
+      }
       if (data?.type === 'MARYBE_BANNERS_MOVE' && rows[data.row]?.banners?.[data.banner]) {
         change(copy => {
           const target = copy.Filas[data.row].banners[data.banner];
           target.diseno = { ...target.diseno, [device]: { ...target.diseno?.[device], textX: Math.max(0, Math.min(90, data.value.textX)), textY: Math.max(5, Math.min(95, data.value.textY)) } };
         });
       }
-      if (data?.type === 'MARYBE_BANNERS_RESIZE' && rows[data.row]?.banners?.[data.banner] && Number.isFinite(data.value)) {
+      if (data?.type === 'MARYBE_BANNERS_REORDER' && data.source === source) reorderBanner(data.row, data.from, data.to);
+      if (data?.type === 'MARYBE_BANNERS_RESIZE' && Number.isInteger(data.row) && Number.isInteger(data.banner) && rows[data.row]?.banners?.[data.banner] && Number.isFinite(data.value)) {
+        const isHeight = data.dimension === 'height';
+        if (isHeight && (data.source !== source || data.device !== device)) return;
+        const key = isHeight ? 'height' : 'width';
+        const value = Math.max(isHeight ? 80 : 10, Math.min(isHeight ? 1600 : 100, Math.round(data.value)));
         change(copy => {
           const target = copy.Filas[data.row].banners[data.banner];
-          target.diseno = { ...target.diseno, [device]: { ...target.diseno?.[device], width: Math.max(10, Math.min(100, Math.round(data.value))) } };
+          target.diseno = { ...target.diseno, [device]: { ...target.diseno?.[device], [key]: value } };
         });
       }
     };
     window.addEventListener('message', receive);
     return () => window.removeEventListener('message', receive);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, draft, device, history, historyIndex]);
+  }, [rows, draft, device, source, history, historyIndex, busy]);
   useEffect(() => {
-    const timer = setTimeout(() => frame.current?.contentWindow?.postMessage({ type: 'MARYBE_BANNERS_PREVIEW', payload: { rows, selected, device } }, window.location.origin), 60);
+    const timer = setTimeout(() => frame.current?.contentWindow?.postMessage({ type: 'MARYBE_BANNERS_PREVIEW', payload: { rows, selected, device, focalMode, source } }, window.location.origin), 60);
     return () => clearTimeout(timer);
-  }, [rows, selected, device, ready]);
+  }, [rows, selected, device, ready, focalMode, source]);
+  useEffect(() => {
+    if (!focalMode) return undefined;
+    const keyboard = event => { if (event.key === 'Escape') setFocalMode(false); };
+    window.addEventListener('keydown', keyboard);
+    return () => window.removeEventListener('keydown', keyboard);
+  }, [focalMode]);
 
   async function login(event) {
     event.preventDefault(); setBusy(true); setError('');
@@ -227,7 +281,7 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
     const key = `new-${++newSectionId.current}`;
     const document = value || { titulo: 'Nueva sección de banners', seccion: area, Filas: [{ __component: 'layout.fila-1-columna', es_carrusel: false, diseno: { desktop: { columns: 1 }, mobile: { columns: 1 } }, banners: [newBanner()] }] };
     navigation.current.set(key, { draft: document, baseline: JSON.stringify(document), history: [document], historyIndex: 0, selected: { row: 0, banner: 0 } });
-    setSource(key); setInspect('banner'); setInitial(document);
+    setSource(key); setInspect('row'); setInitial(document);
   }
   async function deleteSection(position) {
     const entry = documents.find(item => item.key === position.key);
@@ -240,18 +294,29 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
       if (target.documentId) setPromotions(previous => previous.filter(item => item.documentId !== target.documentId));
       const next = documents.find(item => item.key !== position.key);
       if (!next) {
-        setSource(''); setDraft(null); setHistory([]); setHistoryIndex(0); setSelected({ row: 0, banner: 0 }); setInspect('banner');
+        setSource(''); setDraft(null); setHistory([]); setHistoryIndex(0); setSelected({ row: 0, banner: 0 }); setInspect('row');
       } else {
         const cached = navigation.current.get(next.key);
         const nextDraft = structuredCopy(cached?.draft || normalized(next.document));
-        setSource(next.key); setArea(nextDraft.seccion); setInspect(cached?.inspect || 'banner');
+        setSource(next.key); setArea(nextDraft.seccion); setInspect(cached?.inspect || 'row');
         baseline.current = cached?.baseline || JSON.stringify(nextDraft);
         setDraft(nextDraft); setHistory(cached?.history || [nextDraft]); setHistoryIndex(cached?.historyIndex || 0); setSelected(cached?.selected || { row: 0, banner: 0 });
       }
       setMessage('Sección eliminada.');
     } catch (error) { handleError(error); } finally { setBusy(false); }
   }
-  function selectElement(row, banner, mode) { setSelected({ row, banner }); setInspect(mode); }
+  function selectElement(row, banner, mode) { setSelected({ row, banner }); setInspect(mode); setFocalMode(false); }
+  function reorderBanner(row, from, to) {
+    if (busy || !Number.isInteger(row) || !Number.isInteger(from) || !Number.isInteger(to) || from === to) return;
+    const banners = rows[row]?.banners;
+    if (!banners?.[from] || !banners[to]) return;
+    change(copy => {
+      const list = copy.Filas[row].banners;
+      const [banner] = list.splice(from, 1);
+      list.splice(to, 0, banner);
+    });
+    selectElement(row, to, 'banner');
+  }
   function addBanner(rowIndex) {
     if (busy) return;
     const index = rows[rowIndex].banners.length;
@@ -267,6 +332,7 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
     const ri = position.row, bi = position.banner;
     if (action === 'rename-section' || action === 'rename-banner') {
       setInspect(action === 'rename-section' ? 'row' : 'banner');
+      if (action === 'rename-banner' && !rows[ri]?.banners?.[bi]?.mostrar_texto) setBlock('more', true);
       requestAnimationFrame(() => { const input = document.getElementById(action === 'rename-section' ? 'ba-section-name' : 'ba-banner-name'); input?.focus(); input?.select(); });
     }
     if (action === 'duplicate-section') createPromotion({ titulo: `${draft.titulo} (copia)`, seccion: area, Filas: rows.map(duplicateRow) });
@@ -277,11 +343,7 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
     if (action === 'hide-distribution') updateDesign({ hidden: !deviceDesign(rows[ri].diseno, device, {}).hidden }, ri);
     if (action === 'delete-distribution' && rows.length > 1) { change(copy => copy.Filas.splice(ri, 1)); selectElement(Math.max(0, ri - 1), 0, 'row'); }
     if (action === 'duplicate-banner') { change(copy => copy.Filas[ri].banners.splice(bi + 1, 0, { ...structuredCopy(rows[ri].banners[bi]), id: undefined })); selectElement(ri, bi + 1, 'banner'); }
-    if (action === 'up-banner' || action === 'down-banner') {
-      const destination = bi + (action === 'up-banner' ? -1 : 1);
-      if (destination < 0 || destination >= rows[ri].banners.length) return;
-      change(copy => { const list = copy.Filas[ri].banners; [list[bi], list[destination]] = [list[destination], list[bi]]; }); selectElement(ri, destination, 'banner');
-    }
+    if (action === 'up-banner' || action === 'down-banner') reorderBanner(ri, bi, bi + (action === 'up-banner' ? -1 : 1));
     if (action === 'hide-banner') updateBanner({ activo: rows[ri].banners[bi].activo === false }, ri, bi);
     if (action === 'delete-banner' && rows[ri].banners.length > 1) { change(copy => copy.Filas[ri].banners.splice(bi, 1)); selectElement(ri, Math.max(0, bi - 1), 'banner'); }
   }
@@ -300,8 +362,13 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
   }
   const target = inspect === 'row' ? row : banner;
   const values = deviceDesign(target?.diseno, device, inspect === 'row' ? { columns: TYPE_COLUMNS[row?.__component] || 1, gap: 16, padding: 0, margin: 0, width: 100, maxWidth: 1920, background: '#ffffff', hidden: false } : BANNER_DEFAULTS);
-  const number = (key, label, min, max, suffix = 'px', step = 1) => <NumberControl key={key} label={label} value={values[key]} min={min} max={max} suffix={suffix} step={step} onChange={value => updateDesign({ [key]: value })} />;
-  const color = (key, label) => <label className="ba-control ba-color" key={key}><span>{label}</span><input aria-label={label} type="color" value={values[key]} onChange={event => updateDesign({ [key]: event.target.value })} /><code>{values[key]}</code></label>;
+  const resetField = key => change(copy => {
+    const item = inspect === 'row' ? copy.Filas[selected.row] : copy.Filas[selected.row].banners[selected.banner];
+    if (item?.diseno?.[device]) delete item.diseno[device][key];
+  });
+  const origin = (key, label) => <Origin origin={designOrigin(target?.diseno, device, key)} label={label} onReset={() => resetField(key)} />;
+  const number = (key, label, min, max, suffix = 'px', step = 1) => <NumberControl key={key} label={label} value={values[key]} min={min} max={max} suffix={suffix} step={step} origin={designOrigin(target?.diseno, device, key)} onReset={() => resetField(key)} onChange={value => updateDesign({ [key]: value })} />;
+  const color = (key, label) => <div key={key}><label className="ba-control ba-color"><span>{label}</span><input aria-label={label} type="color" value={values[key]} onChange={event => updateDesign({ [key]: event.target.value })} /><code>{values[key]}</code></label>{origin(key, label)}</div>;
 
   if (!token) return <main className="ia-wrapper">
     <div className="ia-bg-particles">{[...Array(12)].map((_, index) => <div key={index} className={`ia-particle ia-particle--${index + 1}`} />)}</div>
@@ -328,12 +395,12 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
     <header className="ba-topbar">
       {onBack && <button type="button" className="ba-back" disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Volver al Editor de Inicio con cambios sin guardar?')) onBack(); }}>← Editor de Inicio</button>}
       <div className="ba-brand"><img src="/logo-marybe.png" alt="Marybe" width="629" height="168" /><span>Editor de banners</span></div>
-      <span className={`ba-status ${hasUnsaved ? 'ba-status--dirty' : ''}`}>{!draft?.documentId && draft ? '○ Sección nueva' : dirty ? '● Cambios sin guardar' : hasUnsaved ? '● Otros cambios pendientes' : '● Todo guardado'}</span>
+      <span className={`ba-status ${hasUnsaved ? 'ba-status--dirty' : ''}`}>{!draft?.documentId && draft ? '○ Sección nueva' : dirty ? '● Cambios pendientes' : hasUnsaved ? '● Otros cambios pendientes' : draft ? '● Borrador guardado' : ''}</span>
       <div className="ba-top-actions">
         <details className="ba-top-more"><summary>Más opciones</summary><div><button onClick={recover} disabled={!draft || busy}>Recuperar copia</button><button disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Salir con cambios sin guardar?')) { localStorage.removeItem('admin_jwt'); setToken(''); onLogout?.(); } }}>Salir</button></div></details>
         <button className="ba-preview-open" disabled={!draft || loading} onClick={() => setShowPreview(true)}>Vista previa</button>
         <button disabled={!draft || busy} onClick={() => save(false)}>Guardar borrador</button>
-        <button className="ba-primary" disabled={!draft || busy} onClick={() => save(true)}>{busy ? 'Guardando…' : 'Publicar cambios'}</button>
+        <button className="ba-primary" disabled={!draft || busy} onClick={() => save(true)}>{busy ? 'Guardando…' : 'Publicar en la tienda'}</button>
       </div>
     </header>
     <div className="ba-locationbar"><div><p className="ba-eyebrow">TIENDA / EDITOR VISUAL</p><h1>Página de Inicio</h1></div><div className="ba-area-tabs" role="group" aria-label="Área de Inicio">{['Perfumería', 'Hogar'].map(value => <button key={value} disabled={busy || loading} aria-pressed={area === value} onClick={() => selectArea(value)}>{value}</button>)}</div><p>Banners principales de <strong>{area}</strong></p></div>
@@ -345,23 +412,36 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
         <div className="ba-canvas" ref={canvas}>{draft ? <><div className="ba-canvas-caption">VISTA PREVIA · {draft.titulo}</div><div className="ba-frame-shell" style={{ width: DEVICE_WIDTHS[device] * scale, height: previewHeight * scale }}><iframe title="Vista previa de banners" src="/banners-preview" ref={frame} onLoad={() => setReady(value => value + 1)} style={{ width: DEVICE_WIDTHS[device], height: previewHeight, transform: `scale(${scale})` }} /></div><p className="ba-canvas-tip">Tu vista previa es privada. Publicá cuando esté lista.</p></> : <div className="ba-empty"><h2>Creá tu primera sección de banners</h2><p>Agregá una sección en {area} y empezá por elegir sus imágenes.</p><button className="ba-primary" onClick={() => createPromotion()}>Crear sección</button></div>}</div>
       </section>
 
-      <aside className="ba-inspector"><div className="ba-inspector-title"><p className="ba-eyebrow">PERSONALIZAR</p><h2>{inspect === 'row' ? draft?.titulo || 'Sección de banners' : banner?.titulo || 'Elegí un banner'}</h2><span>{NAMES[device]} · {DEVICE_WIDTHS[device]} px</span><p className="ba-device-help">{device === 'desktop' ? 'Diseño base. Tablet y celular heredan estos ajustes hasta personalizarlos.' : `Los ajustes de tamaño y posición se aplican solo a ${NAMES[device].toLowerCase()}.`}</p></div>
-        {draft && <div className="ba-inspector-tabs"><button className={inspect === 'banner' ? 'is-active' : ''} onClick={() => setInspect('banner')}>Banner</button><button className={inspect === 'row' ? 'is-active' : ''} onClick={() => setInspect('row')}>Distribución</button></div>}
+      <aside className="ba-inspector"><div className="ba-inspector-title"><p className="ba-eyebrow">PERSONALIZAR</p><h2>{inspect === 'row' ? draft?.titulo || 'Sección de banners' : banner?.titulo || 'Elegí un banner'}</h2>{draft && <p>Distribución {selected.row + 1} · Banner {selected.banner + 1}</p>}<span>{NAMES[device]} · {DEVICE_WIDTHS[device]} px</span><p className="ba-device-help">{device === 'desktop' ? 'Diseño base. Tablet y celular heredan estos ajustes hasta personalizarlos.' : `Los ajustes de tamaño y posición se aplican solo a ${NAMES[device].toLowerCase()}.`}</p></div>
+        {draft && <div className="ba-inspector-tabs"><button aria-label="Distribución" className={inspect === 'row' ? 'is-active' : ''} onClick={() => { setInspect('row'); setFocalMode(false); }}>1. Distribución</button><button aria-label="Banner" className={inspect === 'banner' ? 'is-active' : ''} onClick={() => setInspect('banner')}>2. Banner</button></div>}
         {target && <>
           {inspect === 'banner' && <p className="ba-inspector-help">Imagen y diseño: por dispositivo. Textos, enlace y estado activo: compartidos.</p>}
           {inspect === 'row' && <p className="ba-inspector-help">Organizá cómo se presentan los banners en este dispositivo. Podés editar cada imagen desde la estructura.</p>}
-          {inspect === 'row' ? <><label>Nombre de la sección<input id="ba-section-name" value={draft.titulo} maxLength={200} onChange={e => change(copy => { copy.titulo = e.target.value; })} /></label>{rows.length > 1 && <label>Distribución activa<select value={selected.row} onChange={e => selectElement(Number(e.target.value), 0, 'row')}>{rows.map((item, index) => <option key={index} value={index}>Distribución {index + 1}</option>)}</select></label>}<details open><summary>Distribución de los banners</summary><label>Tipo de distribución<select value={row.__component} onChange={e => change(copy => { copy.Filas[selected.row].__component = e.target.value; copy.Filas[selected.row].diseno = { ...copy.Filas[selected.row].diseno, desktop: { ...copy.Filas[selected.row].diseno?.desktop, columns: TYPE_COLUMNS[e.target.value] } }; })}>{Object.entries(ROW_TYPES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label>Tipo de presentación<select value={row.es_carrusel ? 'carousel' : 'grid'} onChange={e => change(copy => { copy.Filas[selected.row].es_carrusel = e.target.value === 'carousel'; })}><option value="grid">Grilla</option><option value="carousel">Carrusel</option></select></label>{number('columns', 'Columnas', 1, 4, '')}<NumberControl label="Alto de los banners" value={deviceDesign(row.banners[0]?.diseno, device).height} min={0} max={1600} onChange={height => change(copy => { copy.Filas[selected.row].banners.forEach(item => { item.diseno = { ...item.diseno, [device]: { ...item.diseno?.[device], height } }; }); })} /><small className="ba-hint">Aplica a todos los banners de esta distribución, solo en {NAMES[device].toLowerCase()}. Usá 0 para el alto automático.</small>{number('gap', 'Separación', 0, 100)}{number('width', 'Ancho de distribución', 10, 100, '%')}{number('maxWidth', 'Ancho máximo', 320, 2560)}{number('padding', 'Espacio interior', 0, 160)}{number('margin', 'Margen vertical', 0, 200)}{color('background', 'Fondo de distribución')}</details><button className="ba-add-row" onClick={addDistribution} disabled={busy}>＋ Agregar distribución</button></> : <>
-            <details open><summary>1. Imagen y contenido</summary><label>Nombre del banner / título<input id="ba-banner-name" value={banner.titulo || ''} maxLength={200} onChange={e => updateBanner({ titulo: e.target.value })} /></label><div className="ba-image-current">{imageUrl(currentImage) ? <img src={imageUrl(currentImage)} alt="Imagen seleccionada" /> : <span>Sin imagen</span>}</div><button className="ba-library-button" onClick={openLibrary}>Elegir imagen · {NAMES[device]}</button><small className="ba-hint">Tablet y celular heredan la imagen anterior si no se especifica otra.</small>{device !== 'desktop' && <button onClick={() => updateBanner({ [`imagen_${device}`]: null })}>Usar imagen heredada</button>}
-              <label className="ba-check"><input type="checkbox" checked={banner.mostrar_texto || false} onChange={e => updateBanner({ mostrar_texto: e.target.checked })} />Mostrar textos sobre la imagen</label>{banner.mostrar_texto && <><label>Descripción<textarea rows={3} maxLength={2000} value={banner.subtitulo || ''} onChange={e => updateBanner({ subtitulo: e.target.value })} /></label><label>Texto del botón<input maxLength={100} value={banner.texto_boton || ''} onChange={e => updateBanner({ texto_boton: e.target.value })} /></label></>}<label>Enlace<input placeholder="/tienda o https://…" maxLength={2048} value={banner.enlace || ''} onChange={e => updateBanner({ enlace: e.target.value })} /></label>
-              <label className="ba-check"><input type="checkbox" checked={banner.activo !== false} onChange={e => updateBanner({ activo: e.target.checked })} />Banner activo</label>
+          {inspect === 'row' ? <BannerRowInspector draft={draft} row={row} rows={rows} selected={selected} device={device} deviceName={NAMES[device]} values={values} busy={busy} change={change} selectElement={selectElement} addBanner={addBanner} addDistribution={addDistribution} updateDesign={updateDesign} number={number} color={color} origin={origin} NumberControl={NumberControl} /> : <>
+            <div className="ba-image-controls">
+              <h3>Imagen · {NAMES[device]}</h3>
+              <div className="ba-image-current">{imageUrl(currentImage) ? <img src={imageUrl(currentImage)} alt="Imagen seleccionada" /> : <span>Sin imagen</span>}</div>
+              <div className="ba-image-actions"><button className="ba-library-button" onClick={openLibrary}>Cambiar imagen · {NAMES[device]}</button><button type="button" aria-pressed={focalMode} onClick={() => setFocalMode(value => !value)}>{focalMode ? 'Terminar encuadre' : 'Editar encuadre'}</button></div>
+              {focalMode && <p className="ba-inspector-help">Arrastrá la imagen o hacé clic para marcar el punto focal. Usá Escape para terminar.</p>}
+              <small className="ba-hint">Tablet y celular heredan la imagen anterior si no se especifica otra.</small>{device !== 'desktop' && <button onClick={() => updateBanner({ [`imagen_${device}`]: null })}>Usar imagen heredada</button>}
+              <label>Ajuste de imagen<select value={values.fit} onChange={e => updateDesign({ fit: e.target.value })}><option value="contain">Mostrar imagen completa</option><option value="cover">Llenar el banner</option><option value="fill">Estirar imagen</option></select></label>{origin('fit', 'Ajuste de imagen')}
+              {number('imageScale', 'Zoom de imagen', 25, 200, '%')}
+            </div>
+            <label>Destino al hacer clic<input placeholder="/tienda o https://…" maxLength={2048} value={banner.enlace || ''} onChange={e => updateBanner({ enlace: e.target.value })} /></label>
+            <label className="ba-check"><input type="checkbox" checked={banner.mostrar_texto || false} onChange={e => updateBanner({ mostrar_texto: e.target.checked })} />Mostrar textos sobre la imagen</label>
+            {banner.mostrar_texto && <div className="ba-text-content"><label>Nombre del banner / título<input id="ba-banner-name" value={banner.titulo || ''} maxLength={200} onChange={e => updateBanner({ titulo: e.target.value })} /></label><label>Descripción<textarea rows={3} maxLength={2000} value={banner.subtitulo || ''} onChange={e => updateBanner({ subtitulo: e.target.value })} /></label><label>Texto del botón<input maxLength={100} value={banner.texto_boton || ''} onChange={e => updateBanner({ texto_boton: e.target.value })} /></label></div>}
+            <details open={!!openBlocks.size}><summary onClick={e => { e.preventDefault(); setBlock('size', !openBlocks.size); }}>Tamaño y encuadre · {NAMES[device]}</summary>{number('height', 'Alto', 0, 1600)}<small className="ba-hint">Usá 0 para conservar la proporción original.</small>{number('width', 'Ancho del banner', 10, 100, '%')}{number('positionX', 'Encuadre horizontal', 0, 100, '%')}{number('positionY', 'Encuadre vertical', 0, 100, '%')}{row?.__component === 'layout.fila-mixta' && <NumberControl label="Porcentaje en distribución libre" suffix="%" min={1} max={100} value={banner.ancho_porcentaje || 100} onChange={value => updateBanner({ ancho_porcentaje: value })} />}</details>
+            {banner.mostrar_texto && <details open={!!openBlocks.text}><summary onClick={e => { e.preventDefault(); setBlock('text', !openBlocks.text); }}>Diseño de textos</summary>{number('fontSize', 'Tamaño del título', 12, 150)}{number('subtitleSize', 'Tamaño descripción', 10, 60)}{number('textX', 'Posición horizontal', 0, 90, '%')}{number('textY', 'Posición vertical', 5, 95, '%')}{number('textWidth', 'Ancho del texto', 10, 100, '%')}{number('padding', 'Espacio interior del texto', 0, 160)}<label>Alineación<select value={values.align} onChange={e => updateDesign({ align: e.target.value })}><option value="left">Izquierda</option><option value="center">Centro</option><option value="right">Derecha</option></select></label>{origin('align', 'Alineación')}{color('color', 'Color del texto')}{color('buttonBackground', 'Fondo del botón')}{color('buttonColor', 'Texto del botón')}{number('buttonSize', 'Tamaño del botón', 10, 40)}</details>}
+            <details open={!!openBlocks.more}><summary onClick={e => { e.preventDefault(); setBlock('more', !openBlocks.more); }}>Más ajustes</summary>
+              {!banner.mostrar_texto && <label>Nombre del banner / título<input id="ba-banner-name" value={banner.titulo || ''} maxLength={200} onChange={e => updateBanner({ titulo: e.target.value })} /></label>}
+              {number('radius', 'Bordes redondeados', 0, 160)}{color('background', 'Fondo')}{number('overlay', 'Oscurecer imagen', 0, 1, '', .05)}
+              {banner.mostrar_texto && <>{number('buttonRadius', 'Bordes del botón', 0, 100)}<label>Tipografía del título<select value={values.fontFamily} onChange={e => updateDesign({ fontFamily: e.target.value })}>{['Inter', 'Brygada 1918', 'Arial', 'Georgia'].map(font => <option key={font}>{font}</option>)}</select></label>{origin('fontFamily', 'Tipografía del título')}{number('fontWeight', 'Grosor del título', 300, 900, '', 100)}{number('lineHeight', 'Interlineado del título', .8, 2, '', .05)}{number('letterSpacing', 'Espaciado de letras', -2, 8, 'px', .1)}</>}
+              <button className="ba-reset-device" onClick={() => change(copy => { const item = copy.Filas[selected.row].banners[selected.banner]; if (item?.diseno) delete item.diseno[device]; })}>Restablecer ajustes de {NAMES[device].toLowerCase()}</button>
+              <details open={!!openBlocks.presets}><summary onClick={e => { e.preventDefault(); setBlock('presets', !openBlocks.presets); }}>Plantillas rápidas</summary><div className="ba-presets"><button onClick={() => updateBanner({ mostrar_texto: false, diseno: { desktop: { ...BANNER_DEFAULTS, fit: 'cover' }, mobile: { height: 280 } } })}>Solo imagen</button><button onClick={() => updateBanner({ mostrar_texto: true, texto_boton: banner.texto_boton || 'Descubrir', diseno: { desktop: { ...BANNER_DEFAULTS, fit: 'cover', overlay: .35 }, mobile: { height: 340, fontSize: 30, textWidth: 90, textX: 2 } } })}>Campaña</button><button onClick={() => updateBanner({ mostrar_texto: true, diseno: { desktop: { ...BANNER_DEFAULTS, color: '#560203', background: '#f5eee6', textWidth: 50, positionX: 90 }, mobile: { height: 360, fontSize: 28, textWidth: 90 } } })}>Editorial</button></div></details>
             </details>
-            <details open><summary>2. Tamaño y encuadre</summary>{number('height', 'Alto', 0, 1600)}<small className="ba-hint">Alto en píxeles para este dispositivo. Usá 0 para conservar la proporción original.</small>{number('width', 'Ancho del banner', 10, 100, '%')}{number('radius', 'Bordes redondeados', 0, 160)}<label>Ajuste de imagen<select value={values.fit} onChange={e => updateDesign({ fit: e.target.value })}><option value="contain">Completa (sin recortar)</option><option value="cover">Cubrir (recortar bordes)</option><option value="fill">Estirar</option></select></label>{number('positionX', 'Encuadre horizontal', 0, 100, '%')}{number('positionY', 'Encuadre vertical', 0, 100, '%')}{color('background', 'Fondo')}{number('overlay', 'Oscurecer imagen', 0, 1, '', .05)}{row?.__component === 'layout.fila-mixta' && <NumberControl label="Porcentaje en distribución libre" suffix="%" min={1} max={100} value={banner.ancho_porcentaje || 100} onChange={value => updateBanner({ ancho_porcentaje: value })} />}</details>
-            {banner.mostrar_texto && <details open><summary>3. Texto, botón y posición</summary>{number('fontSize', 'Tamaño del título', 12, 150)}{number('subtitleSize', 'Tamaño descripción', 10, 60)}{number('textX', 'Posición horizontal', 0, 90, '%')}{number('textY', 'Posición vertical', 5, 95, '%')}{number('textWidth', 'Ancho del texto', 10, 100, '%')}{number('padding', 'Espacio interior del texto', 0, 160)}<label>Alineación<select value={values.align} onChange={e => updateDesign({ align: e.target.value })}><option value="left">Izquierda</option><option value="center">Centro</option><option value="right">Derecha</option></select></label>{color('color', 'Color del texto')}{color('buttonBackground', 'Fondo del botón')}{color('buttonColor', 'Texto del botón')}{number('buttonSize', 'Tamaño del botón', 10, 40)}</details>}
-          {inspect === 'banner' && <details><summary>Más ajustes: zoom y tipografía</summary>{number('imageScale', 'Zoom de imagen', 25, 200, '%')}{number('buttonRadius', 'Bordes del botón', 0, 100)}<label>Tipografía del título<select value={values.fontFamily} onChange={e => updateDesign({ fontFamily: e.target.value })}>{['Inter', 'Brygada 1918', 'Arial', 'Georgia'].map(font => <option key={font}>{font}</option>)}</select></label>{number('fontWeight', 'Grosor del título', 300, 900, '', 100)}{number('lineHeight', 'Interlineado del título', .8, 2, '', .05)}{number('letterSpacing', 'Espaciado de letras', -2, 8, 'px', .1)}</details>}
-            <details><summary>Plantillas rápidas</summary><div className="ba-presets"><button onClick={() => updateBanner({ mostrar_texto: false, diseno: { desktop: { ...BANNER_DEFAULTS, fit: 'cover' }, mobile: { height: 280 } } })}>Solo imagen</button><button onClick={() => updateBanner({ mostrar_texto: true, texto_boton: banner.texto_boton || 'Descubrir', diseno: { desktop: { ...BANNER_DEFAULTS, fit: 'cover', overlay: .35 }, mobile: { height: 340, fontSize: 30, textWidth: 90, textX: 2 } } })}>Campaña</button><button onClick={() => updateBanner({ mostrar_texto: true, diseno: { desktop: { ...BANNER_DEFAULTS, color: '#560203', background: '#f5eee6', textWidth: 50, positionX: 90 }, mobile: { height: 360, fontSize: 28, textWidth: 90 } } })}>Editorial</button></div></details>
+            <details open={!!openBlocks.visibility}><summary onClick={e => { e.preventDefault(); setBlock('visibility', !openBlocks.visibility); }}>Visibilidad</summary><label className="ba-check"><input type="checkbox" checked={banner.activo !== false} onChange={e => updateBanner({ activo: e.target.checked })} />Banner activo en todos los dispositivos</label><label className="ba-check ba-device-hidden"><input type="checkbox" checked={values.hidden || false} onChange={e => updateDesign({ hidden: e.target.checked })} />Ocultar en {NAMES[device].toLowerCase()}</label>{origin('hidden', `Ocultar en ${NAMES[device].toLowerCase()}`)}</details>
           </>}
-          <label className="ba-check ba-device-hidden"><input type="checkbox" checked={values.hidden || false} onChange={e => updateDesign({ hidden: e.target.checked })} />Ocultar en {NAMES[device].toLowerCase()}</label>
-          <button className="ba-reset-device" onClick={() => change(copy => { const item = inspect === 'row' ? copy.Filas[selected.row] : copy.Filas[selected.row].banners[selected.banner]; if (item?.diseno) delete item.diseno[device]; })}>Restablecer ajustes de {NAMES[device].toLowerCase()}</button>
+          {inspect === 'row' && <button className="ba-reset-device" onClick={() => change(copy => { const item = copy.Filas[selected.row]; if (item?.diseno) delete item.diseno[device]; })}>Restablecer ajustes de {NAMES[device].toLowerCase()}</button>}
         </>}
       </aside>
     </div>

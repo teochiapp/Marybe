@@ -82,7 +82,7 @@ export default function SectionSelector() {
       <SectionsGrid aria-label="Secciones de la página de inicio">
         {EDITOR_INICIO_SECTIONS.map((section, index) => (
           <li key={section.id}>
-            <SectionCard section={section} order={index + 1} to={sectionPath(section.id)} available={hasSectionEditor(section.id)} />
+            <SectionCard section={section} order={index} to={sectionPath(section.id)} available={hasSectionEditor(section.id)} />
           </li>
         ))}
       </SectionsGrid>

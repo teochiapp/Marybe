@@ -43,6 +43,12 @@ function design(input) {
   }
   return result;
 }
+function carouselSettings(input) {
+  if (input == null) return null;
+  if (typeof input !== 'object' || Array.isArray(input)) fail('Configuración del carrusel inválida.');
+  if (typeof input.autoplay !== 'boolean' || !Number.isInteger(input.intervalo) || input.intervalo < 1 || input.intervalo > 60 || !['ninguno', 'puntos', 'contador'].includes(input.indicador) || typeof input.vistaParcial !== 'boolean') fail('Opciones del carrusel inválidas.');
+  return { autoplay: input.autoplay, intervalo: input.intervalo, indicador: input.indicador, vistaParcial: input.vistaParcial };
+}
 async function mediaId(value, strapi) {
   const id = typeof value === 'object' ? value?.id || value?.data?.id : value;
   if (id == null) return null;
@@ -97,7 +103,7 @@ module.exports = ({ strapi }) => ({
         const existing = existingRow?.banners?.find(b => b.id === banner.id);
         banners.push({ ...(existing ? { id: existing.id } : {}), ...clean });
       }
-      Filas.push({ ...(existingRow ? { id: existingRow.id } : {}), __component: row.__component, es_carrusel: row.es_carrusel === true, diseno: design(row.diseno), banners });
+      Filas.push({ ...(existingRow ? { id: existingRow.id } : {}), __component: row.__component, es_carrusel: row.es_carrusel === true, diseno: design(row.diseno), config_carrusel: carouselSettings(row.config_carrusel), banners });
     }
     const data = { titulo: text(input.titulo, 200), seccion: input.seccion, Filas };
     const saved = current ? await strapi.documents(PROMO).update({ documentId, data }) : await strapi.documents(PROMO).create({ data });

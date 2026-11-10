@@ -1,0 +1,14 @@
+.banner-carousel { position: relative; width: 100%; min-width: 0; }
+.banner-carousel-track { scrollbar-width: none; -ms-overflow-style: none; overscroll-behavior-x: contain; }
+.banner-carousel-track::-webkit-scrollbar { display: none; }
+.banner-carousel-track--scrollable:not(.banner-carousel-track--editable) { cursor: grab; }
+.banner-carousel-track--scrollable:not(.banner-carousel-track--editable):active { cursor: grabbing; }
+.banner-carousel-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; width: 42px; height: 42px; border: 0; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 2px 12px rgba(0,0,0,.2); color: var(--color-marron-principal); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.banner-carousel-arrow--left { left: 8px; }
+.banner-carousel-arrow--right { right: 8px; }
+.banner-carousel-arrow svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.banner-carousel-dots { display: flex; justify-content: center; gap: 8px; padding: 10px 0 2px; }
+.banner-carousel-dots button { width: 11px; height: 11px; border: 1px solid #6a0304; border-radius: 50%; padding: 0; background: white; cursor: pointer; }
+.banner-carousel-dots button[aria-current='true'] { background: #6a0304; }
+.banner-carousel-counter { display: block; text-align: center; padding-top: 8px; color: #560203; font-size: 12px; }
+@media (max-width: 600px) { .banner-carousel-arrow { width: 34px; height: 34px; } .banner-carousel-arrow--left { left: 0; } .banner-carousel-arrow--right { right: 0; } }

@@ -11,6 +11,8 @@ import DiscountedSectionHogar from '../../../components/inicio/hogar/DiscountedS
 import TarjetasPromociones from '../../../components/inicio/perfumeria/TarjetasPromociones';
 import GiftCard from '../../../components/inicio/shared/GiftCard';
 import ProximosEventos from '../../../components/inicio/perfumeria/ProximosEventos';
+import CategoryNav from '../../../components/header/CategoryNav';
+import NavBar from '../../../components/header/NavBar';
 
 const PreviewPage = styled.main`
   --editor-vh: ${({ $viewportHeight }) => ($viewportHeight ? `${$viewportHeight / 100}px` : '1vh')};
@@ -38,7 +40,17 @@ const PreviewPage = styled.main`
   `}
 `;
 
+const HeaderPreview = styled.div`
+  min-height: 500px;
+  .menu-preview-mobile { display: none; }
+  @media (max-width: 768px) {
+    .menu-preview-desktop { display: none; }
+    .menu-preview-mobile { display: block; }
+  }
+`;
+
 const PREVIEWS = {
+  'menu-header': ({ previewData }) => <HeaderPreview data-preview-interactive onClickCapture={event => { if (event.target.closest('a')) { event.preventDefault(); event.stopPropagation(); } }}><div className="menu-preview-desktop"><CategoryNav preview={previewData} /></div><div className="menu-preview-mobile"><NavBar preview={previewData} /></div></HeaderPreview>,
   'seccion-destacada': ({ area, previewData }) => (area === 'hogar'
     ? <FeaturedSectionHogar previewData={previewData} />
     : <FeaturedSection seccion="perfumeria" previewData={previewData} />),

@@ -35,6 +35,18 @@ test('guarda filas, medios y diseño responsive sin publicar hasta solicitarlo',
   assert.equal(result.Filas[0].diseno.mobile.columns, 1);
   assert.equal(events.filter(e => e[0] === 'publish').length, 0);
 });
+test('valida y conserva las opciones del carrusel en el borrador', async () => {
+  const { service, events } = fixture();
+  const body = promoBody();
+  body.data.Filas[0].config_carrusel = { autoplay: false, intervalo: 5, indicador: 'puntos', vistaParcial: true };
+  const result = await service.savePromotion('promo-1', body);
+  assert.deepEqual(result.Filas[0].config_carrusel, body.data.Filas[0].config_carrusel);
+  assert.equal(events.filter(event => event[0] === 'publish').length, 0);
+  const invalid = promoBody();
+  invalid.version = 'v2';
+  invalid.data.Filas[0].config_carrusel = { autoplay: true, intervalo: 0, indicador: 'otro', vistaParcial: true };
+  await assert.rejects(service.savePromotion('promo-1', invalid), /carrusel/);
+});
 test('la lista del editor solo consulta los grupos principales', async () => {
   const service = createService({ strapi: { documents: uid => {
     assert.equal(uid, 'api::promociones-inicio.promociones-inicio');

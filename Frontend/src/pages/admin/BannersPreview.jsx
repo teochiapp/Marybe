@@ -20,11 +20,11 @@ export default function BannersPreview() {
     return () => observer.disconnect();
   }, [preview]);
   useEffect(() => {
-    if (preview?.mode !== 'view') return undefined;
-    const keyboard = event => { if (event.key === 'Escape') window.parent.postMessage({ type: 'MARYBE_BANNERS_CLOSE_PREVIEW' }, window.location.origin); };
+    if (preview?.mode !== 'view' && !preview?.focalMode) return undefined;
+    const keyboard = event => { if (event.key === 'Escape') window.parent.postMessage({ type: preview?.focalMode ? 'MARYBE_BANNERS_EXIT_FOCAL' : 'MARYBE_BANNERS_CLOSE_PREVIEW' }, window.location.origin); };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [preview?.mode]);
+  }, [preview?.mode, preview?.focalMode]);
   const send = data => window.parent.postMessage(data, window.location.origin);
   if (!preview) return <p style={{ textAlign: 'center', padding: 32 }}>Preparando vista previa…</p>;
   const side = /^(featured_|descuento_|categoria_)/.test(preview.slot || '');
@@ -33,8 +33,11 @@ export default function BannersPreview() {
   const readOnly = preview.mode === 'view';
   return <main id="banners-preview-content" className={preview.slot ? 'vb-preview-piece' : ''} style={{ paddingTop: 20, paddingBottom: 20, minHeight: 100, background: '#ffffff' }} onClickCapture={event => {
     if (readOnly && event.target.closest('a')) event.preventDefault();
-  }}><VisualBanners rows={rows} selected={readOnly ? null : preview.selected} device={preview.device}
+  }}><VisualBanners key={preview.source} rows={rows} selected={readOnly ? null : preview.selected} device={preview.device} preview={!readOnly} focalMode={!readOnly && preview.focalMode}
     onSelect={readOnly ? undefined : (row, banner) => send({ type: 'MARYBE_BANNERS_SELECT', row, banner })}
     onMove={readOnly ? undefined : (row, banner, value) => send({ type: 'MARYBE_BANNERS_MOVE', row, banner, value })}
-    onResize={readOnly ? undefined : (row, banner, value) => send({ type: 'MARYBE_BANNERS_RESIZE', row, banner, value })} /></main>;
+    onResize={readOnly ? undefined : (row, banner, value) => send({ type: 'MARYBE_BANNERS_RESIZE', row, banner, value })}
+    onHeightResize={readOnly ? undefined : (row, banner, value) => send({ type: 'MARYBE_BANNERS_RESIZE', dimension: 'height', row, banner, value, device: preview.device, source: preview.source })}
+    onReorder={readOnly ? undefined : (row, from, to) => send({ type: 'MARYBE_BANNERS_REORDER', row, from, to, source: preview.source })}
+    onFocal={readOnly ? undefined : (row, banner, value) => send({ type: 'MARYBE_BANNERS_FOCAL', row, banner, value })} /></main>;
 }

@@ -11,7 +11,7 @@ export function useMegaMenuContext() {
   const [context, setContext] = useState('PERFUMERIA'); // Default
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { getSectionForCategory, getCategoriesForContext, loading: menuLoading } = useMegaMenu();
+  const { getSectionForCategory, getCategoriesForContext, getMenuItemsForContext, loading: menuLoading } = useMegaMenu();
 
   useEffect(() => {
     // Si estamos cargando el menu, esperamos
@@ -60,5 +60,5 @@ export function useMegaMenuContext() {
 
   }, [location.pathname, searchParams, menuLoading, getSectionForCategory]);
 
-  return { context, loading: menuLoading, getCategoriesForContext };
+  return { context, loading: menuLoading, getCategoriesForContext, getMenuItemsForContext };
 }
