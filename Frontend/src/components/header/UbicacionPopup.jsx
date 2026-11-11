@@ -220,8 +220,8 @@ const CloseIcon = () => (
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function UbicacionPopup({ onClose }) {
-  const [cp, setCp] = useState('');
-  const [recordar, setRecordar] = useState(true);
+  const [cp, setCp] = useState(() => sessionStorage.getItem('marybe_cp') || localStorage.getItem('marybe_cp') || '');
+  const [recordar, setRecordar] = useState(() => !sessionStorage.getItem('marybe_cp'));
   const [closing, setClosing] = useState(false);
 
   const handleClose = () => {
@@ -238,6 +238,14 @@ export default function UbicacionPopup({ onClose }) {
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) handleClose();
+  };
+
+  const handleContinue = () => {
+    const value = cp.trim();
+    localStorage.removeItem('marybe_cp');
+    sessionStorage.removeItem('marybe_cp');
+    if (value) (recordar ? localStorage : sessionStorage).setItem('marybe_cp', value);
+    handleClose();
   };
 
   return (
@@ -278,12 +286,12 @@ export default function UbicacionPopup({ onClose }) {
 
         <ToggleRow>
           <ToggleLabel>Recordar mis datos</ToggleLabel>
-          <ToggleTrack $on={recordar} onClick={() => setRecordar((v) => !v)} aria-label="Recordar datos">
+          <ToggleTrack $on={recordar} onClick={() => setRecordar((v) => !v)} aria-label="Recordar datos" aria-pressed={recordar}>
             <ToggleThumb $on={recordar} />
           </ToggleTrack>
         </ToggleRow>
 
-        <ContinuarBtn onClick={handleClose}>Continuar</ContinuarBtn>
+        <ContinuarBtn onClick={handleContinue}>Continuar</ContinuarBtn>
       </Modal>
     </Overlay>
   );

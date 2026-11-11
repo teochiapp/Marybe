@@ -557,3 +557,13 @@ Implementá estos cambios en Marybe para los **Banners principales** de Perfumer
 
 - Se agregaron marca, descripción, especificaciones y características a la exportación e importación de proveedores. La importación acepta planillas anteriores sin modificar esos campos; en la nueva, una celda vacía permite borrarlos.
 - Validación: 23 pruebas de Excel y prueba de altas y ediciones en Strapi con SQLite aislada aprobadas.
+
+### Código postal en ubicación
+![alt text](image.png)
+- El modal conserva el código postal al continuar: de forma permanente si está activado «Recordar mis datos», o durante la sesión si está desactivado.
+- Validación: 2 pruebas del modal aprobadas.
+
+### Actualización del menú publicado en tiendas abiertas
+
+- El menú vuelve a consultar las categorías y la configuración publicada al regresar a la pestaña y cada 60 segundos mientras está visible, sin reutilizar la caché del navegador. Guardar borrador sigue sin publicar cambios.
+- Validación: 18 pruebas del menú y editor aprobadas; prueba de publicación con Strapi y SQLite aislada aprobada. No se verificó el estado de producción ni la causa específica del caso informado.

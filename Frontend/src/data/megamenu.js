@@ -176,7 +176,7 @@ export async function fetchCategoryTree(signal) {
   let page = 1;
   let pages = 1;
   do {
-    const res = await fetch(`${STRAPI_URL}/api/categorias?populate[subcategorias][populate][tipos]=*&pagination[pageSize]=100&pagination[page]=${page}&publicationState=live`, { signal });
+    const res = await fetch(`${STRAPI_URL}/api/categorias?populate[subcategorias][populate][tipos]=*&pagination[pageSize]=100&pagination[page]=${page}&publicationState=live`, { signal, cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     all.push(...(json.data || []));

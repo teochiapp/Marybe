@@ -61,8 +61,17 @@ export function MegaMenuProvider({ children }) {
 
   useEffect(() => {
     const refresh = () => setRevision(value => value + 1);
+    const refreshVisible = () => { if (document.visibilityState === 'visible') refresh(); };
     window.addEventListener('marybe-menu-updated', refresh);
-    return () => window.removeEventListener('marybe-menu-updated', refresh);
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
+    const interval = window.setInterval(refreshVisible, 60000);
+    return () => {
+      window.removeEventListener('marybe-menu-updated', refresh);
+      window.removeEventListener('focus', refreshVisible);
+      document.removeEventListener('visibilitychange', refreshVisible);
+      window.clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -125,7 +134,7 @@ export function MegaMenuProvider({ children }) {
           `&populate[categoriasHogar][fields][1]=seccion` +
           `&populate[categoriasGeneral][fields][0]=nombre` +
           `&populate[categoriasGeneral][fields][1]=seccion`;
-        const resMenu = await fetch(urlMenu, { signal: controller.signal });
+        const resMenu = await fetch(urlMenu, { signal: controller.signal, cache: 'no-store' });
         if (!resMenu.ok) throw new Error(`HTTP ${resMenu.status}`);
         const jsonMenu = await resMenu.json();
         const menuData = jsonMenu?.data || {};
@@ -206,7 +215,7 @@ export function MegaMenuProvider({ children }) {
 
         try {
           const urlLanzOfertas = `${STRAPI_URL}/api/menu-lanzamientos-ofertas?populate[ofertas][populate][columnas_categorias][populate][0]=categorias&populate[ofertas][populate][productos_destacados]=true&populate[lanzamientos][populate][0]=categorias&populate[lanzamientos][populate][1]=productos_destacados`;
-          const resLanzOfertas = await fetch(urlLanzOfertas, { signal: controller.signal });
+          const resLanzOfertas = await fetch(urlLanzOfertas, { signal: controller.signal, cache: 'no-store' });
           if (resLanzOfertas.ok) {
             const jsonLanzOfertas = await resLanzOfertas.json();
             const attrs = jsonLanzOfertas?.data?.attributes || jsonLanzOfertas?.data || {};

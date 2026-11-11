@@ -48,6 +48,25 @@ test('el orden visual usa identificadores y conserva las opciones nuevas', () =>
   expect(orderMenuItems(items, null)).toEqual(['Ofertas', 'Lanzamientos', 'Limpieza', 'Cuidado Personal']);
 });
 
+test('una tienda abierta actualiza el orden publicado al volver a la pestaña', async () => {
+  let order = ['ofertas', 'lanzamientos', 'categoria:home'];
+  global.fetch = jest.fn(async url => {
+    if (url.includes('/api/categorias?')) return { ok: true, json: async () => ({ data: [], meta: { pagination: { pageCount: 1 } } }) };
+    if (url.includes('/api/ordenamiento-menu-header')) return { ok: true, json: async () => ({ data: {
+      categoriasHogar: [{ documentId: 'home', nombre: 'Limpieza', seccion: 'Hogar' }],
+      ordenVisual: { hogar: order },
+    } }) };
+    return { ok: true, json: async () => ({ data: {} }) };
+  });
+  render(<MegaMenuProvider><CategoryNav /></MegaMenuProvider>);
+  await screen.findByRole('button', { name: 'Limpieza' });
+  expect(screen.getAllByRole('button').filter(button => ['Ofertas', 'Lanzamientos', 'Limpieza'].includes(button.textContent)).map(button => button.textContent)).toEqual(['Ofertas', 'Lanzamientos', 'Limpieza']);
+  order = ['categoria:home', 'ofertas', 'lanzamientos'];
+  fireEvent.focus(window);
+  await waitFor(() => expect(screen.getAllByRole('button').filter(button => ['Ofertas', 'Lanzamientos', 'Limpieza'].includes(button.textContent)).map(button => button.textContent)).toEqual(['Limpieza', 'Ofertas', 'Lanzamientos']));
+  expect(global.fetch.mock.calls.find(([url]) => url.includes('/api/ordenamiento-menu-header'))[1].cache).toBe('no-store');
+});
+
 test('la vista previa usa contenido local sin alterar el menú público', async () => {
   const preview = { context: 'HOGAR', categories: ['Lanzamientos', 'Ofertas'], menu: {
     ofertas: { mostrar_columna_descuentos: true, titulo_descuentos: 'Promociones de prueba', columnas_categorias: [], productos_destacados: [] },
