@@ -551,3 +551,9 @@ Implementá estos cambios en Marybe para los **Banners principales** de Perfumer
 
 - El editor muestra el selector de color junto al ajuste de imagen completa. El fondo predeterminado de los banners principales es blanco; los colores ya guardados y la herencia por dispositivo se conservan.
 - Validación: 27 pruebas del editor y la representación de banners aprobadas.
+
+
+### Campos de ficha en Excel de proveedores
+
+- Se agregaron marca, descripción, especificaciones y características a la exportación e importación de proveedores. La importación acepta planillas anteriores sin modificar esos campos; en la nueva, una celda vacía permite borrarlos.
+- Validación: 23 pruebas de Excel y prueba de altas y ediciones en Strapi con SQLite aislada aprobadas.

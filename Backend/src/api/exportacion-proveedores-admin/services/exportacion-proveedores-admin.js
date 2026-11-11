@@ -189,7 +189,7 @@ async function generarExcelProveedor(strapi, proveedores) {
     views:      [{ state: 'frozen', xSplit: 0, ySplit: 3 }],
   });
 
-  // ── Columnas (A–O) ────────────────────────────────────────────────────────
+  // ── Columnas (A–S) ────────────────────────────────────────────────────────
   const colDefs = [
     { header: 'ID / ID Variante',             width: 24,  group: 'id'     }, // A  (1)
     { header: 'SKU / EAN',                    width: 22,  group: 'base'   }, // B  (2)
@@ -206,12 +206,16 @@ async function generarExcelProveedor(strapi, proveedores) {
     { header: 'Precio',                       width: 14,  group: 'precio' }, // M  (13)
     { header: 'Precio Oferta',                width: 14,  group: 'precio' }, // N  (14)
     { header: '% Desc.',                      width: 10,  group: 'precio' }, // O  (15)
+    { header: 'Marca', width: 20, group: 'base' },
+    { header: 'Descripci\u00f3n', width: 50, group: 'base' },
+    { header: 'Especificaciones', width: 50, group: 'base' },
+    { header: 'Caracter\u00edsticas', width: 50, group: 'base' },
   ];
 
   ws.columns = colDefs.map(c => ({ width: c.width }));
 
   // ── Fila 1: Título ────────────────────────────────────────────────────────
-  ws.mergeCells('A1:O1');
+  ws.mergeCells('A1:S1');
   const title     = ws.getCell('A1');
   title.value     = `💲 MARYBE — Precios por Proveedor: ${provNombres} (${new Date().toLocaleDateString('es-AR')})`;
   title.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.grisOscuro } };
@@ -227,7 +231,7 @@ async function generarExcelProveedor(strapi, proveedores) {
   ws.getColumn(27).hidden = true;
 
   // ── Fila 2: Instrucción ───────────────────────────────────────────────────
-  ws.mergeCells('A2:O2');
+  ws.mergeCells('A2:S2');
   const instr = ws.getCell('A2');
   instr.value = `⚠ Generado el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Variantes indentadas (↳). Para crear nuevas variantes o editar Volumen/Color, usá la hoja "🔗 Variantes". Precio Oferta vacío quita la oferta; % Desc. es informativo.`;
   applyStyle(instr, noteStyle());
@@ -410,6 +414,12 @@ async function generarExcelProveedor(strapi, proveedores) {
     cO.font      = { color: { argb: 'FF065F46' }, size: 10, name: 'Calibri', italic: true };
     cO.alignment = { vertical: 'middle', horizontal: 'center' };
     cO.numFmt    = '0%';
+
+    [prod.marca, prod.descripcion, prod.especificaciones, prod.caracteristicas].forEach((value, index) => {
+      const cell = rProd.getCell(16 + index);
+      cell.value = value || '';
+      applyStyle(cell, dataStyle(bgProd));
+    });
 
     rProd.commit();
 

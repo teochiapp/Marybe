@@ -516,3 +516,33 @@ test('proveedor permite crear productos y variantes y valida nombre y proveedor'
     } else assert.equal(result.errores, 1);
   }
 });
+
+
+test('proveedor exporta, actualiza y vacia los campos de ficha sin alterar archivos antiguos', async () => {
+  const { state, strapi } = fixture({ marca: 'Marca original', descripcion: 'Descripcion original', especificaciones: 'Especificacion original', caracteristicas: 'Caracteristica original' });
+  const wb = await supplierWorkbook(strapi);
+  const ws = wb.getWorksheet('\ud83d\udcb2 Precios por Proveedor');
+  assert.deepEqual([16, 17, 18, 19].map(col => ws.getCell(3, col).value), ['Marca', 'Descripci\u00f3n', 'Especificaciones', 'Caracter\u00edsticas']);
+  assert.deepEqual([16, 17, 18, 19].map(col => ws.getCell(4, col).value), ['Marca original', 'Descripcion original', 'Especificacion original', 'Caracteristica original']);
+  const unchanged = await importWorkbook(strapi, wb);
+  assert.equal(unchanged.sinCambios, 1, unchanged.erroresList.join('; '));
+  ['Nueva marca', 'Nueva descripcion', '', 'Nueva caracteristica'].forEach((value, index) => { ws.getCell(4, 16 + index).value = value; });
+  const changed = await importWorkbook(strapi, wb);
+  assert.equal(changed.actualizados, 1, changed.erroresList.join('; '));
+  assert.deepEqual([state.product.marca, state.product.descripcion, state.product.especificaciones, state.product.caracteristicas], ['Nueva marca', 'Nueva descripcion', '', 'Nueva caracteristica']);
+  for (let col = 16; col <= 19; col++) { ws.getCell(3, col).value = null; ws.getCell(4, col).value = null; }
+  const old = await importWorkbook(strapi, wb);
+  assert.equal(old.errores, 0, old.erroresList.join('; '));
+  assert.deepEqual([state.product.marca, state.product.descripcion, state.product.especificaciones, state.product.caracteristicas], ['Nueva marca', 'Nueva descripcion', '', 'Nueva caracteristica']);
+});
+
+test('proveedor crea productos con los campos de ficha', async () => {
+  const { state, strapi } = fixture();
+  const wb = await supplierWorkbook(strapi);
+  const ws = wb.getWorksheet('\ud83d\udcb2 Precios por Proveedor');
+  const row = ws.getRow(ws.rowCount + 2);
+  ['NUEVO-FICHA', 'SKU', 'Proveedor, S.A.', 'Nuevo', '', '', '', '', 'SI', 'NO', '', 3, 1000, '', '', 'Marca nueva', 'Descripcion nueva', 'Especificacion nueva', 'Caracteristica nueva'].forEach((value, index) => { row.getCell(index + 1).value = value; });
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.creados, 1, result.erroresList.join('; '));
+  assert.deepEqual([state.creates[0].marca, state.creates[0].descripcion, state.creates[0].especificaciones, state.creates[0].caracteristicas], ['Marca nueva', 'Descripcion nueva', 'Especificacion nueva', 'Caracteristica nueva']);
+});

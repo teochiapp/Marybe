@@ -255,6 +255,14 @@ async function leerExcel(rutaArchivo) {
       } catch (_) {}
     }
 
+    const camposExtra = { marca: 'Marca', descripcion: 'Descripci\u00f3n', especificaciones: 'Especificaciones', caracteristicas: 'Caracter\u00edsticas' };
+    const columnasExtra = Object.fromEntries(Object.entries(camposExtra).map(([key, label]) => {
+      const header = wsProveedor.getRow(HEADER_ROW);
+      let column = null;
+      header.eachCell((cell, index) => { if (String(cell.value || '').trim() === label) column = index; });
+      return [key, column];
+    }));
+
     wsProveedor.eachRow((row, rowNum) => {
       if (rowNum <= HEADER_ROW) return;
       if (isSeparatorOrEmpty(row)) return;
@@ -291,6 +299,7 @@ async function leerExcel(rutaArchivo) {
         filasRaw.push({
           id_original:   cleanId,
           _excelRow:     rowNum,
+          ...Object.fromEntries(Object.entries(columnasExtra).filter(([, column]) => column !== null).map(([key, column]) => [key, cellVal(row, column)])),
           sku:           sku_raw,
           proveedor:     proveedor_raw,
           nombre:        nombre_raw,
@@ -902,6 +911,9 @@ async function ejecutarUpsert(
       // En MODO PROVEEDOR, también actualizamos los campos de categoría, visibilidad y SKU
       // si el usuario los completó en el Excel (celdas no vacías).
       if (isPartialUpdate) {
+        for (const field of ['marca', 'descripcion', 'especificaciones', 'caracteristicas']) {
+          if (Object.prototype.hasOwnProperty.call(p, field)) productoData[field] = p[field] || '';
+        }
         // Actualizar campos planos desde la primera clasificación
         if (primeraClasif.seccion)      productoData.seccion      = primeraClasif.seccion;
         if (primeraClasif.subcategoria) productoData.subcategoria = primeraClasif.subcategoria;
