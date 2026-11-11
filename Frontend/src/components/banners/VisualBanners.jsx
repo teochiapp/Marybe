@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { BANNER_DEFAULTS, DEVICES, deviceDesign, imageUrl, safeBannerLink } from '../../utils/bannerDesign';
+import { BANNER_DEFAULTS, MAIN_BANNER_DEFAULTS, DEVICES, deviceDesign, imageUrl, safeBannerLink } from '../../utils/bannerDesign';
 import BannerCarousel from './BannerCarousel';
 import './VisualBanners.css';
 
@@ -15,7 +15,7 @@ function vars(design, defaults, prefix) {
   }
   return result;
 }
-export function VisualBanner({ banner, selection, onSelect, onMove, onResize, onHeightResize, onReorderKey, onFocal, focalMode = false, device = 'desktop', priority = false }) {
+export function VisualBanner({ banner, selection, onSelect, onMove, onResize, onHeightResize, onReorderKey, onFocal, focalMode = false, device = 'desktop', priority = false, defaults = BANNER_DEFAULTS }) {
   const ref = useRef(null);
   const [position, setPosition] = useState(null);
   const [width, setWidth] = useState(null);
@@ -31,7 +31,7 @@ export function VisualBanner({ banner, selection, onSelect, onMove, onResize, on
   const tablet = imageUrl(banner.imagen_tablet) || desktop;
   const mobile = imageUrl(banner.imagen_mobile) || tablet;
   const link = safeBannerLink(banner.enlace);
-  const styles = vars(banner.diseno, BANNER_DEFAULTS, 'vb');
+  const styles = vars(banner.diseno, defaults, 'vb');
   const box = deviceDesign(banner.diseno, device);
   function pointerPosition(event) {
     const start = dragStart.current;
@@ -213,7 +213,7 @@ function VisualRow({ row, rowIndex, selected, onSelect, onMove, onResize, onHeig
       onPointerCancel={canReorder ? cancelReorder : undefined} onLostPointerCapture={canReorder ? cancelReorder : undefined}
       onClickCapture={canReorder ? event => { if (Date.now() < suppressClickUntil.current) { event.preventDefault(); event.stopPropagation(); } } : undefined}
       onKeyDown={canReorder ? event => { if (event.key === 'Escape' && reorderStart.current) { event.preventDefault(); cancelReorder(); } } : undefined} tabIndex={canReorder ? -1 : undefined}>
-        <VisualBanner banner={banner} selection={selected?.row === rowIndex && selected?.banner === index} focalMode={focalMode && selected?.row === rowIndex && selected?.banner === index} onFocal={onFocal ? value => onFocal(rowIndex, index, value) : null} onSelect={onSelect ? () => onSelect(rowIndex, index) : null} onMove={onMove ? value => onMove(rowIndex, index, value) : null} onResize={onResize ? value => onResize(rowIndex, index, value) : null} onHeightResize={onHeightResize ? value => onHeightResize(rowIndex, index, value) : null} onReorderKey={canReorder ? event => reorderKey(event, index) : null} device={device} priority={rowIndex === 0 && index === 0} />
+        <VisualBanner banner={banner} selection={selected?.row === rowIndex && selected?.banner === index} focalMode={focalMode && selected?.row === rowIndex && selected?.banner === index} onFocal={onFocal ? value => onFocal(rowIndex, index, value) : null} onSelect={onSelect ? () => onSelect(rowIndex, index) : null} onMove={onMove ? value => onMove(rowIndex, index, value) : null} onResize={onResize ? value => onResize(rowIndex, index, value) : null} onHeightResize={onHeightResize ? value => onHeightResize(rowIndex, index, value) : null} onReorderKey={canReorder ? event => reorderKey(event, index) : null} device={device} defaults={MAIN_BANNER_DEFAULTS} priority={rowIndex === 0 && index === 0} />
       </div>);
   return <section className={`vb-row ${reordering ? 'vb-row--reordering' : ''}`} style={vars(design, defaults, 'vr')} aria-label={`Fila de banners ${rowIndex + 1}`}>
     {row.es_carrusel ? <BannerCarousel trackClassName={`vb-track vb-track--carousel ${row.config_carrusel?.vistaParcial ? 'vb-track--peek' : ''}`} editable={Boolean(onSelect)} autoplay={!preview} settings={row.config_carrusel} label={`Carrusel de banners ${rowIndex + 1}`}>{cells}</BannerCarousel> : <div className="vb-track">{cells}</div>}

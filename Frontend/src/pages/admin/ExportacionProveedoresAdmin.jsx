@@ -329,7 +329,7 @@ export default function ExportacionProveedoresAdmin() {
             <span>
               Seleccioná uno o más proveedores y hacé clic en <strong>"Exportar"</strong>.
               El Excel incluye la hoja de precios con variantes indentadas (↳) y la hoja <strong>🔗 Variantes</strong>{' '}
-              agrupada por producto para editar atributos (Volumen, Color, Envío, Stock, Precios) o agregar nuevas variantes.
+              agrupada por producto para editar atributos (Volumen, Color, Envío, Stock, Precios) o agregar nuevas variantes. Para dar de alta un producto, agregá una fila con ID único, nombre y proveedor seleccionado; cargá sus variantes en la hoja Variantes.
             </span>
           </div>
         </div>

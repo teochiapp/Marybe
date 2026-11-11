@@ -1090,7 +1090,21 @@ async function ejecutarUpsert(
             }
           }
         } else {
-          if (isPartialUpdate) throw new Error('El producto no existe. La planilla de proveedores solo actualiza productos existentes; usá la plantilla de alta para crearlo.');
+          if (isPartialUpdate) {
+            const proveedor = (p.proveedor || '').trim();
+            const nombre = (p.nombre || '').trim();
+            if (!nombre || !proveedor) throw new Error('Para crear un producto complet\u00e1 Nombre y Proveedor.');
+            if (allowedProveedoresSet && !allowedProveedoresSet.has(proveedor.toLowerCase())) {
+              throw new Error(`El proveedor "${proveedor}" no corresponde al filtro de proveedores seleccionados.`);
+            }
+            const duplicada = hijos.find(v => (variantesIdCounts.get((v.id_original || '').trim()) || 0) > 1);
+            if (duplicada) throw new Error(`Variante duplicada "${duplicada.id_original}" en hoja Variantes (fila ${duplicada._excelRow}). Cada variante debe tener un ID \u00fanico.`);
+            productoData = {
+              ...productoData, id_original: idOriginal, nombre, proveedor,
+              clasificaciones: clasificacionesData, categoria: catDocId1 || null,
+              descuento: Math.max(maxDescuento, pctDescProd),
+            };
+          }
           await strapi.documents(UID_PRODUCTO).create({
             data: productoData,
             status: 'published',
@@ -1324,4 +1338,4 @@ module.exports = () => ({
   agruparFilasDuplicadas,
 });
 
-
+

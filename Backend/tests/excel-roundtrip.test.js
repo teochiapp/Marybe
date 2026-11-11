@@ -489,3 +489,30 @@ test('proveedor sin variantes genera 1 fila de variante de ejemplo con BUSCARV d
   assert.equal(state.updates.length, 0);
   assert.equal(state.product.variantes.length, 0);
 });
+
+
+test('proveedor permite crear productos y variantes y valida nombre y proveedor', async () => {
+  for (const [nombre, proveedor, expected] of [
+    ['Nuevo producto', 'Proveedor, S.A.', true],
+    ['', 'Proveedor, S.A.', false],
+    ['Nuevo producto', 'Otro proveedor', false],
+  ]) {
+    const { state, strapi } = fixture();
+    const wb = await supplierWorkbook(strapi);
+    const ws = wb.getWorksheet('💲 Precios por Proveedor');
+    const row = ws.getRow(ws.rowCount + 2);
+    [ 'NUEVO', 'SKU-N', proveedor, nombre, 'Perfumería', 'Fragancias', 'Mujer', 'Eau de Parfum', 'SI', 'NO', '', 5, 1200, 900 ].forEach((v, i) => { row.getCell(i + 1).value = v; });
+    const variants = wb.getWorksheet('🔗 Variantes');
+    const vr = variants.getRow(variants.rowCount + 1);
+    [ 'NUEVO-1', 'NUEVO', '', 'EAN-N', '100 ml', 5, 1200, 900, '', 'SI', '1', 'Rojo' ].forEach((v, i) => { vr.getCell(i + 1).value = v; });
+    const result = await importWorkbook(strapi, wb);
+    assert.equal(result.creados, expected ? 1 : 0, JSON.stringify(result.erroresList));
+    if (expected) {
+      assert.equal(result.errores, 0, result.erroresList.join('; '));
+      assert.equal(state.creates[0].nombre, nombre);
+      assert.equal(state.creates[0].proveedor, proveedor);
+      assert.equal(state.creates[0].variantes[0].id_original, 'NUEVO-1');
+      assert.equal(state.creates[0].clasificaciones[0].categoria, 'Fragancias');
+    } else assert.equal(result.errores, 1);
+  }
+});

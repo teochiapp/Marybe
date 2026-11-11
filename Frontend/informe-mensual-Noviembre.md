@@ -531,3 +531,23 @@ Implementá estos cambios en Marybe para los **Banners principales** de Perfumer
 
 - El lienzo editable permite arrastrar banners para reordenarlos dentro de su distribución y ajustar el alto del banner seleccionado desde los bordes superior e inferior. El orden se comparte entre dispositivos. El alto se guarda para el dispositivo activo. Cada gesto genera una acción de deshacer y rehacer.
 - Validación con 32 pruebas específicas aprobadas. En Chrome con CMS simulado se verificaron el arrastre, ambos bordes, el alto independiente por dispositivo, deshacer y rehacer, y el guardado del borrador.
+
+
+### Cómo usar el Menú Header
+
+1. Entrá a **Editor de Inicio → Menú Header** y elegí el contexto **General**, **Perfumería** o **Hogar**.
+2. Agregá o quitá categorías publicadas y ordená las opciones arrastrándolas o usando las flechas. Si dos categorías tienen el mismo nombre, revisá a qué sección pertenece cada una.
+3. En **Ofertas** y **Lanzamientos** podés organizar las columnas y elegir qué categorías o productos mostrar.
+4. Revisá la vista previa en computadora y celular. Usá **Guardar borrador** para seguir editando después o **Publicar** para mostrar los cambios en la tienda.
+
+
+### Alta de productos desde la plantilla de proveedores
+
+- La importación crea productos nuevos con ID, nombre y proveedor seleccionado, incluyendo clasificaciones y variantes; conserva la actualización de productos existentes. Se rechazan datos obligatorios ausentes, proveedores fuera del filtro y variantes duplicadas.
+- Validación local: 21 pruebas de Excel, 2 pruebas de la pantalla y prueba de Strapi con SQLite aislada aprobadas. No se modificó ni verificó la instalación publicada.
+
+
+### Fondo de imagen en banners principales
+
+- El editor muestra el selector de color junto al ajuste de imagen completa. El fondo predeterminado de los banners principales es blanco; los colores ya guardados y la herencia por dispositivo se conservan.
+- Validación: 27 pruebas del editor y la representación de banners aprobadas.

@@ -404,3 +404,23 @@ test('the section menu deletes a saved section after confirmation', async () => 
   expect(screen.getByRole('heading', { name: 'Creá tu primera sección de banners' })).toBeTruthy();
   confirm.mockRestore();
 });
+
+
+test('configura el fondo de imagen completa por dispositivo y guarda el borrador', async () => {
+  render(<BannersAdmin />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Editar banner: Campa\u00f1a inicial' }));
+  expect(screen.getByLabelText('Color de fondo de la imagen')).toHaveValue('#ffffff');
+  fireEvent.change(screen.getByLabelText('Color de fondo de la imagen'), { target: { value: '#123456' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Celular' }));
+  expect(screen.getByLabelText('Color de fondo de la imagen')).toHaveValue('#123456');
+  fireEvent.change(screen.getByLabelText('Color de fondo de la imagen'), { target: { value: '#abcdef' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Ajuste de imagen' }), { target: { value: 'cover' } });
+  expect(screen.queryByLabelText('Color de fondo de la imagen')).toBeNull();
+  fireEvent.change(screen.getByRole('combobox', { name: 'Ajuste de imagen' }), { target: { value: 'contain' } });
+  expect(screen.getByLabelText('Color de fondo de la imagen')).toHaveValue('#abcdef');
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar borrador' }));
+  await waitFor(() => expect(axios.put).toHaveBeenCalledTimes(1));
+  const body = axios.put.mock.calls[0][1];
+  expect(body.publish).toBe(false);
+  expect(body.data.Filas[0].banners[0].diseno).toEqual(expect.objectContaining({ desktop: expect.objectContaining({ background: '#123456' }), mobile: expect.objectContaining({ background: '#abcdef' }) }));
+});

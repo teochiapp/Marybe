@@ -89,6 +89,24 @@ async function main() {
     assert.equal(Number(after.variantes.find(v => v.id_original === 'QA-P2-100').precio), 1250.75);
     assert.equal(after.variantes.find(v => v.id_original === 'QA-P2-100').color_nombre, 'Rojo');
 
+    const newProductFile = await saveExcel(supplier.buffer, 'new-product', wb => {
+      const ws = wb.getWorksheet('💲 Precios por Proveedor');
+      ws.getCell(4, 14).value = null;
+      const row = ws.getRow(ws.rowCount + 2);
+      ['QA-NUEVO', 'SKU-N', 'Proveedor, S.A.', 'Producto nuevo', 'Perfumería', 'Fragancias', 'Mujer', 'Perfume', 'SI', 'NO', '', 5, 1200, 900].forEach((v, i) => { row.getCell(i + 1).value = v; });
+      const vs = wb.getWorksheet('🔗 Variantes');
+      const vr = vs.getRow(vs.rowCount + 1);
+      ['QA-NUEVO-1', 'QA-NUEVO', '', 'EAN-N', '100 ml', 5, 1200, 900, '', 'SI', '1', 'Rojo'].forEach((v, i) => { vr.getCell(i + 1).value = v; });
+    });
+    files.push(newProductFile);
+    const created = await importService.procesarImportacion(app, newProductFile);
+    assert.equal(created.creados, 1, created.erroresList.join('; '));
+    const newProduct = await app.db.query(UID).findOne({ where: { id_original: 'QA-NUEVO' }, populate: ['variantes', 'clasificaciones'] });
+    assert.equal(newProduct.nombre, 'Producto nuevo');
+    assert.equal(newProduct.proveedor, 'Proveedor, S.A.');
+    assert.equal(newProduct.variantes[0].id_original, 'QA-NUEVO-1');
+    assert.equal(newProduct.clasificaciones[0].categoria, 'Fragancias');
+
     const simple = await app.documents(UID).create({
       status: 'published',
       data: { id_original: 'QA-SIMPLE', nombre: 'Producto simple', proveedor: 'Otro', stock: 4, precio: 500,

@@ -2,6 +2,7 @@ export const DEVICES = ['desktop', 'tablet', 'mobile'];
 export const DEVICE_WIDTHS = { desktop: 1280, tablet: 820, mobile: 390 };
 export const ROW_TYPES = { 'layout.fila-1-columna': 'Una columna', 'layout.fila-2-columnas': 'Dos columnas', 'layout.fila-4-columnas': 'Cuatro columnas', 'layout.fila-mixta': 'Distribución libre' };
 export const BANNER_DEFAULTS = { height: 480, width: 100, radius: 20, padding: 24, fit: 'contain', positionX: 50, positionY: 50, imageScale: 100, textX: 6, textY: 50, textWidth: 80, fontSize: 44, subtitleSize: 18, buttonSize: 16, buttonRadius: 8, fontFamily: 'Inter', fontWeight: 700, lineHeight: 1.08, letterSpacing: 0, background: '#faf7f4', color: '#ffffff', buttonBackground: '#560203', buttonColor: '#ffffff', overlay: 0, align: 'left', hidden: false };
+export const MAIN_BANNER_DEFAULTS = { ...BANNER_DEFAULTS, background: '#ffffff' };
 export const CAROUSEL_DEFAULTS = { autoplay: true, intervalo: 7, indicador: 'ninguno', vistaParcial: false };
 export function designOrigin(design, device, key) {
   const own = Object.prototype.hasOwnProperty.call(design?.[device] || {}, key);
