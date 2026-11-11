@@ -17,6 +17,7 @@ const {
   calcPct,
   filtrarVariantesComerciales,
   construirHojaVariantes,
+  mensajeIdsProductos,
 } = require('../../../utils/excel-utils');
 
 const UID_PRODUCTO = 'api::producto.producto';
@@ -170,6 +171,7 @@ async function borrarVista(strapi, productos) {
 async function generarExcelProveedor(strapi, proveedores) {
   strapi.log.info(`[ExportacionProveedoresAdmin] Obteniendo productos para: ${proveedores.join(', ')}...`);
   const productos = await fetchProductosPorProveedor(strapi, proveedores);
+  const mensajeIds = await mensajeIdsProductos(strapi);
   strapi.log.info(`[ExportacionProveedoresAdmin] ${productos.length} productos obtenidos`);
 
   const wb   = new ExcelJS.Workbook();
@@ -234,8 +236,9 @@ async function generarExcelProveedor(strapi, proveedores) {
   ws.mergeCells('A2:S2');
   const instr = ws.getCell('A2');
   instr.value = `⚠ Generado el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Variantes indentadas (↳). Para crear nuevas variantes o editar Volumen/Color, usá la hoja "🔗 Variantes". Precio Oferta vacío quita la oferta; % Desc. es informativo.`;
+  instr.value += `\n${mensajeIds}`;
   applyStyle(instr, noteStyle());
-  ws.getRow(2).height = 28;
+  ws.getRow(2).height = 44;
 
   // ── Fila 3: Headers ───────────────────────────────────────────────────────
   const rowHeader = ws.getRow(3);

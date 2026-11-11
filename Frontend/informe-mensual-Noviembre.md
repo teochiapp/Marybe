@@ -588,3 +588,8 @@ Implementá estos cambios en Marybe para los **Banners principales** de Perfumer
 
 - El control conserva su espacio al quedar fijo, calcula la transición según su posición real y detecta desplazamientos suaves. Cuando está oculto no recibe foco ni clics.
 - Validación: prueba específica de desplazamiento, espacio y selección aprobada; git diff --check.
+
+### Referencia de IDs de productos en exportaciones Excel
+
+- Las tres planillas informan el rango numérico global de productos, incluidos borradores, y sugieren comenzar después del máximo. Aclaran que el rango puede tener huecos, la disponibilidad puede cambiar y los IDs de variantes son independientes.
+- Validación: 24 pruebas de Excel y prueba de importación con Strapi y SQLite aislada aprobadas; git diff --check.

@@ -316,6 +316,29 @@ function construirHojaVariantes(wb, productos, refs, options = {}) {
   return { wsV, rowIdxV, productosSinVariante };
 }
 
+async function mensajeIdsProductos(strapi) {
+  let min = null;
+  let max = null;
+  for (const status of ['published', 'draft']) {
+    for (let start = 0; ; start += 500) {
+      const page = await strapi.documents('api::producto.producto').findMany({
+        status, fields: ['id_original'], sort: 'id:asc', start, limit: 500,
+      });
+      for (const product of page) {
+        const id = String(product.id_original ?? '').trim();
+        if (!/^\d+$/.test(id)) continue;
+        const number = BigInt(id);
+        if (min === null || number < min) min = number;
+        if (max === null || number > max) max = number;
+      }
+      if (page.length < 500) break;
+    }
+  }
+  const rango = max === null ? 'Sin IDs numéricos registrados.' : `IDs numéricos de productos registrados: ${min} a ${max} (puede haber números libres dentro del rango).`;
+  const siguiente = max === null ? '1' : String(max + 1n);
+  return `${rango} Para productos nuevos, sugerencia desde ${siguiente}; verificá disponibilidad al importar, ya que puede cambiar. Conservá los IDs de productos existentes. Los IDs de variantes son independientes.`;
+}
+
 module.exports = {
   TAXONOMY,
   SECCIONES,
@@ -331,4 +354,5 @@ module.exports = {
   calcPct,
   filtrarVariantesComerciales,
   construirHojaVariantes,
+  mensajeIdsProductos,
 };

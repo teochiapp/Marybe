@@ -101,6 +101,36 @@ async function generalWorkbook(strapi) {
   return workbookFrom(buffer);
 }
 
+test('las tres exportaciones informan el rango global de IDs de producto, incluidos borradores', async () => {
+  const { strapi } = fixture({ id_original: '15000' });
+  const original = strapi.documents;
+  strapi.documents = uid => {
+    const api = original(uid);
+    if (uid !== PRODUCTO) return api;
+    const findMany = api.findMany;
+    api.findMany = async options => {
+      if (options.fields?.includes('id_original')) return options.status === 'draft'
+        ? [{ id_original: '15000' }, { id_original: '17000' }, { id_original: 'ABC' }]
+        : [{ id_original: '15000' }, { id_original: '15053' }];
+      return findMany(options);
+    };
+    return api;
+  };
+  const books = [
+    await generalWorkbook(strapi),
+    await workbookFrom((await exportarGeneral.generarExcelVacio(strapi)).buffer),
+    await supplierWorkbook(strapi),
+  ];
+  for (const book of books) {
+    const text = book.worksheets[0].getCell('A2').value;
+    assert.match(text, /15000 a 17000/);
+    assert.match(text, /puede haber números libres/);
+    assert.match(text, /sugerencia desde 17001/);
+    assert.match(text, /verificá disponibilidad al importar/);
+    assert.match(text, /IDs de variantes son independientes/);
+  }
+});
+
 test('las tres planillas usan la nueva jerarquía, con listas fijas en catálogo completo y cascada en plantilla vacía y proveedores', async () => {
   const { strapi } = fixture();
   const { buffer: emptyBuffer } = await exportarGeneral.generarExcelVacio(strapi);
