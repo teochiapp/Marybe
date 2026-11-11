@@ -30,7 +30,7 @@ test('borrador y publicación conservan relaciones y áreas independientes en St
     assert.deepEqual(state.areas.hogar.published.orden, ['ofertas', 'lanzamientos', `categoria:${category.documentId}`]);
     const order = { orden: [`categoria:${category.documentId}`, 'lanzamientos', 'ofertas'] };
     state = await service.save('hogar', { version: state.version, data: order, publish: false });
-    assert.deepEqual(state.areas.hogar.draft, order);
+    assert.deepEqual(state.areas.hogar.draft, { ...order, ocultos: [] });
     assert.equal(state.areas.hogar.published.orden[0], 'ofertas');
     await assert.rejects(service.save('hogar', { version: 'stale', data: order, publish: true }), { status: 409 });
     state = await service.save('hogar', { version: state.version, data: order, publish: true });
@@ -58,14 +58,14 @@ test('borrador y publicación conservan relaciones y áreas independientes en St
     const extended = { orden: [...order.orden, `categoria:${perfume.documentId}`] };
     state = await service.save('hogar', { version: state.version, data: extended, publish: false });
     assert.equal(state.menuCategories.hogar.length, 1);
-    assert.deepEqual(state.areas.hogar.draft, extended);
+    assert.deepEqual(state.areas.hogar.draft, { ...extended, ocultos: [] });
     state = await service.save('hogar', { version: state.version, data: extended, publish: true });
     assert.deepEqual(state.areas.hogar.published.orden, extended.orden);
     assert.deepEqual(state.menuCategories.hogar.map(item => item.documentId), [category.documentId, perfume.documentId]);
     assert.deepEqual(state.menuCategories.perfumeria, []);
     const bothSections = { orden: [...extended.orden, `categoria:${duplicate.documentId}`] };
     state = await service.save('hogar', { version: state.version, data: bothSections, publish: false });
-    assert.deepEqual(state.areas.hogar.draft, bothSections);
+    assert.deepEqual(state.areas.hogar.draft, { ...bothSections, ocultos: [] });
     state = await service.save('hogar', { version: state.version, data: bothSections, publish: true });
     assert.deepEqual(state.areas.hogar.published.orden, bothSections.orden);
     assert.equal(state.menuCategories.hogar.length, 3);
@@ -112,6 +112,16 @@ test('borrador y publicación conservan relaciones y áreas independientes en St
     assert.equal(publicBody.data.borradoresMenu, undefined);
     assert.deepEqual(publicBody.data.ordenVisual.hogar, extended.orden);
     assert.deepEqual(publicBody.data.ordenVisual.categoriasAgregadas.hogar, [perfume.documentId, category.documentId]);
+    state = await service.overview();
+    const hidden = { ...extended, ocultos: ['ofertas', 'lanzamientos'] };
+    state = await service.save('hogar', { version: state.version, data: hidden, publish: false });
+    assert.deepEqual(state.areas.hogar.draft.ocultos, hidden.ocultos);
+    assert.deepEqual(state.areas.hogar.published.ocultos, []);
+    state = await service.save('hogar', { version: state.version, data: hidden, publish: true });
+    assert.deepEqual(state.areas.hogar.published.ocultos, hidden.ocultos);
+    assert.deepEqual(state.areas.perfumeria.published.ocultos, []);
+    const updatedPublic = await (await fetch(`http://127.0.0.1:${app.server.httpServer.address().port}/api/ordenamiento-menu-header`)).json();
+    assert.deepEqual(updatedPublic.data.ordenVisual.especialesOcultos.hogar, hidden.ocultos);
   } finally {
     await app.destroy();
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);

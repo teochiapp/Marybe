@@ -105,7 +105,7 @@ export default function MenuHeaderEditor({ token, onBack, onLogout }) {
   const categoryNames = Object.fromEntries([...categories, ...contextItems].map(item => [`categoria:${item.documentId}`, item.nombre]));
   const orderData = draft.getAreaData(currentContext);
   const publishedOrder = overview?.areas?.[currentContext]?.published?.orden || [];
-  const previewCategories = (orderData?.orden || []).map(id => {
+  const previewCategories = (orderData?.orden || []).filter(id => !(orderData?.ocultos || []).includes(id)).map(id => {
     const category = categoryMap[id.replace(/^categoria:/, '')] || contextItems.find(item => `categoria:${item.documentId}` === id);
     return { key: id, nombre: names[id] || category?.nombre, seccion: category?.seccion, seccionMapped: SECTION_MAP[category?.seccion], forceSection: !publishedOrder.includes(id) };
   }).filter(item => item.nombre);
@@ -145,6 +145,9 @@ export default function MenuHeaderEditor({ token, onBack, onLogout }) {
       items={data.orden.map(id => { const category = categoryMap[id.replace(/^categoria:/, '')] || contextItems.find(item => `categoria:${item.documentId}` === id); return { documentId: id, nombre: category?.seccion ? `${category.nombre} · ${category.seccion}` : names[id] || categoryNames[id] || id }; })}
       title="Orden del header" hint="Arrastrá las opciones o usá las flechas." listLabel="Orden del menú" onSelect={() => {}}
       onReorder={(id, to) => change(next => { next.orden = move(next.orden, id, to); })} />
+      {areaKey !== 'general' && <section className="mh-selection"><h3>Opciones del menú</h3>
+        {['ofertas', 'lanzamientos'].map(id => <label key={id} className="mh-option"><input type="checkbox" checked={!(data.ocultos || []).includes(id)} onChange={event => { const checked = event.target.checked; change(next => { next.ocultos = checked ? (next.ocultos || []).filter(item => item !== id) : [...(next.ocultos || []), id]; }); }} /> Mostrar {names[id]}</label>)}
+      </section>}
       <CategoryChooser categories={categories} selected={data.orden} onChange={value => setList('orden', value)} />
     </>}
     {data && ['ofertas', 'lanzamientos'].includes(areaKey) && <div className="ba-inspector-tabs mh-tabs" role="tablist" aria-label={`Personalización de ${areaKey}`}>

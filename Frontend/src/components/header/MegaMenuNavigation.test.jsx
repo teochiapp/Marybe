@@ -48,6 +48,18 @@ test('el orden visual usa identificadores y conserva las opciones nuevas', () =>
   expect(orderMenuItems(items, null)).toEqual(['Ofertas', 'Lanzamientos', 'Limpieza', 'Cuidado Personal']);
 });
 
+test('respeta las opciones ocultas en el menú público incluso sin categorías', async () => {
+  global.fetch = jest.fn(async url => {
+    if (url.includes('/api/categorias?')) return { ok: true, json: async () => ({ data: [], meta: { pagination: { pageCount: 1 } } }) };
+    if (url.includes('/api/ordenamiento-menu-header')) return { ok: true, json: async () => ({ data: { ordenVisual: { especialesOcultos: { hogar: ['ofertas', 'lanzamientos'] } } } }) };
+    return { ok: true, json: async () => ({ data: {} }) };
+  });
+  render(<MegaMenuProvider><CategoryNav /></MegaMenuProvider>);
+  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(3));
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Ofertas' })).not.toBeInTheDocument());
+  expect(screen.queryByRole('button', { name: 'Lanzamientos' })).not.toBeInTheDocument();
+});
+
 test('una tienda abierta actualiza el orden publicado al volver a la pestaña', async () => {
   let order = ['ofertas', 'lanzamientos', 'categoria:home'];
   global.fetch = jest.fn(async url => {

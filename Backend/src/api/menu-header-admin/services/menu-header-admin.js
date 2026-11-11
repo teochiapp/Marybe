@@ -73,7 +73,7 @@ module.exports = ({ strapi }) => {
     const areas = {};
     for (const area of AREAS) {
       const published = FIELDS[area]
-        ? { orden: orderFor(order?.[FIELDS[area]] || [], order?.ordenVisual?.[area]) }
+        ? { orden: orderFor(order?.[FIELDS[area]] || [], order?.ordenVisual?.[area]), ...(area !== 'general' ? { ocultos: (order?.ordenVisual?.especialesOcultos?.[area] || []).filter(id => SPECIALS.includes(id)) } : {}) }
         : contentState(menu, area);
       const savedDraft = order?.borradoresMenu?.[area];
       let draft = savedDraft?.data || null;
@@ -114,6 +114,11 @@ module.exports = ({ strapi }) => {
         const key = `${category?.seccion || ''}\u0000${category?.nombre}`;
         if (!category?.nombre || selectedNames.has(key) || ['Ofertas', 'Lanzamientos'].includes(category.nombre)) fail('Ya existe una opción del menú con ese nombre en la misma sección.');
         selectedNames.add(key);
+      }
+      if (area !== 'general') {
+        const ocultos = input.ocultos === undefined ? [] : list(input.ocultos);
+        if (ocultos.some(id => !SPECIALS.includes(id))) fail('Opciones ocultas inválidas.');
+        return { orden: values, ocultos };
       }
       return { orden: values };
     }
@@ -180,6 +185,7 @@ module.exports = ({ strapi }) => {
           const previousAdded = visual?.categoriasAgregadas || {};
           const previousIds = Array.isArray(previousAdded[area]) ? previousAdded[area] : [];
           visual = { ...(visual || {}), [area]: data.orden, categoriasAgregadas: { ...previousAdded, [area]: [...new Set([...previousIds.filter(id => selected.includes(id)), ...added])] } };
+          if (area !== 'general') visual.especialesOcultos = { ...(visual.especialesOcultos || {}), [area]: data.ocultos };
         }
         await writeOrder(order, { borradoresMenu: drafts, ...(visual != null ? { ordenVisual: visual } : {}), ...relations });
       });

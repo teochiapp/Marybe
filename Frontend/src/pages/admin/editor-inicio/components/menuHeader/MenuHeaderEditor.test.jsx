@@ -68,6 +68,16 @@ test('las pestañas mantienen los cambios al alternar contenido', async () => {
 });
 afterEach(() => { jest.clearAllMocks(); });
 
+test('oculta opciones por contexto en la vista previa y en el borrador', async () => {
+  render(<MenuHeaderEditor token="token" onBack={() => {}} onLogout={() => {}} />);
+  const checkbox = await screen.findByRole('checkbox', { name: 'Mostrar Ofertas' });
+  expect(checkbox).toBeChecked();
+  fireEvent.click(checkbox);
+  expect(JSON.parse(screen.getByTestId('preview').textContent).categories.map(item => item.nombre)).toEqual(['Lanzamientos', 'Perfumes']);
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar borrador' }));
+  await waitFor(() => expect(axios.put).toHaveBeenCalledWith(expect.stringMatching(/menu-header-admin\/perfumeria$/), expect.objectContaining({ publish: false, data: expect.objectContaining({ ocultos: ['ofertas'] }) }), expect.any(Object)));
+});
+
 test('ordena opciones, conserva cambios locales y guarda Ofertas como borrador', async () => {
   render(<MenuHeaderEditor token="token" onBack={() => {}} onLogout={() => {}} />);
   await screen.findByLabelText('Mover Ofertas a la derecha');

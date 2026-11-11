@@ -567,3 +567,13 @@ Implementá estos cambios en Marybe para los **Banners principales** de Perfumer
 
 - El menú vuelve a consultar las categorías y la configuración publicada al regresar a la pestaña y cada 60 segundos mientras está visible, sin reutilizar la caché del navegador. Guardar borrador sigue sin publicar cambios.
 - Validación: 18 pruebas del menú y editor aprobadas; prueba de publicación con Strapi y SQLite aislada aprobada. No se verificó el estado de producción ni la causa específica del caso informado.
+
+### Visibilidad de Ofertas y Lanzamientos en el menú
+
+- El editor permite mostrar u ocultar cada opción por separado en Perfumería y Hogar. Conserva el orden y respeta borradores, publicación y vista previa; General y las configuraciones existentes mantienen su comportamiento.
+- Validación: 20 pruebas del menú y editor aprobadas y prueba de publicación con Strapi y SQLite aislada aprobada.
+
+### Espaciado del menú en notebooks
+
+- Se redujo el espacio horizontal entre las opciones del menú de primer nivel en pantallas de 769 a 1366 px.
+- Validación: revisión del cambio y git diff --check.

@@ -66,6 +66,11 @@ const CategoryBtn = styled.button`
   transition: color 0.2s, border-color 0.2s;
   white-space: nowrap;
 
+  @media (min-width: 769px) and (max-width: 1366px) {
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+
   &:hover {
     color: var(--color-bordo-secundario);
   }

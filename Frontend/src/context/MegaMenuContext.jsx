@@ -54,7 +54,7 @@ export function MegaMenuProvider({ children }) {
   const [megaMap, setMegaMap] = useState(new Map());
   const [sectionColumns, setSectionColumns] = useState(new Map());
   const [categorySectionMap, setCategorySectionMap] = useState(new Map());
-  const [menuArrays, setMenuArrays] = useState({ PERFUMERIA: [], HOGAR: [], GENERAL: [] });
+  const [menuArrays, setMenuArrays] = useState({ PERFUMERIA: null, HOGAR: null, GENERAL: null });
   const [menuLanzOfertas, setMenuLanzOfertas] = useState({ ofertas: null, lanzamientos: null });
   const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
@@ -208,8 +208,8 @@ export function MegaMenuProvider({ children }) {
         setCategorySectionMap(secMap);
 
         setMenuArrays({
-          PERFUMERIA: orderMenuEntries(listPerfumeria, menuData.ordenVisual?.perfumeria),
-          HOGAR: orderMenuEntries(listHogar, menuData.ordenVisual?.hogar),
+          PERFUMERIA: orderMenuEntries(listPerfumeria, menuData.ordenVisual?.perfumeria).filter(item => !(menuData.ordenVisual?.especialesOcultos?.perfumeria || []).includes(item.key)),
+          HOGAR: orderMenuEntries(listHogar, menuData.ordenVisual?.hogar).filter(item => !(menuData.ordenVisual?.especialesOcultos?.hogar || []).includes(item.key)),
           GENERAL: orderMenuEntries(listGeneral, menuData.ordenVisual?.general),
         });
 
@@ -260,11 +260,11 @@ export function MegaMenuProvider({ children }) {
   );
   const getColumnsInSection = useCallback((name, section) => sectionColumns.get(`${section}-${name}`) || [], [sectionColumns]);
   const getCategoriesForContext = useCallback(
-    (context) => { const list = menuArrays[context]; if (!list || list.length === 0) return ['Ofertas', 'Lanzamientos']; return list.map(item => item.nombre); },
+    (context) => { const list = menuArrays[context]; if (!list) return ['Ofertas', 'Lanzamientos']; return list.map(item => item.nombre); },
     [menuArrays]
   );
   const getMenuItemsForContext = useCallback(
-    context => menuArrays[context]?.length ? menuArrays[context] : [{ key: 'ofertas', nombre: 'Ofertas' }, { key: 'lanzamientos', nombre: 'Lanzamientos' }],
+    context => menuArrays[context] ?? [{ key: 'ofertas', nombre: 'Ofertas' }, { key: 'lanzamientos', nombre: 'Lanzamientos' }],
     [menuArrays]
   );
 
