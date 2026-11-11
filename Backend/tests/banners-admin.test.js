@@ -54,6 +54,16 @@ test('la lista del editor solo consulta los grupos principales', async () => {
   } } });
   assert.deepEqual(await service.list(), { promotions: [{ documentId: 'primary' }] });
 });
+test('la lista del editor obtiene todas las páginas de secciones', async () => {
+  const calls = [];
+  const service = createService({ strapi: { documents: () => ({ findMany: async options => {
+    calls.push(options.start);
+    return options.start === 0 ? Array.from({ length: 100 }, (_, i) => ({ documentId: String(i) })) : [{ documentId: '100' }];
+  } }) } });
+  const result = await service.list();
+  assert.equal(result.promotions.length, 101);
+  assert.deepEqual(calls, [0, 100]);
+});
 test('publicación usa update de borrador y publish explícito de Strapi', async () => {
   const { service, events } = fixture();
   await service.savePromotion('promo-1', { ...promoBody(), publish: true });

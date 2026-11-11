@@ -1,0 +1,33 @@
+import React from 'react';
+import '@testing-library/jest-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import ToggleSelection from './ToggleSelection';
+
+test('conserva el espacio y responde a desplazamientos suaves en ambas direcciones', () => {
+  let scroll = 0;
+  Object.defineProperty(window, 'scrollY', { configurable: true, get: () => scroll });
+  const rect = jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({ top: 180 - scroll }));
+  const height = jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(52);
+  const onChange = jest.fn();
+  render(<ToggleSelection seccionActiva="perfumeria" onSeccionChange={onChange} textoPerfumeria="Perfumería" textoHogar="Hogar" />);
+  const perfumeria = screen.getByRole('button', { name: 'Perfumería' });
+  const container = perfumeria.parentElement;
+  const anchor = container.parentElement;
+  scroll = 120; fireEvent.scroll(window);
+  expect(container).toHaveAttribute('aria-hidden', 'true');
+  expect(perfumeria).toHaveAttribute('tabindex', '-1');
+  expect(anchor).toHaveStyle({ height: '52px' });
+  scroll = 117; fireEvent.scroll(window);
+  scroll = 114; fireEvent.scroll(window);
+  expect(container).not.toHaveAttribute('aria-hidden');
+  fireEvent.click(screen.getByRole('button', { name: 'Hogar' }));
+  expect(onChange).toHaveBeenCalledWith('hogar');
+  scroll = 118; fireEvent.scroll(window);
+  scroll = 121; fireEvent.scroll(window);
+  expect(container).toHaveAttribute('aria-hidden', 'true');
+  scroll = 0; fireEvent.scroll(window);
+  expect(container).not.toHaveAttribute('aria-hidden');
+  expect(anchor).toHaveStyle({ height: 'auto' });
+  rect.mockRestore(); height.mockRestore();
+  delete window.scrollY;
+});

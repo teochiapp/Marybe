@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 
+const ToggleAnchor = styled.div`
+  height: ${({ $height }) => ($height ? `${$height}px` : 'auto')};
+  margin: 0 auto -3vh;
+
+  @media (max-width: 768px) {
+    margin-bottom: 20px;
+  }
+`;
+
 const ToggleContainer = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -18,7 +27,8 @@ const ToggleContainer = styled.div`
     $sticky
       ? `translateX(-50%) translateY(${$visible ? '0' : '-200px'})`
       : 'none'};
-  margin: ${({ $sticky }) => ($sticky ? '0' : '0 auto -3vh auto')};
+  margin: ${({ $sticky }) => ($sticky ? '0' : '0 auto')};
+  pointer-events: ${({ $sticky, $visible }) => ($sticky && !$visible ? 'none' : 'auto')};
   z-index: ${({ $sticky }) => ($sticky ? 400 : 10)};
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: ${({ $sticky }) =>
@@ -30,7 +40,7 @@ const ToggleContainer = styled.div`
 
   @media (max-width: 768px) {
     width: ${({ $sticky }) => ($sticky ? 'calc(100% - 40px)' : 'calc(100% - 20px)')};
-    margin: ${({ $sticky }) => ($sticky ? '0' : '0 auto 20px auto')};
+    margin: ${({ $sticky }) => ($sticky ? '0' : '0 auto')};
   }
 `;
 
@@ -99,28 +109,39 @@ const ToggleOption = styled.button`
 export default function ToggleSelection({ seccionActiva, onSeccionChange, textoPerfumeria, textoHogar }) {
   const [visible, setVisible] = useState(false);
   const [sticky, setSticky] = useState(false);
-  const lastScrollY = useRef(0);
+  const [height, setHeight] = useState(0);
+  const anchor = useRef(null);
+  const toggle = useRef(null);
+  const lastScrollY = useRef(window.scrollY);
+  const stickyRef = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
-      const diff = currentY - lastScrollY.current;
       const threshold = parseFloat(
         getComputedStyle(document.documentElement).getPropertyValue('--header-height')
       ) || 70;
-
-      if (currentY > threshold) {
+      const shouldStick = anchor.current && anchor.current.getBoundingClientRect().top < threshold;
+      if (shouldStick) {
+        if (!stickyRef.current) {
+          setHeight(toggle.current?.offsetHeight || 0);
+          stickyRef.current = true;
+          lastScrollY.current = currentY;
+        }
         setSticky(true);
+        const diff = currentY - lastScrollY.current;
         if (diff < -5) setVisible(true);
         else if (diff > 5) setVisible(false);
+        if (Math.abs(diff) > 5) lastScrollY.current = currentY;
       } else {
+        stickyRef.current = false;
         setSticky(false);
         setVisible(false);
+        lastScrollY.current = currentY;
       }
-
-      lastScrollY.current = currentY;
     };
 
+    handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -129,20 +150,24 @@ export default function ToggleSelection({ seccionActiva, onSeccionChange, textoP
   const activeColor = seccionActiva === 'hogar' ? 'var(--color-hogar)' : 'var(--color-bordo-tercero)';
 
   return (
-    <ToggleContainer $visible={visible} $sticky={sticky}>
+    <ToggleAnchor ref={anchor} $height={sticky ? height : 0}>
+    <ToggleContainer ref={toggle} $visible={visible} $sticky={sticky} aria-hidden={sticky && !visible ? true : undefined}>
       <Slider $index={index} $activeColor={activeColor} aria-hidden="true" />
       <ToggleOption
         $active={seccionActiva === 'perfumeria'}
+        tabIndex={sticky && !visible ? -1 : undefined}
         onClick={() => onSeccionChange('perfumeria')}
       >
         {textoPerfumeria}
       </ToggleOption>
       <ToggleOption
         $active={seccionActiva === 'hogar'}
+        tabIndex={sticky && !visible ? -1 : undefined}
         onClick={() => onSeccionChange('hogar')}
       >
         {textoHogar}
       </ToggleOption>
     </ToggleContainer>
+    </ToggleAnchor>
   );
 }

@@ -577,3 +577,14 @@ Implementá estos cambios en Marybe para los **Banners principales** de Perfumer
 
 - Se redujo el espacio horizontal entre las opciones del menú de primer nivel en pantallas de 769 a 1366 px.
 - Validación: revisión del cambio y git diff --check.
+
+### Actualización de secciones de banners entre administradores
+
+- El editor consulta las secciones guardadas al recuperar el foco y cada 60 segundos mientras está visible; también permite actualizarlas manualmente. Si existen cambios sin guardar, conserva el trabajo local y solicita guardarlo antes de actualizar.
+- La API recorre todas las páginas de secciones para evitar listas incompletas. Las secciones nuevas deben guardarse como borrador para que otros equipos puedan verlas.
+- Validación: 30 pruebas del editor y 11 pruebas del servicio aprobadas; git diff --check.
+
+### Toggle de Perfumería y Hogar al desplazarse
+
+- El control conserva su espacio al quedar fijo, calcula la transición según su posición real y detecta desplazamientos suaves. Cuando está oculto no recibe foco ni clics.
+- Validación: prueba específica de desplazamiento, espacio y selección aprobada; git diff --check.

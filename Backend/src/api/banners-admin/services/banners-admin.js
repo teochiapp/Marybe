@@ -77,7 +77,12 @@ async function cleanBanner(input, strapi, slot = false) {
 }
 module.exports = ({ strapi }) => ({
   async list() {
-    const promotions = await strapi.documents(PROMO).findMany({ status: 'draft', populate });
+    const promotions = [];
+    for (let start = 0; ; start += 100) {
+      const page = await strapi.documents(PROMO).findMany({ status: 'draft', populate, sort: 'id:asc', start, limit: 100 });
+      promotions.push(...page);
+      if (page.length < 100) break;
+    }
     return { promotions };
   },
   async publicSlots() {

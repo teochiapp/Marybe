@@ -15,6 +15,21 @@ beforeEach(() => {
   axios.get.mockResolvedValue({ data: { data: { promotions: [group], main: { documentId: 'main-1', updatedAt: 'm1' } } } });
   axios.put.mockImplementation(async (url, body) => ({ data: { data: { ...body.data, documentId: body.data.documentId || `created-${axios.put.mock.calls.length}`, updatedAt: 'v2' } } }));
 });
+test('actualiza secciones al volver y conserva cambios locales sin guardar', async () => {
+  render(<BannersAdmin />);
+  await screen.findByRole('button', { name: 'Editar banner: Campaña inicial' });
+  const second = { ...group, documentId: 'promo-2', titulo: 'Otra sección' };
+  axios.get.mockResolvedValue({ data: { data: { promotions: [group, second] } } });
+  fireEvent.focus(window);
+  expect(await screen.findByRole('button', { name: 'Editar sección: Otra sección' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Editar banner: Campaña inicial' }));
+  fireEvent.change(screen.getByLabelText('Destino al hacer clic'), { target: { value: '/oferta' } });
+  const calls = axios.get.mock.calls.length;
+  fireEvent.click(screen.getByRole('button', { name: 'Actualizar secciones' }));
+  expect(screen.getByText('Guardá tus cambios pendientes antes de actualizar las secciones.')).toBeInTheDocument();
+  expect(axios.get).toHaveBeenCalledTimes(calls);
+  expect(screen.getByLabelText('Destino al hacer clic')).toHaveValue('/oferta');
+});
 test('prioriza imagen y destino, recuerda bloques y muestra ajustes según el contenido', async () => {
   sessionStorage.removeItem('marybe-banner-inspector-blocks');
   const { unmount } = render(<BannersAdmin />);

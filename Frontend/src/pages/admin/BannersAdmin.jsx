@@ -70,6 +70,9 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
   const newSectionId = useRef(0);
   const dirty = draft !== null && JSON.stringify(draft) !== baseline.current;
   const hasUnsaved = dirty || [...navigation.current.entries()].some(([key, entry]) => key !== source && JSON.stringify(entry.draft) !== entry.baseline);
+  const refreshState = useRef(null);
+  refreshState.current = { source, draft, selected, area, promotions, busy: busy || loading, hasUnsaved: hasUnsaved || Boolean(draft && !draft.documentId) || [...navigation.current.keys()].some(key => key.startsWith('new-')) };
+  const refreshing = useRef(false);
   const hasDraft = draft !== null;
   const rows = useMemo(() => draft?.Filas || [], [draft]);
   const row = rows[selected.row] || rows[0];
@@ -128,7 +131,7 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
     if (!token) return;
     let active = true;
     setLoading(true);
-    axios.get(`${API}/api/banners-admin`, auth).then(response => {
+    axios.get(`${API}/api/banners-admin`, { ...auth, params: { _: Date.now() } }).then(response => {
       if (!active) return;
       const { promotions: records = [] } = response.data.data;
       setPromotions(records);
@@ -146,6 +149,42 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
     // Auth changes intentionally reload the document inventory.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+  const refreshBanners = useCallback(async (manual = false) => {
+    const before = refreshState.current;
+    if (!token || refreshing.current || before.busy) return;
+    if (before.hasUnsaved) {
+      if (manual) setMessage('Guardá tus cambios pendientes antes de actualizar las secciones.');
+      return;
+    }
+    refreshing.current = true;
+    try {
+      const response = await axios.get(`${API}/api/banners-admin`, { ...auth, params: { _: Date.now() } });
+      const current = refreshState.current;
+      if (current.hasUnsaved || current.busy || current.draft !== before.draft || current.promotions !== before.promotions || current.source !== before.source || current.area !== before.area) return;
+      const records = response.data.data.promotions || [];
+      navigation.current.clear();
+      setPromotions(records);
+      const record = current.source ? records.find(item => item.documentId === current.source) : records.find(item => item.seccion === current.area);
+      if (record) {
+        if (!current.source) setSource(record.documentId);
+        if (!current.draft || record.updatedAt !== current.draft.updatedAt) setInitial(normalized(record), current.selected);
+      } else if (current.source) {
+        setSource(''); setDraft(null); setHistory([]); setHistoryIndex(0);
+        setMessage('La sección seleccionada ya no está disponible.');
+      }
+      if (manual && record) setMessage('Secciones actualizadas.');
+    } catch (error) {
+      if (manual) handleError(error);
+    } finally { refreshing.current = false; }
+  }, [token, auth]);
+  useEffect(() => {
+    if (!token) return;
+    const refresh = () => { if (document.visibilityState === 'visible') refreshBanners(); };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    const timer = window.setInterval(refresh, 60000);
+    return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); window.clearInterval(timer); };
+  }, [token, refreshBanners]);
   useEffect(() => {
     if (!source || !draft) return;
     if (draft.documentId && draft.documentId !== source) return;
@@ -397,6 +436,7 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
       <div className="ba-brand"><img src="/logo-marybe.png" alt="Marybe" width="629" height="168" /><span>Editor de banners</span></div>
       <span className={`ba-status ${hasUnsaved ? 'ba-status--dirty' : ''}`}>{!draft?.documentId && draft ? '○ Sección nueva' : dirty ? '● Cambios pendientes' : hasUnsaved ? '● Otros cambios pendientes' : draft ? '● Borrador guardado' : ''}</span>
       <div className="ba-top-actions">
+        <button disabled={busy || loading} onClick={() => refreshBanners(true)}>Actualizar secciones</button>
         <details className="ba-top-more"><summary>Más opciones</summary><div><button onClick={recover} disabled={!draft || busy}>Recuperar copia</button><button disabled={busy} onClick={() => { if (!hasUnsaved || window.confirm('¿Salir con cambios sin guardar?')) { localStorage.removeItem('admin_jwt'); setToken(''); onLogout?.(); } }}>Salir</button></div></details>
         <button className="ba-preview-open" disabled={!draft || loading} onClick={() => setShowPreview(true)}>Vista previa</button>
         <button disabled={!draft || busy} onClick={() => save(false)}>Guardar borrador</button>
