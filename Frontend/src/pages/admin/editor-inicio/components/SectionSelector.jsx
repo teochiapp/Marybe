@@ -285,22 +285,29 @@ const Panel = styled.section`
     transform: translateY(-1px);
   }
 
-  /* Barra inferior persistente de publicación */
+  /* Barra de acciones y publicación (duplicada arriba y abajo) */
   .actions {
-    position: sticky;
-    bottom: 20px;
-    z-index: 10;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
-    margin: 28px 0 0;
     padding: 14px 20px;
     background: #ffffff;
     border: 1px solid #e8dcd3;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(92, 10, 10, 0.1);
+    box-shadow: 0 4px 20px rgba(92, 10, 10, 0.08);
+  }
+
+  .actions--top {
+    margin: 18px 0 20px;
+  }
+
+  .actions--bottom {
+    position: sticky;
+    bottom: 20px;
+    z-index: 10;
+    margin: 28px 0 0;
   }
 
   .actions-buttons {
@@ -491,6 +498,60 @@ export default function SectionSelector({ token }) {
     cancelDrag();
   };
 
+  const renderActions = (location = 'top') => {
+    const isBottom = location === 'bottom';
+    return (
+      <div className={`actions actions--${location}`}>
+        <div className="actions-buttons">
+          <button
+            className="ba-primary"
+            disabled={draft.busy || !draft.dirty}
+            onClick={() => draft.save(true, 'Composición publicada.')}
+            aria-label={isBottom ? 'Publicar cambios' : undefined}
+          >
+            Publicar
+          </button>
+          <button
+            disabled={!draft.canUndo || draft.busy}
+            onClick={draft.undo}
+            aria-label={isBottom ? 'Deshacer cambios' : undefined}
+          >
+            Deshacer
+          </button>
+          <button
+            disabled={!draft.canRedo || draft.busy}
+            onClick={draft.redo}
+            aria-label={isBottom ? 'Rehacer cambios' : undefined}
+          >
+            Rehacer
+          </button>
+          <button
+            disabled={draft.busy}
+            onClick={() =>
+              draft.change(next => {
+                next.orden = normalizarComposicion(null, draft.areaKey).orden;
+              })
+            }
+            aria-label={isBottom ? 'Restaurar orden original de secciones' : undefined}
+          >
+            Restaurar orden original
+          </button>
+        </div>
+        {(!draft.message || draft.dirty || dragState) && (
+          <p className={`actions-status ${draft.dirty ? 'is-dirty' : ''}`} role="status">
+            {dragState
+              ? `Soltar en la posición de ${sections.find(item => item.id === dragState.target)?.title || ''}. Escape para cancelar.`
+              : draft.dirty
+                ? '● Cambios sin guardar.'
+                : draft.hasDraft
+                  ? '● Borrador guardado; pendiente de publicación.'
+                  : 'Composición publicada.'}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <Panel aria-label="Composición de Inicio">
       <SelectorHeader>
@@ -534,6 +595,8 @@ export default function SectionSelector({ token }) {
 
       {draft.data && (
         <>
+          {renderActions('top')}
+
           <div className="sections-list-header">
             <h2>Secciones de la página</h2>
             <span className="sections-list-tip">Arrastrá para ordenar o usá las flechas de cada tarjeta</span>
@@ -652,44 +715,7 @@ export default function SectionSelector({ token }) {
             })}
           </ol>
 
-          <div className="actions">
-            <div className="actions-buttons">
-              <button
-                className="ba-primary"
-                disabled={draft.busy || !draft.dirty}
-                onClick={() => draft.save(true, 'Composición publicada.')}
-              >
-                Publicar
-              </button>
-              <button disabled={!draft.canUndo || draft.busy} onClick={draft.undo}>
-                Deshacer
-              </button>
-              <button disabled={!draft.canRedo || draft.busy} onClick={draft.redo}>
-                Rehacer
-              </button>
-              <button
-                disabled={draft.busy}
-                onClick={() =>
-                  draft.change(next => {
-                    next.orden = normalizarComposicion(null, draft.areaKey).orden;
-                  })
-                }
-              >
-                Restaurar orden original
-              </button>
-            </div>
-            {(!draft.message || draft.dirty || dragState) && (
-              <p className={`actions-status ${draft.dirty ? 'is-dirty' : ''}`} role="status">
-                {dragState
-                  ? `Soltar en la posición de ${sections.find(item => item.id === dragState.target)?.title || ''}. Escape para cancelar.`
-                  : draft.dirty
-                    ? '● Cambios sin guardar.'
-                    : draft.hasDraft
-                      ? '● Borrador guardado; pendiente de publicación.'
-                      : 'Composición publicada.'}
-              </p>
-            )}
-          </div>
+          {renderActions('bottom')}
         </>
       )}
     </Panel>

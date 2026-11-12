@@ -706,4 +706,5 @@ Criterio de aceptación: el orden y la visibilidad de la lista publicada coincid
   - El contenedor central cuenta con marco visual suave, fondo cálido, `object-fit: contain` para no recortar textos de banners y enlace directo de edición.
   - Se vinculó la captura `/capturas-admin-editor/11-descubri-mas.png` y descripción para la sección «Descubrí más», unificando visualmente todas las secciones del panel.
   - Se estructuró cada fila en tres columnas balanceadas (información con descripción y badge de visibilidad a la izquierda, vista previa rectangular 4/3 al centro y controles de acción a la derecha) con adaptación responsiva a columna vertical para tablets y móviles.
+  - Se duplicó la barra de acciones (Publicar, Deshacer, Rehacer, Restaurar orden original y estado de cambios) tanto al inicio de la página antes de la lista como al final persistente (`sticky`), facilitando la publicación sin necesidad de desplazarse por todo el contenido.
 - Validación: 9 pruebas en `EditorInicioAdmin.test.jsx` aprobadas; ESLint sin errores; `git diff --check` correcto.
