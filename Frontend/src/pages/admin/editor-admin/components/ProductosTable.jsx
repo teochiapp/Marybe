@@ -38,14 +38,14 @@ export default function ProductosTable({ productos, token, pendingChanges, onMar
       <table className="ea-table">
         <thead>
           <tr>
-            <th className="ea-th--sticky">SKU / EAN</th>
-            <th>Marca</th>
-            <th>Nombre</th>
-            <th style={{ textAlign: 'center' }}>Precio</th>
-            <th style={{ textAlign: 'center' }}>Precio Oferta</th>
-            <th style={{ textAlign: 'center' }}>Stock</th>
-            <th className="ea-th--center">Portada</th>
-            <th style={{ textAlign: 'center' }}>Galería</th>
+            <th className="ea-th--sticky ea-col-sku">SKU / EAN</th>
+            <th className="ea-col-marca">Marca</th>
+            <th className="ea-col-nombre">Nombre</th>
+            <th className="ea-col-precio" style={{ textAlign: 'center' }}>Precio</th>
+            <th className="ea-col-precio-oferta" style={{ textAlign: 'center' }}>Precio Oferta</th>
+            <th className="ea-col-stock" style={{ textAlign: 'center' }}>Stock</th>
+            <th className="ea-th--center ea-col-portada">Portada</th>
+            <th className="ea-col-galeria" style={{ textAlign: 'center' }}>Galería</th>
           </tr>
         </thead>
         <tbody>

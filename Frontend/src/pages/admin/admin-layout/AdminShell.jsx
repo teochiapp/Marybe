@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { FiBarChart2, FiBox, FiDownload, FiExternalLink, FiFileText, FiGrid, FiHome, FiImage, FiMenu, FiRepeat, FiTruck, FiUpload, FiX } from 'react-icons/fi';
+import { FiBarChart2, FiBox, FiDownload, FiExternalLink, FiFileText, FiGrid, FiHome, FiImage, FiMenu, FiRepeat, FiSettings, FiTruck, FiUpload, FiX } from 'react-icons/fi';
 import useAdminSession from '../../../hooks/useAdminSession';
 import AdminLoginCard from '../editor-inicio/components/AdminLoginCard';
 import { ADMIN_GROUPS } from './adminNavigation';
 import './AdminLayout.css';
 
-const ICONS = { orders: FiFileText, products: FiBox, import: FiUpload, export: FiDownload, compare: FiRepeat, supplier: FiTruck, home: FiHome, menu: FiMenu, image: FiImage };
+const ICONS = { orders: FiFileText, products: FiBox, import: FiUpload, export: FiDownload, compare: FiRepeat, supplier: FiTruck, home: FiHome, menu: FiMenu, image: FiImage, settings: FiSettings };
 
 export default function AdminShell() {
   const { token, signIn, signOut, sync } = useAdminSession();

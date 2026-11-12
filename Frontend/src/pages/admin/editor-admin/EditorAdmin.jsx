@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import './EditorAdmin.css';
 import '../ImportacionAdmin.css';
@@ -128,7 +129,14 @@ function LoginForm({ onLogin }) {
 
 // ─── Componente Principal ──────────────────────────────────────────────────────
 export default function EditorAdmin() {
-  const [token, setToken]             = useState(() => localStorage.getItem('admin_jwt') || '');
+  const outlet = useOutletContext();
+  const [token, setToken]             = useState(() => outlet?.token || localStorage.getItem('admin_jwt') || '');
+
+  useEffect(() => {
+    if (outlet?.token && outlet.token !== token) {
+      setToken(outlet.token);
+    }
+  }, [outlet?.token, token]);
 
   // Proveedores
   const [proveedores, setProveedores]   = useState([]);
@@ -216,6 +224,17 @@ export default function EditorAdmin() {
 
   // ── Contar cambios ────────────────────────────────────────────────────────
   const cantidadConCambios = Object.keys(pendingChanges).length;
+
+  // Advertencia antes de salir si hay cambios pendientes (se integra con AdminShell)
+  useEffect(() => {
+    if (!cantidadConCambios) return;
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [cantidadConCambios]);
 
   // ── Guardar todos los cambios ─────────────────────────────────────────────
   const handleGuardarTodo = async () => {
@@ -324,7 +343,7 @@ export default function EditorAdmin() {
             {cantidadConCambios > 0 && (
               <span className="ea-pending-badge">
                 <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
-                {cantidadConCambios} {cantidadConCambios === 1 ? 'producto con cambios' : 'productos con cambios'}
+                {cantidadConCambios} {cantidadConCambios === 1 ? 'con cambios' : 'con cambios'}
               </span>
             )}
 
@@ -340,16 +359,16 @@ export default function EditorAdmin() {
                 : (
                   <>
                     <svg viewBox="0 0 20 20" fill="currentColor"><path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293z"/></svg>
-                    Guardar todos los cambios
+                    <span>Guardar cambios</span>
                   </>
                 )
               }
             </button>
 
             {/* Logout */}
-            <button className="ea-btn ea-btn--ghost" onClick={handleLogout}>
+            <button className="ea-btn ea-btn--ghost ea-btn--logout" onClick={handleLogout}>
               <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" /></svg>
-              Cerrar sesión
+              <span>Cerrar sesión</span>
             </button>
           </div>
         </header>

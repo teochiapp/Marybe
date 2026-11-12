@@ -12,4 +12,7 @@ export const ADMIN_GROUPS = [
     { path: '/editor-inicio-admin/menu-header', label: 'Header Menu', icon: 'menu' },
     { path: '/banners-admin', label: 'Banners', icon: 'image' },
   ] },
+  { title: 'Configuración', items: [
+    { path: '/configuracion-admin', label: 'General', icon: 'settings' },
+  ] },
 ];

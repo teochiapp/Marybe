@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import ImageUploader from './ImageUploader';
 import GaleriaUploader from './GaleriaUploader';
 
@@ -19,7 +19,7 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
   const { documentId } = producto;
 
   // Variantes del producto (pueden estar vacías)
-  const variantesIniciales = producto.variantes || [];
+  const variantesIniciales = useMemo(() => producto.variantes || [], [producto.variantes]);
   const tieneVariantes = variantesIniciales.length > 0;
 
   // Estado local
@@ -109,15 +109,15 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
 
         {/* Marca */}
         <td>
-          <span className="ea-cell-text" title={producto.marca || ''}>
+          <span className="ea-cell-text ea-cell-marca" title={producto.marca || ''}>
             {producto.marca || '—'}
           </span>
         </td>
 
         {/* Nombre + badge variantes */}
         <td>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="ea-cell-text" title={producto.nombre || ''} style={{ maxWidth: 320 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            <span className="ea-cell-text ea-cell-nombre" title={producto.nombre || ''}>
               {producto.nombre || '—'}
             </span>
             {tieneVariantes && (
@@ -158,12 +158,11 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
         <td style={{ textAlign: 'center' }}>
           <input
             type="number"
-            className={`ea-input-num${pendingChanges?.stock !== undefined ? ' ea-input-num--dirty' : ''}`}
+            className={`ea-input-num ea-input-stock${pendingChanges?.stock !== undefined ? ' ea-input-num--dirty' : ''}`}
             value={stock}
             min={0}
             step={1}
             placeholder="0"
-            style={{ maxWidth: 120, margin: '0 auto' }}
             onChange={e => handleNumChange('stock', e.target.value)}
           />
         </td>
@@ -209,7 +208,6 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
 
           {/* Una fila por variante */}
           {variantesConCambios.map((variante, idx) => {
-            const orig   = variantesIniciales[idx] || {};
             const isDirtyVariante = pendingChanges?.variantes !== undefined;
 
             return (
@@ -273,12 +271,11 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
                 <td className="ea-variant-td ea-variant-field--num" style={{ textAlign: 'center' }}>
                   <input
                     type="number"
-                    className={`ea-input-num ea-input-num--sm${isDirtyVariante ? ' ea-input-num--dirty' : ''}`}
+                    className={`ea-input-num ea-input-num--sm ea-input-stock${isDirtyVariante ? ' ea-input-num--dirty' : ''}`}
                     value={variante.stock ?? ''}
                     min={0}
                     step={1}
                     placeholder="0"
-                    style={{ maxWidth: 120, margin: '0 auto' }}
                     onChange={e => handleVarianteChange(idx, 'stock', e.target.value)}
                   />
                 </td>

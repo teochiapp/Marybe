@@ -752,3 +752,26 @@ Criterio de aceptación: el orden y la visibilidad de la lista publicada coincid
 
 - Se corrigió el visor y el menú público cuando una categoría se asigna a un área diferente de su sección comercial: ahora conserva la ubicación elegida en el Header y carga las subcategorías desde su sección de origen. Aplica a Perfumería dentro de Hogar y a Hogar dentro de Perfumería.
 - Validación: git diff --check; no se ejecutaron pruebas automatizadas.
+
+### Módulo de Configuración General en el Panel de Usuario — 12/11/2026
+
+- Se integró el Single Type de Strapi `Configuración General` (`api::configuracion-general.configuracion-general`) en el panel de usuario del frontend bajo el nuevo nivel de menú «Configuración» -> «General» (`/configuracion-admin`).
+- Backend:
+  - Creados ruta, controlador y servicio en `Backend/src/api/configuracion-general-admin/` con endpoints `GET` y `PUT` autenticados mediante `verificarAdmin(ctx, strapi)`.
+  - El servicio gestiona los 27 atributos del schema (costos y umbrales de envío gratis para CABA, GBA e Interior, cuotas sin interés y leyendas, número y prefijo de WhatsApp, y estado/recargo/descuento/instrucciones de los métodos de pago: Mercado Pago, Transferencia Bancaria, Efectivo en sucursal y A convenir) asegurando compatibilidad con Strapi 5 Documents, fallback defaults y sanitización tipada.
+- Frontend:
+  - Agrupación en `adminNavigation.js` con el ítem «Configuración» -> «General» e ícono `FiSettings` en `AdminShell.jsx`.
+  - Página responsiva `ConfiguracionAdmin.jsx` y estilos `ConfiguracionAdmin.css`: pestañas de navegación rápida (Todas las secciones, Envíos y logística, Cuotas y promociones, Contacto y WhatsApp, Métodos de pago), interruptores visuales accesibles, validación de campos, banner de cambios pendientes con listener `beforeunload` y guardado reactivo contra `/api/configuracion-general-admin`.
+- Validación: 3 pruebas unitarias de backend (`node --test Backend/tests/configuracion-general-admin.test.js`) y 5 pruebas frontend (`ConfiguracionAdmin.test.jsx`, `AdminShell.test.jsx`) aprobadas; ESLint sin errores; `git diff --check` correcto.
+
+### Optimización responsiva del Panel de Edición Rápida con nuevo layout — 12/11/2026
+
+- Se rediseñó el sistema de tablas y campos en `/editor-admin` ([EditorAdmin.jsx](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Frontend/src/pages/admin/editor-admin/EditorAdmin.jsx) y [EditorAdmin.css](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Frontend/src/pages/admin/editor-admin/EditorAdmin.css)) para adaptarse sin cortes al ancho disponible dentro de `AdminShell` (columna lateral de 248 px) en pantallas hasta 1600 px y tablets:
+  - Reducción del ancho de tabla base de `1100px` a `820px` fluidos con clases de columna dedicadas (`.ea-col-sku`, `.ea-col-marca`, `.ea-col-nombre`, `.ea-col-precio`, `.ea-col-stock`, `.ea-col-portada`, `.ea-col-galeria`).
+  - Reducción sustancial del campo de stock: eliminación de `maxWidth: 120px` inline por `.ea-input-stock` centrado con ancho compacto de `58px` (`52px` en variantes).
+  - Compactación de campos de precio y precio oferta de `130px` a `82px` / `86px` con padding optimizado.
+  - Celdas de texto equilibradas: marcas a `105px`, SKUs a `110px`, proveedores a `92px`, y nombres de producto ampliados con contenedor flexible de hasta `440px` (`380px` en <=1600px, `300px` en <=1280px) permitiendo hasta 2 líneas (`line-clamp: 2`) para evitar recortes bruscos en títulos extensos.
+  - Miniaturas de portada reducidas a `44×44 px` y galería a `28×28 px` con contenedor de `120px` máximo, disminuyendo la altura y ancho de fila.
+  - Columna SKU/EAN fija (`sticky`) con fondo opaco y sombra sutil para scroll horizontal limpio en tablets y pantallas estrechas.
+  - Breakpoints específicos en 1600 px, 1280 px y 900 px (con sangría de 64 px en cabecera para no solapar el botón del menú móvil administrativo) y protección `beforeunload` ante cambios sin guardar.
+- Validación: 3 pruebas unitarias en `EditorAdmin.test.jsx` aprobadas; ESLint sin errores; `git diff --check` correcto.
