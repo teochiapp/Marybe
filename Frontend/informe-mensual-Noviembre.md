@@ -738,3 +738,8 @@ Criterio de aceptación: el orden y la visibilidad de la lista publicada coincid
 - Reorganicé la cabecera del sidebar: el logo queda en la fila superior y «Panel de Usuario» debajo.
 
 - Ajusté la marca del sidebar a la presentación en una sola fila: logo horizontal Marybe y «Panel de Usuario» al lado.
+
+### Categorías cruzadas en Header Menu
+
+- Se corrigió el visor y el menú público cuando una categoría se asigna a un área diferente de su sección comercial: ahora conserva la ubicación elegida en el Header y carga las subcategorías desde su sección de origen. Aplica a Perfumería dentro de Hogar y a Hogar dentro de Perfumería.
+- Validación: git diff --check; no se ejecutaron pruebas automatizadas.

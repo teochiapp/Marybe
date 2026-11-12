@@ -166,7 +166,15 @@ export function MegaMenuProvider({ children }) {
             const identity = `${seccionMapped || ''}\u0000${nombre}`;
             if (seen.has(identity)) continue;
             seen.add(identity);
-            items.push({ nombre, seccion, seccionMapped, documentId: c.documentId || attrs.documentId });
+            items.push({
+              nombre,
+              seccion,
+              seccionMapped,
+              documentId: c.documentId || attrs.documentId,
+              // La ubicación del menú puede diferir de la sección comercial de la categoría.
+              // En ese caso, el desplegable debe consultar la sección de origen.
+              forceSection: Boolean(targetContext && seccionMapped && targetContext !== seccionMapped),
+            });
           }
           return items;
         };

@@ -104,10 +104,18 @@ export default function MenuHeaderEditor({ token, onBack, onLogout }) {
   const contextItems = overview?.menuCategories?.[currentContext] || [];
   const categoryNames = Object.fromEntries([...categories, ...contextItems].map(item => [`categoria:${item.documentId}`, item.nombre]));
   const orderData = draft.getAreaData(currentContext);
-  const publishedOrder = overview?.areas?.[currentContext]?.published?.orden || [];
   const previewCategories = (orderData?.orden || []).filter(id => !(orderData?.ocultos || []).includes(id)).map(id => {
     const category = categoryMap[id.replace(/^categoria:/, '')] || contextItems.find(item => `categoria:${item.documentId}` === id);
-    return { key: id, nombre: names[id] || category?.nombre, seccion: category?.seccion, seccionMapped: SECTION_MAP[category?.seccion], forceSection: !publishedOrder.includes(id) };
+    const seccionMapped = SECTION_MAP[category?.seccion];
+    return {
+      key: id,
+      nombre: names[id] || category?.nombre,
+      seccion: category?.seccion,
+      seccionMapped,
+      // La vista previa debe usar las subcategorías del origen aunque la categoría
+      // ya esté publicada dentro del menú de la otra área.
+      forceSection: Boolean(seccionMapped && seccionMapped !== currentContext.toUpperCase()),
+    };
   }).filter(item => item.nombre);
   const hydrate = area => {
     const value = draft.getAreaData(area);
