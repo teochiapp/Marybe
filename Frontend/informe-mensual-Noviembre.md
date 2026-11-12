@@ -671,6 +671,7 @@ Criterio de aceptación: el orden y la visibilidad de la lista publicada coincid
 - Se adaptó el panel para notebooks pequeñas: por debajo de 1500 px la tabla de ocho columnas pasa a tarjetas en grilla, manteniendo visibles estado y acciones sin desplazamiento horizontal. En tablet utiliza dos columnas y en móvil una.
 - Se corrigieron anchos mínimos, desbordes, textos largos, listado de productos, acciones, cabecera y paginación. Validación: `git diff --check` correcto; no se ejecutaron pruebas automatizadas.
 - Se corrigió la impresión de pedidos dentro de `AdminShell`: la regla anterior ocultaba todo el administrador y generaba una vista previa o PDF vacío. Ahora se ocultan únicamente el sidebar y los controles, manteniendo visible el comprobante.
+- Se extendió el diseño de tarjetas hasta 1650 px para evitar desbordes entre 1500 y 1650 px cuando el sidebar administrativo está expandido.
 
 ### Tipografías del menú Header
 

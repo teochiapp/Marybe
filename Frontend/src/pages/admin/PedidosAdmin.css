@@ -138,7 +138,7 @@
   justify-content: flex-start;
 }
 
-@media (max-width: 1500px) {
+@media (max-width: 1650px) {
   .pa-panel {
     gap: 22px;
     padding: clamp(20px, 2.4vw, 32px);
