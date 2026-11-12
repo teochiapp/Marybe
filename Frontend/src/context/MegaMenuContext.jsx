@@ -131,10 +131,13 @@ export function MegaMenuProvider({ children }) {
           `${STRAPI_URL}/api/ordenamiento-menu-header` +
           `?populate[categoriasPerfumeria][fields][0]=nombre` +
           `&populate[categoriasPerfumeria][fields][1]=seccion` +
+          `&populate[categoriasPerfumeria][fields][2]=documentId` +
           `&populate[categoriasHogar][fields][0]=nombre` +
           `&populate[categoriasHogar][fields][1]=seccion` +
+          `&populate[categoriasHogar][fields][2]=documentId` +
           `&populate[categoriasGeneral][fields][0]=nombre` +
-          `&populate[categoriasGeneral][fields][1]=seccion`;
+          `&populate[categoriasGeneral][fields][1]=seccion` +
+          `&populate[categoriasGeneral][fields][2]=documentId`;
         const resMenu = await fetch(urlMenu, { signal: controller.signal, cache: 'no-store' });
         if (!resMenu.ok) throw new Error(`HTTP ${resMenu.status}`);
         const jsonMenu = await resMenu.json();
@@ -179,8 +182,54 @@ export function MegaMenuProvider({ children }) {
           return items;
         };
 
-        const listPerfumeria = resolveCategoryItems(menuData.categoriasPerfumeria, 'PERFUMERIA');
-        const listHogar = resolveCategoryItems(menuData.categoriasHogar, 'HOGAR');
+        const addSavedCategories = (items, targetContext, visualOrder = []) => {
+          const byDocumentId = new Map();
+          const withoutDocumentId = [];
+          items.forEach((item) => {
+            if (item.documentId) byDocumentId.set(item.documentId, item);
+            else withoutDocumentId.push(item);
+          });
+
+          // La relaciÃ³n publicada puede llegar desactualizada mientras Strapi propaga
+          // el cambio. El orden guardado es la fuente de verdad para el Header pÃºblico.
+          visualOrder
+            .filter((key) => typeof key === 'string' && key.startsWith('categoria:'))
+            .map((key) => key.slice('categoria:'.length))
+            .forEach((documentId) => {
+              if (byDocumentId.has(documentId)) return;
+              const category = categorias.find((entry) => {
+                const attrs = entry.attributes || entry;
+                return entry.documentId === documentId || attrs.documentId === documentId;
+              });
+              if (!category) return;
+
+              const attrs = category.attributes || category;
+              const nombre = attrs.nombre;
+              if (!nombre) return;
+              const seccion = attrs.seccion || null;
+              const seccionMapped = seccion ? (SECTION_MAP[seccion] || null) : targetContext;
+              byDocumentId.set(documentId, {
+                nombre,
+                seccion,
+                seccionMapped,
+                documentId,
+                forceSection: Boolean(seccionMapped && targetContext !== seccionMapped),
+              });
+            });
+
+          return [...byDocumentId.values(), ...withoutDocumentId];
+        };
+
+        const listPerfumeria = addSavedCategories(
+          resolveCategoryItems(menuData.categoriasPerfumeria, 'PERFUMERIA'),
+          'PERFUMERIA',
+          menuData.ordenVisual?.perfumeria,
+        );
+        const listHogar = addSavedCategories(
+          resolveCategoryItems(menuData.categoriasHogar, 'HOGAR'),
+          'HOGAR',
+          menuData.ordenVisual?.hogar,
+        );
         const listGeneral = resolveCategoryItems(menuData.categoriasGeneral, null);
         const baseColumns = new Map(colMap);
 

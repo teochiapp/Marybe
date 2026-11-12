@@ -664,6 +664,8 @@ Criterio de aceptación: el orden y la visibilidad de la lista publicada coincid
 - Se aumentó la altura de las tarjetas y «Editar» ahora tiene estilo de botón de alto contraste, con ancho cómodo en celular.
 - Validación: git diff --check; no se ejecutaron pruebas automatizadas.
 
+- El Header público ahora reconstruye las categorías asignadas desde el orden publicado (`ordenVisual`) si la relación de Strapi todavía no las devuelve. Así una categoría de Perfumería ubicada en Hogar (y a la inversa) queda visible y conserva sus subcategorías reales.
+
 ### Tipografías del menú Header
 
 - Se agregaron Montserrat, Raleway, Playfair Display y Cormorant Garamond al selector, con carga de fuentes en la tienda y validación en el backend. Las fuentes serif conservan un fallback serif.
