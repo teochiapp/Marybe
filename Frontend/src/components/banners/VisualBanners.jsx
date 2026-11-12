@@ -1,11 +1,31 @@
-import React, { useRef, useState } from 'react';
-import { BANNER_DEFAULTS, MAIN_BANNER_DEFAULTS, DEVICES, deviceDesign, imageUrl, safeBannerLink } from '../../utils/bannerDesign';
+import React, { useEffect, useRef, useState } from 'react';
+import { BANNER_DEFAULTS, MAIN_BANNER_DEFAULTS, DEVICES, deviceDesign, imageUrl, isVideoMedia, safeBannerLink } from '../../utils/bannerDesign';
 import BannerCarousel from './BannerCarousel';
 import './VisualBanners.css';
 
 const MIN_HEIGHT = 80;
 const MAX_HEIGHT = 1600;
 const clampHeight = value => Math.round(Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, value)));
+
+function ResponsiveBannerMedia({ banner, priority }) {
+  const getDevice = () => window.innerWidth <= 767 ? 'mobile' : window.innerWidth <= 1023 ? 'tablet' : 'desktop';
+  const [device, setDevice] = useState(getDevice);
+  useEffect(() => {
+    const resize = () => setDevice(getDevice());
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, []);
+  const desktop = banner.imagen_desktop;
+  const tablet = banner.imagen_tablet || desktop;
+  const mobile = banner.imagen_mobile || tablet;
+  const media = device === 'mobile' ? mobile : device === 'tablet' ? tablet : desktop;
+  if ([desktop, tablet, mobile].some(isVideoMedia)) {
+    return isVideoMedia(media)
+      ? <video key={imageUrl(media)} className="vb-image vb-video" src={imageUrl(media)} autoPlay muted loop playsInline preload="metadata" aria-label={banner.titulo || 'Video del banner'} />
+      : <picture className="vb-image"><img src={imageUrl(media)} alt={banner.titulo || ''} loading={priority ? 'eager' : 'lazy'} draggable={false} /></picture>;
+  }
+  return <picture className="vb-image"><source media="(max-width: 767px)" srcSet={imageUrl(mobile)} /><source media="(max-width: 1023px)" srcSet={imageUrl(tablet)} /><img src={imageUrl(desktop)} alt={banner.titulo || ''} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} draggable={false} /></picture>;
+}
 
 function vars(design, defaults, prefix) {
   const result = {};
@@ -28,8 +48,6 @@ export function VisualBanner({ banner, selection, onSelect, onMove, onResize, on
   const focalStart = useRef(null);
   if (!banner || banner.activo === false) return null;
   const desktop = imageUrl(banner.imagen_desktop);
-  const tablet = imageUrl(banner.imagen_tablet) || desktop;
-  const mobile = imageUrl(banner.imagen_mobile) || tablet;
   const link = safeBannerLink(banner.enlace);
   const styles = vars(banner.diseno, defaults, 'vb');
   const box = deviceDesign(banner.diseno, device);
@@ -74,9 +92,9 @@ export function VisualBanner({ banner, selection, onSelect, onMove, onResize, on
   const resizedStyles = { ...styles, ...(width === null ? {} : { '--vb-width-0': width, '--vb-width-1': width, '--vb-width-2': width }), ...(height === null ? {} : { '--vb-height-0': `${height}px`, '--vb-height-1': `${height}px`, '--vb-height-2': `${height}px` }), ...(focalPosition ? Object.fromEntries(DEVICES.flatMap((_, index) => [[`--vb-positionX-${index}`, focalPosition.positionX], [`--vb-positionY-${index}`, focalPosition.positionY]])) : {}) };
   function focalGeometry() {
     const rect = ref.current.getBoundingClientRect();
-    const img = ref.current.querySelector('img');
-    const naturalWidth = img?.naturalWidth || rect.width;
-    const naturalHeight = img?.naturalHeight || rect.height;
+    const img = ref.current.querySelector('img, video');
+    const naturalWidth = img?.naturalWidth || img?.videoWidth || rect.width;
+    const naturalHeight = img?.naturalHeight || img?.videoHeight || rect.height;
     const scale = box.fit === 'cover' ? Math.max(rect.width / naturalWidth, rect.height / naturalHeight) : Math.min(rect.width / naturalWidth, rect.height / naturalHeight);
     const fittedWidth = box.fit === 'fill' ? rect.width : naturalWidth * scale;
     const fittedHeight = box.fit === 'fill' ? rect.height : naturalHeight * scale;
@@ -99,8 +117,8 @@ export function VisualBanner({ banner, selection, onSelect, onMove, onResize, on
   return <div className={`vb-banner ${selection ? 'vb-banner--selected' : ''}`} ref={ref} style={resizedStyles} data-visual-banner={banner.titulo} onClick={event => {
     if (onSelect) { event.preventDefault(); event.stopPropagation(); onSelect(); }
   }}>
-    {desktop && <picture className="vb-image"><source media="(max-width: 767px)" srcSet={mobile} /><source media="(max-width: 1023px)" srcSet={tablet} /><img src={desktop} alt={banner.titulo || ''} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} draggable={false} /></picture>}
-    {!desktop && !banner.mostrar_texto && onSelect && <span className="vb-empty">Elegí una imagen desde el panel</span>}
+    {desktop && <ResponsiveBannerMedia banner={banner} priority={priority} />}
+    {!desktop && !banner.mostrar_texto && onSelect && <span className="vb-empty">Elegí una imagen o video desde el panel</span>}
     <div className="vb-shade" />
     {link && !onSelect && <a className="vb-cover-link" href={link} aria-label={banner.titulo || 'Ver promoción'} />}
     {banner.mostrar_texto && <div className={`vb-content ${onMove && !focalMode ? 'vb-content--drag' : ''}`} style={position ? { left: `${position.textX}%`, top: `${position.textY}%` } : undefined}

@@ -23,7 +23,7 @@
       "multiple": false,
       "required": true,
       "allowedTypes": [
-        "images"
+        "images", "videos"
       ]
     },
     "imagen_tablet": {
@@ -31,7 +31,7 @@
       "multiple": false,
       "required": false,
       "allowedTypes": [
-        "images"
+        "images", "videos"
       ]
     },
     "imagen_mobile": {
@@ -39,7 +39,7 @@
       "multiple": false,
       "required": false,
       "allowedTypes": [
-        "images"
+        "images", "videos"
       ]
     },
     "ancho_porcentaje": {

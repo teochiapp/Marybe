@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import axios from 'axios';
-import { MAIN_BANNER_DEFAULTS, DEVICES, DEVICE_WIDTHS, designOrigin, deviceDesign, duplicateRow, imageUrl, newBanner, structuredCopy } from '../../utils/bannerDesign';
+import { MAIN_BANNER_DEFAULTS, DEVICES, DEVICE_WIDTHS, designOrigin, deviceDesign, duplicateRow, imageUrl, isVideoMedia, newBanner, structuredCopy } from '../../utils/bannerDesign';
 import './BannersAdmin.css';
 import './ImportacionAdmin.css';
 import BannerPreviewDialog from '../../components/banners/BannerPreviewDialog';
@@ -304,6 +304,11 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
   function chooseMedia(file) { updateBanner({ [`imagen_${device === 'mobile' ? 'mobile' : device}`]: file }); setLibrary(null); }
   async function upload(file) {
     if (!file) return;
+    const video = ['video/mp4', 'video/webm'].includes(file.type) || (!file.type && /\.(mp4|webm)$/i.test(file.name));
+    if (file.size > (video ? 8 * 1024 * 1024 : 300 * 1024)) {
+      setError(video ? 'El video debe pesar como máximo 8 MB.' : 'La imagen debe pesar como máximo 300 KB.');
+      return;
+    }
     setBusy(true);
     try {
       const data = new FormData(); data.append('files', file);
@@ -460,10 +465,10 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
           {inspect === 'row' ? <BannerRowInspector draft={draft} row={row} rows={rows} selected={selected} device={device} deviceName={NAMES[device]} values={values} busy={busy} change={change} selectElement={selectElement} addBanner={addBanner} addDistribution={addDistribution} updateDesign={updateDesign} number={number} color={color} origin={origin} NumberControl={NumberControl} /> : <>
             <div className="ba-image-controls">
               <h3>Imagen · {NAMES[device]}</h3>
-              <div className="ba-image-current">{imageUrl(currentImage) ? <img src={imageUrl(currentImage)} alt="Imagen seleccionada" /> : <span>Sin imagen</span>}</div>
-              <div className="ba-image-actions"><button className="ba-library-button" onClick={openLibrary}>Cambiar imagen · {NAMES[device]}</button><button type="button" aria-pressed={focalMode} onClick={() => setFocalMode(value => !value)}>{focalMode ? 'Terminar encuadre' : 'Editar encuadre'}</button></div>
+              <div className="ba-image-current">{imageUrl(currentImage) ? (isVideoMedia(currentImage) ? <video src={imageUrl(currentImage)} muted loop autoPlay playsInline aria-label="Video seleccionado" /> : <img src={imageUrl(currentImage)} alt="Imagen seleccionada" />) : <span>Sin imagen ni video</span>}</div>
+              <div className="ba-image-actions"><button className="ba-library-button" onClick={openLibrary}>Cambiar imagen o video · {NAMES[device]}</button><button type="button" aria-pressed={focalMode} onClick={() => setFocalMode(value => !value)}>{focalMode ? 'Terminar encuadre' : 'Editar encuadre'}</button></div>
               {focalMode && <p className="ba-inspector-help">Arrastrá la imagen o hacé clic para marcar el punto focal. Usá Escape para terminar.</p>}
-              <small className="ba-hint">Tablet y celular heredan la imagen anterior si no se especifica otra.</small>{device !== 'desktop' && <button onClick={() => updateBanner({ [`imagen_${device}`]: null })}>Usar imagen heredada</button>}
+              <small className="ba-hint">Tablet y celular heredan el archivo anterior si no se especifica otro.</small>{device !== 'desktop' && <button onClick={() => updateBanner({ [`imagen_${device}`]: null })}>Usar archivo heredado</button>}
               <label>Ajuste de imagen<select value={values.fit} onChange={e => updateDesign({ fit: e.target.value })}><option value="contain">Mostrar imagen completa</option><option value="cover">Llenar el banner</option><option value="fill">Estirar imagen</option></select></label>{origin('fit', 'Ajuste de imagen')}
               {values.fit === 'contain' && color('background', 'Color de fondo de la imagen')}
               {number('imageScale', 'Zoom de imagen', 25, 200, '%')}
@@ -486,6 +491,6 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
         </>}
       </aside>
     </div>
-    {library && <div className="ba-modal-backdrop" onClick={() => !busy && setLibrary(null)}><section className="ba-media-modal" role="dialog" aria-modal="true" aria-label="Biblioteca de imágenes" onClick={e => e.stopPropagation()}><header><div><p className="ba-eyebrow">BIBLIOTECA MARYBE</p><h2>Elegí tu próxima imagen</h2></div><button aria-label="Cerrar biblioteca" disabled={busy} onClick={() => setLibrary(null)}>×</button></header>{error && <p role="alert" style={{ color: '#a53a37' }}>{error}</p>}<div className="ba-media-toolbar"><input aria-label="Buscar imagen" placeholder="Buscar en las últimas 200 imágenes…" value={mediaSearch} onChange={e => setMediaSearch(e.target.value)} /><label className="ba-upload">{busy ? 'Subiendo…' : '＋ Subir imagen'}<input type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" disabled={busy} onChange={e => upload(e.target.files[0])} /></label></div><p>Imagen para {NAMES[device].toLowerCase()} · JPG, PNG, WebP, GIF o AVIF · máximo 10 MB</p><div className="ba-media-grid">{media.filter(file => file.name.toLowerCase().includes(mediaSearch.toLowerCase())).map(file => <button key={file.id} disabled={busy} onClick={() => chooseMedia(file)}><img src={imageUrl(file, API)} alt={file.name} loading="lazy" /><strong>{file.name}</strong><small>{file.width} × {file.height}</small></button>)}</div></section></div>}
+    {library && <div className="ba-modal-backdrop" onClick={() => !busy && setLibrary(null)}><section className="ba-media-modal" role="dialog" aria-modal="true" aria-label="Biblioteca de imágenes y videos" onClick={e => e.stopPropagation()}><header><div><p className="ba-eyebrow">BIBLIOTECA MARYBE</p><h2>Elegí una imagen o video</h2></div><button aria-label="Cerrar biblioteca" disabled={busy} onClick={() => setLibrary(null)}>×</button></header>{error && <p role="alert" style={{ color: '#a53a37' }}>{error}</p>}<div className="ba-media-toolbar"><input aria-label="Buscar archivo" placeholder="Buscar en los últimos 200 archivos…" value={mediaSearch} onChange={e => setMediaSearch(e.target.value)} /><label className="ba-upload">{busy ? 'Subiendo…' : '＋ Subir archivo'}<input type="file" accept="image/*,video/mp4,video/webm" disabled={busy} onChange={e => { const file = e.target.files[0]; e.target.value = ''; upload(file); }} /></label></div><p>Para {NAMES[device].toLowerCase()} · Imágenes hasta 300 KB · Videos MP4 o WebM hasta 8 MB</p><p>SVG estático: sin scripts, estilos incrustados ni enlaces externos.</p><div className="ba-media-grid">{media.filter(file => file.name.toLowerCase().includes(mediaSearch.toLowerCase())).map(file => <button key={file.id} disabled={busy} onClick={() => chooseMedia(file)}>{isVideoMedia(file) ? <video src={imageUrl(file, API)} muted playsInline preload="metadata" aria-label={`Video: ${file.name}`} /> : <img src={imageUrl(file, API)} alt={file.name} loading="lazy" />}<strong>{file.name}</strong><small>{isVideoMedia(file) ? 'Video · ' : ''}{file.width && file.height ? `${file.width} × ${file.height}` : 'Dimensiones no disponibles'}</small></button>)}</div></section></div>}
   </main>;
 }

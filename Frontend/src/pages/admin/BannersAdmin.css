@@ -59,7 +59,7 @@
 .ba-app .ba-outline-banner { display: flex; align-items: center; gap: 10px; width: calc(100% - 12px); margin: 6px; padding: 7px; border: 1px solid transparent; border-radius: 5px; text-align: left; }
 .ba-app .ba-outline-banner.is-active { background: #f2e9f7; border-color: #e0cbe9; color: #6b3385; }
 .ba-thumbnail { width: 38px; height: 33px; background: #f0e9e4; display: flex; align-items: center; justify-content: center; border-radius: 4px; flex-shrink: 0; overflow: hidden; }
-.ba-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+.ba-thumbnail img, .ba-thumbnail video { width: 100%; height: 100%; object-fit: cover; }
 .ba-outline-banner > span:last-child { font-size: 11px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; }
 .ba-outline-banner small { display: block; font-size: 9px; color: #a092a7; margin-top: 3px; }
 .ba-app .ba-add-inline { width: 100%; border: 0; color: #92789e; background: transparent; font-size: 10px; padding: 10px; }
@@ -102,7 +102,7 @@
 .ba-inspector details { border-bottom: 1px solid #eee7f0; padding-bottom: 12px; margin-bottom: 14px; }
 .ba-inspector summary { cursor: pointer; padding: 12px 0 16px; font-size: 12px; font-weight: 700; color: #4f365b; }
 .ba-image-current { height: 110px; background: #f8f4f1; border: 1px solid #eae1dd; border-radius: 7px; display: flex; align-items: center; justify-content: center; overflow: hidden; font-size: 12px; color: #9a8591; margin-bottom: 8px; }
-.ba-image-current img { width: 100%; height: 100%; object-fit: contain; }
+.ba-image-current img, .ba-image-current video { width: 100%; height: 100%; object-fit: contain; }
 .ba-image-controls h3 { margin: 0 0 10px; font-size: 15px; }
 .ba-image-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
 .ba-image-actions button { flex: 1 1 auto; }
@@ -138,7 +138,7 @@
 .ba-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .ba-media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-top: 20px; }
 .ba-media-grid button { display: flex; flex-direction: column; gap: 8px; text-align: left; padding: 8px; overflow: hidden; }
-.ba-media-grid img { width: 100%; height: 100px; object-fit: contain; background: #faf7f4; border-radius: 3px; }
+.ba-media-grid img, .ba-media-grid video { width: 100%; height: 100px; object-fit: contain; background: #faf7f4; border-radius: 3px; }
 .ba-media-grid strong { font-size: 11px; overflow-wrap: anywhere; }
 .ba-media-grid small { color: #ad9eb4; font-size: 10px; }
 .ba-login { background: radial-gradient(ellipse at top right, #ead9ed, transparent 55%), #f6f0f3; min-height: 100vh; display: grid; place-items: center; padding: 32px; }

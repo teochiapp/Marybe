@@ -3,6 +3,15 @@
 const MAIN = 'api::seccion-principal.seccion-principal';
 
 const AREAS = { perfumeria: 'Perfumería', hogar: 'Hogar' };
+const ORDEN_INICIO = {
+  perfumeria: ['banners', 'seccion-destacada', 'categorias', 'categoria-destacada-1', 'ofertas', 'descuentos', 'categoria-destacada-2', 'beneficios', 'gift-card', 'proximos-eventos', 'descubri-mas'],
+  hogar: ['banners', 'ofertas', 'seccion-destacada', 'categorias', 'categoria-destacada-1', 'descuentos', 'categoria-destacada-2', 'beneficios', 'gift-card', 'proximos-eventos', 'descubri-mas'],
+};
+function normalizarComposicion(value, area) {
+  const defaults = ORDEN_INICIO[area];
+  const orden = Array.isArray(value?.orden) ? value.orden.filter((id, i, all) => defaults.includes(id) && all.indexOf(id) === i) : [];
+  return { orden: [...orden, ...defaults.filter(id => !orden.includes(id))], ocultos: Array.isArray(value?.ocultos) ? [...new Set(value.ocultos.filter(id => defaults.includes(id)))] : [] };
+}
 // Secciones de Inicio sin modelo propio: el editor cambia el título, su tipografía y opciones visuales simples.
 const SECTIONS = {
   ofertas: { label: 'Ofertas', defaultTitle: 'Disfrutá de las mejores ofertas' },
@@ -52,9 +61,25 @@ function clean(input, publish) {
 }
 
 module.exports = ({ strapi }) => {
-  const loadMain = () => strapi.documents(MAIN).findFirst({ fields: ['updatedAt', 'diseno_secciones', 'borradores_editor_inicio'] });
+  let queue = Promise.resolve();
+  const atomic = action => {
+    const result = queue.then(() => strapi.db.transaction(async ({ trx }) => {
+      await trx(strapi.db.metadata.get(MAIN).tableName).select('id').forUpdate();
+      return action();
+    }));
+    queue = result.catch(() => {});
+    return result;
+  };
+  const loadMain = () => strapi.documents(MAIN).findFirst({ fields: ['updatedAt', 'diseno_secciones', 'borradores_editor_inicio', 'composicion_inicio'] });
 
   async function overview(sectionKey) {
+    if (sectionKey === 'composicion') {
+      const main = await loadMain();
+      const areas = Object.fromEntries(Object.keys(AREAS).map(key => {
+        return [key, { published: normalizarComposicion(main?.composicion_inicio?.[key], key), draft: null }];
+      }));
+      return { version: main?.updatedAt || null, areas };
+    }
     const section = sectionFor(sectionKey);
     const main = await loadMain();
     const drafts = main?.borradores_editor_inicio?.[sectionKey] || {};
@@ -83,6 +108,22 @@ module.exports = ({ strapi }) => {
     overview,
 
     async save(sectionKey, areaKey, body = {}) {
+      if (sectionKey === 'composicion') {
+        checkArea(areaKey);
+        const input = body.data;
+        const valid = ORDEN_INICIO[areaKey];
+        if (!input || !Array.isArray(input.orden) || !Array.isArray(input.ocultos) || input.orden.length !== valid.length || new Set(input.orden).size !== valid.length || input.orden.some(id => !valid.includes(id)) || new Set(input.ocultos).size !== input.ocultos.length || input.ocultos.some(id => !valid.includes(id))) fail('Composición inválida.');
+        const data = normalizarComposicion(input, areaKey);
+        await atomic(async () => {
+          const main = await loadMain();
+          checkVersion(main, body.version);
+          const stored = main?.borradores_editor_inicio || {};
+          const drafts = { ...stored, composicion: { ...(stored.composicion || {}) } };
+          delete drafts.composicion[areaKey];
+          await writeMain(main, { borradores_editor_inicio: drafts, composicion_inicio: { ...(main?.composicion_inicio || {}), [areaKey]: data } });
+        });
+        return overview(sectionKey);
+      }
       sectionFor(sectionKey);
       checkArea(areaKey);
       const main = await loadMain();
@@ -103,6 +144,18 @@ module.exports = ({ strapi }) => {
     },
 
     async discard(sectionKey, areaKey, body = {}) {
+      if (sectionKey === 'composicion') {
+        checkArea(areaKey);
+        await atomic(async () => {
+          const main = await loadMain();
+          checkVersion(main, body.version);
+          const stored = main?.borradores_editor_inicio || {};
+          const composition = { ...(stored.composicion || {}) };
+          delete composition[areaKey];
+          await writeMain(main, { borradores_editor_inicio: { ...stored, composicion: composition } });
+        });
+        return overview(sectionKey);
+      }
       sectionFor(sectionKey);
       checkArea(areaKey);
       const main = await loadMain();

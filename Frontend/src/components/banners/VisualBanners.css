@@ -18,9 +18,9 @@
   position: relative; box-sizing: border-box; width: calc(var(--w) * 1%); min-height: 80px; height: var(--h); margin: 0 auto; overflow: hidden; border-radius: calc(var(--rad) * 1px); background: var(--bg); color: var(--fg); display: var(--vb-hidden-0, flex); font-family: var(--font-family-secondary, Arial, sans-serif);
 }
 .vb-image { display: block; width: 100%; height: 100%; }
-.vb-image img { display: block; width: 100%; height: 100%; object-fit: var(--fit); object-position: calc(var(--px) * 1%) calc(var(--py) * 1%); }
+.vb-image img, .vb-video { display: block; width: 100%; height: 100%; object-fit: var(--fit); object-position: calc(var(--px) * 1%) calc(var(--py) * 1%); }
 .vb-banner { --zoom: var(--vb-imageScale-0); --font: var(--vb-fontFamily-0); --weight: var(--vb-fontWeight-0); --line: var(--vb-lineHeight-0); --letter: var(--vb-letterSpacing-0); --button-radius: var(--vb-buttonRadius-0); }
-.vb-image img { transform: scale(calc(var(--zoom) / 100)); transform-origin: calc(var(--px) * 1%) calc(var(--py) * 1%); }
+.vb-image img, .vb-video { transform: scale(calc(var(--zoom) / 100)); transform-origin: calc(var(--px) * 1%) calc(var(--py) * 1%); }
 .vb-shade { position: absolute; inset: 0; background: #000; opacity: var(--ov); pointer-events: none; }
 .vb-cover-link { position: absolute; inset: 0; z-index: 1; }
 .vb-content { position: absolute; z-index: 2; top: calc(var(--ty) * 1%); left: calc(var(--tx) * 1%); transform: translateY(-50%); box-sizing: border-box; width: calc(var(--tw) * 1%); max-width: calc(100% - var(--tx) * 1%); padding: calc(var(--pad) * 1px); text-align: var(--align); pointer-events: none; }

@@ -1,5 +1,6 @@
 'use strict';
 const jwt = require('jsonwebtoken');
+const { validateBannerUpload } = require('../services/banner-media');
 function authenticated(ctx) {
   const token = (ctx.request.header.authorization || '').replace(/^Bearer\s+/i, '').trim();
   const secret = strapi.config.get('plugin.users-permissions.jwtSecret');
@@ -21,14 +22,12 @@ module.exports = {
   slots: ctx => run(ctx, service => service.saveSlots(ctx.request.body)),
   async publicSlots(ctx) { ctx.set('Cache-Control', 'no-cache'); return ctx.send({ data: await strapi.service('api::banners-admin.banners-admin').publicSlots() }); },
   media: ctx => run(ctx, () => strapi.db.query('plugin::upload.file').findMany({
-    where: { mime: { $startsWith: 'image/' }, $not: { mime: 'image/svg+xml' } }, orderBy: { createdAt: 'desc' }, limit: 200,
-    select: ['id', 'name', 'url', 'width', 'height', 'mime'],
+    where: { $or: [{ mime: { $startsWith: 'image/' } }, { mime: { $in: ['video/mp4', 'video/webm'] } }] }, orderBy: { createdAt: 'desc' }, limit: 200,
+    select: ['id', 'name', 'url', 'width', 'height', 'mime', 'size'],
   })),
   upload: ctx => run(ctx, async () => {
     const file = ctx.request.files?.files;
-    if (!file || Array.isArray(file) || !['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'].includes(file.mimetype || file.type) || file.size > 10 * 1024 * 1024) {
-      const error = new Error('Subí una imagen JPG, PNG, WebP, GIF o AVIF de hasta 10 MB.'); error.status = 400; throw error;
-    }
+    await validateBannerUpload(file);
     return strapi.plugin('upload').service('upload').upload({ data: {}, files: file });
   }),
 };

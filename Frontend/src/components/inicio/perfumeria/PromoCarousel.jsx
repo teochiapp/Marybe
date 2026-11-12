@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import VisualBanners from '../../banners/VisualBanners';
 import BannerCarousel from '../../banners/BannerCarousel';
+import { isVideoMedia } from '../../../utils/bannerDesign';
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
@@ -291,7 +292,7 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
             if (banners.length > 0 && banners[0]) {
               const b = banners[0];
               const desktopUrl = b.imagen_desktop?.url || b.imagen_desktop?.data?.attributes?.url;
-              if (desktopUrl) {
+              if (desktopUrl && !isVideoMedia(b.imagen_desktop)) {
                 const fullUrl = desktopUrl.startsWith('http') ? desktopUrl : `${STRAPI_URL}${desktopUrl}`;
                 if (!document.querySelector(`link[href="${fullUrl}"]`)) {
                   const link = document.createElement('link');
@@ -328,7 +329,7 @@ export default function PromoCarousel({ seccion = 'perfumeria' }) {
   }
 
   if (filas.length === 0) return null;
-  if (filas.some(row => Object.keys(row.diseno || {}).length || row.banners?.some(banner => Object.keys(banner.diseno || {}).length || banner.mostrar_texto || banner.activo === false))) return <VisualBanners rows={filas} />;
+  if (filas.some(row => Object.keys(row.diseno || {}).length || row.banners?.some(banner => Object.keys(banner.diseno || {}).length || banner.mostrar_texto || banner.activo === false || ['imagen_desktop', 'imagen_tablet', 'imagen_mobile'].some(key => isVideoMedia(banner[key]))))) return <VisualBanners rows={filas} />;
 
   return (
     <Wrapper>

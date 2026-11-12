@@ -12,6 +12,10 @@
   },
   "pluginOptions": {},
   "attributes": {
+    "composicion_inicio": {
+      "type": "json",
+      "description": "Orden y visibilidad publicados de Inicio por área"
+    },
     "banners_visuales": {
       "type": "json",
       "private": true,

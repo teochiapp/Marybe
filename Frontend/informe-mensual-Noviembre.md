@@ -593,3 +593,102 @@ Implementá estos cambios en Marybe para los **Banners principales** de Perfumer
 
 - Las tres planillas informan el rango numérico global de productos, incluidos borradores, y sugieren comenzar después del máximo. Aclaran que el rango puede tener huecos, la disponibilidad puede cambiar y los IDs de variantes son independientes.
 - Validación: 24 pruebas de Excel y prueba de importación con Strapi y SQLite aislada aprobadas; git diff --check.
+
+### Tipografía y color del menú del Header
+
+- El editor permite elegir tipografía y color para categorías, subcategorías y tipos por contexto, con vista previa y publicación independiente. Se conservan los estilos originales como opción predeterminada.
+- Validación: pruebas específicas del editor y navegación, y publicación en Strapi con SQLite aislada aprobadas.
+
+### Plan: orden y visibilidad de secciones de Inicio
+
+Estado: planificación; sin cambios de implementación.
+
+1. Convertir el selector principal en una lista vertical, con una sección por fila. Agregar selector Perfumería/Hogar, miniatura, nombre, acceso Editar, asa de arrastre e icono de ojo con etiqueta accesible. El Header permanece como acceso global fijo, fuera del orden y la visibilidad del contenido.
+2. Definir un registro de bloques con IDs estables y los órdenes originales de cada área, ya que difieren. Incorporar Descubrí más, actualmente presente en Inicio y ausente del selector. Conservar las variantes de componentes de Hogar y los bloques cuyo contenido es compartido; su posición y visibilidad serán independientes por área. Banners se moverá como bloque completo y mantendrá su organización interna.
+3. Guardar la composición publicada en un campo JSON específico de seccion-principal y su borrador en borradores_editor_inicio, separados del contenido de cada editor. Crear API administrativa autenticada para cargar, guardar, descartar y publicar por área, validando IDs, duplicados, visibilidad y versión dentro de una operación con control de concurrencia. Exponer únicamente la composición publicada a la tienda.
+4. Sustituir el orden fijo de Inicio.jsx por un renderizado según el registro y la composición publicada. Sin configuración, conservar exactamente el orden y visibilidad actuales. Omitir bloques ocultos sin reservar espacio y sin montarlos. Conservar anclas, carga diferida y animaciones; cargar de inmediato el primer bloque visible cuando corresponda y resolver enlaces a bloques ocultos hacia su destino de catálogo u otro destino válido.
+5. Implementar arrastre vertical con Pointer Events y alternativas de teclado y botones subir/bajar; el patrón actual de OrderStrip es horizontal y requiere adaptación. Cambiar el ojo y el orden sobre el borrador local, permitir deshacer/rehacer y vista previa de la página completa, y aplicar a la tienda solamente al publicar. Mantener cambios al alternar áreas o entrar y regresar de un editor; ofrecer restaurar el orden original sin borrar contenido.
+6. Validar independencia entre áreas, borrador/publicación, concurrencia entre administradores, recuperación del orden original, todos los bloques ocultos, navegación por anclas, arrastre y teclado en notebook y móvil. Hacer QA visual local con datos simulados. Desplegar backend antes del frontend, preservando la compatibilidad de la web sin configuración.
+
+Criterio de aceptación: el orden y la visibilidad de la lista publicada coinciden con Inicio para cada área; una sección oculta conserva su contenido y sigue siendo editable; publicar la composición no publica borradores de contenido ni modifica la otra área.
+
+### Composición de Inicio: avance parcial
+
+- El selector principal muestra las tarjetas en una columna. Quedan pendientes la composición por área, los controles de orden y visibilidad, borradores, publicación, vista previa y validación integral.
+
+### Composición de Inicio: persistencia inicial
+
+- Se agregó el campo de composición publicada y las operaciones de borrador y publicación por área en el servicio existente. La integración del selector y de Inicio, el control de concurrencia atómico y las pruebas específicas siguen pendientes; la función aún no está lista para desplegar.
+- Validación: 6 pruebas existentes del servicio aprobadas.
+
+- Validación adicional de la persistencia inicial: prueba de borrador, publicación por área, conservación de otros borradores y rechazo de datos inválidos aprobada. Continúan pendientes la conexión pública, el panel interactivo y la concurrencia atómica.
+
+### Avance de composicion de Inicio
+
+- Inicio lee la composicion publicada por area, completa IDs faltantes con el orden original, omite secciones ocultas y conserva carga diferida y animaciones. El primer bloque visible se carga de inmediato.
+- Validacion: pruebas especificas de normalizacion y servicio administrativo. Pendientes: control atomico de concurrencia, selector, vista previa completa, enlaces a secciones ocultas y QA integral; no esta listo para publicar.
+
+### Composición de Inicio: integración del panel y página
+
+- Se conectó el panel vertical con la API de composición, con selección por área, controles de orden, ojo de visibilidad, borrador, publicación, deshacer/rehacer y vista previa mediante Inicio. El selector permanece montado al entrar a los editores para conservar el trabajo local.
+- Validación: 11 pruebas de frontend y 7 del servicio aprobadas. Falta QA visual de arrastre y móvil, comprobar concurrencia con Strapi real y resolver destinos de enlaces a secciones ocultas antes de considerar cerrado el plan.
+
+### Composición de Inicio: cierre de validación local
+
+- Se verificó el arrastre con mouse en notebook (1280 px) y eventos táctiles en móvil (390 px), con indicador de destino, deshacer, teclado, visibilidad y conservación de cambios al entrar y regresar de un editor. Se corrigieron el contraste del título y la distribución de controles en móvil; no hay desbordamiento horizontal.
+- La publicación y el descarte de composición comparten una operación transaccional y cola de escritura. Con Strapi real y SQLite aislada, dos operaciones con la misma versión producen un único éxito y un conflicto 409, conservando la otra área y los borradores de contenido. La API pública entrega solamente la composición publicada.
+- Los enlaces del menú respetan Perfumería/Hogar y esperan la composición cargada mediante anclas de navegación. Si el bloque está oculto, Gift Card abre su página, Lanzamientos abre el catálogo de novedades del área y Eventos abre Contacto. Se eliminaron los reintentos temporizados que terminaban sin destino.
+- Validación: 29 pruebas de frontend, 7 del servicio y 1 integración con Strapi aprobadas; QA de navegador local con CMS simulado y revisión de capturas aprobados. Script reproducible: Frontend/scripts/qa-composicion.cjs. No se modificó contenido ni se desplegó en producción; requiere desplegar backend y frontend.
+
+### Cabecera de Organizar Inicio
+
+- Se reorganizó la cabecera con un acceso destacado al menú, un selector de área más claro y el número de secciones visibles. La disposición se adapta a notebook y celular.
+- Validación: 9 pruebas del editor aprobadas y QA visual con CMS simulado en 1280 y 390 px, incluyendo arrastre y publicación.
+
+### Imágenes, SVG y videos en banners principales
+
+- El editor admite imágenes y videos MP4/WebM para computadora, tablet y celular, con reproducción automática silenciada y herencia por dispositivo. El tamaño máximo es 300 KB para imágenes y 8 MB para videos. Se verifica el contenido real y la extensión en el servidor; el SVG debe ser estático, sin scripts, estilos incrustados ni referencias externas.
+- La biblioteca, miniaturas, vista previa y tienda muestran imágenes y videos. Los formatos de imagen que cada navegador puede visualizar dependen de su compatibilidad.
+- Validación: 34 pruebas de frontend, 14 de backend y una integración con Strapi/SQLite aislada aprobadas. La integración cubre autenticación, carga multipart, límites y persistencia de SVG/video en borrador y publicación, usando un proveedor de almacenamiento en memoria. QA en navegador con videos MP4 y WebM generados localmente y CMS simulado verificó la reproducción y el cambio a SVG en celular. La prueba integral previa de edición de banners también pasó. No se publicaron datos de producción.
+
+### Visibilidad y guardado de la composición de Inicio
+
+- Guardar la composición ahora actualiza directamente el orden y las secciones ocultas publicadas del área activa; ya no se genera borrador de composición. Inicio vuelve a consultar la configuración al regresar a la pestaña y cada 60 segundos para reflejar cambios en páginas abiertas.
+- En Organizar Inicio se simplificaron las acciones: Guardar, Publicar, Deshacer, Rehacer y Restaurar orden original. Se quitaron «Descartar borrador» y la vista previa del panel general.
+- Validación: inspección estática y `git diff --check`; no se ejecutaron pruebas automatizadas en este cambio. Requiere desplegar frontend y backend.
+
+- Ajuste solicitado: se eliminó también «Guardar»; «Publicar» queda como única acción para aplicar la composición.
+
+### Filas de Organizar Inicio
+
+- Se aumentó la altura de las tarjetas y «Editar» ahora tiene estilo de botón de alto contraste, con ancho cómodo en celular.
+- Validación: git diff --check; no se ejecutaron pruebas automatizadas.
+
+### Tipografías del menú Header
+
+- Se agregaron Montserrat, Raleway, Playfair Display y Cormorant Garamond al selector, con carga de fuentes en la tienda y validación en el backend. Las fuentes serif conservan un fallback serif.
+- Validación: git diff --check; no se ejecutaron pruebas automatizadas.
+
+### Tamaño de tipografía del menú Header
+
+- Se agregó un control de tamaño en píxeles de 12 a 24 px. El valor se guarda por área, el backend valida el rango y el menú de la tienda aplica el tamaño publicado.
+- Validación: git diff --check; no se ejecutaron pruebas automatizadas.
+
+### Selector de tamaño con color de marca y alcance responsive
+
+- El control de tamaño usa acento naranja Marybe (#C8753D). El valor configurado se aplica únicamente desde 1024 px; tablet y celular mantienen sus reglas responsive. Se aclaró el alcance debajo del control.
+- Validación: git diff --check; no se ejecutaron pruebas automatizadas.
+
+### Corrección del tamaño de fuente del Header
+
+- Se detectó que el tamaño estaba conectado al menú móvil, mientras que la vista previa y la tienda usan CategoryNav. Se conectó allí y quedó limitado a anchos desde 1200 px; el visor de 1280 px ahora entra en ese rango y las reglas menores siguen intactas.
+- Tipografía, color y tamaño ahora se conservan entre sí al editar. El slider naranja tiene pista y control personalizados. El guardado del tamaño se verificó con Strapi/SQLite y la vista previa y el payload con pruebas frontend.
+- Validación: 21 pruebas frontend y 1 integración de backend aprobadas; git diff --check correcto.
+
+- Verificación del reporte de tamaño: la prueba detectó que al cambiar color o tipografía se perdía 	amanoPx; ahora los controles preservan el resto de los ajustes. También se conectó el tamaño a CategoryNav (el header principal) y el visor desktop de 1280 px queda dentro del breakpoint de 1200 px. El slider usa carril y perilla naranja personalizados.
+- Revalidación: 21 pruebas frontend y 1 integración Strapi/SQLite aprobadas; git diff --check correcto.
+
+### Revisión preliminar de migración de variantes a SKU/EAN
+
+- Confirmado en código: el importador descarta filas sin ID Variante, concilia variantes por id_original y la plantilla exporta ese ID como obligatorio. El checkout todavía prioriza id_original cuando está presente; el editor empareja por índice.
+- No se cambió el modelo ni el importador. Antes de activar SKU obligatorio se requiere auditar datos reales de publicados/borradores, variantes sintéticas y duplicados entre productos; no se accedió a producción.

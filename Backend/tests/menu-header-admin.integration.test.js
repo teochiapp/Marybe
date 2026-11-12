@@ -122,6 +122,14 @@ test('borrador y publicación conservan relaciones y áreas independientes en St
     assert.deepEqual(state.areas.perfumeria.published.ocultos, []);
     const updatedPublic = await (await fetch(`http://127.0.0.1:${app.server.httpServer.address().port}/api/ordenamiento-menu-header`)).json();
     assert.deepEqual(updatedPublic.data.ordenVisual.especialesOcultos.hogar, hidden.ocultos);
+    const styled = { ...hidden, estilo: { fuente: 'Georgia', color: '#123456', tamanoPx: 24 } };
+    state = await service.save('hogar', { version: state.version, data: styled, publish: false });
+    assert.deepEqual(state.areas.hogar.draft.estilo, styled.estilo);
+    assert.equal(state.areas.hogar.published.estilo, undefined);
+    state = await service.save('hogar', { version: state.version, data: styled, publish: true });
+    assert.deepEqual(state.areas.hogar.published.estilo, styled.estilo);
+    await assert.rejects(service.save('hogar', { version: state.version, data: { ...styled, estilo: { ...styled.estilo, tamanoPx: 25 } }, publish: true }), { status: 400 });
+    await assert.rejects(service.save('hogar', { version: state.version, data: { ...styled, estilo: { fuente: 'invalid', color: '#123456' } }, publish: true }), { status: 400 });
   } finally {
     await app.destroy();
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);

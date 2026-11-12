@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { deviceDesign, imageUrl } from '../../utils/bannerDesign';
+import { deviceDesign, imageUrl, isVideoMedia } from '../../utils/bannerDesign';
 
 function thumbnail(banner, device) {
-  return imageUrl(device === 'mobile' ? banner?.imagen_mobile || banner?.imagen_tablet || banner?.imagen_desktop : device === 'tablet' ? banner?.imagen_tablet || banner?.imagen_desktop : banner?.imagen_desktop);
+  return device === 'mobile' ? banner?.imagen_mobile || banner?.imagen_tablet || banner?.imagen_desktop : device === 'tablet' ? banner?.imagen_tablet || banner?.imagen_desktop : banner?.imagen_desktop;
 }
 
 export default function BannerStructure({ documents, source, selected, inspect, device, busy, loading, onSourceSelect, onSelect, onAction, onCreate, onAddBanner, onMoveDistribution }) {
@@ -98,9 +98,10 @@ export default function BannerStructure({ documents, source, selected, inspect, 
                   const title = banner.titulo || `Banner ${bi + 1}`;
                   const selectedBanner = isCurrent && selected.row === ri && selected.banner === bi && inspect === 'banner';
                   const hidden = banner.activo === false || deviceDesign(banner.diseno, device, {}).hidden;
-                  const image = thumbnail(banner, device);
+                  const media = thumbnail(banner, device);
+                  const image = imageUrl(media);
                   return <li className={`ba-layer-banner ${selectedBanner ? 'is-active' : ''} ${hidden ? 'is-hidden' : ''}`} key={banner.id ? `banner-${banner.id}` : `new-${bi}`} data-selected={selectedBanner}>
-                    <button className="ba-layer-banner-select" aria-label={`Editar banner: ${title}`} aria-pressed={selectedBanner} onClick={() => chooseElement(key, ri, bi, 'banner')}><span className="ba-thumbnail">{image ? <img src={image} alt="" /> : '▧'}</span><span>{title}<small>{hidden ? 'Oculto' : 'Imagen y contenido'}</small></span></button>
+                    <button className="ba-layer-banner-select" aria-label={`Editar banner: ${title}`} aria-pressed={selectedBanner} onClick={() => chooseElement(key, ri, bi, 'banner')}><span className="ba-thumbnail">{image ? (isVideoMedia(media) ? <video src={image} muted playsInline preload="metadata" /> : <img src={image} alt="" />) : '▧'}</span><span>{title}<small>{hidden ? 'Oculto' : isVideoMedia(media) ? 'Video y contenido' : 'Imagen y contenido'}</small></span></button>
                     {trigger(title, 'banner', key, ri, bi)}
                   </li>;
                 })}{isCurrent && <li><button className="ba-add-inline" disabled={busy} onClick={() => onAddBanner(ri)}>＋ Agregar banner</button></li>}</ul>}

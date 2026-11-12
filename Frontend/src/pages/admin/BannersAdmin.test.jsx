@@ -15,6 +15,25 @@ beforeEach(() => {
   axios.get.mockResolvedValue({ data: { data: { promotions: [group], main: { documentId: 'main-1', updatedAt: 'm1' } } } });
   axios.put.mockImplementation(async (url, body) => ({ data: { data: { ...body.data, documentId: body.data.documentId || `created-${axios.put.mock.calls.length}`, updatedAt: 'v2' } } }));
 });
+test('la biblioteca muestra videos y rechaza imágenes mayores a 300 KB antes de subirlas', async () => {
+  const video = { id: 8, name: 'campaña.mp4', url: '/uploads/campana.mp4', mime: 'video/mp4' };
+  axios.get.mockImplementation(async url => ({ data: { data: url.endsWith('/media') ? [video] : { promotions: [group] } } }));
+  render(<BannersAdmin />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Editar banner: Campaña inicial' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Cambiar imagen o video · Computadora' }));
+  const dialog = await screen.findByRole('dialog', { name: 'Biblioteca de imágenes y videos' });
+  expect(within(dialog).getByText(/Imágenes hasta 300 KB/)).toBeInTheDocument();
+  const file = new File([new Uint8Array(300 * 1024 + 1)], 'grande.png', { type: 'image/png' });
+  fireEvent.change(dialog.querySelector('input[type="file"]'), { target: { files: [file] } });
+  expect(await within(dialog).findByRole('alert')).toHaveTextContent('La imagen debe pesar como máximo 300 KB.');
+  expect(axios.post).not.toHaveBeenCalled();
+  const largeVideo = new File([new Uint8Array(8 * 1024 * 1024 + 1)], 'grande.mp4', { type: 'video/mp4' });
+  fireEvent.change(dialog.querySelector('input[type="file"]'), { target: { files: [largeVideo] } });
+  expect(await within(dialog).findByRole('alert')).toHaveTextContent('El video debe pesar como máximo 8 MB.');
+  expect(axios.post).not.toHaveBeenCalled();
+  fireEvent.click(within(dialog).getByRole('button', { name: /campaña.mp4/ }));
+  expect(screen.getByLabelText('Video seleccionado')).toHaveAttribute('src', 'http://localhost:1337/uploads/campana.mp4');
+});
 test('actualiza secciones al volver y conserva cambios locales sin guardar', async () => {
   render(<BannersAdmin />);
   await screen.findByRole('button', { name: 'Editar banner: Campaña inicial' });
@@ -34,7 +53,7 @@ test('prioriza imagen y destino, recuerda bloques y muestra ajustes según el co
   sessionStorage.removeItem('marybe-banner-inspector-blocks');
   const { unmount } = render(<BannersAdmin />);
   fireEvent.click(await screen.findByRole('button', { name: 'Editar banner: Campaña inicial' }));
-  expect(screen.getByRole('button', { name: 'Cambiar imagen · Computadora' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Cambiar imagen o video · Computadora' })).toBeVisible();
   expect(screen.getByRole('combobox', { name: 'Ajuste de imagen' })).toHaveDisplayValue('Mostrar imagen completa');
   expect(screen.getByLabelText('Destino al hacer clic')).toBeVisible();
   expect(screen.getByRole('spinbutton', { name: 'Alto' })).not.toBeVisible();

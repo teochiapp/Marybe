@@ -68,6 +68,16 @@ test('las pestañas mantienen los cambios al alternar contenido', async () => {
 });
 afterEach(() => { jest.clearAllMocks(); });
 
+test('personaliza tipografía y color en la vista previa y el borrador', async () => {
+  render(<MenuHeaderEditor token="token" onBack={() => {}} onLogout={() => {}} />);
+  fireEvent.change(await screen.findByLabelText('Tipografía'), { target: { value: 'Georgia' } });
+  fireEvent.change(screen.getByLabelText('Tamaño de fuente en píxeles'), { target: { value: '24' } });
+  fireEvent.change(screen.getByLabelText('Color de fuente'), { target: { value: '#123456' } });
+  expect(JSON.parse(screen.getByTestId('preview').textContent).estilo).toEqual({ fuente: 'Georgia', color: '#123456', tamanoPx: 24 });
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar borrador' }));
+  await waitFor(() => expect(axios.put).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ publish: false, data: expect.objectContaining({ estilo: { fuente: 'Georgia', color: '#123456', tamanoPx: 24 } }) }), expect.any(Object)));
+});
+
 test('oculta opciones por contexto en la vista previa y en el borrador', async () => {
   render(<MenuHeaderEditor token="token" onBack={() => {}} onLogout={() => {}} />);
   const checkbox = await screen.findByRole('checkbox', { name: 'Mostrar Ofertas' });

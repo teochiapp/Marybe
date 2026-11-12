@@ -31,10 +31,12 @@ export default function EditorInicioAdmin() {
   if (!token) return <AdminLoginCard subtitle="Editor de Inicio" onAuthenticated={signIn} />;
 
   return (
+    <>
+    <div hidden={pathname.replace(/\/$/, '') !== EDITOR_INICIO_PATH}><EditorInicioLayout onLogout={signOut}><SectionSelector token={token} /></EditorInicioLayout></div>
     <Routes>
-      <Route index element={<EditorInicioLayout onLogout={signOut}><SectionSelector /></EditorInicioLayout>} />
+      <Route index element={null} />
       <Route path=":sectionId" element={<SectionRoute token={token} onLogout={signOut} />} />
       <Route path="*" element={<Navigate to={EDITOR_INICIO_PATH} replace />} />
-    </Routes>
+    </Routes></>
   );
 }

@@ -1,6 +1,4 @@
 import React from 'react';
-import fs from 'fs';
-import path from 'path';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import axios from 'axios';
@@ -38,6 +36,8 @@ const EXPECTED_TITLES = [
 beforeEach(() => {
   localStorage.clear();
   jest.clearAllMocks();
+  const { ORDEN_INICIO } = require('../../inicio/composicionInicio');
+  axios.get.mockResolvedValue({ data: { data: { version:'v1', areas: Object.fromEntries(['perfumeria','hogar'].map(area=>[area,{ published:{orden:ORDEN_INICIO[area],ocultos:[]},draft:null }])) } } });
 });
 
 describe('configuración de secciones', () => {
@@ -50,12 +50,9 @@ describe('configuración de secciones', () => {
     expect(sectionPath('ofertas')).toBe(`${EDITOR_INICIO_PATH}/ofertas`);
   });
 
-  test('respeta el orden real de los componentes en Inicio (Perfumería)', () => {
-    const source = fs.readFileSync(path.join(__dirname, '../../inicio/Inicio.jsx'), 'utf8');
-    const perfumeria = source.slice(source.indexOf("seccionActiva === 'perfumeria' && ("), source.indexOf("seccionActiva === 'hogar' && ("));
-    const positions = EDITOR_INICIO_SECTIONS.filter(section => section.landingComponent).map(section => perfumeria.search(new RegExp(`<${section.landingComponent}[\\s/>]`)));
-    positions.forEach(position => expect(position).toBeGreaterThan(-1));
-    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+  test('respeta el orden original de Perfumeria en la composicion', () => {
+    const { ORDEN_INICIO } = require('../../inicio/composicionInicio');
+    expect(ORDEN_INICIO.perfumeria).toEqual([...EDITOR_INICIO_SECTIONS.filter(section => section.landingComponent).map(section => section.id), 'descubri-mas']);
   });
 
   test('las secciones con editor real están registradas', () => {
@@ -64,34 +61,15 @@ describe('configuración de secciones', () => {
 });
 
 describe('selector de secciones', () => {
-  test('muestra las diez tarjetas con su enlace, descripción e indicador', () => {
-    render(<SectionSelector />);
-    expect(screen.getByRole('heading', { level: 1, name: '¿Qué querés modificar hoy?' })).toBeInTheDocument();
-    const grid = screen.getByRole('list', { name: 'Secciones de la página de inicio' });
-    const links = within(grid).getAllByRole('link');
-    expect(links).toHaveLength(11);
-    expect(links[0].querySelector('[data-preview-image]')).toHaveAttribute('data-preview-image', '/capturas-admin-editor/00-header.png');
-    links.forEach((link, index) => {
-      const section = EDITOR_INICIO_SECTIONS[index];
-      expect(link).toHaveAccessibleName(section.title);
-      expect(link).toHaveAttribute('href', sectionPath(section.id));
-      expect(link).toHaveAccessibleDescription(expect.stringContaining(section.description));
-      if (section.previewImage) {
-        expect(section.previewImage).toMatch(/^\/capturas-admin-editor\/\d{2}[-_].+\.png$/);
-        expect(fs.existsSync(path.join(__dirname, '../../../../public', section.previewImage))).toBe(true);
-        expect(link.querySelector('[data-preview-image]')).toHaveAttribute('data-preview-image', section.previewImage);
-      }
-    });
-    expect(within(links[0]).getByText('Editar sección')).toBeInTheDocument();
-    expect(within(links[1]).getByText('Editar sección')).toBeInTheDocument();
-    expect(within(links[2]).getByText('Editar sección')).toBeInTheDocument();
-    expect(within(links[3]).getByText('Editar sección')).toBeInTheDocument();
-    expect(within(links[4]).getByText('Editar sección')).toBeInTheDocument();
-    expect(within(links[5]).getByText('Editar sección')).toBeInTheDocument();
-    expect(within(links[6]).getByText('Editar sección')).toBeInTheDocument();
-    expect(within(links[7]).getByText('Editar sección')).toBeInTheDocument();
-    expect(within(links[8]).getByText('Editar sección')).toBeInTheDocument();
-    expect(within(links[9]).getByText('Editar sección')).toBeInTheDocument();
+  test('permite cambiar el orden antes de guardar y oculta controles removidos', async () => {
+    render(<SectionSelector token="test" />);
+    expect(await screen.findByRole('button', { name: 'Publicar' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Guardar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Vista previa|Descartar borrador|Guardar borrador/ })).toBeNull();
+    const button = await screen.findByRole('button', { name:'Bajar Banners' });
+    fireEvent.click(button);
+    const rows = document.querySelectorAll('[data-composition-id]');
+    expect(rows[1]).toHaveAttribute('data-composition-id','banners');
   });
 });
 
@@ -108,7 +86,7 @@ describe('autenticación del editor de inicio', () => {
     fireEvent.change(screen.getByLabelText('Email administrador'), { target: { value: 'admin@marybe.com' } });
     fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'secreto' } });
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
-    await screen.findByText('¿Qué querés modificar hoy?');
+    await screen.findByText('Organizar Inicio');
     expect(axios.post).toHaveBeenCalledWith(expect.stringMatching(/\/api\/importacion-admin\/login$/), { identifier: 'admin@marybe.com', password: 'secreto' });
     expect(localStorage.getItem('admin_jwt')).toBe('admin-token');
   });
@@ -126,7 +104,7 @@ describe('autenticación del editor de inicio', () => {
   test('reutiliza una sesión existente y el cierre de sesión la elimina', () => {
     localStorage.setItem('admin_jwt', 'fixture-token');
     render(<EditorInicioAdmin />);
-    expect(screen.getByText('¿Qué querés modificar hoy?')).toBeInTheDocument();
+    expect(screen.getByText('Organizar Inicio')).toBeInTheDocument();
     const viewWebLink = screen.getByRole('link', { name: 'Ver web' });
     expect(viewWebLink).toHaveAttribute('href', '/');
     expect(viewWebLink).toHaveAttribute('target', '_blank');
@@ -145,7 +123,7 @@ describe('autenticación del editor de inicio', () => {
 
     localStorage.setItem('admin_jwt', 'fixture-token');
     render(<EditorInicioAdmin />);
-    expect(screen.getByText('¿Qué querés modificar hoy?')).toBeInTheDocument();
+    expect(screen.getByText('Organizar Inicio')).toBeInTheDocument();
     act(() => { window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { scope: 'admin' } })); });
     expect(await screen.findByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
   });

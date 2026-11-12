@@ -24,6 +24,12 @@ export function imageUrl(image, base = process.env.REACT_APP_STRAPI_URL || 'http
   // Local storefront assets and uploaded Strapi media use different origins.
   return raw.startsWith('/uploads/') ? `${base}${raw}` : raw.startsWith('/') && !raw.startsWith('//') ? raw : '';
 }
+export function isVideoMedia(media) {
+  const value = media?.data?.attributes || media || {};
+  const mime = typeof value === 'object' ? value.mime || '' : '';
+  const url = typeof value === 'string' ? value : value.url || '';
+  return /^video\/(mp4|webm)$/i.test(mime) || /\.(mp4|webm)(?:[?#]|$)/i.test(url);
+}
 export function safeBannerLink(link) { return typeof link === 'string' && !Array.from(link).some(char => char === '\\' || char.charCodeAt(0) < 32) && (/^\/(?!\/)/.test(link) || /^https?:\/\//i.test(link)) ? link : ''; }
 export function newBanner() { return { titulo: 'Nuevo banner', subtitulo: '', texto_boton: '', enlace: '', mostrar_texto: false, activo: true, ancho_porcentaje: 100, imagen_desktop: null, diseno: { desktop: {}, tablet: { height: 360 }, mobile: { height: 280, fontSize: 28, subtitleSize: 15 } } }; }
 export function duplicateRow(row) { return { ...structuredCopy(row), id: undefined, banners: row.banners.map(b => ({ ...structuredCopy(b), id: undefined })) }; }

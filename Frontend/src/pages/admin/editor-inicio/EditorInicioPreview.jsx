@@ -1,3 +1,4 @@
+import Inicio from '../../inicio/Inicio';
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import FeaturedSection from '../../../components/inicio/perfumeria/FeaturedSection';
@@ -50,6 +51,7 @@ const HeaderPreview = styled.div`
 `;
 
 const PREVIEWS = {
+  composicion: ({ area, previewData }) => <Inicio compositionPreview={previewData} previewArea={area} />,
   'menu-header': ({ previewData }) => <HeaderPreview data-preview-interactive onClickCapture={event => { if (event.target.closest('a')) { event.preventDefault(); event.stopPropagation(); } }}><div className="menu-preview-desktop"><CategoryNav preview={previewData} /></div><div className="menu-preview-mobile"><NavBar preview={previewData} /></div></HeaderPreview>,
   'seccion-destacada': ({ area, previewData }) => (area === 'hogar'
     ? <FeaturedSectionHogar previewData={previewData} />

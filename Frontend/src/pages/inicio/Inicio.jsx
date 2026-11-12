@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { normalizarComposicion } from './composicionInicio';
 import styled from 'styled-components';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { inicioTarget } from '../../utils/inicioNavigation';
 import { FadeIn, FadeInLeft, FadeInUp } from '../../components/animations/ScrollAnimations';
 import ToggleSelection from '../../components/inicio/perfumeria/ToggleSelection';
 import { lazyWithRetry } from '../../utils/lazyWithRetry';
@@ -60,32 +62,65 @@ const SectionSkeleton = styled.div`
   }
 `;
 
-export default function Inicio() {
+export default function Inicio({ compositionPreview, previewArea } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const seccionActiva = searchParams.get('seccion') || 'perfumeria';
+  const location = useLocation();
+  const seccionActiva = previewArea || searchParams.get('seccion') || 'perfumeria';
   const [textoPerf, setTextoPerf] = useState('Perfumería');
   const [textoHogar, setTextoHogar] = useState('Hogar');
+  const [composicion, setComposicion] = useState({});
+  const [compositionReady, setCompositionReady] = useState(false);
+  const layout = normalizarComposicion(compositionPreview || composicion[seccionActiva], seccionActiva);
+  const hiddenBlocks = layout.ocultos.join(',');
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
+    if (compositionPreview) return undefined;
+    let active = true;
+    let controller;
+    const refresh = () => {
+      controller?.abort();
+      controller = new AbortController();
+      fetch(`${process.env.REACT_APP_STRAPI_URL || process.env.REACT_APP_API_URL || 'http://localhost:1337'}/api/seccion-principal`, { signal: controller.signal, cache: 'no-store' })
+        .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+        .then(data => {
+          if (!active || !data?.data) return;
           const attrs = data.data.attributes || data.data;
           if (attrs.texto_toggle_perfumeria) setTextoPerf(attrs.texto_toggle_perfumeria);
           if (attrs.texto_toggle_hogar) setTextoHogar(attrs.texto_toggle_hogar);
-        }
-      })
-      .catch(err => console.error('Error fetching toggle texts:', err));
-  }, []);
+          setComposicion(attrs.composicion_inicio || {});
+        })
+        .catch(err => { if (active && err.name !== 'AbortError') console.error('Error fetching toggle texts:', err); })
+        .finally(() => { if (active) setCompositionReady(true); });
+    };
+    const refreshWhenVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+    refresh();
+    const timer = window.setInterval(refreshWhenVisible, 60000);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    window.addEventListener('focus', refresh);
+    return () => {
+      active = false;
+      controller?.abort();
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [compositionPreview]);
+
+  useEffect(() => {
+    if (!compositionReady || compositionPreview || !location.hash) return;
+    const target = inicioTarget(location.hash.slice(1), seccionActiva);
+    if (!target) return;
+    if (hiddenBlocks.split(',').includes(target.block)) { navigate(target.fallback, { replace: true }); return; }
+    document.getElementById(target.anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [compositionReady, compositionPreview, location.hash, seccionActiva, navigate, hiddenBlocks]);
 
   const handleSeccionChange = (seccion) => {
     setSearchParams({ seccion });
   };
 
   return (
-    <BannerOverridesProvider><PageWrapper>
+    <BannerOverridesProvider><PageWrapper data-inicio-area={seccionActiva} data-inicio-ready={compositionReady && !compositionPreview} data-inicio-hidden={layout.ocultos.join(',')}>
       <ToggleSelection
         seccionActiva={seccionActiva}
         onSeccionChange={handleSeccionChange}
@@ -93,134 +128,35 @@ export default function Inicio() {
         textoHogar={textoHogar}
       />
 
-      {seccionActiva === 'perfumeria' && (
-        <>
-          {/* Above the fold: carga inmediata sin animación FadeIn para optimizar LCP */}
-          <PromoCarousel seccion={seccionActiva} />
-          <ScrollAnchor id="seccion-destacados">
-            <FeaturedSection seccion={seccionActiva} />
-          </ScrollAnchor>
-
-          {/* Below the fold: LazyViewport (IntersectionObserver) para eliminar Long Tasks */}
-          <LazyViewport fallback={<SectionSkeleton $height="400px" />}>
-            <FadeIn>
-              <CategoriesSection seccion={seccionActiva} />
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="500px" />}>
-            <FadeIn>
-              <FeaturedCategorySection seccion={seccionActiva} />
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="350px" />}>
-            <FadeIn>
-              <OfertasSection seccion={seccionActiva} />
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="500px" />}>
-            <FadeIn>
-              <DiscountedSection seccion={seccionActiva} />
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="400px" />}>
-            <FadeIn>
-              <SpecificCategorySection seccion={seccionActiva} />
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="300px" />}>
-            <FadeIn>
-              <TarjetasPromociones />
-            </FadeIn>
-          </LazyViewport>
-          <ScrollAnchor id="seccion-gift-card">
-            <LazyViewport fallback={<SectionSkeleton $height="280px" />}>
-              <FadeIn>
-                <GiftCardWrapper onClick={() => navigate('/gift-card')}>
-                  <GiftCard seccion={seccionActiva} />
-                </GiftCardWrapper>
-              </FadeIn>
-            </LazyViewport>
-          </ScrollAnchor>
-          <ScrollAnchor id="seccion-eventos">
-            <LazyViewport fallback={<SectionSkeleton $height="300px" />}>
-              <FadeInUp>
-                <ProximosEventos />
-              </FadeInUp>
-            </LazyViewport>
-          </ScrollAnchor>
-          <LazyViewport fallback={<SectionSkeleton $height="250px" />}>
-            <FadeInLeft>
-              <DescubriMas />
-            </FadeInLeft>
-          </LazyViewport>
-        </>
-      )}
-
-      {seccionActiva === 'hogar' && (
-        <>
-          {/* Above the fold: carga inmediata sin animación FadeIn para optimizar LCP */}
-          <PromoCarousel seccion={seccionActiva} />
-          {/* id para scroll desde mega menu en sección hogar */}
-
-          {/* Below the fold: LazyViewport */}
-          <LazyViewport fallback={<SectionSkeleton $height="350px" />}>
-            <FadeIn>
-              <OfertasSection seccion={seccionActiva} />
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="500px" />}>
-            <FadeIn>
-              <FeaturedSectionHogar />
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="400px" />}>
-            <FadeIn>
-              <CategoriesSection seccion={seccionActiva} />
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="500px" />}>
-            <FadeIn>
-              <FeaturedCategorySection seccion={seccionActiva} />
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="500px" />}>
-            <FadeIn>
-              <DiscountedSectionHogar />
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="400px" />}>
-            <FadeIn>
-              <SpecificCategorySection seccion={seccionActiva} />
-            </FadeIn>
-          </LazyViewport>
-          <LazyViewport fallback={<SectionSkeleton $height="300px" />}>
-            <FadeIn>
-              <TarjetasPromociones />
-            </FadeIn>
-          </LazyViewport>
-          <ScrollAnchor id="seccion-gift-card-hogar">
-            <LazyViewport fallback={<SectionSkeleton $height="280px" />}>
-              <FadeIn>
-                <GiftCardWrapper onClick={() => navigate('/gift-card')}>
-                  <GiftCard seccion={seccionActiva} />
-                </GiftCardWrapper>
-              </FadeIn>
-            </LazyViewport>
-          </ScrollAnchor>
-          <ScrollAnchor id="seccion-eventos-hogar">
-            <LazyViewport fallback={<SectionSkeleton $height="300px" />}>
-              <FadeInUp>
-                <ProximosEventos />
-              </FadeInUp>
-            </LazyViewport>
-          </ScrollAnchor>
-          <LazyViewport fallback={<SectionSkeleton $height="250px" />}>
-            <FadeInLeft>
-              <DescubriMas />
-            </FadeInLeft>
-          </LazyViewport>
-        </>
-      )}
+      {!compositionReady && !compositionPreview && <SectionSkeleton $height="400px" />}
+      {(compositionReady || compositionPreview) && ['perfumeria', 'hogar'].includes(seccionActiva) && (() => {
+        const area = seccionActiva;
+        const { orden, ocultos } = normalizarComposicion(compositionPreview || composicion[area], area);
+        const visible = orden.filter(id => !ocultos.includes(id));
+        const sections = {
+          banners: { content: <PromoCarousel seccion={area} />, height: '400px' },
+          'seccion-destacada': { content: area === 'hogar' ? <FeaturedSectionHogar /> : <FeaturedSection seccion={area} />, height: '500px', anchor: area === 'perfumeria' ? 'seccion-destacados' : 'seccion-destacados-hogar' },
+          categorias: { content: <CategoriesSection seccion={area} />, height: '400px' },
+          'categoria-destacada-1': { content: <FeaturedCategorySection seccion={area} />, height: '500px' },
+          ofertas: { content: <OfertasSection seccion={area} />, height: '350px' },
+          descuentos: { content: area === 'hogar' ? <DiscountedSectionHogar /> : <DiscountedSection seccion={area} />, height: '500px' },
+          'categoria-destacada-2': { content: <SpecificCategorySection seccion={area} />, height: '400px' },
+          beneficios: { content: <TarjetasPromociones />, height: '300px' },
+          'gift-card': { content: <GiftCardWrapper onClick={() => navigate('/gift-card')}><GiftCard seccion={area} /></GiftCardWrapper>, height: '280px', anchor: area === 'hogar' ? 'seccion-gift-card-hogar' : 'seccion-gift-card' },
+          'proximos-eventos': { content: <ProximosEventos />, height: '300px', anchor: area === 'hogar' ? 'seccion-eventos-hogar' : 'seccion-eventos', animation: FadeInUp },
+          'descubri-mas': { content: <DescubriMas />, height: '250px', animation: FadeInLeft },
+        };
+        return visible.map((id, index) => {
+          const section = sections[id];
+          const fallback = <SectionSkeleton $height={section.height} />;
+          const Animation = section.animation || FadeIn;
+          // El primer bloque visible se carga inmediatamente.
+          const content = index === 0 || (area === 'perfumeria' && id === 'seccion-destacada' && index === 1 && visible[0] === 'banners')
+            ? <Suspense fallback={fallback}>{section.content}</Suspense>
+            : <LazyViewport fallback={fallback}><Animation>{section.content}</Animation></LazyViewport>;
+          return <ScrollAnchor key={id} id={section.anchor} data-inicio-block={id}>{content}</ScrollAnchor>;
+        });
+      })()}
 
       <ScrollToTopButton />
     </PageWrapper></BannerOverridesProvider>

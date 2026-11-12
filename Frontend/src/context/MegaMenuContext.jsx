@@ -56,6 +56,7 @@ export function MegaMenuProvider({ children }) {
   const [categorySectionMap, setCategorySectionMap] = useState(new Map());
   const [menuArrays, setMenuArrays] = useState({ PERFUMERIA: null, HOGAR: null, GENERAL: null });
   const [menuLanzOfertas, setMenuLanzOfertas] = useState({ ofertas: null, lanzamientos: null });
+  const [menuStyles, setMenuStyles] = useState({});
   const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
 
@@ -138,6 +139,7 @@ export function MegaMenuProvider({ children }) {
         if (!resMenu.ok) throw new Error(`HTTP ${resMenu.status}`);
         const jsonMenu = await resMenu.json();
         const menuData = jsonMenu?.data || {};
+        setMenuStyles(menuData.ordenVisual?.estilos || {});
 
         const resolveCategoryItems = (catArray, targetContext = null) => {
           const arr = catArray?.data || catArray || [];
@@ -269,7 +271,7 @@ export function MegaMenuProvider({ children }) {
   );
 
   return (
-    <MegaMenuCtx.Provider value={{ megaMap, categorySectionMap, menuArrays, loading, getColumnsForCategory, getColumnsInSection, getSectionForCategory, getCategoriesForContext, getMenuItemsForContext, menuLanzOfertas }}>
+    <MegaMenuCtx.Provider value={{ megaMap, categorySectionMap, menuArrays, loading, getColumnsForCategory, getColumnsInSection, getSectionForCategory, getCategoriesForContext, getMenuItemsForContext, menuLanzOfertas, menuStyles }}>
       {children}
     </MegaMenuCtx.Provider>
   );

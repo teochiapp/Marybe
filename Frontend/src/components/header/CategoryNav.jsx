@@ -1,6 +1,7 @@
+import { navigateToInicioSection } from '../../utils/inicioNavigation';
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 // ─── Datos (ver src/data/megamenu.js) ────────────────────────────────────────
 import {
@@ -20,6 +21,11 @@ import { generateProductUrl } from '../../utils/productUrl';
 const NavWrapper = styled.div`
   position: relative;
   width: 100%;
+  ${({ $menuFont }) => $menuFont && `button, a, h3, span { font-family: "${$menuFont}", sans-serif !important; }`}
+  ${({ $menuColor }) => $menuColor && `button, a, h3, span { color: ${$menuColor} !important; }`}
+  @media (min-width: 1200px) {
+    ${({ $menuFontSize }) => $menuFontSize && `button, a, h3, span { font-size: ${$menuFontSize}px !important; }`}
+  }
 
   @media (max-width: 768px) {
     display: ${({ $preview }) => ($preview ? 'block' : 'none')};
@@ -316,7 +322,6 @@ export default function CategoryNav({ preview }) {
   const navRef = useRef(null);
   const navigateTo = useNavigate();
   const navigate = (...args) => { if (!preview) navigateTo(...args); };
-  const location = useLocation();
 
   // Hook de contexto: provee el contexto actual Y la lista de categorias sincronizada
   // (ambos vienen de la misma instancia de useMegaMenu -> sin stacking al cambiar seccion)
@@ -325,7 +330,8 @@ export default function CategoryNav({ preview }) {
   const { getMenuItemsForContext } = contextState;
 
   // Hook de megamenu solo para las columnas del dropdown (columnas/subcategorias)
-  const { getColumnsForCategory, getColumnsInSection, getSectionForCategory, menuLanzOfertas: publicMenu } = useMegaMenu();
+  const { getColumnsForCategory, getColumnsInSection, getSectionForCategory, menuLanzOfertas: publicMenu, menuStyles } = useMegaMenu();
+  const menuStyle = preview?.estilo || menuStyles?.[context.toLowerCase()] || {};
   const menuLanzOfertas = preview?.menu || publicMenu;
 
   const dynamicCategories = menuItemsWithSections(preview?.categories || getMenuItemsForContext(context), context);
@@ -333,30 +339,7 @@ export default function CategoryNav({ preview }) {
   // ─── Helper: navega al inicio y hace scroll suave a una sección por ID ───
   const scrollToHomeSection = (sectionId) => {
     setActiveCategory(null);
-
-    const scrollToEl = () => {
-      const el = document.getElementById(sectionId);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return true;
-      }
-      return false;
-    };
-
-    if (location.pathname === '/inicio') {
-      let attempts = 0;
-      const retry = setInterval(() => {
-        attempts++;
-        if (scrollToEl() || attempts >= 20) clearInterval(retry);
-      }, 80);
-    } else {
-      navigate('/inicio');
-      let attempts = 0;
-      const retry = setInterval(() => {
-        attempts++;
-        if (scrollToEl() || attempts >= 30) clearInterval(retry);
-      }, 100);
-    }
+    navigateToInicioSection(sectionId, context, navigate);
   };
 
   const handleCategoryClick = (cat) => {
@@ -454,7 +437,7 @@ export default function CategoryNav({ preview }) {
   return (
     <>
       {/* Desktop */}
-      <NavWrapper ref={navRef} $preview={Boolean(preview)}>
+      <NavWrapper ref={navRef} $preview={Boolean(preview)} $menuFont={menuStyle.fuente} $menuFontSize={menuStyle.tamanoPx} $menuColor={menuStyle.color}>
         <DesktopNav>
           <CategoryList>
             {dynamicCategories.map((cat) => (

@@ -133,7 +133,7 @@ const main = { documentId: 'qa-main', updatedAt: 'm1', secciones: [] };
     await page.getByRole('button', { name: 'Guardar borrador', exact: true }).click();
     await page.getByRole('status').filter({ hasText: 'Borrador guardado' }).waitFor();
     await page.getByRole('button', { name: /Cambiar imagen/ }).click();
-    await page.getByRole('dialog', { name: 'Biblioteca de imágenes' }).waitFor();
+    await page.getByRole('dialog', { name: 'Biblioteca de imágenes y videos' }).waitFor();
     await page.screenshot({ path: path.join(output, 'biblioteca.png'), fullPage: true });
     await page.getByRole('button', { name: 'Cerrar biblioteca' }).click();
     const structure = page.getByRole('navigation', { name: 'Estructura de banners' });

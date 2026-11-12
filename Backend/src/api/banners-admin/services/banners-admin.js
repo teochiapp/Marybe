@@ -54,7 +54,7 @@ async function mediaId(value, strapi) {
   if (id == null) return null;
   if (!Number.isSafeInteger(Number(id)) || Number(id) < 1) fail('Imagen inválida.');
   const file = await strapi.db.query('plugin::upload.file').findOne({ where: { id: Number(id) } });
-  if (!file || !file.mime?.startsWith('image/') || file.mime === 'image/svg+xml') fail('Seleccioná una imagen JPG, PNG, WebP, GIF o AVIF de la biblioteca.');
+  if (!file || !(file.mime?.startsWith('image/') || ['video/mp4', 'video/webm'].includes(file.mime))) fail('Seleccioná una imagen o un video MP4 o WebM de la biblioteca.');
   return Number(id);
 }
 async function cleanBanner(input, strapi, slot = false) {
@@ -71,7 +71,7 @@ async function cleanBanner(input, strapi, slot = false) {
     }
   } else {
     for (const key of MEDIA) output[key] = await mediaId(input[key], strapi);
-    if (!output.imagen_desktop) fail('Cada banner necesita una imagen para PC.');
+    if (!output.imagen_desktop) fail('Cada banner necesita una imagen o video para PC.');
   }
   return output;
 }

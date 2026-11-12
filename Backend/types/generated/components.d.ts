@@ -293,10 +293,10 @@ export interface SharedBanner extends Struct.ComponentSchema {
       Schema.Attribute.DefaultTo<100>;
     diseno: Schema.Attribute.JSON;
     enlace: Schema.Attribute.String;
-    imagen_desktop: Schema.Attribute.Media<'images'> &
+    imagen_desktop: Schema.Attribute.Media<'images' | 'videos'> &
       Schema.Attribute.Required;
-    imagen_mobile: Schema.Attribute.Media<'images'>;
-    imagen_tablet: Schema.Attribute.Media<'images'>;
+    imagen_mobile: Schema.Attribute.Media<'images' | 'videos'>;
+    imagen_tablet: Schema.Attribute.Media<'images' | 'videos'>;
     mostrar_texto: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     subtitulo: Schema.Attribute.Text;
     texto_boton: Schema.Attribute.String;

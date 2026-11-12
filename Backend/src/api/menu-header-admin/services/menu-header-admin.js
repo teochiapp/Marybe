@@ -6,6 +6,7 @@ const CATEGORY = 'api::categoria.categoria';
 const PRODUCT = 'api::producto.producto';
 const FIELDS = { perfumeria: 'categoriasPerfumeria', hogar: 'categoriasHogar', general: 'categoriasGeneral' };
 const SPECIALS = ['ofertas', 'lanzamientos'];
+const MENU_FONTS = ['', 'Inter', 'Brygada 1918', 'Montserrat', 'Raleway', 'Playfair Display', 'Cormorant Garamond', 'Arial', 'Georgia', 'Verdana'];
 const AREAS = [...Object.keys(FIELDS), ...SPECIALS];
 const populate = {
   ofertas: { populate: { columnas_categorias: { populate: { categorias: true } }, productos_destacados: { populate: { portada: true } } } },
@@ -73,10 +74,11 @@ module.exports = ({ strapi }) => {
     const areas = {};
     for (const area of AREAS) {
       const published = FIELDS[area]
-        ? { orden: orderFor(order?.[FIELDS[area]] || [], order?.ordenVisual?.[area]), ...(area !== 'general' ? { ocultos: (order?.ordenVisual?.especialesOcultos?.[area] || []).filter(id => SPECIALS.includes(id)) } : {}) }
+        ? { orden: orderFor(order?.[FIELDS[area]] || [], order?.ordenVisual?.[area]), ...(order?.ordenVisual?.estilos?.[area] ? { estilo: order.ordenVisual.estilos[area] } : {}), ...(area !== 'general' ? { ocultos: (order?.ordenVisual?.especialesOcultos?.[area] || []).filter(id => SPECIALS.includes(id)) } : {}) }
         : contentState(menu, area);
       const savedDraft = order?.borradoresMenu?.[area];
       let draft = savedDraft?.data || null;
+      if (FIELDS[area] && draft && !draft.estilo && published.estilo) draft = { ...draft, estilo: published.estilo };
       if (FIELDS[area] && draft && !savedDraft.identidadPorSeccion && Array.isArray(draft.orden)) {
         const firstByName = new Map();
         const restored = [];
@@ -115,12 +117,14 @@ module.exports = ({ strapi }) => {
         if (!category?.nombre || selectedNames.has(key) || ['Ofertas', 'Lanzamientos'].includes(category.nombre)) fail('Ya existe una opción del menú con ese nombre en la misma sección.');
         selectedNames.add(key);
       }
+      const estilo = input.estilo;
+      if (estilo !== undefined && (!estilo || typeof estilo !== 'object' || !MENU_FONTS.includes(estilo.fuente) || (estilo.color !== '' && !/^#[0-9a-f]{6}$/i.test(estilo.color)) || (estilo.tamanoPx != null && (!Number.isInteger(estilo.tamanoPx) || estilo.tamanoPx < 12 || estilo.tamanoPx > 24)))) fail('Tipografía, tamaño o color inválido.');
       if (area !== 'general') {
         const ocultos = input.ocultos === undefined ? [] : list(input.ocultos);
         if (ocultos.some(id => !SPECIALS.includes(id))) fail('Opciones ocultas inválidas.');
-        return { orden: values, ocultos };
+        return { orden: values, ocultos, ...(estilo ? { estilo } : {}) };
       }
-      return { orden: values };
+      return { orden: values, ...(estilo ? { estilo } : {}) };
     }
     const productIds = list(input.productos_destacados);
     const data = { titulo_destacados: title(input.titulo_destacados), productos_destacados: productIds };
@@ -185,6 +189,7 @@ module.exports = ({ strapi }) => {
           const previousAdded = visual?.categoriasAgregadas || {};
           const previousIds = Array.isArray(previousAdded[area]) ? previousAdded[area] : [];
           visual = { ...(visual || {}), [area]: data.orden, categoriasAgregadas: { ...previousAdded, [area]: [...new Set([...previousIds.filter(id => selected.includes(id)), ...added])] } };
+          if (data.estilo) visual.estilos = { ...(visual.estilos || {}), [area]: data.estilo };
           if (area !== 'general') visual.especialesOcultos = { ...(visual.especialesOcultos || {}), [area]: data.ocultos };
         }
         await writeOrder(order, { borradoresMenu: drafts, ...(visual != null ? { ordenVisual: visual } : {}), ...relations });

@@ -1,3 +1,4 @@
+import { navigateToInicioSection } from '../../utils/inicioNavigation';
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
@@ -365,6 +366,11 @@ const DrawerBody = styled.div`
   padding: 8px 0 32px;
 `;
 
+const StyledMenuCategories = styled.div`
+  ${({ $menuFont, $menuFontFallback }) => $menuFont && `button, a, span { font-family: "${$menuFont}", ${$menuFontFallback || 'sans-serif'} !important; }`}
+  ${({ $menuColor }) => $menuColor && `button, a, span { color: ${$menuColor} !important; }`}
+`;
+
 const DrawerItem = styled.button`
   display: flex;
   align-items: center;
@@ -564,7 +570,8 @@ export default function NavBar({ preview }) {
   const contextState = useMegaMenuContext();
   const context = preview?.context || contextState.context;
   const { getMenuItemsForContext } = contextState;
-  const { getColumnsForCategory, getColumnsInSection, getSectionForCategory, menuLanzOfertas: publicMenu } = useMegaMenu();
+  const { getColumnsForCategory, getColumnsInSection, getSectionForCategory, menuLanzOfertas: publicMenu, menuStyles } = useMegaMenu();
+  const menuStyle = preview?.estilo || menuStyles?.[context.toLowerCase()] || {};
   const menuLanzOfertas = preview?.menu || publicMenu;
   const dynamicCategories = menuItemsWithSections(preview?.categories || getMenuItemsForContext(context), context);
 
@@ -631,31 +638,7 @@ export default function NavBar({ preview }) {
   // ─── Helper: navega al inicio y hace scroll suave a una sección por ID ───
   const scrollToHomeSection = (sectionId) => {
     closeDrawer();
-
-    const scrollToEl = () => {
-      const el = document.getElementById(sectionId);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return true;
-      }
-      return false;
-    };
-
-    if (location.pathname === '/inicio') {
-      // Esperar que el drawer termine de cerrar (~320ms) y luego buscar el elemento
-      let attempts = 0;
-      const retry = setInterval(() => {
-        attempts++;
-        if (scrollToEl() || attempts >= 20) clearInterval(retry);
-      }, 80);
-    } else {
-      navigate('/inicio');
-      let attempts = 0;
-      const retry = setInterval(() => {
-        attempts++;
-        if (scrollToEl() || attempts >= 30) clearInterval(retry);
-      }, 100);
-    }
+    navigateToInicioSection(sectionId, context, navigate);
   };
 
   const goToAccount = () => {
@@ -882,7 +865,7 @@ export default function NavBar({ preview }) {
                 </span>
               </DrawerItem>
 
-              {dynamicCategories.map((cat) => {
+              <StyledMenuCategories $menuFont={menuStyle.fuente} $menuFontFallback={['Brygada 1918', 'Playfair Display', 'Cormorant Garamond', 'Georgia'].includes(menuStyle.fuente) ? 'serif' : 'sans-serif'} $menuColor={menuStyle.color}>{dynamicCategories.map((cat) => {
                 const columns = getMobileColumnsForCategory(cat);
                 const hasColumns = columns.length > 0;
 
@@ -979,7 +962,7 @@ export default function NavBar({ preview }) {
                     )}
                   </div>
                 );
-              })}
+              })}</StyledMenuCategories>
 
 
               <OfertasSection>
