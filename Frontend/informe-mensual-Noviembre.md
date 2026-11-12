@@ -839,3 +839,13 @@ Criterio de aceptación: el orden y la visibilidad de la lista publicada coincid
   - Productos donde ni el padre ni ninguna variante tienen precio > 0 quedan con `precio_minimo_calculado = null`, excluidos del listado/búsqueda y responden `404` en `findOne`.
   - Actualizaciones dinámicas de variantes recalculan el rango y actualizan la visibilidad inmediatamente (`404` ↔ `200`).
 - **Pruebas ejecutadas**: `node --test tests/product-visibility.integration.test.js` (1/1 passed), `node --test Backend/tests/product-price-range.test.js Backend/tests/excel-roundtrip.test.js` (28/28 passed) y `git diff --check` sin errores.
+
+
+### Soporte de `richText` e hipervínculos al importar Excel (`importacion-admin.js`)
+- **Corrección en `cellVal` ([Backend/src/api/importacion-admin/services/importacion-admin.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/importacion-admin/services/importacion-admin.js))**: Se reordenó la detección de objetos en `cellVal` (con helper `extractRichText`) para leer celdas con `richText`, hipervínculos (`{ text, hyperlink }`) e hipervínculos con `richText` antes del fallback que devolvía `''`, y se usó `cellVal` también al localizar las columnas extra en el encabezado de la hoja de proveedores.
+- **Test agregado ([Backend/tests/excel-roundtrip.test.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/tests/excel-roundtrip.test.js))**: `proveedor conserva textos con richText e hipervinculos al importar ficha` verificando roundtrip real de ExcelJS para encabezado `Descripción` en `richText`, `Descripción` en `richText`, `Especificaciones` con hipervínculo y `Características` con hipervínculo `richText` (29/29 pruebas en verde en `excel-roundtrip.test.js` y `product-price-range.test.js`).
+
+
+### Actualización de `nombre` en planilla de proveedores (`importacion-admin.js`)
+- **Cambio en [Backend/src/api/importacion-admin/services/importacion-admin.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/src/api/importacion-admin/services/importacion-admin.js#L933-L936)**: En modo proveedor (`isPartialUpdate`), se incluye `productoData.nombre = nombreVal` cuando la celda `Nombre` contiene valor no vacío, permitiendo actualizar el nombre de productos existentes al igual que en la planilla general (sin sobrescribir si la celda viene vacía).
+- **Test agregado ([Backend/tests/excel-roundtrip.test.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/tests/excel-roundtrip.test.js#L595-L609))**: `planilla general y de proveedor actualizan el nombre de un ID existente` (30/30 pruebas en verde en `excel-roundtrip.test.js` y `product-price-range.test.js`).

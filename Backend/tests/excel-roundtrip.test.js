@@ -576,3 +576,34 @@ test('proveedor crea productos con los campos de ficha', async () => {
   assert.equal(result.creados, 1, result.erroresList.join('; '));
   assert.deepEqual([state.creates[0].marca, state.creates[0].descripcion, state.creates[0].especificaciones, state.creates[0].caracteristicas], ['Marca nueva', 'Descripcion nueva', 'Especificacion nueva', 'Caracteristica nueva']);
 });
+
+test('proveedor conserva textos con richText e hipervinculos al importar ficha', async () => {
+  const { state, strapi } = fixture({ marca: 'Marca original', descripcion: 'Desc', especificaciones: 'Esp', caracteristicas: 'Car' });
+  const wb = await supplierWorkbook(strapi);
+  const ws = wb.getWorksheet('\ud83d\udcb2 Precios por Proveedor');
+  ws.getCell(3, 17).value = { richText: [{ text: 'Descripci\u00f3n' }] };
+  ws.getCell(4, 17).value = { richText: [{ text: 'Notas ' }, { text: 'clave', font: { bold: true } }, { text: ' del producto' }] };
+  ws.getCell(4, 18).value = { text: 'Ficha t\u00e9cnica', hyperlink: 'https://marybe.com/ficha' };
+  ws.getCell(4, 19).value = { text: { richText: [{ text: 'Uso ' }, { text: 'diario', font: { italic: true } }] }, hyperlink: 'https://marybe.com/uso' };
+  const result = await importWorkbook(strapi, wb);
+  assert.equal(result.actualizados, 1, result.erroresList.join('; '));
+  assert.equal(state.product.descripcion, 'Notas clave del producto');
+  assert.equal(state.product.especificaciones, 'Ficha t\u00e9cnica');
+  assert.equal(state.product.caracteristicas, 'Uso diario');
+});
+
+test('planilla general y de proveedor actualizan el nombre de un ID existente', async () => {
+  const { state, strapi } = fixture({ nombre: 'Nombre original' });
+
+  const wbProv = await supplierWorkbook(strapi);
+  wbProv.getWorksheet('\ud83d\udcb2 Precios por Proveedor').getCell(4, 4).value = 'Nombre proveedor';
+  const resProv = await importWorkbook(strapi, wbProv);
+  assert.equal(resProv.actualizados, 1, resProv.erroresList.join('; '));
+  assert.equal(state.product.nombre, 'Nombre proveedor');
+
+  const wbGen = await generalWorkbook(strapi);
+  wbGen.getWorksheet('\ud83d\udce6 Productos').getCell(4, 3).value = 'Nombre general';
+  const resGen = await importWorkbook(strapi, wbGen);
+  assert.equal(resGen.actualizados, 1, resGen.erroresList.join('; '));
+  assert.equal(state.product.nombre, 'Nombre general');
+});

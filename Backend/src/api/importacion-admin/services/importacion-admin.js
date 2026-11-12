@@ -23,27 +23,38 @@ function traducirErrorValidacion(mensaje) {
   );
 }
 
+function extractRichText(richText) {
+  return richText.map(rt => rt?.text ?? '').join('').trim();
+}
+
 function cellVal(row, colIndex) {
   const cell = row.getCell(colIndex);
-  if (!cell || cell.value === null || cell.value === undefined) return '';
-  if (cell.value && typeof cell.value === 'object' && 'result' in cell.value) {
-    return cell.value.result !== null && cell.value.result !== undefined
-      ? String(cell.value.result).trim()
-      : '';
-  }
-  // Fórmula guardada SIN result (ej: Excel re-guardado por LibreOffice):
-  // el objeto tiene { formula: '...' } pero no 'result'. Devolvemos ''.
-  if (cell.value && typeof cell.value === 'object' && 'formula' in cell.value) {
+  const val = cell?.value;
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'object') {
+    if ('result' in val) {
+      return val.result !== null && val.result !== undefined
+        ? String(val.result).trim()
+        : '';
+    }
+    // Fórmula guardada SIN result (ej: Excel re-guardado por LibreOffice):
+    // el objeto tiene { formula: '...' } pero no 'result'. Devolvemos ''.
+    if ('formula' in val || 'sharedFormula' in val) {
+      return '';
+    }
+    if (Array.isArray(val.richText)) {
+      return extractRichText(val.richText);
+    }
+    if ('text' in val && val.text !== null && val.text !== undefined) {
+      if (typeof val.text === 'object' && Array.isArray(val.text.richText)) {
+        return extractRichText(val.text.richText);
+      }
+      return String(val.text).trim();
+    }
+    // Cualquier otro objeto inesperado (evita "[object Object]" en el log)
     return '';
   }
-  // Cualquier otro objeto inesperado (evita "[object Object]" en el log)
-  if (cell.value && typeof cell.value === 'object') {
-    return '';
-  }
-  if (cell.value && cell.value.richText) {
-    return cell.value.richText.map(rt => rt.text).join('').trim();
-  }
-  return String(cell.value).trim();
+  return String(val).trim();
 }
 
 function isSeparatorOrEmpty(row) {
@@ -260,7 +271,7 @@ async function leerExcel(rutaArchivo) {
     const columnasExtra = Object.fromEntries(Object.entries(camposExtra).map(([key, label]) => {
       const header = wsProveedor.getRow(HEADER_ROW);
       let column = null;
-      header.eachCell((cell, index) => { if (String(cell.value || '').trim() === label) column = index; });
+      header.eachCell((_, index) => { if (cellVal(header, index) === label) column = index; });
       return [key, column];
     }));
 
@@ -919,7 +930,10 @@ async function ejecutarUpsert(
         if (primeraClasif.seccion)      productoData.seccion      = primeraClasif.seccion;
         if (primeraClasif.subcategoria) productoData.subcategoria = primeraClasif.subcategoria;
         productoData.tipo = primeraClasif.tipo || '';
-        // SKU: actualizar si la celda tiene valor (permite cambiar el SKU desde la plantilla)
+        // Nombre y SKU: actualizar si la celda tiene valor
+        const nombreVal = (p.nombre || '').trim();
+        if (nombreVal) productoData.nombre = nombreVal;
+
         const skuVal = (p.sku || '').trim();
         if (skuVal) productoData.sku = skuVal;
 
