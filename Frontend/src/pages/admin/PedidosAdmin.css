@@ -1,3 +1,12 @@
+.pa-page {
+  align-items: flex-start;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow-x: clip;
+  padding: clamp(20px, 2.5vw, 40px) clamp(12px, 1.5vw, 20px);
+  position: relative;
+}
+
 .pa-panel {
   background-color: var(--color-blanco);
   border-radius: 16px;
@@ -10,6 +19,8 @@
   display: flex;
   flex-direction: column;
   gap: 30px;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 @media (max-width: 768px) {
@@ -57,6 +68,8 @@
 }
 
 .pa-table-container {
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   border-radius: 10px;
   border: 1px solid rgba(0, 0, 0, 0.08);
@@ -102,23 +115,57 @@
   background-color: #fcfcfc;
 }
 
-@media (max-width: 768px) {
+.pa-table-products {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pa-table-product {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+  padding: 4px 8px;
+}
+
+.pa-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+@media (max-width: 1500px) {
+  .pa-panel {
+    gap: 22px;
+    padding: clamp(20px, 2.4vw, 32px);
+  }
   .pa-table-container {
     border: none;
     background: transparent;
+    overflow: visible;
   }
   .pa-table, .pa-table tbody, .pa-table tr, .pa-table td {
-    display: block;
+    box-sizing: border-box;
     width: 100%;
+  }
+  .pa-table, .pa-table tbody {
+    display: block;
   }
   .pa-table thead {
     display: none;
   }
   .pa-table tr {
-    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px 20px;
+    margin-bottom: 16px;
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 12px;
-    padding: 20px;
+    padding: 18px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
     background-color: #fff;
   }
@@ -127,18 +174,27 @@
   }
   .pa-table td {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 7px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+  .pa-table td:nth-child(3) {
+    max-width: none;
+    overflow: visible;
+    white-space: normal;
+  }
+  .pa-table td.pa-products-cell {
+    grid-column: span 2;
+  }
+  .pa-table td[colspan] {
+    grid-column: 1 / -1;
     align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-    text-align: right;
-  }
-  .pa-table td:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-  .pa-table td:first-child {
-    padding-top: 0;
   }
   .pa-table td::before {
     content: attr(data-label);
@@ -147,8 +203,42 @@
     text-transform: uppercase;
     font-size: 0.75rem;
     text-align: left;
-    margin-right: 16px;
     letter-spacing: 0.5px;
+  }
+  .pa-select {
+    width: 100%;
+    max-width: 220px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .pa-table tr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .pa-page {
+    padding: 70px 10px 24px;
+  }
+  .pa-table tr {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 16px;
+  }
+  .pa-table td.pa-products-cell {
+    grid-column: auto;
+  }
+  .pa-title-wrap {
+    align-items: flex-start;
+  }
+  .pa-title {
+    font-size: 1.55rem;
+  }
+  .pa-pagination {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-inline: 0;
   }
 }
 
@@ -480,7 +570,12 @@
 
 @media print {
   html:has(.pa-print-order), body:has(.pa-print-order), body:has(.pa-print-order) #root { height: auto; min-height: 0; max-width: none; overflow: visible; background: white; }
-  body:has(.pa-print-order) #root > :not(.pa-page), body:has(.pa-print-order) .pa-page > :not(.pa-modal-overlay) { display: none !important; }
+  body:has(.pa-print-order) .admin-shell { display: block; min-height: 0; background: white; }
+  body:has(.pa-print-order) .admin-main { min-height: 0; overflow: visible; }
+  body:has(.pa-print-order) .admin-sidebar,
+  body:has(.pa-print-order) .admin-mobile-toggle,
+  body:has(.pa-print-order) .admin-mobile-backdrop,
+  body:has(.pa-print-order) .pa-page > :not(.pa-modal-overlay) { display: none !important; }
   .pa-page { display: block; min-height: 0; padding: 0 !important; position: static !important; overflow: visible; background: white; }
   .pa-modal-overlay { background: white !important; display: block; inset: auto; padding: 0; position: static; }
   .pa-modal { border-radius: 0; box-shadow: none; max-height: none; max-width: none; overflow: visible; padding: 0; width: auto; transform: none !important; opacity: 1 !important; }

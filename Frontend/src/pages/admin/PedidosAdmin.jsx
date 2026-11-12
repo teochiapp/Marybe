@@ -369,7 +369,7 @@ export default function PedidosAdmin() {
 
   // ─── Render: Admin Panel de Pedidos ──────────────────────────────────────────
   return (
-    <div className="ia-wrapper pa-page" style={{ padding: '40px 20px', alignItems: 'flex-start', position: 'relative' }}>
+    <div className="ia-wrapper pa-page">
       
       {/* Toast de Éxito */}
       <AnimatePresence>
@@ -446,10 +446,10 @@ export default function PedidosAdmin() {
                       <td data-label="Nº Pedido" style={{ fontWeight: 600 }}>{p.numero_pedido}</td>
                       <td data-label="Fecha">{formatDate(p.createdAt)}</td>
                       <td data-label="Cliente">{clienteEmail}</td>
-                      <td data-label="Productos">
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <td data-label="Productos" className="pa-products-cell">
+                        <div className="pa-table-products">
                           {(p.productos || []).map((prod, idx) => (
-                            <span key={idx} style={{ fontSize: '0.85rem', backgroundColor: '#f9f9f9', padding: '4px 8px', borderRadius: '4px', border: '1px solid #eee' }}>
+                            <span key={idx} className="pa-table-product">
                               <strong>{prod.cantidad}x</strong> {prod.producto} {prod.variante !== 'Única' && prod.variante !== 'Envío' && prod.variante !== 'Descuento' ? `(${prod.variante})` : ''}
                               {prod.sku && <small className="pa-table-sku">SKU: {prod.sku}</small>}
                             </span>
@@ -473,7 +473,7 @@ export default function PedidosAdmin() {
                         </select>
                       </td>
                       <td data-label="Acciones">
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
+                        <div className="pa-actions">
                           <button className="pa-detail-btn" onClick={() => setSelectedPedido(p)} title="Ver detalles" style={{ padding: '6px' }}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                           </button>

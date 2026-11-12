@@ -666,6 +666,12 @@ Criterio de aceptación: el orden y la visibilidad de la lista publicada coincid
 
 - El Header público ahora reconstruye las categorías asignadas desde el orden publicado (`ordenVisual`) si la relación de Strapi todavía no las devuelve. Así una categoría de Perfumería ubicada en Hogar (y a la inversa) queda visible y conserva sus subcategorías reales.
 
+### Pedidos Admin responsive — 12/11/2026
+
+- Se adaptó el panel para notebooks pequeñas: por debajo de 1500 px la tabla de ocho columnas pasa a tarjetas en grilla, manteniendo visibles estado y acciones sin desplazamiento horizontal. En tablet utiliza dos columnas y en móvil una.
+- Se corrigieron anchos mínimos, desbordes, textos largos, listado de productos, acciones, cabecera y paginación. Validación: `git diff --check` correcto; no se ejecutaron pruebas automatizadas.
+- Se corrigió la impresión de pedidos dentro de `AdminShell`: la regla anterior ocultaba todo el administrador y generaba una vista previa o PDF vacío. Ahora se ocultan únicamente el sidebar y los controles, manteniendo visible el comprobante.
+
 ### Tipografías del menú Header
 
 - Se agregaron Montserrat, Raleway, Playfair Display y Cormorant Garamond al selector, con carga de fuentes en la tienda y validación en el backend. Las fuentes serif conservan un fallback serif.
