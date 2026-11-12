@@ -708,3 +708,33 @@ Criterio de aceptación: el orden y la visibilidad de la lista publicada coincid
   - Se estructuró cada fila en tres columnas balanceadas (información con descripción y badge de visibilidad a la izquierda, vista previa rectangular 4/3 al centro y controles de acción a la derecha) con adaptación responsiva a columna vertical para tablets y móviles.
   - Se duplicó la barra de acciones (Publicar, Deshacer, Rehacer, Restaurar orden original y estado de cambios) tanto al inicio de la página antes de la lista como al final persistente (`sticky`), facilitando la publicación sin necesidad de desplazarse por todo el contenido.
 - Validación: 9 pruebas en `EditorInicioAdmin.test.jsx` aprobadas; ESLint sin errores; `git diff --check` correcto.
+
+### Auditoría de variantes de solo lectura — 12/11/2026
+
+- Se agregó Backend/scripts/auditar-variantes-sku.cjs, que abre SQLite en modo solo lectura y genera Backend/.tmp/audit-variant-skus.json con variantes sin SKU, SKU duplicados, marcadores -v1, diferencias entre publicado y borrador y referencias de pedidos.
+- En la base local Backend/.tmp/data.db: 2660 versiones de productos, 4490 variantes por estado; 34 variantes lógicas sin SKU en 9 productos; 282 grupos lógicos de SKU duplicado dentro de 41 padres, ninguno entre padres; cero marcadores -v1 y cero diferencias entre publicado y borrador. Hay 24 versiones de pedidos con 27 ítems: 15 referencias id_variante_original, 3 id_variante y 19 con SKU. Las cifras de variantes se duplican cuando se cuentan ambas versiones.
+- Dependencias de código: el checkout prioriza id_original al resolver variantes, los pedidos guardan identificadores antiguos e internos, Cannon busca por sku_ean y el editor administrativo empareja borradores por índice. Estos resultados describen la base local; producción no fue consultada ni modificada.
+
+### Administración central y dashboard inicial — 12/11/2026
+
+- Se agregó /admin con menú lateral permanente, modo contraído y menú móvil. Las ocho rutas administrativas existentes ahora comparten el contenedor, sin cambiar sus URLs ni la lógica de sus módulos; las dos rutas de previsualización siguen fuera del layout. El Header y Footer públicos se ocultan en el espacio administrativo.
+- El dashboard consulta un endpoint protegido por el JWT administrativo y muestra ventas totales de pedidos activos, pedidos del mes (hora de Buenos Aires, sin cancelados ni abortados), productos publicados creados en los últimos siete días y pedidos pendientes de pago. Incluye accesos rápidos.
+- El sidebar consulta las protecciones eforeunload al cambiar de módulo, sincroniza el logout y permite contraerse para editores anchos. Validación: 2 pruebas frontend y 1 prueba del servicio backend aprobadas; git diff --check correcto. No se desplegó ni se consultó producción; requiere publicar frontend y backend.
+
+- Ajuste visual del sidebar: el fondo bordó ahora cubre toda la columna lateral, incluso debajo del contenido del menú; también se adapta al modo contraído.
+
+### Ajustes visuales de /admin — 12/11/2026
+
+- El estado activo y la marca del sidebar usan rojo Marybe; la cabecera del dashboard ahora usa fondo rojo, y las tarjetas de métricas tienen acento de marca. Se mejoró el realce de accesos rápidos.
+- Se renombraron Productos a Editor de Productos y Proveedores a Exportación por Proveedores. Se añadió Header Menu con enlace a /editor-inicio-admin/menu-header, manteniendo un solo elemento activo en esa ruta.
+- Validación: 2 pruebas frontend aprobadas; git diff --check correcto.
+
+- En el dashboard, las tarjetas de «Accesos rápidos» ahora usan tonos bordo Marybe en fondo, borde y enlaces.
+
+- El estado activo de los enlaces del menú lateral usa ahora el dorado Marybe (#C2A15C) sobre texto bordó.
+
+- La marca del sidebar reemplaza el texto Marybe por el logo sobre fondo blanco; el rótulo ahora dice «Panel de Usuario».
+
+- Reorganicé la cabecera del sidebar: el logo queda en la fila superior y «Panel de Usuario» debajo.
+
+- Ajusté la marca del sidebar a la presentación en una sola fila: logo horizontal Marybe y «Panel de Usuario» al lado.

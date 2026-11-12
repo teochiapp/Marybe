@@ -66,6 +66,8 @@ const BannersAdmin = lazyWithRetry(() => import('./pages/admin/BannersAdmin'), '
 const BannersPreview = lazyWithRetry(() => import('./pages/admin/BannersPreview'), 'BannersPreview');
 const EditorInicioAdmin = lazyWithRetry(() => import('./pages/admin/editor-inicio/EditorInicioAdmin'), 'EditorInicioAdmin');
 const EditorInicioPreview = lazyWithRetry(() => import('./pages/admin/editor-inicio/EditorInicioPreview'), 'EditorInicioPreview');
+const AdminShell = lazyWithRetry(() => import('./pages/admin/admin-layout/AdminShell'), 'AdminShell');
+const AdminHome = lazyWithRetry(() => import('./pages/admin/admin-layout/AdminHome'), 'AdminHome');
 
 // Página de Gift Card
 const GiftCardPage = lazyWithRetry(() => import('./pages/gift-card/GiftCardPage'), 'GiftCardPage');
@@ -86,7 +88,7 @@ function RootRoute() {
 
 function App() {
   const location = useLocation();
-  const bannerStudio = ['/banners-admin', '/banners-preview', '/editor-inicio-preview'].includes(location.pathname) || /^\/editor-inicio-admin(\/|$)/.test(location.pathname);
+  const bannerStudio = ['/banners-preview', '/editor-inicio-preview'].includes(location.pathname) || /^\/(admin|pedidos-admin|editor-admin|importacion-admin|exportacion-admin|comparacion-admin|exportacion-proveedores-admin|banners-admin|editor-inicio-admin)(\/|$)/.test(location.pathname);
   return (
     <AuthProvider>
       <LazyMotion features={domAnimation}>
@@ -133,15 +135,18 @@ function App() {
             <Route path="/metodo-envio" element={<MetodoEnvio />} />
 
             {/* Panel de Administración */}
-            <Route path="/importacion-admin" element={<ImportacionAdmin />} />
-            <Route path="/exportacion-admin" element={<ExportacionAdmin />} />
-            <Route path="/comparacion-admin" element={<ComparacionAdmin />} />
-            <Route path="/exportacion-proveedores-admin" element={<ExportarProveedorAdmin />} />
-            <Route path="/pedidos-admin" element={<PedidosAdmin />} />
-            <Route path="/editor-admin" element={<EditorAdmin />} />
-            <Route path="/banners-admin" element={<BannersAdmin />} />
+            <Route element={<AdminShell />}>
+              <Route path="/admin" element={<AdminHome />} />
+              <Route path="/importacion-admin" element={<ImportacionAdmin />} />
+              <Route path="/exportacion-admin" element={<ExportacionAdmin />} />
+              <Route path="/comparacion-admin" element={<ComparacionAdmin />} />
+              <Route path="/exportacion-proveedores-admin" element={<ExportarProveedorAdmin />} />
+              <Route path="/pedidos-admin" element={<PedidosAdmin />} />
+              <Route path="/editor-admin" element={<EditorAdmin />} />
+              <Route path="/banners-admin" element={<BannersAdmin />} />
+              <Route path="/editor-inicio-admin/*" element={<EditorInicioAdmin />} />
+            </Route>
             <Route path="/banners-preview" element={<BannersPreview />} />
-            <Route path="/editor-inicio-admin/*" element={<EditorInicioAdmin />} />
             <Route path="/editor-inicio-preview" element={<EditorInicioPreview />} />
 
             {/* Ruta de Gift Card */}
