@@ -688,6 +688,135 @@ async function procesarImportacion(strapi, rutaExcel) {
   );
 }
 
+function normalizarSku(val) {
+  return String(val ?? '').trim().toLowerCase();
+}
+
+function claveVariante(productoId, v) {
+  const varId = String(v?.id_original ?? '').trim() || (v?.id != null ? `id-${v.id}` : '');
+  return `${productoId}::${varId}`;
+}
+
+async function cargarIndiceSkusExistentes(strapi) {
+  const productSkus = new Map();
+  const variantSkus = new Map();
+  const docsApi = strapi?.documents?.(UID_PRODUCTO);
+  if (typeof docsApi?.findMany !== 'function') return { productSkus, variantSkus };
+
+  const seenDocs = new Set();
+  for (const status of ['published', 'draft']) {
+    let start = 0;
+    while (true) {
+      const page = await docsApi.findMany({
+        fields: ['id_original', 'sku'],
+        populate: { variantes: { fields: ['id_original', 'sku_ean'] } },
+        status,
+        start,
+        limit: 100,
+      });
+      if (!Array.isArray(page) || page.length === 0) break;
+      for (const prod of page) {
+        const prodId = String(prod.id_original || '').trim();
+        if (!prodId) continue;
+        const docKey = `${status}:${prod.documentId || prod.id || prodId}`;
+        if (seenDocs.has(docKey)) continue;
+        seenDocs.add(docKey);
+        const normProdSku = normalizarSku(prod.sku);
+        if (normProdSku) {
+          if (!productSkus.has(normProdSku)) productSkus.set(normProdSku, new Set());
+          productSkus.get(normProdSku).add(prodId);
+        }
+        for (const v of (prod.variantes || [])) {
+          const normVarSku = normalizarSku(v.sku_ean);
+          if (!normVarSku) continue;
+          if (!variantSkus.has(normVarSku)) variantSkus.set(normVarSku, new Map());
+          variantSkus.get(normVarSku).set(claveVariante(prodId, v), prodId);
+        }
+      }
+      if (page.length < 100) break;
+      start += page.length;
+    }
+  }
+  return { productSkus, variantSkus };
+}
+
+function validarSkusProducto(indiceSkus, idOriginal, skuFinal, variantesFinales = []) {
+  const { productSkus, variantSkus } = indiceSkus;
+  const isHiddenVar = v => String(v?.id_original ?? '').trim() === `${idOriginal}-v1`;
+  const skuProdRaw = String(skuFinal ?? '').trim();
+  const skuProdNorm = normalizarSku(skuProdRaw);
+
+  if (skuProdNorm) {
+    for (const ownerProdId of (productSkus.get(skuProdNorm) || [])) {
+      if (ownerProdId !== idOriginal) {
+        throw new Error(`El SKU/EAN "${skuProdRaw}" ya existe repetido en el producto ${ownerProdId}.`);
+      }
+    }
+    for (const [, ownerProdId] of (variantSkus.get(skuProdNorm) || [])) {
+      if (ownerProdId !== idOriginal) {
+        throw new Error(`El SKU/EAN "${skuProdRaw}" ya existe repetido en una variante del producto ${ownerProdId}.`);
+      }
+    }
+    for (const v of (variantesFinales || [])) {
+      if (!isHiddenVar(v) && normalizarSku(v?.sku_ean) === skuProdNorm) {
+        const varLabel = String(v?.id_original ?? '').trim() || `ID ${v?.id ?? '?'}`;
+        throw new Error(`El SKU/EAN "${skuProdRaw}" ya existe repetido en la variante ${varLabel} del mismo producto.`);
+      }
+    }
+  }
+
+  const vistosVariantes = new Set();
+  for (const v of (variantesFinales || [])) {
+    const vSkuRaw = String(v?.sku_ean ?? '').trim();
+    const vSkuNorm = normalizarSku(vSkuRaw);
+    if (!vSkuNorm) continue;
+
+    const varLabel = String(v?.id_original ?? '').trim() || `ID ${v?.id ?? '?'}`;
+    if (vistosVariantes.has(vSkuNorm)) {
+      throw new Error(`El SKU/EAN "${vSkuRaw}" de la variante ${varLabel} está repetido en otra variante del mismo producto.`);
+    }
+    vistosVariantes.add(vSkuNorm);
+
+    const vKeyActual = claveVariante(idOriginal, v);
+    for (const ownerProdId of (productSkus.get(vSkuNorm) || [])) {
+      if (ownerProdId !== idOriginal) {
+        throw new Error(`El SKU/EAN "${vSkuRaw}" de la variante ${varLabel} ya existe repetido en el producto ${ownerProdId}.`);
+      }
+    }
+    for (const [vKeyOwner, ownerProdId] of (variantSkus.get(vSkuNorm) || [])) {
+      if (ownerProdId !== idOriginal || vKeyOwner !== vKeyActual) {
+        const varOwner = vKeyOwner.split('::')[1] || varLabel;
+        throw new Error(`El SKU/EAN "${vSkuRaw}" de la variante ${varLabel} ya existe repetido en otra variante (${varOwner} del producto ${ownerProdId}).`);
+      }
+    }
+  }
+}
+
+function actualizarIndiceSkus(indiceSkus, idOriginal, skuFinal, variantesFinales = []) {
+  const { productSkus, variantSkus } = indiceSkus;
+  for (const [sku, owners] of productSkus) {
+    owners.delete(idOriginal);
+    if (owners.size === 0) productSkus.delete(sku);
+  }
+  for (const [sku, owners] of variantSkus) {
+    for (const [vKey, ownerProdId] of owners) {
+      if (ownerProdId === idOriginal) owners.delete(vKey);
+    }
+    if (owners.size === 0) variantSkus.delete(sku);
+  }
+  const skuProdNorm = normalizarSku(skuFinal);
+  if (skuProdNorm) {
+    if (!productSkus.has(skuProdNorm)) productSkus.set(skuProdNorm, new Set());
+    productSkus.get(skuProdNorm).add(idOriginal);
+  }
+  for (const v of (variantesFinales || [])) {
+    const vSkuNorm = normalizarSku(v?.sku_ean);
+    if (!vSkuNorm) continue;
+    if (!variantSkus.has(vSkuNorm)) variantSkus.set(vSkuNorm, new Map());
+    variantSkus.get(vSkuNorm).set(claveVariante(idOriginal, v), idOriginal);
+  }
+}
+
 // ─── Proceso principal de BD (Categorías y Productos) ────────────────────────────────────
 async function ejecutarUpsert(
   strapi,
@@ -831,6 +960,8 @@ async function ejecutarUpsert(
     lista.push(v);
     variantesInlineIndex.set(padreId, lista);
   }
+
+  const skuIndex = await cargarIndiceSkusExistentes(strapi);
 
   let creados   = 0;
   let actualizados = 0;
@@ -1115,12 +1246,16 @@ async function ejecutarUpsert(
           if (!dataHasChanges(productoData, existente) && !needsRangeRepair) {
             sinCambios++;
           } else {
+            const skuFinal = productoData.sku !== undefined ? productoData.sku : (existente.sku || '');
+            const variantesFinales = productoData.variantes !== undefined ? productoData.variantes : (existente.variantes || []);
+            validarSkusProducto(skuIndex, idOriginal, skuFinal, variantesFinales);
             Object.assign(productoData, range);
             await strapi.documents(UID_PRODUCTO).update({
               documentId: existente.documentId,
               data: productoData,
               status: 'published',
             });
+            actualizarIndiceSkus(skuIndex, idOriginal, skuFinal, variantesFinales);
             actualizados++;
             if (actualizadosDetalle.length < 50) {
               actualizadosDetalle.push(`Fila ${p._excelRow || '?'} · producto ${idOriginal}${p.nombre ? ` (${p.nombre.substring(0, 80)})` : ''}`);
@@ -1142,11 +1277,13 @@ async function ejecutarUpsert(
               descuento: Math.max(maxDescuento, pctDescProd),
             };
           }
+          validarSkusProducto(skuIndex, idOriginal, productoData.sku || '', productoData.variantes || []);
           Object.assign(productoData, calcularRangoPrecios(productoData));
           await strapi.documents(UID_PRODUCTO).create({
             data: productoData,
             status: 'published',
           });
+          actualizarIndiceSkus(skuIndex, idOriginal, productoData.sku || '', productoData.variantes || []);
           creados++;
         }
       } catch (err) {

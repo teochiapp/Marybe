@@ -607,3 +607,68 @@ test('planilla general y de proveedor actualizan el nombre de un ID existente', 
   assert.equal(resGen.actualizados, 1, resGen.erroresList.join('; '));
   assert.equal(state.product.nombre, 'Nombre general');
 });
+
+test('planilla de proveedor actualiza sku, publicado y destacado y bloquea sku/ean repetidos', async () => {
+  const { state, strapi } = fixture();
+  const otroProducto = { id: 99, documentId: 'doc-p99', id_original: 'P99', sku: 'SKU-OTRO', proveedor: 'Otro', variantes: [{ id: 991, id_original: 'P99-1', sku_ean: 'EAN-OTRO' }] };
+  const originalDocs = strapi.documents;
+  strapi.documents = uid => {
+    const api = originalDocs(uid);
+    if (uid !== PRODUCTO) return api;
+    return {
+      ...api,
+      async findMany({ filters, start = 0, limit = 100 }) {
+        const list = filters ? await api.findMany({ filters, start, limit }) : [structuredClone(state.product), structuredClone(otroProducto)];
+        return filters ? list : list.slice(start, start + limit);
+      },
+    };
+  };
+
+  // 1. SKU único + Publicado/Destacado en padre y variante inline sí actualizan
+  const wbOk = await supplierWorkbook(strapi);
+  const wsOk = wbOk.getWorksheet('\ud83d\udcb2 Precios por Proveedor');
+  wsOk.getCell(4, 2).value = 'SKU-P2-NUEVO';
+  wsOk.getCell(4, 9).value = 'NO';
+  wsOk.getCell(4, 10).value = 'SI';
+  wsOk.getCell(5, 2).value = 'EAN-100-NUEVO';
+  const resOk = await importWorkbook(strapi, wbOk);
+  assert.equal(resOk.actualizados, 1, resOk.erroresList.join('; '));
+  assert.equal(state.product.sku, 'SKU-P2-NUEVO');
+  assert.equal(state.product.publicado, false);
+  assert.equal(state.product.destacado, true);
+  assert.equal(state.product.variantes.find(v => v.id_original === 'P2-100').sku_ean, 'EAN-100-NUEVO');
+
+  // 2. SKU repetido con otro producto existente bloquea la actualización
+  const updatesBefore = state.updates.length;
+  const wbDupProd = await supplierWorkbook(strapi);
+  wbDupProd.getWorksheet('\ud83d\udcb2 Precios por Proveedor').getCell(4, 2).value = 'sku-otro';
+  const resDupProd = await importWorkbook(strapi, wbDupProd);
+  assert.equal(resDupProd.errores, 1);
+  assert.match(resDupProd.erroresList[0], /repetido.*P99/);
+  assert.equal(state.updates.length, updatesBefore);
+
+  // 3. SKU/EAN repetido en variante inline contra otra variante del mismo producto bloquea
+  const wbDupVar = await supplierWorkbook(strapi);
+  wbDupVar.getWorksheet('\ud83d\udcb2 Precios por Proveedor').getCell(5, 2).value = 'EAN-50';
+  const resDupVar = await importWorkbook(strapi, wbDupVar);
+  assert.equal(resDupVar.errores, 1);
+  assert.match(resDupVar.erroresList[0], /repetido/);
+  assert.equal(state.updates.length, updatesBefore);
+
+  // 4. Dos productos nuevos con mismo SKU o mismo EAN existente en otro producto: solo crea el primero válido
+  const wbCreate = await supplierWorkbook(strapi);
+  const wsCreate = wbCreate.getWorksheet('\ud83d\udcb2 Precios por Proveedor');
+  [
+    ['NUEVO-1', 'SKU-UNICO-1', 'Proveedor, S.A.', 'Uno', '', '', '', '', 'SI', 'NO', '', 5, 1000, ''],
+    ['NUEVO-2', 'SKU-UNICO-1', 'Proveedor, S.A.', 'Dos', '', '', '', '', 'SI', 'NO', '', 5, 1000, ''],
+    ['NUEVO-3', 'EAN-OTRO', 'Proveedor, S.A.', 'Tres', '', '', '', '', 'SI', 'NO', '', 5, 1000, ''],
+  ].forEach((vals, idx) => {
+    const r = wsCreate.getRow(wsCreate.rowCount + 2 + idx);
+    vals.forEach((v, colIdx) => { r.getCell(colIdx + 1).value = v; });
+  });
+  const resCreate = await importWorkbook(strapi, wbCreate);
+  assert.equal(resCreate.creados, 1, resCreate.erroresList.join('; '));
+  assert.equal(resCreate.errores, 2);
+  assert.equal(state.creates.length, 1);
+  assert.equal(state.creates[0].id_original, 'NUEVO-1');
+});
