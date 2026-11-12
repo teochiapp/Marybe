@@ -775,3 +775,67 @@ Criterio de aceptación: el orden y la visibilidad de la lista publicada coincid
   - Columna SKU/EAN fija (`sticky`) con fondo opaco y sombra sutil para scroll horizontal limpio en tablets y pantallas estrechas.
   - Breakpoints específicos en 1600 px, 1280 px y 900 px (con sangría de 64 px en cabecera para no solapar el botón del menú móvil administrativo) y protección `beforeunload` ante cambios sin guardar.
 - Validación: 3 pruebas unitarias en `EditorAdmin.test.jsx` aprobadas; ESLint sin errores; `git diff --check` correcto.
+
+### Módulo CRUD de Sucursales en el Panel de Usuario — 12/11/2026
+
+- Se trasladó la administración de «Página de Sucursales» al panel administrativo bajo el nivel de menú «Configuración» -> «Sucursales» (`/sucursales-admin`) con ícono `FiMapPin`:
+- Backend:
+  - Creados ruta, controlador y servicio en `Backend/src/api/sucursales-admin/` con endpoints protegidos `GET` y `PUT` autenticados mediante `verificarAdmin(ctx, strapi)`.
+  - El servicio gestiona el Single Type `api::pagina-sucursales.pagina-sucursales` y sus componentes repetibles `shared.item-sucursal` (provincia, ciudad, calle, celular/whatsapp, teléfono fijo y enlace/embed de Google Maps) con validaciones obligatorias de calle y provincia, normalización de strings y compatibilidad con Strapi 5 Documents.
+- Frontend:
+  - Navegación integrada en `adminNavigation.js` y `AdminShell.jsx` bajo el grupo Configuración.
+  - Página responsiva `SucursalesAdmin.jsx` y estilos `SucursalesAdmin.css`:
+    - Edición del título general de la página (`titulo`).
+    - CRUD completo de sucursales: creación y edición en modal con validación, duplicación rápida y eliminación con confirmación.
+    - Controles de ordenamiento (subir/bajar posición) y visualización en listado vertical de filas horizontales con badges por provincia, adaptable a columna apilada en tablets y móviles (`<= 900px`, `<= 768px`, `<= 520px`) despejando el botón móvil del menú lateral.
+    - Buscador en tiempo real por calle/ciudad/provincia/teléfonos y filtros por píldoras de provincia con contador dinámico.
+    - Enlace directo con target externo para verificar la página pública `/sucursales`.
+    - Barra persistente inferior con contador de cambios pendientes, botón de descarte y persistencia reactiva con protección `beforeunload`.
+- Validación: 4 pruebas unitarias de backend en `sucursales-admin.test.js` y 4 pruebas frontend en `SucursalesAdmin.test.jsx` aprobadas; ESLint sin errores; `git diff --check` correcto.
+
+
+### Módulo de Gift Cards en Ventas del Panel Administrativo — 12/11/2026
+
+- Se agregó la sección «Gift Cards» bajo el grupo «Ventas» en el panel administrativo (`/gift-cards-admin`) con ícono `FiGift` para consultar códigos comprados, saldos disponibles, pedido de origen, canjes realizados y estado actual sin depender de Strapi:
+- Backend:
+  - Creados ruta, controlador y servicio en `Backend/src/api/gift-cards-admin/` con endpoints protegidos `GET /api/gift-cards-admin`, `POST /api/gift-cards-admin` y `PATCH /api/gift-cards-admin/:id` autenticados mediante `verificarAdmin(ctx, strapi)`.
+  - El servicio cruza los registros de `api::gift-card.gift-card` con `api::pedido.pedido` (`gift_cards_generadas` y descuentos `DESCUENTO-GC` en `productos`) para informar pedido origen, email de cliente, historial de canjes, estado computado (`activa`, `usada`, `expirada`, `inactiva`) y métricas agregadas.
+- Frontend:
+  - Registro en `adminNavigation.js`, `AdminShell.jsx` y `App.js`.
+  - Página responsiva `GiftCardsAdmin.jsx` y estilos `GiftCardsAdmin.css` con tarjetas de resumen, buscador por código/pedido/email, filtros por estado, copia rápida de código, modal de emisión manual y modal de gestión para actualizar saldo, vencimiento y estado activo.
+- Validación: 4 pruebas unitarias de backend en `Backend/tests/gift-cards-admin.test.js` y 4 pruebas frontend en `Frontend/src/pages/admin/gift-cards/GiftCardsAdmin.test.jsx` aprobadas; ESLint sin errores; `git diff --check` correcto.
+
+
+### Módulo de Nuestra Historia en Diseño del Panel Administrativo — 12/11/2026
+
+- Se integró la edición del Single Type `api::pagina-historia.pagina-historia` («Página de Nuestra Historia») en el nuevo panel administrativo bajo el grupo «Diseño» (al final del menú, debajo de «Sucursales») en `/historia-admin` con ícono `FiBookOpen`:
+- Backend:
+  - Creados ruta, controlador y servicio en `Backend/src/api/historia-admin/` con endpoints protegidos `GET /api/historia-admin`, `PUT /api/historia-admin` y `POST /api/historia-admin/upload` autenticados mediante `verificarAdmin(ctx, strapi)`.
+  - Administra título, los 3 bloques de texto enriquecido (`texto_banner_1`, `texto_intermedio`, `texto_banner_2`), las 4 imágenes (`imagen_inicio`, `imagen_secundaria`, `imagen_final_desktop`, `imagen_final_mobile`) y sus encuadres (`centro`, `arriba`, `abajo`, `izquierda`, `derecha`) sobre `strapi.documents('api::pagina-historia.pagina-historia')`.
+- Frontend:
+  - Registro en `adminNavigation.js`, `AdminShell.jsx` y `App.js` manteniendo «Sucursales» sin cambios de posición.
+  - Vista responsiva `HistoriaAdmin.jsx` y estilos `HistoriaAdmin.css` con carga de imágenes, vista previa con `object-position` en vivo según el encuadre seleccionado, enlace externo a `/nuestra-historia`, barra flotante de guardado y protección `beforeunload`.
+- Validación: 3 pruebas unitarias de backend en `Backend/tests/historia-admin.test.js` y 3 pruebas frontend en `Frontend/src/pages/admin/historia/HistoriaAdmin.test.jsx` aprobadas; ESLint sin errores; `git diff --check` correcto.
+
+- Mejora en `/historia-admin`: incorporación del editor de texto visual `RichTextEditor.jsx` (negrita, cursiva, subrayado, listas con viñetas/numeradas, enlaces, limpieza de formato y vista opcional HTML) reemplazando los `<textarea>` de `texto_banner_1`, `texto_intermedio` y `texto_banner_2` sin dependencias externas. Validado con 3 pruebas en `HistoriaAdmin.test.jsx` y ESLint sin errores.
+- Ajuste de paleta en `GiftCardsAdmin.css` e `HistoriaAdmin.css`: reemplazo de botones y acentos rosados por el color institucional Marybe bordó (`#5c0a0a`, hover `#7c0405`, acentos suaves `#fdf5f5` / `#d9b9ba`).
+
+
+### Visibilidad en buscador y catálogo de productos sin precio padre pero con variantes con precio — 12/11/2026
+
+- Se corrigió la visibilidad y el cálculo de rango de precios para productos cuyo precio padre es vacío o `0` pero tienen variantes con precio `> 0`:
+  - Nuevo helper compartido `Backend/src/utils/product-price-range.js` (`calcularRangoPrecios` y `reconciliarRangoPrecios`).
+  - `Backend/src/api/producto/controllers/producto.js`: en `find` y `findOne` se reemplazó el filtro exclusivo `precio_minimo_calculado > 0` por una condición `$and` que conserva `$or` del buscador y admite productos con `precio_minimo_calculado > 0`, `precio > 0`, `precio_oferta > 0` o cualquier variante con `precio > 0` o `precio_oferta > 0`.
+  - `Backend/src/api/producto/content-types/producto/lifecycles.js`: cálculo unificado en `beforeCreate`/`beforeUpdate` más sincronización post-guardado (`afterCreate`/`afterUpdate`) con lectura de `variantes` pobladas para Strapi 5.
+  - `Backend/src/api/importacion-admin/services/importacion-admin.js`: cálculo explícito de `precio_minimo_calculado`/`precio_maximo_calculado` en altas y actualizaciones (reparando además registros con `precio_minimo_calculado: null` en reimportaciones).
+  - `Backend/src/index.js`: ejecución automática de `reconciliarRangoPrecios` durante `bootstrap` para reparar productos existentes sin rango calculado.
+- Validación: 28/28 pruebas backend aprobadas (`Backend/tests/product-price-range.test.js` y `Backend/tests/excel-roundtrip.test.js`), `git diff --check` correcto.
+
+
+### Validación con test de integración en Strapi (`product-visibility.integration.test.js`)
+- **Hallazgo y corrección en `Backend/src/api/producto/content-types/producto/lifecycles.js`**: Al ejecutar Strapi 5 real con SQLite, las consultas en `afterCreate`/`afterUpdate` bloqueaban el pool de conexiones dentro de la transacción activa (`KnexTimeoutError`). Se eliminaron las escrituras posteriores y se resolvió el rango (`precio_minimo_calculado` / `precio_maximo_calculado`) directamente en `beforeCreate` y `beforeUpdate`, consultando los componentes `producto.variante` ya insertados mediante `strapi.db.query('producto.variante').findMany` dentro de la misma transacción.
+- **Test de integración (`Backend/tests/product-visibility.integration.test.js`)**: Validó en instancia real de Strapi 5 + SQLite temporal que:
+  - Productos sin precio en padre (`null` o `0`) pero con variantes con `precio > 0` o `precio_oferta > 0` calculan su rango y aparecen en listado, búsqueda y `findOne` (`200`).
+  - Productos donde ni el padre ni ninguna variante tienen precio > 0 quedan con `precio_minimo_calculado = null`, excluidos del listado/búsqueda y responden `404` en `findOne`.
+  - Actualizaciones dinámicas de variantes recalculan el rango y actualizan la visibilidad inmediatamente (`404` ↔ `200`).
+- **Pruebas ejecutadas**: `node --test tests/product-visibility.integration.test.js` (1/1 passed), `node --test Backend/tests/product-price-range.test.js Backend/tests/excel-roundtrip.test.js` (28/28 passed) y `git diff --check` sin errores.

@@ -4,6 +4,7 @@ const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { calcularRangoPrecios } = require('../../../utils/product-price-range');
 
 // ─── Constantes ────────────────────────────────────────────────────────────────
 const UID_PRODUCTO = 'api::producto.producto';
@@ -1088,9 +1089,19 @@ async function ejecutarUpsert(
               ...(existente.clasificaciones?.[index]?.id ? { id: existente.clasificaciones[index].id } : {}), ...c,
             }));
           }
-          if (!dataHasChanges(productoData, existente)) {
+          const range = calcularRangoPrecios({
+            precio: productoData.precio !== undefined ? productoData.precio : existente.precio,
+            precio_oferta: productoData.precio_oferta !== undefined ? productoData.precio_oferta : existente.precio_oferta,
+            variantes: productoData.variantes || existente.variantes || [],
+          });
+          const needsRangeRepair =
+            existente.precio_minimo_calculado === null &&
+            range.precio_minimo_calculado !== null &&
+            range.precio_minimo_calculado > 0;
+          if (!dataHasChanges(productoData, existente) && !needsRangeRepair) {
             sinCambios++;
           } else {
+            Object.assign(productoData, range);
             await strapi.documents(UID_PRODUCTO).update({
               documentId: existente.documentId,
               data: productoData,
@@ -1117,6 +1128,7 @@ async function ejecutarUpsert(
               descuento: Math.max(maxDescuento, pctDescProd),
             };
           }
+          Object.assign(productoData, calcularRangoPrecios(productoData));
           await strapi.documents(UID_PRODUCTO).create({
             data: productoData,
             status: 'published',

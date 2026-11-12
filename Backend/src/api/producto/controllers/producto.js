@@ -2,34 +2,40 @@
 
 const { createCoreController } = require('@strapi/strapi').factories;
 
-module.exports = createCoreController('api::producto.producto', ({ strapi }) => ({
+const ACTIVE_PRICE_CONDITION = {
+  $or: [
+    { precio_minimo_calculado: { $gt: 0 } },
+    { precio: { $gt: 0 } },
+    { precio_oferta: { $gt: 0 } },
+    { variantes: { precio: { $gt: 0 } } },
+    { variantes: { precio_oferta: { $gt: 0 } } },
+  ],
+};
+
+function applyPriceAvailabilityFilter(ctx) {
+  const currentFilters = ctx.query?.filters && typeof ctx.query.filters === 'object'
+    ? { ...ctx.query.filters }
+    : {};
+
+  const existingAnd = Array.isArray(currentFilters.$and) ? currentFilters.$and : [];
+  delete currentFilters.$and;
+
+  ctx.query.filters = {
+    ...currentFilters,
+    $and: [...existingAnd, ACTIVE_PRICE_CONDITION],
+  };
+}
+
+module.exports = createCoreController('api::producto.producto', () => ({
   async find(ctx) {
-    // Inicializar filters si no existen
-    if (!ctx.query.filters) {
-      ctx.query.filters = {};
-    }
-
-    // Asegurar que solo se devuelvan productos con precio mayor a 0
-    ctx.query.filters = {
-      ...ctx.query.filters,
-      precio_minimo_calculado: { $gt: 0 }
-    };
-
+    applyPriceAvailabilityFilter(ctx);
     const { data, meta } = await super.find(ctx);
     return { data, meta };
   },
 
   async findOne(ctx) {
-    if (!ctx.query.filters) {
-      ctx.query.filters = {};
-    }
-
-    ctx.query.filters = {
-      ...ctx.query.filters,
-      precio_minimo_calculado: { $gt: 0 }
-    };
-
+    applyPriceAvailabilityFilter(ctx);
     const response = await super.findOne(ctx);
     return response;
-  }
+  },
 }));

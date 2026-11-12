@@ -3,6 +3,7 @@
 const fs   = require('fs');
 const path = require('path');
 const { parse } = require('csv-parse/sync');
+const { reconciliarRangoPrecios } = require('./utils/product-price-range');
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 const CSV_PRODUCTOS = path.join(__dirname, '../data/productos.csv');
@@ -392,6 +393,11 @@ module.exports = {
     // ── Guard: no reimportar si ya hay datos (salvo que SEED_FORCE=true) ─────
     const existing = await strapi.documents(UID).findMany({ limit: 1 });
     if (existing.length > 0) {
+      try {
+        await reconciliarRangoPrecios(strapi);
+      } catch (err) {
+        strapi.log.warn(`[Seed] ⚠ Error reconciliando rango de precios: ${err.message}`);
+      }
       if (process.env.SEED_FORCE !== 'true') {
         strapi.log.info('[Seed] ✔ Ya existen productos. Omitiendo importación CSV.');
         strapi.log.info('[Seed] ℹ Para reimportar, reiniciar con SEED_FORCE=true');

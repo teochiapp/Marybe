@@ -67,6 +67,9 @@ const BannersPreview = lazyWithRetry(() => import('./pages/admin/BannersPreview'
 const EditorInicioAdmin = lazyWithRetry(() => import('./pages/admin/editor-inicio/EditorInicioAdmin'), 'EditorInicioAdmin');
 const EditorInicioPreview = lazyWithRetry(() => import('./pages/admin/editor-inicio/EditorInicioPreview'), 'EditorInicioPreview');
 const ConfiguracionAdmin = lazyWithRetry(() => import('./pages/admin/configuracion/ConfiguracionAdmin'), 'ConfiguracionAdmin');
+const SucursalesAdmin = lazyWithRetry(() => import('./pages/admin/sucursales/SucursalesAdmin'), 'SucursalesAdmin');
+const GiftCardsAdmin = lazyWithRetry(() => import('./pages/admin/gift-cards/GiftCardsAdmin'), 'GiftCardsAdmin');
+const HistoriaAdmin = lazyWithRetry(() => import('./pages/admin/historia/HistoriaAdmin'), 'HistoriaAdmin');
 const AdminShell = lazyWithRetry(() => import('./pages/admin/admin-layout/AdminShell'), 'AdminShell');
 const AdminHome = lazyWithRetry(() => import('./pages/admin/admin-layout/AdminHome'), 'AdminHome');
 
@@ -89,7 +92,7 @@ function RootRoute() {
 
 function App() {
   const location = useLocation();
-  const bannerStudio = ['/banners-preview', '/editor-inicio-preview'].includes(location.pathname) || /^\/(admin|pedidos-admin|editor-admin|importacion-admin|exportacion-admin|comparacion-admin|exportacion-proveedores-admin|banners-admin|editor-inicio-admin)(\/|$)/.test(location.pathname);
+  const bannerStudio = ['/banners-preview', '/editor-inicio-preview'].includes(location.pathname) || /^\/(admin|pedidos-admin|gift-cards-admin|editor-admin|importacion-admin|exportacion-admin|comparacion-admin|exportacion-proveedores-admin|banners-admin|editor-inicio-admin|configuracion-admin|sucursales-admin|historia-admin)(\/|$)/.test(location.pathname);
   return (
     <AuthProvider>
       <LazyMotion features={domAnimation}>
@@ -147,6 +150,9 @@ function App() {
               <Route path="/banners-admin" element={<BannersAdmin />} />
               <Route path="/editor-inicio-admin/*" element={<EditorInicioAdmin />} />
               <Route path="/configuracion-admin" element={<ConfiguracionAdmin />} />
+              <Route path="/sucursales-admin" element={<SucursalesAdmin />} />
+              <Route path="/gift-cards-admin" element={<GiftCardsAdmin />} />
+              <Route path="/historia-admin" element={<HistoriaAdmin />} />
             </Route>
             <Route path="/banners-preview" element={<BannersPreview />} />
             <Route path="/editor-inicio-preview" element={<EditorInicioPreview />} />

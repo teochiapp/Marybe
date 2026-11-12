@@ -1,64 +1,54 @@
-﻿module.exports = {
+﻿'use strict';
+
+const { calcularRangoPrecios } = require('../../../../utils/product-price-range');
+
+const VARIANTE_UID = 'producto.variante';
+
+// En Strapi 5 el Document Service crea los componentes antes de llamar al lifecycle
+// y deja en `data.variantes` solo referencias ({ id, __pivot }). Se leen sus precios
+// con strapi.db.query, que participa de la transacción en curso.
+async function resolverVariantes(variantes) {
+  if (!Array.isArray(variantes) || variantes.length === 0) return [];
+  const faltantes = variantes
+    .filter(v => v && v.id && v.precio === undefined && v.precio_oferta === undefined)
+    .map(v => v.id);
+  if (faltantes.length === 0) return variantes;
+
+  const filas = await strapi.db.query(VARIANTE_UID).findMany({
+    where: { id: { $in: faltantes } },
+    select: ['id', 'precio', 'precio_oferta'],
+  });
+  const porId = new Map(filas.map(f => [f.id, f]));
+  return variantes.map(v => (v && porId.has(v.id) ? { ...v, ...porId.get(v.id) } : v));
+}
+
+module.exports = {
   async beforeCreate(event) {
-    calculatePrices(event.params.data, event.params.data);
+    const { data } = event.params;
+    try {
+      const variantes = await resolverVariantes(data.variantes);
+      Object.assign(data, calcularRangoPrecios({ ...data, variantes }));
+    } catch (error) {
+      console.error('Error en beforeCreate lifecycle de Producto:', error);
+    }
   },
 
   async beforeUpdate(event) {
     const { data, where } = event.params;
 
     try {
-      // Obtener el producto existente para no perder datos si la actuazliacion es parcial
       const existingProduct = await strapi.db.query('api::producto.producto').findOne({
         where,
         populate: ['variantes'],
       });
 
-      if (!existingProduct) return;
+      const variantes = Array.isArray(data.variantes)
+        ? await resolverVariantes(data.variantes)
+        : existingProduct?.variantes || [];
 
-      const mergedData = {
-        ...existingProduct,
-        ...data,
-        variantes: data.variantes !== undefined ? data.variantes : existingProduct.variantes,
-      };
-
-      calculatePrices(mergedData, data);
+      Object.assign(data, calcularRangoPrecios({ ...(existingProduct || {}), ...data, variantes }));
     } catch (error) {
       console.error('Error en beforeUpdate lifecycle de Producto:', error);
     }
   },
 };
-
-function calculatePrices(sourceData, targetData) {
-  let min = Infinity;
-  let max = -Infinity;
-
-  // Analizar precio root
-  const rootPrice = parseFloat(sourceData.precio_oferta) || parseFloat(sourceData.precio);
-  if (rootPrice) {
-    if (rootPrice < min) min = rootPrice;
-    if (rootPrice > max) max = rootPrice;
-  }
-
-  // Analizar precios de variantes
-  if (sourceData.variantes && Array.isArray(sourceData.variantes)) {
-    sourceData.variantes.forEach(v => {
-      const vPrice = parseFloat(v.precio_oferta) || parseFloat(v.precio);
-      if (vPrice) {
-        if (vPrice < min) min = vPrice;
-        if (vPrice > max) max = vPrice;
-      }
-    });
-  }
-
-  if (min !== Infinity) {
-    targetData.precio_minimo_calculado = min;
-  } else {
-    targetData.precio_minimo_calculado = null;
-  }
-
-  if (max !== -Infinity) {
-    targetData.precio_maximo_calculado = max;
-  } else {
-    targetData.precio_maximo_calculado = null;
-  }
-}
