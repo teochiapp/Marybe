@@ -676,19 +676,34 @@ Criterio de aceptación: el orden y la visibilidad de la lista publicada coincid
 
 ### Selector de tamaño con color de marca y alcance responsive
 
-- El control de tamaño usa acento naranja Marybe (#C8753D). El valor configurado se aplica únicamente desde 1024 px; tablet y celular mantienen sus reglas responsive. Se aclaró el alcance debajo del control.
+- El control de tamaño usa acento rojizo Marybe (#6A0304). El valor configurado se aplica únicamente desde 1024 px; tablet y celular mantienen sus reglas responsive. Se aclaró el alcance debajo del control.
 - Validación: git diff --check; no se ejecutaron pruebas automatizadas.
 
 ### Corrección del tamaño de fuente del Header
 
 - Se detectó que el tamaño estaba conectado al menú móvil, mientras que la vista previa y la tienda usan CategoryNav. Se conectó allí y quedó limitado a anchos desde 1200 px; el visor de 1280 px ahora entra en ese rango y las reglas menores siguen intactas.
-- Tipografía, color y tamaño ahora se conservan entre sí al editar. El slider naranja tiene pista y control personalizados. El guardado del tamaño se verificó con Strapi/SQLite y la vista previa y el payload con pruebas frontend.
+- Tipografía, color y tamaño ahora se conservan entre sí al editar. El slider tiene pista y control personalizados con el color institucional (#6A0304). El guardado del tamaño se verificó con Strapi/SQLite y la vista previa y el payload con pruebas frontend.
 - Validación: 21 pruebas frontend y 1 integración de backend aprobadas; git diff --check correcto.
 
-- Verificación del reporte de tamaño: la prueba detectó que al cambiar color o tipografía se perdía 	amanoPx; ahora los controles preservan el resto de los ajustes. También se conectó el tamaño a CategoryNav (el header principal) y el visor desktop de 1280 px queda dentro del breakpoint de 1200 px. El slider usa carril y perilla naranja personalizados.
+- Verificación del reporte de tamaño: la prueba detectó que al cambiar color o tipografía se perdía tamanoPx; ahora los controles preservan el resto de los ajustes. También se conectó el tamaño a CategoryNav (el header principal) y el visor desktop de 1280 px queda dentro del breakpoint de 1200 px. El slider usa carril y perilla con acento rojizo institucional (#6A0304).
 - Revalidación: 21 pruebas frontend y 1 integración Strapi/SQLite aprobadas; git diff --check correcto.
+
+### Estilo y color institucional del selector de tamaño y tipografía del Header
+
+- Se reemplazó el antiguo acento naranja por el rojizo distintivo de Marybe (#6A0304 / #5C0A0A) en el slider, badge numérico y títulos del inspector.
+- Se optimizó el CSS de la sección (`.mh-typography-section`, `.mh-font-size`): contenedor tipo tarjeta con borde sutil, indicador numérico en píldora con cifras tabulares, pista y perilla con alineación vertical corregida (`margin-top: -6px`) y estados hover/active, además de una fila integrada para el selector de color y el botón de restablecimiento.
+- Validación: 6 pruebas unitarias de `MenuHeaderEditor.test.jsx` aprobadas; ESLint sin errores; `git diff --check` correcto.
 
 ### Revisión preliminar de migración de variantes a SKU/EAN
 
 - Confirmado en código: el importador descarta filas sin ID Variante, concilia variantes por id_original y la plantilla exporta ese ID como obligatorio. El checkout todavía prioriza id_original cuando está presente; el editor empareja por índice.
 - No se cambió el modelo ni el importador. Antes de activar SKU obligatorio se requiere auditar datos reales de publicados/borradores, variantes sintéticas y duplicados entre productos; no se accedió a producción.
+
+### Rediseño de tarjetas de secciones en Organizar Inicio con vista previa rectangular 4/3
+
+- Se rediseñó la UI de la grilla/lista de secciones en `/editor-inicio-admin` ([SectionSelector.jsx](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Frontend/src/pages/admin/editor-inicio/components/SectionSelector.jsx)):
+  - La captura de cada sección ahora se ubica en el centro del contenedor con proporción rectangular 4/3 (`aspect-ratio: 4 / 3`, 280×210 px en escritorio) en reemplazo del antiguo thumbnail diminuto (80×50 px), multiplicando su visibilidad y legibilidad.
+  - El contenedor central cuenta con marco visual suave, fondo cálido, `object-fit: contain` para no recortar textos de banners y enlace directo de edición.
+  - Se vinculó la captura `/capturas-admin-editor/11-descubri-mas.png` y descripción para la sección «Descubrí más», unificando visualmente todas las secciones del panel.
+  - Se estructuró cada fila en tres columnas balanceadas (información con descripción y badge de visibilidad a la izquierda, vista previa rectangular 4/3 al centro y controles de acción a la derecha) con adaptación responsiva a columna vertical para tablets y móviles.
+- Validación: 9 pruebas en `EditorInicioAdmin.test.jsx` aprobadas; ESLint sin errores; `git diff --check` correcto.

@@ -145,11 +145,13 @@ export default function MenuHeaderEditor({ token, onBack, onLogout }) {
       items={data.orden.map(id => { const category = categoryMap[id.replace(/^categoria:/, '')] || contextItems.find(item => `categoria:${item.documentId}` === id); return { documentId: id, nombre: category?.seccion ? `${category.nombre} · ${category.seccion}` : names[id] || categoryNames[id] || id }; })}
       title="Orden del header" hint="Arrastrá las opciones o usá las flechas." listLabel="Orden del menú" onSelect={() => {}}
       onReorder={(id, to) => change(next => { next.orden = move(next.orden, id, to); })} />
-      <section className="mh-selection"><h3>Tipografía y color del menú</h3>
+      <section className="mh-selection mh-typography-section"><h3>Tipografía y color del menú</h3>
         <label>Tipografía<select value={data.estilo?.fuente || ''} onChange={event => { const fuente = event.target.value; change(next => { next.estilo = { ...(next.estilo || {}), fuente, color: next.estilo?.color || '' }; }); }}><option value="">Original</option>{['Inter', 'Brygada 1918', 'Montserrat', 'Raleway', 'Playfair Display', 'Cormorant Garamond', 'Arial', 'Georgia', 'Verdana'].map(font => <option key={font}>{font}</option>)}</select></label>
         <label className="mh-font-size">Tamaño de fuente <output>{data.estilo?.tamanoPx ?? 14} px</output><input type="range" min="12" max="24" step="1" value={data.estilo?.tamanoPx ?? 14} aria-label="Tamaño de fuente en píxeles" onChange={event => { const tamanoPx = Number(event.target.value); change(next => { next.estilo = { fuente: next.estilo?.fuente || '', color: next.estilo?.color || '', tamanoPx }; }); }} /><small>De 12 a 24 px · se aplica desde 1200 px; en notebook angosta y celular se conserva el tamaño responsive.</small></label>
-        <label>Color de fuente<input type="color" value={data.estilo?.color || '#5c0a0a'} onChange={event => { const color = event.target.value; change(next => { next.estilo = { ...(next.estilo || {}), fuente: next.estilo?.fuente || '', color }; }); }} /></label>
-        <button type="button" onClick={() => change(next => { next.estilo = { ...(next.estilo || {}), fuente: next.estilo?.fuente || '', color: '' }; })}>Usar color original</button>
+        <div className="mh-color-row">
+          <label className="mh-color-field">Color de fuente<input type="color" value={data.estilo?.color || '#5c0a0a'} onChange={event => { const color = event.target.value; change(next => { next.estilo = { ...(next.estilo || {}), fuente: next.estilo?.fuente || '', color }; }); }} /></label>
+          <button type="button" className="mh-color-reset" onClick={() => change(next => { next.estilo = { ...(next.estilo || {}), fuente: next.estilo?.fuente || '', color: '' }; })}>Usar color original</button>
+        </div>
       </section>
       {areaKey !== 'general' && <section className="mh-selection"><h3>Opciones del menú</h3>
         {['ofertas', 'lanzamientos'].map(id => <label key={id} className="mh-option"><input type="checkbox" checked={!(data.ocultos || []).includes(id)} onChange={event => { const checked = event.target.checked; change(next => { next.ocultos = checked ? (next.ocultos || []).filter(item => item !== id) : [...(next.ocultos || []), id]; }); }} /> Mostrar {names[id]}</label>)}
