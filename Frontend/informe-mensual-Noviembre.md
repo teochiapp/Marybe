@@ -771,7 +771,7 @@ Criterio de aceptación: el orden y la visibilidad de la lista publicada coincid
   - Reducción sustancial del campo de stock: eliminación de `maxWidth: 120px` inline por `.ea-input-stock` centrado con ancho compacto de `58px` (`52px` en variantes).
   - Compactación de campos de precio y precio oferta de `130px` a `82px` / `86px` con padding optimizado.
   - Celdas de texto equilibradas: marcas a `105px`, SKUs a `110px`, proveedores a `92px`, y nombres de producto ampliados con contenedor flexible de hasta `440px` (`380px` en <=1600px, `300px` en <=1280px) permitiendo hasta 2 líneas (`line-clamp: 2`) para evitar recortes bruscos en títulos extensos.
-  - Miniaturas de portada reducidas a `44×44 px` y galería a `28×28 px` con contenedor de `120px` máximo, disminuyendo la altura y ancho de fila.
+  - Selectores y miniaturas de imagen redimensionados para mejor visualización y clic: portada en `54×54 px` con botón de subida en `32×32 px` (columna de `96px`), y galería en `34×34 px` con dropzone de `34×34 px` (columna de `130px`).
   - Columna SKU/EAN fija (`sticky`) con fondo opaco y sombra sutil para scroll horizontal limpio en tablets y pantallas estrechas.
   - Breakpoints específicos en 1600 px, 1280 px y 900 px (con sangría de 64 px en cabecera para no solapar el botón del menú móvil administrativo) y protección `beforeunload` ante cambios sin guardar.
 - Validación: 3 pruebas unitarias en `EditorAdmin.test.jsx` aprobadas; ESLint sin errores; `git diff --check` correcto.
