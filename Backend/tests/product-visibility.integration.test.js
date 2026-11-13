@@ -23,8 +23,8 @@ test('el producto solo se oculta cuando ni el padre ni sus variantes tienen prec
   const app = await require('@strapi/strapi').createStrapi().load();
   try {
     const create = data => app.documents(UID).create({ status: 'published', data: { publicado: true, ...data } });
-    const conVariantes = await create({ nombre: 'VIS Padre vacio con variantes', id_original: 'VIS-A', precio: null, variantes: [variante('A1', 5200), variante('A2', 5900, 5500)] });
-    const variantesSinPrecio = await create({ nombre: 'VIS Padre y variantes sin precio', id_original: 'VIS-B', precio: null, variantes: [variante('B1', 0), variante('B2', 0)] });
+    const conVariantes = await create({ nombre: 'VIS Padre vacio con variantes', id_original: 'VIS-A', marca: 'GIVENCHY', precio: null, variantes: [variante('A1', 5200), variante('A2', 5900, 5500)] });
+    const variantesSinPrecio = await create({ nombre: 'VIS Padre y variantes sin precio', id_original: 'VIS-B', marca: 'GIVENCHY', precio: null, variantes: [variante('B1', 0), variante('B2', 0)] });
     const soloPadre = await create({ nombre: 'VIS Solo padre con precio', id_original: 'VIS-C', precio: 3000 });
     const vacio = await create({ nombre: 'VIS Sin precio ni variantes', id_original: 'VIS-D', precio: null });
     const soloOferta = await create({ nombre: 'VIS Variante solo con oferta', id_original: 'VIS-E', precio: 0, variantes: [variante('E1', 0, 4000)] });
@@ -57,6 +57,16 @@ test('el producto solo se oculta cuando ni el padre ni sus variantes tienen prec
 
     const hiddenSearch = await get('?filters[$or][0][nombre][$containsi]=sin precio&filters[$or][1][marca][$containsi]=sin precio');
     assert.deepEqual(hiddenSearch.body.data.map(p => p.id_original), []);
+
+    const brandCatalogSearch = await get(
+      '?filters[$and][0][$or][0][nombre][$containsi]=Givenchy'
+      + '&filters[$and][0][$or][1][marca][$containsi]=Givenchy'
+      + '&filters[$and][0][$or][2][subcategoria][$containsi]=Givenchy'
+      + '&filters[$and][0][$or][3][tipo][$containsi]=Givenchy'
+      + '&filters[publicado][$eq]=true'
+    );
+    assert.equal(brandCatalogSearch.status, 200, JSON.stringify(brandCatalogSearch.body));
+    assert.deepEqual(brandCatalogSearch.body.data.map(p => p.id_original), ['VIS-A']);
 
     assert.equal((await get(`/${conVariantes.documentId}`)).status, 200);
     assert.equal((await get(`/${soloPadre.documentId}`)).status, 200);

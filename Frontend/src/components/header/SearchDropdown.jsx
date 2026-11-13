@@ -1,24 +1,20 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { addSearchFilters } from '../../utils/catalogClassificationFilters';
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
 // ─── Helpers de API ───────────────────────────────────────────────────────────
 
-/** Construye la URL de Strapi con filtros $or para nombre, marca, subcategoria y tipo */
+/** Construye la URL de Strapi con filtros $or compartidos con el catálogo */
 function buildProductQuery(q) {
-  const enc = encodeURIComponent(q);
-  return (
-    `${STRAPI_URL}/api/productos` +
-    `?filters[$or][0][nombre][$containsi]=${enc}` +
-    `&filters[$or][1][marca][$containsi]=${enc}` +
-    `&filters[$or][2][subcategoria][$containsi]=${enc}` +
-    `&filters[$or][3][tipo][$containsi]=${enc}` +
-    `&filters[publicado][$eq]=true` +
-    `&pagination[pageSize]=20` +
-    `&populate[portada]=true`
-  );
+  const params = new URLSearchParams();
+  addSearchFilters(params, q, 0);
+  params.set('filters[publicado][$eq]', 'true');
+  params.set('pagination[pageSize]', '20');
+  params.set('populate[portada]', 'true');
+  return `${STRAPI_URL}/api/productos?${params.toString()}`;
 }
 
 // ─── Styled Components ────────────────────────────────────────────────────────

@@ -133,9 +133,48 @@ function dataHasChanges(newData, oldData) {
 // Resultado: array de productos únicos, cada uno con:
 //   { ...datosDeFila1, clasificaciones: [{ seccion, categoria, subcategoria, tipo }, ...] }
 //
+function textoCelda(val) {
+  return (val ?? '').toString().trim();
+}
+
+function validarCoherenciaFilaDuplicada(id, existente, fila) {
+  const fila1Num = existente._excelRow ? `fila ${existente._excelRow}` : 'primera fila';
+  const filaNNum = fila._excelRow ? `fila ${fila._excelRow}` : 'fila repetida';
+  const conflictos = [];
+
+  const nombre1 = textoCelda(existente.nombre);
+  const nombreN = textoCelda(fila.nombre);
+  if (!nombre1 || !nombreN) {
+    conflictos.push(`Nombre vacío ("${nombre1}" en ${fila1Num} vs "${nombreN}" en ${filaNNum})`);
+  } else if (nombre1 !== nombreN) {
+    conflictos.push(`Nombre ("${nombre1}" en ${fila1Num} vs "${nombreN}" en ${filaNNum})`);
+  }
+
+  const comparacionesTexto = [
+    { campo: 'Proveedor', a: textoCelda(existente.proveedor), b: textoCelda(fila.proveedor) },
+    { campo: 'SKU', a: textoCelda(existente.sku), b: textoCelda(fila.sku) },
+  ];
+  for (const { campo, a, b } of comparacionesTexto) {
+    if (b !== '' && a !== b) {
+      conflictos.push(`${campo} ("${a}" en ${fila1Num} vs "${b}" en ${filaNNum})`);
+    }
+  }
+
+  const precioN = textoCelda(fila.precio);
+  if (precioN !== '') {
+    const precio1Num = parseDecimal(existente.precio);
+    const precioNNum = parseDecimal(fila.precio);
+    if (precio1Num === null || precioNNum === null || precio1Num !== precioNNum) {
+      conflictos.push(`Precio ("${textoCelda(existente.precio)}" en ${fila1Num} vs "${precioN}" en ${filaNNum})`);
+    }
+  }
+
+  return conflictos.map(detalle => `ID="${id}": ${detalle}`);
+}
+
 function agruparFilasDuplicadas(filas, addLog) {
   const mapaProductos = new Map(); // id_original → producto agrupado
-  const warnings = [];
+  const conflictos = [];
 
   for (const fila of filas) {
     const id = (fila.id_original || '').trim();
@@ -155,15 +194,12 @@ function agruparFilasDuplicadas(filas, addLog) {
         clasificaciones: [clasificacion],
       });
     } else {
-      // Fila duplicada → solo añade la clasificación
+      // Fila duplicada → verificar coherencia antes de agregar clasificación
       const existente = mapaProductos.get(id);
-
-      // Detectar conflictos en datos base (precio, nombre, marca)
-      if (fila.nombre && existente.nombre && fila.nombre.trim() !== existente.nombre.trim()) {
-        warnings.push(`⚠️  CONFLICTO en nombre para ID="${id}": fila 1="${existente.nombre}", fila extra="${fila.nombre}" → se usa fila 1`);
-      }
-      if (fila.precio && existente.precio && String(fila.precio).trim() !== String(existente.precio).trim()) {
-        warnings.push(`⚠️  CONFLICTO en precio para ID="${id}": fila 1="${existente.precio}", fila extra="${fila.precio}" → se usa fila 1`);
+      const nuevosConflictos = validarCoherenciaFilaDuplicada(id, existente, fila);
+      if (nuevosConflictos.length > 0) {
+        conflictos.push(...nuevosConflictos);
+        continue;
       }
 
       // Evitar clasificaciones duplicadas exactas
@@ -178,9 +214,17 @@ function agruparFilasDuplicadas(filas, addLog) {
     }
   }
 
-  // Loguear warnings
-  if (addLog && warnings.length > 0) {
-    warnings.forEach(w => addLog(w));
+  if (conflictos.length > 0) {
+    if (addLog) {
+      conflictos.forEach(c => addLog(`❌ CONFLICTO ID padre repetido — ${c}`));
+    }
+    const resumen = conflictos.slice(0, 10).join('; ');
+    const sufijo = conflictos.length > 10 ? ` (+${conflictos.length - 10} más)` : '';
+    const err = new Error(
+      `Importación cancelada: hay ID de producto padre repetidos con datos inconsistentes (${resumen}${sufijo}). Verificá que las filas adicionales con el mismo ID tengan exactamente el mismo Nombre y no difieran en Proveedor, SKU o Precio.`
+    );
+    err.code = 'INVALID_EXCEL';
+    throw err;
   }
 
   return Array.from(mapaProductos.values());

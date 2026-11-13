@@ -603,6 +603,7 @@ test('planilla general y de proveedor actualizan el nombre de un ID existente', 
 
   const wbGen = await generalWorkbook(strapi);
   wbGen.getWorksheet('\ud83d\udce6 Productos').getCell(4, 3).value = 'Nombre general';
+  wbGen.getWorksheet('\ud83d\udce6 Productos').getCell(5, 3).value = 'Nombre general';
   const resGen = await importWorkbook(strapi, wbGen);
   assert.equal(resGen.actualizados, 1, resGen.erroresList.join('; '));
   assert.equal(state.product.nombre, 'Nombre general');
@@ -1061,4 +1062,90 @@ test('limpiar-variantes-duplicadas --global reasigna IDs aleatorios únicos cons
   const auditPost = await auditarIdsVariantes(fakeApp, { estados: ['published', 'draft'] });
   assert.equal(auditPost.estados.published.resumen.idsRepetidosTotal, 0);
   assert.equal(auditPost.estados.draft.resumen.idsRepetidosTotal, 0);
+});
+
+test('exportacion general repite Nombre literal en clasificaciones extra y roundtrip conserva ambas clasificaciones', async () => {
+  const { state, strapi } = fixture({ nombre: 'Crema Multi Clasificacion' });
+
+  const wbGen = await generalWorkbook(strapi);
+  const ws = wbGen.getWorksheet('\ud83d\udce6 Productos');
+  assert.equal(String(ws.getCell(4, 1).value), 'P2');
+  assert.equal(ws.getCell(4, 3).value, 'Crema Multi Clasificacion');
+  assert.equal(String(ws.getCell(5, 1).value), 'P2');
+  assert.equal(ws.getCell(5, 3).value, 'Crema Multi Clasificacion');
+  assert.equal(ws.getCell(5, 2).value, '');
+  assert.equal(ws.getCell(5, 11).value, '');
+  assert.equal(ws.getCell(5, 16).value, '');
+
+  const res = await importWorkbook(strapi, wbGen);
+  assert.equal(res.errores, 0, res.erroresList.join('; '));
+  assert.equal(state.product.clasificaciones.length, 2);
+});
+
+test('cancela toda la importacion antes de guardar si hay ID padre repetido sin Nombre o con distinto Nombre, Proveedor, SKU o Precio', async () => {
+  const casosGenerales = [
+    { label: 'Nombre vacio', col: 3, value: '' },
+    { label: 'Nombre distinto', col: 3, value: 'Otro Nombre Padre' },
+    { label: 'Proveedor distinto', col: 11, value: 'Otro Proveedor SA' },
+    { label: 'SKU distinto', col: 2, value: 'SKU-CONFLICTO' },
+    { label: 'Precio distinto', col: 16, value: 9999 },
+  ];
+
+  for (const caso of casosGenerales) {
+    const { state, strapi } = fixture({ nombre: 'Producto Padre Base', precio: 1000 });
+    const wbGen = await generalWorkbook(strapi);
+    const ws = wbGen.getWorksheet('\ud83d\udce6 Productos');
+    // Agrega también un producto nuevo válido para comprobar que NO se guarda nada al cancelar
+    const newRow = ws.getRow(6);
+    newRow.getCell(1).value = 'NUEVO-999';
+    newRow.getCell(2).value = 'SKU-NUEVO-999';
+    newRow.getCell(3).value = 'Producto Nuevo Valido';
+    newRow.getCell(11).value = 'Proveedor, S.A.';
+    newRow.getCell(12).value = 'SI';
+    newRow.getCell(13).value = 'NO';
+    newRow.getCell(14).value = 10;
+    newRow.getCell(16).value = 500;
+
+    ws.getCell(5, caso.col).value = caso.value;
+
+    await assert.rejects(
+      () => importWorkbook(strapi, wbGen),
+      err => err && err.code === 'INVALID_EXCEL' && /Importaci[oó]n cancelada/i.test(err.message),
+      `General (${caso.label}) debia cancelar con INVALID_EXCEL`
+    );
+    assert.equal(state.updates.length, 0, `General (${caso.label}) no debe ejecutar updates`);
+    assert.equal(state.creates.length, 0, `General (${caso.label}) no debe ejecutar creates`);
+  }
+
+  const casosProveedor = [
+    { label: 'Nombre vacio', nombre: '' },
+    { label: 'Nombre distinto', nombre: 'Nombre Repetido Distinto' },
+    { label: 'Proveedor distinto', proveedor: 'Otro Proveedor SA' },
+    { label: 'SKU distinto', sku: 'SKU-REP-CONFLICTO' },
+    { label: 'Precio distinto', precio: 2500 },
+  ];
+
+  for (const caso of casosProveedor) {
+    const { state, strapi } = fixture({ nombre: 'Producto Base Proveedor', precio: 1000 });
+    const wbProv = await supplierWorkbook(strapi);
+    const wsProv = wbProv.getWorksheet('\ud83d\udcb2 Precios por Proveedor');
+    const extraRow = wsProv.getRow(wsProv.rowCount + 2);
+    const vals = [
+      'P2',
+      caso.sku ?? 'SKU-2',
+      caso.proveedor ?? 'Proveedor, S.A.',
+      caso.nombre ?? 'Producto Base Proveedor',
+      'Maquillaje', 'Rostro', '', '', 'SI', 'NO', '', 5,
+      caso.precio ?? 1000, '',
+    ];
+    vals.forEach((v, idx) => { extraRow.getCell(idx + 1).value = v; });
+
+    await assert.rejects(
+      () => importWorkbook(strapi, wbProv),
+      err => err && err.code === 'INVALID_EXCEL' && /Importaci[oó]n cancelada/i.test(err.message),
+      `Proveedor (${caso.label}) debia cancelar con INVALID_EXCEL`
+    );
+    assert.equal(state.updates.length, 0, `Proveedor (${caso.label}) no debe ejecutar updates`);
+    assert.equal(state.creates.length, 0, `Proveedor (${caso.label}) no debe ejecutar creates`);
+  }
 });

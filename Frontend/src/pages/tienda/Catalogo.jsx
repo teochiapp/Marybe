@@ -10,7 +10,7 @@ import CatalogoControlsBar from '../../components/tienda/catalogo/CatalogoContro
 import CatalogoProductGrid from '../../components/tienda/catalogo/CatalogoProductGrid';
 import { FadeIn, FadeInLeft } from '../../components/animations/ScrollAnimations';
 import { getProductPrice } from '../../utils/productPrice';
-import { addClassificationFilters } from '../../utils/catalogClassificationFilters';
+import { addClassificationFilters, addSearchFilters } from '../../utils/catalogClassificationFilters';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -340,7 +340,7 @@ export default function Catalogo() {
         // Queremos marca del producto base y las variantes para obtener los volumenes
         params.set('populate', 'variantes');
         params.set('filters[publicado][$eq]', 'true');
-        if (activeBusqueda) params.set('filters[nombre][$containsi]', activeBusqueda);
+        const andIndex = addSearchFilters(params, activeBusqueda, 0);
         addDiscountFilters(params, activeDescuentos);
 
         addClassificationFilters(params, {
@@ -348,7 +348,7 @@ export default function Catalogo() {
           categoria: activeCatParam,
           subcategoria: activeSubcatParam,
           tipo: activeTipoParam,
-        });
+        }, andIndex);
 
         const brands = new Set();
         const sizes = new Set();
@@ -426,21 +426,19 @@ export default function Catalogo() {
         params.set('sort[0]', `${field}:${dir}`);
       }
 
-      if (activeBusqueda) {
-        params.set('filters[nombre][$containsi]', activeBusqueda);
-      }
+      let andIndex = addSearchFilters(params, activeBusqueda, 0);
 
       addDiscountFilters(params, activeDescuentos);
 
       activeBrands.forEach((brand, idx) => params.set(`filters[marca][$in][${idx}]`, brand));
       activeSizes.forEach((sz, idx) => params.set(`filters[variantes][volumen][$in][${idx}]`, sz));
 
-      let andIndex = addClassificationFilters(params, {
+      andIndex = addClassificationFilters(params, {
         seccion: activeSeccion,
         categoria: activeCatParam,
         subcategoria: activeSubcatParam,
         tipo: activeTipoParam,
-      });
+      }, andIndex);
 
       if (activePriceParam) {
           // Filtro optimizado con denormalización de precios

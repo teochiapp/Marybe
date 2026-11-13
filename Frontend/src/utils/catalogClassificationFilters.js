@@ -1,3 +1,18 @@
+const SEARCH_FIELDS = ['nombre', 'marca', 'subcategoria', 'tipo'];
+
+// Group search fields under filters[$and][index][$or] so text queries match
+// brands, types, subcategories, and names without colliding with other $and/$or filters.
+export function addSearchFilters(params, query = '', index = 0) {
+  const cleanQuery = String(query || '').trim();
+  if (!cleanQuery) return index;
+
+  SEARCH_FIELDS.forEach((field, fieldIndex) => {
+    params.set(`filters[$and][${index}][$or][${fieldIndex}][${field}][$containsi]`, cleanQuery);
+  });
+
+  return index + 1;
+}
+
 // Keep the section and every selected category level on the same classification.
 // A product may have another classification in a different section.
 export function addClassificationFilters(params, { seccion = '', categoria = '', subcategoria = '', tipo = '' }, index = 0) {

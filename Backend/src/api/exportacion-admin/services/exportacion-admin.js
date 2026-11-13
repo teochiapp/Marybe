@@ -243,7 +243,7 @@ async function generarExcel(strapi) {
       const valores = [
         prod.id_original   || String(prod.id || ''),  // A: ID Original
         esPrimera ? (prod.sku || '') : '',             // B: SKU/EAN (solo fila 1)
-        esPrimera ? (prod.nombre || '') : '',          // C: Nombre  (solo fila 1)
+        prod.nombre || '',                             // C: Nombre (se repite para confirmar identidad en clasificaciones extra)
         esPrimera ? (prod.marca || '') : '',           // D: Marca   (solo fila 1)
         clasif.seccion,                                // E: Sección
         clasif.categoria,                              // F: Categoría
