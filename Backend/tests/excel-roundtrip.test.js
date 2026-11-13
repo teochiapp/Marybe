@@ -672,3 +672,54 @@ test('planilla de proveedor actualiza sku, publicado y destacado y bloquea sku/e
   assert.equal(state.creates.length, 1);
   assert.equal(state.creates[0].id_original, 'NUEVO-1');
 });
+
+test('exportacion deduplica variantes repetidas e importacion bloquea IDs de variante ya usados en otro producto', async () => {
+  const { filtrarVariantesComerciales } = require('../src/utils/excel-utils');
+  const { deduplicarVariantes, limpiarVariantesDuplicadas } = require('../scripts/limpiar-variantes-duplicadas');
+
+  const { state, strapi } = fixture({
+    variantes: [
+      { id: 21, id_original: 'P2-100', sku_ean: 'EAN-100', volumen: '100 ml', stock: 8, precio: 1250, publicado: true, envio: '1' },
+      { id: 22, id_original: 'P2-100', sku_ean: 'EAN-100', volumen: '100 ml', stock: 8, precio: 1250, publicado: true, envio: '1' },
+      { id: 23, id_original: 'P2-50', sku_ean: 'EAN-50', volumen: '50 ml', stock: 6, precio: 900, publicado: true, envio: '1' },
+    ],
+  });
+  assert.equal(filtrarVariantesComerciales('P2', state.product.variantes).length, 2);
+  assert.equal(deduplicarVariantes(state.product.variantes).length, 2);
+
+  const preview = await limpiarVariantesDuplicadas(strapi, { apply: false });
+  assert.equal(preview.length, 1);
+  assert.equal(preview[0].antes, 3);
+  assert.equal(preview[0].despues, 2);
+  assert.equal(state.updates.length, 0);
+
+  await limpiarVariantesDuplicadas(strapi, { apply: true });
+  assert.equal(state.product.variantes.length, 2);
+
+  // Bloqueo de ID de variante perteneciente a otro producto existente en BD
+  const otroProducto = { id: 99, documentId: 'doc-p99', id_original: 'P99', sku: 'SKU-OTRO', proveedor: 'Otro', variantes: [{ id: 991, id_original: 'P99-1', sku_ean: 'EAN-OTRO' }] };
+  const originalDocs = strapi.documents;
+  strapi.documents = uid => {
+    const api = originalDocs(uid);
+    if (uid !== PRODUCTO) return api;
+    return {
+      ...api,
+      async findMany({ filters, start = 0, limit = 100 }) {
+        const list = filters ? await api.findMany({ filters, start, limit }) : [structuredClone(state.product), structuredClone(otroProducto)];
+        return filters ? list : list.slice(start, start + limit);
+      },
+    };
+  };
+
+  const wb = await supplierWorkbook(strapi);
+  const ws = wb.getWorksheet('\ud83d\udcb2 Precios por Proveedor');
+  const wsV = wb.getWorksheet('\ud83d\udd17 Variantes');
+  const rProd = ws.getRow(ws.rowCount + 2);
+  ['NUEVO-VAR', 'SKU-NV', 'Proveedor, S.A.', 'Nuevo Var', '', '', '', '', 'SI', 'NO', '', 5, 1000, ''].forEach((v, idx) => { rProd.getCell(idx + 1).value = v; });
+  const rVar = wsV.getRow(wsV.rowCount + 2);
+  ['P99-1', 'NUEVO-VAR', '', 'EAN-NUEVO-VAR', '50 ml', 5, 1000, '', '', 'SI', '1', ''].forEach((v, idx) => { rVar.getCell(idx + 1).value = v; });
+  const res = await importWorkbook(strapi, wb);
+  assert.equal(res.creados, 0);
+  assert.equal(res.errores, 1);
+  assert.match(res.erroresList[0], /ID de variante "P99-1" ya existe en el producto P99/);
+});

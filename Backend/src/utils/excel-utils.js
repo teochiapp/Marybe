@@ -109,10 +109,17 @@ function calcPct(precio, precioOferta, descuentoExplicito = 0) {
 
 function filtrarVariantesComerciales(padreIdOriginal, variantes = []) {
   const lista = variantes || [];
+  const vistas = new Set();
   return lista.filter(v => {
     const esV1 = v.id_original === `${padreIdOriginal}-v1`;
     const esUnicaYVacia = lista.length === 1 && !(v.volumen || '').trim() && !(v.color_nombre || '').trim();
-    return !(esV1 || esUnicaYVacia);
+    if (esV1 || esUnicaYVacia) return false;
+    const varKey = String(v.id_original || '').trim().toLowerCase();
+    if (varKey) {
+      if (vistas.has(varKey)) return false;
+      vistas.add(varKey);
+    }
+    return true;
   });
 }
 

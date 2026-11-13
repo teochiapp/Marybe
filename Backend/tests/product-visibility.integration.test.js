@@ -71,6 +71,15 @@ test('el producto solo se oculta cuando ni el padre ni sus variantes tienen prec
     await app.documents(UID).update({ documentId: conVariantes.documentId, status: 'published', data: { variantes: [variante('A1', 0)] } });
     assert.equal((await row(conVariantes.documentId)).precio_minimo_calculado, null);
     assert.equal((await get(`/${conVariantes.documentId}`)).status, 404);
+
+    await assert.rejects(
+      () => create({ nombre: 'VIS Variantes duplicadas', id_original: 'VIS-DUP', variantes: [variante('DUP-1', 1000), variante('DUP-1', 2000)] }),
+      /Variante duplicada/
+    );
+    await assert.rejects(
+      () => app.documents(UID).update({ documentId: soloPadre.documentId, status: 'published', data: { variantes: [variante('DUP-2', 1000), variante('dup-2', 2000)] } }),
+      /Variante duplicada/
+    );
   } finally {
     await app.destroy();
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);

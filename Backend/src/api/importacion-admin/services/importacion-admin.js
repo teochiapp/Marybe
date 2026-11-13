@@ -700,8 +700,9 @@ function claveVariante(productoId, v) {
 async function cargarIndiceSkusExistentes(strapi) {
   const productSkus = new Map();
   const variantSkus = new Map();
+  const variantIds = new Map();
   const docsApi = strapi?.documents?.(UID_PRODUCTO);
-  if (typeof docsApi?.findMany !== 'function') return { productSkus, variantSkus };
+  if (typeof docsApi?.findMany !== 'function') return { productSkus, variantSkus, variantIds };
 
   const seenDocs = new Set();
   for (const status of ['published', 'draft']) {
@@ -727,6 +728,11 @@ async function cargarIndiceSkusExistentes(strapi) {
           productSkus.get(normProdSku).add(prodId);
         }
         for (const v of (prod.variantes || [])) {
+          const normVarId = normalizarSku(v.id_original);
+          if (normVarId) {
+            if (!variantIds.has(normVarId)) variantIds.set(normVarId, new Set());
+            variantIds.get(normVarId).add(prodId);
+          }
           const normVarSku = normalizarSku(v.sku_ean);
           if (!normVarSku) continue;
           if (!variantSkus.has(normVarSku)) variantSkus.set(normVarSku, new Map());
@@ -737,11 +743,11 @@ async function cargarIndiceSkusExistentes(strapi) {
       start += page.length;
     }
   }
-  return { productSkus, variantSkus };
+  return { productSkus, variantSkus, variantIds };
 }
 
 function validarSkusProducto(indiceSkus, idOriginal, skuFinal, variantesFinales = []) {
-  const { productSkus, variantSkus } = indiceSkus;
+  const { productSkus, variantSkus, variantIds } = indiceSkus;
   const isHiddenVar = v => String(v?.id_original ?? '').trim() === `${idOriginal}-v1`;
   const skuProdRaw = String(skuFinal ?? '').trim();
   const skuProdNorm = normalizarSku(skuProdRaw);
@@ -765,13 +771,28 @@ function validarSkusProducto(indiceSkus, idOriginal, skuFinal, variantesFinales 
     }
   }
 
+  const vistosIds = new Set();
   const vistosVariantes = new Set();
   for (const v of (variantesFinales || [])) {
+    const varIdRaw = String(v?.id_original ?? '').trim();
+    const varIdNorm = normalizarSku(varIdRaw);
+    if (varIdNorm) {
+      if (vistosIds.has(varIdNorm)) {
+        throw new Error(`Variante duplicada "${varIdRaw}". Cada variante del producto debe tener un ID único.`);
+      }
+      vistosIds.add(varIdNorm);
+      for (const ownerProdId of (variantIds.get(varIdNorm) || [])) {
+        if (ownerProdId !== idOriginal) {
+          throw new Error(`El ID de variante "${varIdRaw}" ya existe en el producto ${ownerProdId}.`);
+        }
+      }
+    }
+
     const vSkuRaw = String(v?.sku_ean ?? '').trim();
     const vSkuNorm = normalizarSku(vSkuRaw);
     if (!vSkuNorm) continue;
 
-    const varLabel = String(v?.id_original ?? '').trim() || `ID ${v?.id ?? '?'}`;
+    const varLabel = varIdRaw || `ID ${v?.id ?? '?'}`;
     if (vistosVariantes.has(vSkuNorm)) {
       throw new Error(`El SKU/EAN "${vSkuRaw}" de la variante ${varLabel} está repetido en otra variante del mismo producto.`);
     }
@@ -793,10 +814,14 @@ function validarSkusProducto(indiceSkus, idOriginal, skuFinal, variantesFinales 
 }
 
 function actualizarIndiceSkus(indiceSkus, idOriginal, skuFinal, variantesFinales = []) {
-  const { productSkus, variantSkus } = indiceSkus;
+  const { productSkus, variantSkus, variantIds } = indiceSkus;
   for (const [sku, owners] of productSkus) {
     owners.delete(idOriginal);
     if (owners.size === 0) productSkus.delete(sku);
+  }
+  for (const [varId, owners] of variantIds) {
+    owners.delete(idOriginal);
+    if (owners.size === 0) variantIds.delete(varId);
   }
   for (const [sku, owners] of variantSkus) {
     for (const [vKey, ownerProdId] of owners) {
@@ -810,6 +835,11 @@ function actualizarIndiceSkus(indiceSkus, idOriginal, skuFinal, variantesFinales
     productSkus.get(skuProdNorm).add(idOriginal);
   }
   for (const v of (variantesFinales || [])) {
+    const varIdNorm = normalizarSku(v?.id_original);
+    if (varIdNorm) {
+      if (!variantIds.has(varIdNorm)) variantIds.set(varIdNorm, new Set());
+      variantIds.get(varIdNorm).add(idOriginal);
+    }
     const vSkuNorm = normalizarSku(v?.sku_ean);
     if (!vSkuNorm) continue;
     if (!variantSkus.has(vSkuNorm)) variantSkus.set(vSkuNorm, new Map());
