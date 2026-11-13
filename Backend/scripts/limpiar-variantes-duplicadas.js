@@ -130,7 +130,6 @@ async function limpiarVariantesDuplicadas(app, { apply = false } = {}) {
     return s;
   };
 
-  const globalOwner = new Map();
   const tareas = [];
   const afectados = [];
 
@@ -162,12 +161,10 @@ async function limpiarVariantesDuplicadas(app, { apply = false } = {}) {
           return { ...v, id_original: nuevoId };
         }
 
-        const ownerOtro = globalOwner.get(idNorm) && globalOwner.get(idNorm) !== doc.documentId;
-        const repetidoEnDoc = vistosEnStatus.has(idNorm);
-
-        if (repetidoEnDoc || ownerOtro) {
+        // Solo reasigna si el id_original se repite dentro del MISMO producto;
+        // en el catálogo histórico distintos productos pueden compartir rango numérico.
+        if (vistosEnStatus.has(idNorm)) {
           const nuevoId = reservarNuevoId();
-          globalOwner.set(nuevoId, doc.documentId);
           vistosEnStatus.add(nuevoId);
           if (fullKey) docReassignments.set(fullKey, nuevoId);
           reassignedHere = true;
@@ -184,7 +181,6 @@ async function limpiarVariantesDuplicadas(app, { apply = false } = {}) {
         }
 
         vistosEnStatus.add(idNorm);
-        globalOwner.set(idNorm, doc.documentId);
         return v;
       });
 

@@ -673,7 +673,7 @@ test('planilla de proveedor actualiza sku, publicado y destacado y bloquea sku/e
   assert.equal(state.creates[0].id_original, 'NUEVO-1');
 });
 
-test('exportacion deduplica variantes repetidas e importacion bloquea IDs de variante ya usados en otro producto', async () => {
+test('exportacion deduplica solo clones exactos, reasigna duplicados intra-producto sin tocar otros productos y valida unicidad intra-producto', async () => {
   const { filtrarVariantesComerciales } = require('../src/utils/excel-utils');
   const { deduplicarVariantes, limpiarVariantesDuplicadas } = require('../scripts/limpiar-variantes-duplicadas');
 
@@ -698,8 +698,8 @@ test('exportacion deduplica variantes repetidas e importacion bloquea IDs de var
   await limpiarVariantesDuplicadas(strapi, { apply: true });
   assert.equal(state.product.variantes.length, 2);
 
-  // Variantes distintas que comparten el mismo id_original (dentro del mismo producto y entre productos)
-  // NO deben eliminarse; deben conservarse todas con IDs reasignados y sincronizados entre published y draft.
+  // Variantes distintas que comparten id_original DENTRO del mismo producto se reasignan sin eliminarse
+  // y sin alterar productos históricos distintos que comparten id_original entre sí.
   const prodA = {
     documentId: 'doc-16050',
     id_original: '16050',
@@ -718,8 +718,23 @@ test('exportacion deduplica variantes repetidas e importacion bloquea IDs de var
       { id: 4, id_original: '20000', sku_ean: 'EAN-4', volumen: 'Petalo', stock: 2, precio: 200 },
     ],
   };
+  const prodHist1 = {
+    documentId: 'doc-8179',
+    id_original: '8179',
+    nombre: 'ELVIVE',
+    variantes: [{ id: 5, id_original: '16273', sku_ean: 'EAN-H1', volumen: '400 ml', stock: 2, precio: 300 }],
+  };
+  const prodHist2 = {
+    documentId: 'doc-9029',
+    id_original: '9029',
+    nombre: 'OPIUM',
+    variantes: [{ id: 6, id_original: '16273', sku_ean: 'EAN-H2', volumen: '90 ml', stock: 2, precio: 400 }],
+  };
   assert.equal(filtrarVariantesComerciales('16050', prodA.variantes).length, 2);
-  const storeCol = { published: [structuredClone(prodA), structuredClone(prodB)], draft: [structuredClone(prodA), structuredClone(prodB)] };
+  const storeCol = {
+    published: [structuredClone(prodA), structuredClone(prodB), structuredClone(prodHist1), structuredClone(prodHist2)],
+    draft: [structuredClone(prodA), structuredClone(prodB), structuredClone(prodHist1), structuredClone(prodHist2)],
+  };
   const fakeAppCol = {
     documents: () => ({
       async findMany({ status = 'published', start = 0, limit = 100 }) {
@@ -738,8 +753,10 @@ test('exportacion deduplica variantes repetidas e importacion bloquea IDs de var
   assert.equal(colRes[0].despues, 2);
   assert.equal(colRes[1].antes, 2);
   assert.equal(colRes[1].despues, 2);
-  const allNewIds = [...storeCol.published[0].variantes, ...storeCol.published[1].variantes].map(v => v.id_original);
-  assert.equal(new Set(allNewIds).size, 4);
+  assert.equal(new Set(storeCol.published[0].variantes.map(v => v.id_original)).size, 2);
+  assert.equal(new Set(storeCol.published[1].variantes.map(v => v.id_original)).size, 2);
+  assert.equal(storeCol.published[2].variantes[0].id_original, '16273');
+  assert.equal(storeCol.published[3].variantes[0].id_original, '16273');
   assert.deepEqual(
     storeCol.draft[0].variantes.map(v => v.id_original),
     storeCol.published[0].variantes.map(v => v.id_original)
@@ -749,7 +766,7 @@ test('exportacion deduplica variantes repetidas e importacion bloquea IDs de var
     storeCol.published[1].variantes.map(v => v.id_original)
   );
 
-  // Bloqueo de ID de variante perteneciente a otro producto existente en BD
+  // Importación tolera id_original de variante ya usado en otro producto histórico, pero bloquea SKU repetido
   const otroProducto = { id: 99, documentId: 'doc-p99', id_original: 'P99', sku: 'SKU-OTRO', proveedor: 'Otro', variantes: [{ id: 991, id_original: 'P99-1', sku_ean: 'EAN-OTRO' }] };
   const originalDocs = strapi.documents;
   strapi.documents = uid => {
@@ -771,8 +788,7 @@ test('exportacion deduplica variantes repetidas e importacion bloquea IDs de var
   ['NUEVO-VAR', 'SKU-NV', 'Proveedor, S.A.', 'Nuevo Var', '', '', '', '', 'SI', 'NO', '', 5, 1000, ''].forEach((v, idx) => { rProd.getCell(idx + 1).value = v; });
   const rVar = wsV.getRow(wsV.rowCount + 2);
   ['P99-1', 'NUEVO-VAR', '', 'EAN-NUEVO-VAR', '50 ml', 5, 1000, '', '', 'SI', '1', ''].forEach((v, idx) => { rVar.getCell(idx + 1).value = v; });
-  const res = await importWorkbook(strapi, wb);
-  assert.equal(res.creados, 0);
-  assert.equal(res.errores, 1);
-  assert.match(res.erroresList[0], /ID de variante "P99-1" ya existe en el producto P99/);
+  const resOk = await importWorkbook(strapi, wb);
+  assert.equal(resOk.errores, 0);
+  assert.equal(resOk.creados, 1);
 });
