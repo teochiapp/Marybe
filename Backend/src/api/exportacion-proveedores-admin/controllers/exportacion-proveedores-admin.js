@@ -15,6 +15,26 @@ function listaValida(value) {
 }
 
 module.exports = {
+  async borrarVariante(ctx) {
+    if (!verificarAdmin(ctx)) return ctx.unauthorized('No autenticado o sesión expirada.');
+    const { proveedores: entrada, comprobante, producto, variante, confirmacion } = ctx.request.body || {};
+    const proveedores = listaValida(entrada);
+    if (!proveedores || !producto || !Number.isSafeInteger(variante) || confirmacion !== 'BORRAR' || typeof comprobante !== 'string') return ctx.badRequest('Seleccioná una variante y confirmá escribiendo BORRAR.');
+    try {
+      const vista = jwt.verify(comprobante, getJwtSecret(strapi));
+      const servicio = strapi.service('api::exportacion-proveedores-admin.exportacion-proveedores-admin');
+      if (vista.accion !== 'borrar-seleccion-proveedores' || JSON.stringify(vista.proveedores) !== JSON.stringify(proveedores)) return ctx.badRequest('La vista previa no es válida.');
+      const snapshots = await servicio.vistaBorrado(strapi, proveedores);
+      if (servicio.hashVistaBorrado(snapshots) !== vista.hash) return conflicto(ctx, 'El catálogo cambió. Volvé a preparar la selección.');
+      const seleccionado = snapshots.find(p => p.documentId === producto);
+      if (!seleccionado || !seleccionado.variantes.some(v => v.id === variante)) return ctx.badRequest('La variante no pertenece al producto seleccionado.');
+      await servicio.borrarVariante(strapi, seleccionado, variante);
+      return ctx.send({ ok: true });
+    } catch (error) {
+      strapi.log.error(`[Borrado variante] ${error.message}`);
+      return conflicto(ctx, 'No se pudo borrar la variante. Revisá los cambios pendientes y volvé a intentarlo.');
+    }
+  },
   async vistaPreviaBorrado(ctx) {
     if (!verificarAdmin(ctx)) return ctx.unauthorized('No autenticado o sesión expirada.');
     const proveedores = listaValida(ctx.request.body?.proveedores);
@@ -26,8 +46,8 @@ module.exports = {
       const secret = getJwtSecret(strapi);
       if (!secret) throw new Error('JWT_SECRET no configurado.');
       const comprobante = jwt.sign({ accion: 'borrar-seleccion-proveedores', proveedores, hash: servicio.hashVistaBorrado(productos) }, secret, { expiresIn: '10m' });
-      return ctx.send({ proveedores, total: productos.length, productos: productos.map(({ documentId, id_original, nombre, sku, skuVariantes, proveedor, draftProveedor }) => ({
-        documentId, id_original, nombre, sku, skuVariantes, proveedor,
+      return ctx.send({ proveedores, total: productos.length, productos: productos.map(({ documentId, id_original, nombre, sku, skuVariantes, variantes, proveedor, draftProveedor }) => ({
+        documentId, id_original, nombre, sku, skuVariantes, variantes, proveedor,
         bloqueado: draftProveedor !== null && draftProveedor !== proveedor,
       })), comprobante });
     } catch (err) {

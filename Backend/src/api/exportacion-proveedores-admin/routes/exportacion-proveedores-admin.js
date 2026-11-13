@@ -48,5 +48,11 @@ module.exports = {
       handler: 'exportacion-proveedores-admin.confirmarBorrado',
       config: { auth: false },
     },
+    {
+      method: 'POST',
+      path: '/exportacion-proveedores-admin/borrado/variante',
+      handler: 'exportacion-proveedores-admin.borrarVariante',
+      config: { auth: false },
+    },
   ],
 };

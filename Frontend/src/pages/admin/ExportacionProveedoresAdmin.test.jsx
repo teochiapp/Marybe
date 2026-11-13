@@ -21,10 +21,9 @@ const vista = { proveedores: ['A, SA', 'Otro'], total: 3, comprobante: 'preview'
 test('selecciona productos de varios proveedores y busca SKU, variantes y nombre sin borrar los demás', async () => {
   axios.post.mockResolvedValueOnce({ data: vista });
   axios.post.mockResolvedValueOnce({ data: { ok: true, borrados: [{ id_original: 'P1', nombre: 'Crema' }, { id_original: 'P2', nombre: 'Jabón' }], errores: [] } });
-  render(<ExportacionProveedoresAdmin />);
+  render(<ExportacionProveedoresAdmin modoEliminar />);
   const borrar = screen.getByRole('button', { name: 'Seleccionar productos para borrar' });
   expect(borrar).toBeDisabled();
-  expect(borrar.compareDocumentPosition(screen.getByRole('button', { name: /Seleccioná al menos un proveedor/ })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   fireEvent.click(await screen.findByRole('checkbox', { name: 'A, SA' }));
   fireEvent.click(screen.getByRole('checkbox', { name: 'Otro' }));
   expect(borrar).toBeEnabled();
@@ -38,11 +37,11 @@ test('selecciona productos de varios proveedores y busca SKU, variantes y nombre
   fireEvent.click(within(dialog).getByRole('checkbox', { name: /Jabón/ }));
   fireEvent.click(within(dialog).getByRole('button', { name: 'Revisar selección (2)' }));
   expect(within(dialog).queryByText(/Perfume/)).not.toBeInTheDocument();
-  const confirm = within(dialog).getByRole('button', { name: 'Borrar 2 productos' });
+  const confirm = within(dialog).getByRole('button', { name: 'Confirmar borrado' });
   expect(confirm).toBeDisabled();
   fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'BORRAR' } });
   fireEvent.click(confirm);
-  await waitFor(() => expect(screen.getByText('2 productos borrados · 0 errores')).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByText(/Se eliminaron/)).toBeInTheDocument());
   expect(axios.post.mock.calls[0][1]).toEqual({ proveedores: ['A, SA', 'Otro'] });
   expect(axios.post.mock.calls[1][1]).toEqual({ proveedores: vista.proveedores, productos: ['doc1', 'doc2'], confirmacion: 'BORRAR', comprobante: 'preview' });
 });
@@ -50,7 +49,7 @@ test('selecciona productos de varios proveedores y busca SKU, variantes y nombre
 test('seleccionar visibles respeta la búsqueda y muestra errores parciales', async () => {
   axios.post.mockResolvedValueOnce({ data: vista });
   axios.post.mockResolvedValueOnce({ data: { ok: false, borrados: [], errores: [{ id_original: 'P2', nombre: 'Jabón', mensaje: 'No se pudo borrar' }] } });
-  render(<ExportacionProveedoresAdmin />);
+  render(<ExportacionProveedoresAdmin modoEliminar />);
   fireEvent.click(await screen.findByRole('checkbox', { name: 'A, SA' }));
   fireEvent.click(screen.getByRole('checkbox', { name: 'Otro' }));
   fireEvent.click(screen.getByRole('button', { name: 'Seleccionar productos para borrar' }));
@@ -59,7 +58,32 @@ test('seleccionar visibles respeta la búsqueda y muestra errores parciales', as
   fireEvent.click(within(dialog).getByRole('button', { name: 'Seleccionar visibles' }));
   fireEvent.click(within(dialog).getByRole('button', { name: 'Revisar selección (1)' }));
   fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'BORRAR' } });
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Borrar 1 producto' }));
-  expect(await screen.findByText(/P2 · Jabón: No se pudo borrar/)).toBeInTheDocument();
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar borrado' }));
+  expect(await screen.findByText(/Jabón: No se pudo borrar/)).toBeInTheDocument();
   expect(axios.post.mock.calls[1][1].productos).toEqual(['doc2']);
+});
+
+test('revisa producto y variante de otro producto y ejecuta ambas etapas', async () => {
+  const variant = { id: 12, id_original: 'V12', sku_ean: 'EAN12', volumen: '50 ml', color_nombre: '', publicado: true };
+  const producto = { documentId: 'doc2', id_original: 'P2', nombre: 'Jabón', sku: 'SKU2', proveedor: 'Otro', variantes: [variant] };
+  const initial = { ...vista, productos: [vista.productos[0], producto] };
+  axios.post.mockResolvedValueOnce({ data: initial });
+  axios.post.mockResolvedValueOnce({ data: { borrados: [{ documentId: 'doc1', nombre: 'Crema' }], errores: [] } });
+  axios.post.mockResolvedValueOnce({ data: { ...initial, comprobante: 'nuevo', productos: [producto] } });
+  axios.post.mockResolvedValueOnce({ data: { ok: true } });
+  render(<ExportacionProveedoresAdmin modoEliminar />);
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'A, SA' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Otro' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Seleccionar productos para borrar' }));
+  const dialog = await screen.findByRole('dialog');
+  fireEvent.click(within(dialog).getByRole('checkbox', { name: /Crema/ }));
+  fireEvent.click(within(dialog).getByText('Variantes'));
+  fireEvent.click(within(dialog).getByRole('checkbox', { name: /EAN12/ }));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Revisar selección (2)' }));
+  expect(within(dialog).getByText(/variantes individuales de otros productos/)).toHaveTextContent('1 variantes individuales');
+  fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'BORRAR' } });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar borrado' }));
+  await waitFor(() => expect(axios.post).toHaveBeenCalledTimes(4));
+  expect(axios.post.mock.calls[3][1]).toMatchObject({ producto: 'doc2', variante: 12, comprobante: 'nuevo' });
+  expect(await screen.findByText('Borrado completado')).toBeInTheDocument();
 });

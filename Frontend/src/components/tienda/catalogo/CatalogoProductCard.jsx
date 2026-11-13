@@ -321,7 +321,7 @@ export default function CatalogoProductCard({ product, strapiUrl }) {
   const marca = attrs.marca;
   const descuento = attrs.descuento || 0;
 
-  const variantes = attrs.variantes || [];
+  const variantes = (attrs.variantes || []).filter(v => v.publicado !== false);
 
   // Extraer colores
   const variantesConColor = variantes.filter(v => v.color_nombre);

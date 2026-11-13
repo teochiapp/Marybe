@@ -19,6 +19,7 @@ const {
   calcPct,
   construirHojaVariantes,
   mensajeIdsProductos,
+  destacarMensajeIds,
 } = require('../../../utils/excel-utils');
 
 // ─── Traer TODOS los productos de Strapi con paginación ──────────────────────
@@ -114,9 +115,9 @@ async function generarExcel(strapi) {
   wsP.mergeCells('A2:R2');
   const instrP     = wsP.getCell('A2');
   instrP.value     = `⚠ Exportación generada el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Categoría, Subcategoría y Tipo tienen listas desplegables en cascada; Sección se selecciona por separado.`;
-  instrP.value += `\n${mensajeIds}`;
   applyStyle(instrP, noteStyle());
-  wsP.getRow(2).height = 44;
+  destacarMensajeIds(instrP, instrP.value, mensajeIds);
+  wsP.getRow(2).height = 60;
 
   // Columnas con anchos
   const colDefsP = [
@@ -348,6 +349,7 @@ async function generarExcel(strapi) {
   // HOJA 2: VARIANTES (A–L)
   // ══════════════════════════════════════════════════════════════════════════
   const { productosSinVariante } = construirHojaVariantes(wb, productos, refs, {
+    mensajeIds,
     extraRows: EXTRA_ROWS,
   });
 
@@ -416,9 +418,9 @@ async function generarExcelVacio(strapi) {
   wsP.mergeCells('A2:R2');
   const instrP     = wsP.getCell('A2');
   instrP.value     = `⚠ PLANTILLA PARA ALTA — Completá solo productos NUEVOS. Borrá las filas de EJEMPLO antes de importar. El ID Original debe ser único y no existir en el catálogo actual. Generada el ${new Date().toLocaleString('es-AR')}.`;
-  instrP.value += `\n${mensajeIds}`;
   applyStyle(instrP, noteStyle());
-  wsP.getRow(2).height = 44;
+  destacarMensajeIds(instrP, instrP.value, mensajeIds);
+  wsP.getRow(2).height = 60;
 
   // Columnas con anchos (igual que generarExcel)
   const colDefsP = [
@@ -629,6 +631,7 @@ async function generarExcelVacio(strapi) {
     },
   ];
   construirHojaVariantes(wb, [{ id_original: 'EJEMPLO-002', _variantesEjemplo: variantesEjemplo }], refs, {
+    mensajeIds,
     title: '🔗 MARYBE — Variantes de Nuevos Productos',
     instruction: '⚠ Una fila por variante. "ID Producto Padre" debe coincidir con el "ID Original" de la hoja Productos. El ID de variante es automático. Borrá las filas de EJEMPLO antes de importar.',
     extraRows: EXTRA_ROWS,

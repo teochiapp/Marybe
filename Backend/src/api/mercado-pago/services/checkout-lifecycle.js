@@ -59,6 +59,16 @@ function validPayment(order, payment) {
     && Math.round(Number(payment.transaction_amount) * 100) === Math.round(Number(order.total) * 100);
 }
 
+function resolveOrderVariant(variants, item) {
+  const list = Array.isArray(variants) ? variants : [];
+  const hasOriginal = item.id_variante_original !== null && item.id_variante_original !== undefined && String(item.id_variante_original) !== '';
+  const byId = item.id_variante != null ? list.filter(v => String(v.id) === String(item.id_variante)) : [];
+  if (byId.length === 1 && (!hasOriginal || String(byId[0].id_original) === String(item.id_variante_original))) return byId[0];
+  if (!hasOriginal) return null;
+  const byOriginal = list.filter(v => v.id_original != null && String(v.id_original) === String(item.id_variante_original));
+  return byOriginal.length === 1 ? byOriginal[0] : null;
+}
+
 async function fulfill(order, trx) {
   return withFulfillmentLock(async () => {
     const items = order.productos || [];
@@ -73,7 +83,7 @@ async function fulfill(order, trx) {
       const quantity = Number(item.cantidad);
       if (!Number.isInteger(quantity) || quantity < 1) throw new Error('Cantidad inválida en pedido.');
       if (item.id_variante || item.id_variante_original) {
-        const variant = product.variantes?.find(v => item.id_variante ? String(v.id) === String(item.id_variante) : String(v.id_original) === String(item.id_variante_original));
+        const variant = resolveOrderVariant(product.variantes, item);
         if (!variant || Number(variant.stock) < quantity) throw new Error(`Stock insuficiente al acreditar ${order.numero_pedido}. Revisar pago recibido.`);
         await strapi.db.query('producto.variante').update({ where: { id: variant.id }, data: { stock: Number(variant.stock) - quantity } });
       } else {
@@ -114,4 +124,4 @@ function publicStatus(order) {
   return { reference: order.numero_pedido, estado: order.estado, status, pagado: isPaid(order) && !['refunded', 'charged_back'].includes(status) };
 }
 
-module.exports = { UID, newCheckout, findOrder, authorize, withOrder, validPayment, fulfill, publicStatus, isPaid };
+module.exports = { UID, newCheckout, findOrder, authorize, withOrder, validPayment, fulfill, publicStatus, isPaid, resolveOrderVariant };

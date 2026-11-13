@@ -135,6 +135,7 @@ function construirHojaVariantes(wb, productos, refs, options = {}) {
   const {
     title = '🔗 MARYBE — Variantes exportadas',
     instruction = '⚠ Una fila por variante. "ID Producto Padre" debe coincidir con el "ID Original" de la hoja Productos. Para variantes nuevas completá desde ID Producto Padre (el ID interno es automático). Columnas C e I son calculadas.',
+    mensajeIds = '',
     parentSheetName = '📦 Productos',
     parentNameCol = 'C',
     parentNameColIdx = 3,
@@ -161,7 +162,8 @@ function construirHojaVariantes(wb, productos, refs, options = {}) {
   const instrV = wsV.getCell('B2');
   instrV.value = instruction;
   applyStyle(instrV, noteStyle());
-  wsV.getRow(2).height = 28;
+  if (mensajeIds) destacarMensajeIds(instrV, instruction, mensajeIds);
+  wsV.getRow(2).height = mensajeIds ? 60 : 28;
 
   const colDefsV = [
     { header: 'ID Variante (auto)',       width: 16, color: C.coral,      note: 'Columna oculta: ID interno autogenerado si queda vacía' },
@@ -326,6 +328,17 @@ function construirHojaVariantes(wb, productos, refs, options = {}) {
   return { wsV, rowIdxV, productosSinVariante };
 }
 
+function destacarMensajeIds(cell, instruction, mensaje) {
+  const match = mensaje.match(/Para productos nuevos, sugerencia desde \d+/);
+  if (!match) { cell.value = `${instruction}\n${mensaje}`; return; }
+  const index = match.index;
+  cell.value = { richText: [
+    { text: `${instruction}\n${mensaje.slice(0, index)}` },
+    { text: match[0], font: { bold: true, size: 15, color: { argb: 'FF7C0405' } } },
+    { text: mensaje.slice(index + match[0].length) },
+  ] };
+}
+
 async function mensajeIdsProductos(strapi) {
   let min = null;
   let max = null;
@@ -365,4 +378,5 @@ module.exports = {
   filtrarVariantesComerciales,
   construirHojaVariantes,
   mensajeIdsProductos,
+  destacarMensajeIds,
 };

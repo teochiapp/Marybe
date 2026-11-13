@@ -725,7 +725,7 @@ export default function SingleProductInfo({ producto, onVariantSelect }) {
   const [addingCart, setAddingCart] = useState(false);
 
   const { nombre, marca, descripcion, descuento, caracteristicas } = producto || {};
-  const variantes = producto?.variantes || [];
+  const variantes = (producto?.variantes || []).filter(v => v.publicado !== false);
 
   // ── Colores: extraer variantes únicas que tienen color_nombre ──
   const variantesConColor = variantes.filter(v => v.color_nombre);
@@ -767,7 +767,7 @@ export default function SingleProductInfo({ producto, onVariantSelect }) {
   }
 
   const { price, offerPrice, calcDescuento, tieneOferta } = getVariantPrice(activeVariant, producto);
-  const stock = activeVariant?.stock ?? producto?.stock ?? 0;
+  const stock = producto?.variantes?.length && !variantes.length ? 0 : (activeVariant?.stock ?? producto?.stock ?? 0);
 
   // Notificamos a ProductoSingle cuando cambia la variante seleccionada
   useEffect(() => {

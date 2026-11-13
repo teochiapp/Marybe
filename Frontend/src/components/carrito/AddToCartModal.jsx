@@ -217,8 +217,8 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
     if (isOpen) {
       setMode(initialMode);
       setQty(addedQty || 1);
-      const variants = (product?.attributes || product)?.variantes || [];
-      const initialVariant = addedVariant || variantesReales(variants).find(v => v.publicado !== false && Number(v.stock) > 0) || variants[0];
+      const variants = ((product?.attributes || product)?.variantes || []).filter(v => v.publicado !== false);
+      const initialVariant = (addedVariant?.publicado !== false && addedVariant) || variantesReales(variants).find(v => Number(v.stock) > 0) || variants[0];
       const options = sortSizes([...new Set(variants.map(v => v.volumen || 'Único'))]);
       setSelectedSize(Math.max(0, options.indexOf(initialVariant?.volumen || 'Único')));
       setSelectedColor(initialVariant?.color_nombre || null);
@@ -230,7 +230,7 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
 
   // Derive variants info
   const attrs = product.attributes || product;
-  const variantes = attrs.variantes || [];
+  const variantes = (attrs.variantes || []).filter(v => v.publicado !== false);
   
   const variantesConColor = variantes.filter(v => v.color_nombre);
   const colorMap = new Map();
@@ -263,7 +263,7 @@ export default function AddToCartModal({ isOpen, onClose, product, initialMode =
     }
   }
 
-  const stock = activeVariant?.stock ?? attrs?.stock ?? 0;
+  const stock = (attrs.variantes || []).length && !variantes.length ? 0 : (activeVariant?.stock ?? attrs?.stock ?? 0);
   const variantPriceInfo = getVariantPrice(activeVariant, attrs);
   const price = variantPriceInfo.tieneOferta ? variantPriceInfo.offerPrice : variantPriceInfo.price;
 

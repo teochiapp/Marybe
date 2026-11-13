@@ -18,6 +18,7 @@ const {
   filtrarVariantesComerciales,
   construirHojaVariantes,
   mensajeIdsProductos,
+  destacarMensajeIds,
 } = require('../../../utils/excel-utils');
 
 const UID_PRODUCTO = 'api::producto.producto';
@@ -98,7 +99,7 @@ async function vistaBorrado(strapi, proveedores) {
     const page = await strapi.documents(UID_PRODUCTO).findMany({
       filters: { proveedor: { $in: proveedores } }, status: 'published', start, limit: PAGE_SIZE,
       fields: ['id_original', 'nombre', 'sku', 'proveedor', 'updatedAt'],
-      populate: { variantes: { fields: ['sku_ean'] } },
+      populate: { variantes: { fields: ['sku_ean', 'id_original', 'volumen', 'color_nombre', 'publicado'] } },
     });
     productos.push(...page);
     if (page.length < PAGE_SIZE) break;
@@ -110,6 +111,7 @@ async function vistaBorrado(strapi, proveedores) {
       return {
       documentId: p.documentId, id_original: p.id_original || '', nombre: p.nombre || '',
       sku: p.sku || '', skuVariantes: (p.variantes || []).map(v => v.sku_ean || '').filter(Boolean).sort(),
+      variantes: (p.variantes || []).map(v => ({ id: v.id, id_original: v.id_original || '', sku_ean: v.sku_ean || '', volumen: v.volumen || '', color_nombre: v.color_nombre || '', publicado: v.publicado !== false })),
       proveedor: p.proveedor, updatedAt: p.updatedAt || null,
       draftUpdatedAt: draft?.updatedAt || null, draftProveedor: draft?.proveedor ?? null,
       };
@@ -122,6 +124,36 @@ async function vistaBorrado(strapi, proveedores) {
 
 function hashVistaBorrado(productos) {
   return crypto.createHash('sha256').update(JSON.stringify(productos)).digest('hex');
+}
+
+async function borrarVariante(strapi, snapshot, variantId) {
+  const uid = 'producto.variante';
+  return strapi.db.transaction(async ({ trx }) => {
+    const table = strapi.db.metadata.get(UID_PRODUCTO).tableName;
+    const client = strapi.db.connection.client.config.client;
+    const schema = strapi.db.getSchemaName?.();
+    const query = () => schema ? trx(table).withSchema(schema) : trx(table);
+    if (client === 'sqlite' || client === 'sqlite3' || client === 'better-sqlite3') {
+      await query().where({ document_id: snapshot.documentId }).update({ document_id: snapshot.documentId });
+    } else {
+      await query().where({ document_id: snapshot.documentId }).orderBy('id', 'asc').forUpdate().select('id');
+    }
+    const rows = await strapi.db.query(UID_PRODUCTO).findMany({ where: { documentId: snapshot.documentId }, populate: ['variantes'] });
+    const published = rows.find(p => p.publishedAt);
+    const draft = rows.find(p => !p.publishedAt);
+    if (!published || !draft || published.updatedAt !== snapshot.updatedAt || draft.updatedAt !== snapshot.draftUpdatedAt) throw new Error('Producto modificado');
+    const target = published.variantes.find(v => v.id === variantId);
+    if (!target) throw new Error('Variante inexistente');
+    const key = target.id_original && String(target.id_original).trim();
+    if (!key) throw new Error('Variante sin ID estable');
+    const pubMatches = published.variantes.filter(v => String(v.id_original || '').trim() === key);
+    const draftMatches = draft.variantes.filter(v => String(v.id_original || '').trim() === key);
+    if (pubMatches.length !== 1 || draftMatches.length !== 1) throw new Error('Identidad ambigua en borrador o publicación');
+    await strapi.db.query(uid).delete({ where: { id: pubMatches[0].id } });
+    await strapi.db.query(uid).delete({ where: { id: draftMatches[0].id } });
+    await strapi.db.query(UID_PRODUCTO).update({ where: { id: published.id }, data: {} });
+    await strapi.db.query(UID_PRODUCTO).update({ where: { id: draft.id }, data: {} });
+  });
 }
 
 async function borrarVista(strapi, productos) {
@@ -238,9 +270,9 @@ async function generarExcelProveedor(strapi, proveedores) {
   ws.mergeCells('A2:S2');
   const instr = ws.getCell('A2');
   instr.value = `⚠ Generado el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Variantes indentadas (↳) para editar Precio/Stock/SKU. Para crear nuevas variantes o editar Volumen/Color, usá la hoja "🔗 Variantes". Precio Oferta vacío quita la oferta; % Desc. es informativo.`;
-  instr.value += `\n${mensajeIds}`;
   applyStyle(instr, noteStyle());
-  ws.getRow(2).height = 44;
+  destacarMensajeIds(instr, instr.value, mensajeIds);
+  ws.getRow(2).height = 60;
 
   // ── Fila 3: Headers ───────────────────────────────────────────────────────
   const rowHeader = ws.getRow(3);
@@ -553,6 +585,7 @@ async function generarExcelProveedor(strapi, proveedores) {
 
   // ── Hoja 2: Variantes (A–L, misma estructura que exportación general, agrupadas por producto) ──
   construirHojaVariantes(wb, productos, refs, {
+    mensajeIds,
     title: `🔗 MARYBE — Variantes por Proveedor: ${provNombres} (${new Date().toLocaleDateString('es-AR')})`,
     instruction: '⚠ Una fila por variante, agrupadas por producto. "ID Producto Padre" debe coincidir con el "ID Producto" en Precios por Proveedor. Podés agregar nuevas filas sin completar ID (se genera automáticamente).',
     parentSheetName: '💲 Precios por Proveedor',
@@ -582,5 +615,6 @@ module.exports = () => ({
   vistaBorrado,
   hashVistaBorrado,
   borrarVista,
+  borrarVariante,
   generarExcelProveedor,
 });

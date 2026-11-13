@@ -92,7 +92,7 @@ function RootRoute() {
 
 function App() {
   const location = useLocation();
-  const bannerStudio = ['/banners-preview', '/editor-inicio-preview'].includes(location.pathname) || /^\/(admin|pedidos-admin|gift-cards-admin|editor-admin|importacion-admin|exportacion-admin|comparacion-admin|exportacion-proveedores-admin|banners-admin|editor-inicio-admin|configuracion-admin|sucursales-admin|historia-admin)(\/|$)/.test(location.pathname);
+  const bannerStudio = ['/banners-preview', '/editor-inicio-preview'].includes(location.pathname) || /^\/(admin|pedidos-admin|gift-cards-admin|editor-admin|importacion-admin|exportacion-admin|comparacion-admin|exportacion-proveedores-admin|eliminar-productos-admin|banners-admin|editor-inicio-admin|configuracion-admin|sucursales-admin|historia-admin)(\/|$)/.test(location.pathname);
   return (
     <AuthProvider>
       <LazyMotion features={domAnimation}>
@@ -145,6 +145,7 @@ function App() {
               <Route path="/exportacion-admin" element={<ExportacionAdmin />} />
               <Route path="/comparacion-admin" element={<ComparacionAdmin />} />
               <Route path="/exportacion-proveedores-admin" element={<ExportarProveedorAdmin />} />
+              <Route path="/eliminar-productos-admin" element={<ExportarProveedorAdmin modoEliminar />} />
               <Route path="/pedidos-admin" element={<PedidosAdmin />} />
               <Route path="/editor-admin" element={<EditorAdmin />} />
               <Route path="/banners-admin" element={<BannersAdmin />} />

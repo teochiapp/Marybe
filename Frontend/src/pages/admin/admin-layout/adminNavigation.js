@@ -9,6 +9,7 @@ export const ADMIN_GROUPS = [
     { path: '/exportacion-admin', label: 'Exportaciones', icon: 'export' },
     { path: '/comparacion-admin', label: 'Comparación', icon: 'compare' },
     { path: '/exportacion-proveedores-admin', label: 'Exportación por Proveedores', icon: 'supplier' },
+    { path: '/eliminar-productos-admin', label: 'Eliminar Productos', icon: 'products' },
   ] },
   { title: 'Diseño', items: [
     { path: '/editor-inicio-admin', label: 'Editor de Inicio', icon: 'home' },

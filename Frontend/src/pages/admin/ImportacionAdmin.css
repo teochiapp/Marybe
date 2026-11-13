@@ -273,16 +273,37 @@
   justify-content: center; padding: 16px; background: rgba(15, 10, 20, 0.76);
 }
 .ia-delete-dialog {
-  width: min(100%, 600px); max-height: 90vh; overflow-y: auto; padding: 24px;
+  box-sizing: border-box; width: min(100%, 900px); max-height: 90vh; max-height: 90dvh; overflow-y: auto; padding: clamp(18px, 3vw, 32px);
   background: #fff; border-radius: 16px; color: #302224; box-shadow: 0 24px 80px rgba(0,0,0,.35);
 }
 .ia-delete-dialog h2 { margin: 0 0 14px; color: #5c0a0a; font-size: 1.2rem; }
 .ia-delete-dialog p { line-height: 1.5; font-size: .9rem; }
-.ia-delete-list { max-height: 280px; overflow: auto; padding: 6px; background: #faf4f4; border: 1px solid #e5d4d4; border-radius: 8px; margin: 10px 0 16px; }
+.ia-delete-list { max-height: min(50vh, 560px); max-height: min(50dvh, 560px); overflow: auto; padding: 6px; background: #faf4f4; border: 1px solid #e5d4d4; border-radius: 8px; margin: 10px 0 16px; }
 .ia-delete-product { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border-bottom: 1px solid #eadfdf; cursor: pointer; }
 .ia-delete-product input { flex-shrink: 0; accent-color: #5c0a0a; margin-top: 4px; }
 .ia-delete-product span { min-width: 0; overflow-wrap: anywhere; }
 .ia-delete-product small { display: block; color: #665657; margin-top: 3px; }
+.ia-delete-card { background: #fff; border: 1px solid #e8d9d9; border-radius: 10px; margin: 7px; overflow: hidden; }
+.ia-delete-card .ia-delete-product { border: 0; padding: 14px; }
+.ia-delete-card .ia-delete-product:hover { background: #fff8f6; }
+.ia-delete-variants { border-top: 1px solid #f0e4e2; padding: 0 14px 12px 40px; }
+.ia-delete-variants summary { color: #6c1013; cursor: pointer; font-size: .85rem; font-weight: 700; padding: 12px 0; }
+.ia-delete-variants summary span { background: #f5e5e3; border-radius: 999px; padding: 2px 8px; }
+.ia-delete-variants-list { display: grid; gap: 7px; }
+.ia-delete-variant { display: flex; align-items: flex-start; justify-content: flex-start; gap: 12px; background: #faf6f5; border: 1px solid #eee0de; border-radius: 8px; padding: 12px; cursor: pointer; transition: background .15s, border-color .15s; }
+.ia-delete-variant:hover { background: #fff4f2; border-color: #d3a8a4; }
+.ia-delete-variant:has(input:checked) { background: #fff1ed; border-color: #9c3433; box-shadow: inset 3px 0 #8b191b; }
+.ia-delete-variant:has(input:disabled) { opacity: .6; cursor: not-allowed; }
+.ia-delete-variant input[type="checkbox"] { appearance: auto; accent-color: #8b191b; flex: 0 0 18px; width: 18px; height: 18px; margin: 1px 0 0; padding: 0; cursor: inherit; }
+.ia-delete-variant input:focus-visible { outline: 2px solid #a77820; outline-offset: 3px; }
+.ia-delete-variant-info { min-width: 0; overflow-wrap: anywhere; font-size: .85rem; }
+.ia-delete-variant-info strong, .ia-delete-variant-info small { display: block; }
+.ia-delete-variant-info small { color: #735f5d; margin-top: 4px; }
+.ia-delete-variant-button { background: #fff; border: 1px solid #c97b79; border-radius: 7px; color: #8b191b; cursor: pointer; flex-shrink: 0; font: inherit; font-size: .8rem; font-weight: 700; padding: 8px 10px; }
+.ia-delete-variant-button:hover:not(:disabled) { background: #8b191b; color: #fff; }
+.ia-delete-variant-button:focus-visible, .ia-delete-variants summary:focus-visible { outline: 2px solid #a77820; outline-offset: 2px; }
+.ia-delete-variant-button:disabled { cursor: not-allowed; opacity: .5; }
+@media (max-width: 560px) { .ia-delete-variants { padding-left: 14px; } .ia-delete-variant { gap: 10px; } }
 .ia-delete-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: .85rem; }
 .ia-delete-link { border: 0; background: transparent; color: #6b1010; text-decoration: underline; cursor: pointer; padding: 3px; font: inherit; }
 .ia-delete-confirm-list { max-height: 200px; overflow-y: auto; padding: 12px 12px 12px 32px; background: #faf4f4; border-radius: 8px; overflow-wrap: anywhere; }

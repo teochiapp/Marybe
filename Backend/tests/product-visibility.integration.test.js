@@ -24,6 +24,62 @@ test('el producto solo se oculta cuando ni el padre ni sus variantes tienen prec
   try {
     const create = data => app.documents(UID).create({ status: 'published', data: { publicado: true, ...data } });
     const conVariantes = await create({ nombre: 'VIS Padre vacio con variantes', id_original: 'VIS-A', marca: 'GIVENCHY', precio: null, variantes: [variante('A1', 5200), variante('A2', 5900, 5500)] });
+    const borradoPrueba = await create({ nombre: 'VIS Borrado variante', id_original: 'VIS-DELETE', proveedor: 'Prueba', variantes: [variante('DELETE-A', 1000), variante('DELETE-B', 2000)] });
+    const borradoServicio = app.service('api::exportacion-proveedores-admin.exportacion-proveedores-admin');
+    await app.documents(UID).update({ documentId: borradoPrueba.documentId, data: { nombre: 'Nombre en borrador' } });
+    const vista = await borradoServicio.vistaBorrado(app, ['Prueba']);
+    const vistaObsoleta = vista[0];
+    const intentos = await Promise.allSettled([1, 2].map(() => borradoServicio.borrarVariante(app, vista[0], vista[0].variantes.find(v => v.id_original === 'DELETE-A').id)));
+    assert.equal(intentos.filter(v => v.status === 'fulfilled').length, 1);
+    assert.equal(intentos.filter(v => v.status === 'rejected').length, 1);
+    await assert.rejects(() => borradoServicio.borrarVariante(app, vistaObsoleta, vistaObsoleta.variantes.find(v => v.id_original === 'DELETE-A').id));
+    const publicacionBorrado = await app.documents(UID).findOne({ documentId: borradoPrueba.documentId, status: 'published', populate: ['variantes'] });
+    assert.deepEqual(publicacionBorrado.variantes.map(v => v.id_original), ['DELETE-B']);
+    const antes = await app.documents(UID).findOne({ documentId: borradoPrueba.documentId, status: 'draft', populate: ['variantes'] });
+    assert.equal(antes.nombre, 'Nombre en borrador');
+    assert.deepEqual(antes.variantes.map(v => v.id_original), ['DELETE-B']);
+    const exportado = await borradoServicio.generarExcelProveedor(app, ['Prueba']);
+    const workbook = new (require('exceljs').Workbook)();
+    await workbook.xlsx.load(exportado.buffer);
+    const variantesExcel = workbook.getWorksheet('🔗 Variantes');
+    const textosExcel = JSON.stringify(variantesExcel.getSheetValues());
+    assert.equal(textosExcel.includes('DELETE-A'), false);
+    assert.equal(textosExcel.includes('DELETE-B'), true);
+    const restante = antes.variantes.find(v => v.id_original === 'DELETE-B');
+    await app.documents(UID).update({ documentId: borradoPrueba.documentId, data: { variantes: [{ id: restante.id }] } });
+    const draftDespues = await app.documents(UID).findOne({ documentId: borradoPrueba.documentId, status: 'draft', populate: ['variantes'] });
+    assert.deepEqual(draftDespues.variantes.map(v => v.id_original), ['DELETE-B']);
+    assert.equal(Number(draftDespues.variantes[0].precio), 2000);
+    await app.documents(UID).delete({ documentId: borradoPrueba.documentId });
+    const concurrente = await create({ nombre: 'VIS Concurrencia', id_original: 'VIS-RACE', proveedor: 'Carrera', variantes: [variante('RACE-A', 1000), variante('RACE-B', 2000)] });
+    const vistaCarrera = (await borradoServicio.vistaBorrado(app, ['Carrera']))[0];
+    const carrera = await Promise.allSettled([
+      borradoServicio.borrarVariante(app, vistaCarrera, vistaCarrera.variantes.find(v => v.id_original === 'RACE-A').id),
+      app.documents(UID).update({ documentId: concurrente.documentId, data: { nombre: 'Nombre editado concurrente' } }),
+    ]);
+    const draftCarrera = await app.documents(UID).findOne({ documentId: concurrente.documentId, status: 'draft', populate: ['variantes'] });
+    const publicadaCarrera = await app.documents(UID).findOne({ documentId: concurrente.documentId, status: 'published', populate: ['variantes'] });
+    if (carrera[1].status === 'fulfilled') assert.equal(draftCarrera.nombre, 'Nombre editado concurrente');
+    assert.equal(draftCarrera.variantes.some(v => v.id_original === 'RACE-A'), publicadaCarrera.variantes.some(v => v.id_original === 'RACE-A'));
+    await app.documents(UID).delete({ documentId: concurrente.documentId });
+    for (const editarPrimero of [false, true]) {
+      const suffix = editarPrimero ? 'E' : 'B';
+      const p = await create({ nombre: 'Prueba de carrera', id_original: `CARRERA-${suffix}`, proveedor: `Concurrencia-${suffix}`, variantes: [variante(`A-${suffix}`, 1000), variante(`B-${suffix}`, 2000)] });
+      const snapshot = (await borradoServicio.vistaBorrado(app, [`Concurrencia-${suffix}`]))[0];
+      const draftInicial = await app.documents(UID).findOne({ documentId: p.documentId, status: 'draft', populate: ['variantes'] });
+      const borrar = () => borradoServicio.borrarVariante(app, snapshot, snapshot.variantes.find(v => v.id_original === `A-${suffix}`).id);
+      const editar = () => app.documents(UID).update({ documentId: p.documentId, data: { variantes: draftInicial.variantes.map(v => v.id_original === `B-${suffix}` ? { id: v.id, precio: 3300 } : { id: v.id }) } });
+      const operaciones = editarPrimero ? [editar(), borrar()] : [borrar(), editar()];
+      const resultados = await Promise.allSettled(operaciones);
+      const editResult = resultados[editarPrimero ? 0 : 1];
+      const deleteResult = resultados[editarPrimero ? 1 : 0];
+      const d = await app.documents(UID).findOne({ documentId: p.documentId, status: 'draft', populate: ['variantes'] });
+      const pub = await app.documents(UID).findOne({ documentId: p.documentId, status: 'published', populate: ['variantes'] });
+      assert.equal(d.variantes.some(v => v.id_original === `A-${suffix}`), pub.variantes.some(v => v.id_original === `A-${suffix}`));
+      if (deleteResult.status === 'fulfilled') assert.equal(pub.variantes.some(v => v.id_original === `A-${suffix}`), false);
+      if (editResult.status === 'fulfilled') assert.equal(Number(d.variantes.find(v => v.id_original === `B-${suffix}`).precio), 3300);
+      await app.documents(UID).delete({ documentId: p.documentId });
+    }
     const variantesSinPrecio = await create({ nombre: 'VIS Padre y variantes sin precio', id_original: 'VIS-B', marca: 'GIVENCHY', precio: null, variantes: [variante('B1', 0), variante('B2', 0)] });
     const soloPadre = await create({ nombre: 'VIS Solo padre con precio', id_original: 'VIS-C', precio: 3000 });
     const vacio = await create({ nombre: 'VIS Sin precio ni variantes', id_original: 'VIS-D', precio: null });
