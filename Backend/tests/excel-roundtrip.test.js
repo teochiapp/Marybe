@@ -691,10 +691,63 @@ test('exportacion deduplica variantes repetidas e importacion bloquea IDs de var
   assert.equal(preview.length, 1);
   assert.equal(preview[0].antes, 3);
   assert.equal(preview[0].despues, 2);
+  assert.equal(preview[0].clonesEliminados, 1);
+  assert.equal(preview[0].idsReasignados, 0);
   assert.equal(state.updates.length, 0);
 
   await limpiarVariantesDuplicadas(strapi, { apply: true });
   assert.equal(state.product.variantes.length, 2);
+
+  // Variantes distintas que comparten el mismo id_original (dentro del mismo producto y entre productos)
+  // NO deben eliminarse; deben conservarse todas con IDs reasignados y sincronizados entre published y draft.
+  const prodA = {
+    documentId: 'doc-16050',
+    id_original: '16050',
+    nombre: 'RUBOR',
+    variantes: [
+      { id: 1, id_original: '20000', sku_ean: 'EAN-1', volumen: 'Cupido', stock: 2, precio: 100 },
+      { id: 2, id_original: '20000', sku_ean: 'EAN-2', volumen: 'Enamorada', stock: 2, precio: 100 },
+    ],
+  };
+  const prodB = {
+    documentId: 'doc-16051',
+    id_original: '16051',
+    nombre: 'BASE',
+    variantes: [
+      { id: 3, id_original: '20000', sku_ean: 'EAN-3', volumen: 'Glamour', stock: 2, precio: 200 },
+      { id: 4, id_original: '20000', sku_ean: 'EAN-4', volumen: 'Petalo', stock: 2, precio: 200 },
+    ],
+  };
+  assert.equal(filtrarVariantesComerciales('16050', prodA.variantes).length, 2);
+  const storeCol = { published: [structuredClone(prodA), structuredClone(prodB)], draft: [structuredClone(prodA), structuredClone(prodB)] };
+  const fakeAppCol = {
+    documents: () => ({
+      async findMany({ status = 'published', start = 0, limit = 100 }) {
+        return (storeCol[status] || []).slice(start, start + limit);
+      },
+      async update({ documentId, data, status = 'published' }) {
+        const doc = storeCol[status].find(d => d.documentId === documentId);
+        if (doc) doc.variantes = data.variantes;
+        return doc;
+      },
+    }),
+  };
+  const colRes = await limpiarVariantesDuplicadas(fakeAppCol, { apply: true });
+  assert.equal(colRes.length, 2);
+  assert.equal(colRes[0].antes, 2);
+  assert.equal(colRes[0].despues, 2);
+  assert.equal(colRes[1].antes, 2);
+  assert.equal(colRes[1].despues, 2);
+  const allNewIds = [...storeCol.published[0].variantes, ...storeCol.published[1].variantes].map(v => v.id_original);
+  assert.equal(new Set(allNewIds).size, 4);
+  assert.deepEqual(
+    storeCol.draft[0].variantes.map(v => v.id_original),
+    storeCol.published[0].variantes.map(v => v.id_original)
+  );
+  assert.deepEqual(
+    storeCol.draft[1].variantes.map(v => v.id_original),
+    storeCol.published[1].variantes.map(v => v.id_original)
+  );
 
   // Bloqueo de ID de variante perteneciente a otro producto existente en BD
   const otroProducto = { id: 99, documentId: 'doc-p99', id_original: 'P99', sku: 'SKU-OTRO', proveedor: 'Otro', variantes: [{ id: 991, id_original: 'P99-1', sku_ean: 'EAN-OTRO' }] };

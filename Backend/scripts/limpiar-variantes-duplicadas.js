@@ -6,6 +6,17 @@ const { createStrapi } = require('@strapi/strapi');
 
 const UID_PRODUCTO = 'api::producto.producto';
 const PAGE_SIZE = 100;
+const MAX_SEQ_ID = 999999999;
+
+function norm(val) {
+  return String(val ?? '').trim().toLowerCase();
+}
+
+function claveClonVariante(v) {
+  const id = norm(v?.id_original);
+  if (!id) return null;
+  return `${id}|${norm(v?.sku_ean)}|${norm(v?.volumen)}|${norm(v?.color_nombre)}`;
+}
 
 function sanitizarVariante(v) {
   const out = {
@@ -24,27 +35,33 @@ function sanitizarVariante(v) {
   return out;
 }
 
+// Elimina únicamente clones exactos (mismo id_original + mismos atributos identificatorios),
+// preservando variantes distintas que por error compartan id_original.
 function deduplicarVariantes(variantes = []) {
-  const vistas = new Set();
+  const indicesPorClave = new Map();
   const limpias = [];
   for (const v of variantes) {
-    const key = String(v?.id_original ?? '').trim().toLowerCase();
+    const key = claveClonVariante(v);
     if (key) {
-      if (vistas.has(key)) continue;
-      vistas.add(key);
+      if (indicesPorClave.has(key)) {
+        const prevIdx = indicesPorClave.get(key);
+        if (!limpias[prevIdx]?.portada?.id && v?.portada?.id) {
+          limpias[prevIdx] = v;
+        }
+        continue;
+      }
+      indicesPorClave.set(key, limpias.length);
     }
     limpias.push(v);
   }
   return limpias;
 }
 
-async function limpiarVariantesDuplicadas(app, { apply = false } = {}) {
-  const docs = app.documents(UID_PRODUCTO);
-  const procesados = new Set();
-  const tareas = [];
-  const afectados = [];
+async function cargarProductos(docs) {
+  const porDoc = new Map();
+  const vistos = new Set();
 
-  for (const status of ['draft', 'published']) {
+  for (const status of ['published', 'draft']) {
     let start = 0;
     while (true) {
       const page = await docs.findMany({
@@ -58,28 +75,143 @@ async function limpiarVariantesDuplicadas(app, { apply = false } = {}) {
 
       for (const prod of page) {
         const key = `${status}:${prod.documentId}`;
-        if (procesados.has(key)) continue;
-        procesados.add(key);
+        if (vistos.has(key)) continue;
+        vistos.add(key);
 
-        const variantes = Array.isArray(prod.variantes) ? prod.variantes : [];
-        const limpias = deduplicarVariantes(variantes);
-        if (limpias.length === variantes.length) continue;
-
-        tareas.push({ documentId: prod.documentId, status, limpias });
-        if (!afectados.some(a => a.documentId === prod.documentId)) {
-          afectados.push({
+        if (!porDoc.has(prod.documentId)) {
+          porDoc.set(prod.documentId, {
             documentId: prod.documentId,
             id_original: prod.id_original,
             nombre: prod.nombre,
             proveedor: prod.proveedor,
-            antes: variantes.length,
-            despues: limpias.length,
+            estados: {},
           });
         }
+        porDoc.get(prod.documentId).estados[status] = Array.isArray(prod.variantes) ? prod.variantes : [];
       }
 
       if (page.length < PAGE_SIZE) break;
       start += page.length;
+    }
+  }
+  return porDoc;
+}
+
+async function limpiarVariantesDuplicadas(app, { apply = false } = {}) {
+  const docs = app.documents(UID_PRODUCTO);
+  const porDoc = await cargarProductos(docs);
+
+  const usedIds = new Set();
+  let maxSeqId = 0;
+
+  for (const doc of porDoc.values()) {
+    for (const status of ['published', 'draft']) {
+      const lista = doc.estados[status];
+      if (!lista) continue;
+      for (const v of lista) {
+        const raw = String(v?.id_original ?? '').trim();
+        if (!raw) continue;
+        usedIds.add(raw.toLowerCase());
+        if (/^\d+$/.test(raw)) {
+          const n = Number(raw);
+          if (n > maxSeqId && n <= MAX_SEQ_ID) maxSeqId = n;
+        }
+      }
+    }
+  }
+
+  let nextId = maxSeqId;
+  const reservarNuevoId = () => {
+    do {
+      nextId += 1;
+    } while (usedIds.has(String(nextId)));
+    const s = String(nextId);
+    usedIds.add(s);
+    return s;
+  };
+
+  const globalOwner = new Map();
+  const tareas = [];
+  const afectados = [];
+
+  for (const doc of porDoc.values()) {
+    const docReassignments = new Map();
+    let clonesDoc = 0;
+    let antesDoc = 0;
+    let despuesDoc = 0;
+    const detalleReasignados = [];
+    const statusesOrden = ['published', 'draft'].filter(s => Array.isArray(doc.estados[s]));
+
+    statusesOrden.forEach((status, statusIdx) => {
+      const vistosEnStatus = new Set();
+      const originales = doc.estados[status];
+      const sinClones = deduplicarVariantes(originales);
+      const clonesRemovedHere = originales.length - sinClones.length;
+      let reassignedHere = false;
+
+      const finales = sinClones.map(v => {
+        const idRaw = String(v?.id_original ?? '').trim();
+        const idNorm = idRaw.toLowerCase();
+        if (!idNorm) return v;
+
+        const fullKey = claveClonVariante(v);
+        if (statusIdx > 0 && fullKey && docReassignments.has(fullKey)) {
+          const nuevoId = docReassignments.get(fullKey);
+          vistosEnStatus.add(nuevoId);
+          reassignedHere = true;
+          return { ...v, id_original: nuevoId };
+        }
+
+        const ownerOtro = globalOwner.get(idNorm) && globalOwner.get(idNorm) !== doc.documentId;
+        const repetidoEnDoc = vistosEnStatus.has(idNorm);
+
+        if (repetidoEnDoc || ownerOtro) {
+          const nuevoId = reservarNuevoId();
+          globalOwner.set(nuevoId, doc.documentId);
+          vistosEnStatus.add(nuevoId);
+          if (fullKey) docReassignments.set(fullKey, nuevoId);
+          reassignedHere = true;
+          if (statusIdx === 0) {
+            detalleReasignados.push({
+              sku_ean: v.sku_ean ?? null,
+              volumen: v.volumen ?? null,
+              color_nombre: v.color_nombre ?? null,
+              anteriorId: idRaw,
+              nuevoId,
+            });
+          }
+          return { ...v, id_original: nuevoId };
+        }
+
+        vistosEnStatus.add(idNorm);
+        globalOwner.set(idNorm, doc.documentId);
+        return v;
+      });
+
+      if (statusIdx === 0) {
+        antesDoc = originales.length;
+        despuesDoc = finales.length;
+      }
+      clonesDoc = Math.max(clonesDoc, clonesRemovedHere);
+
+      if (clonesRemovedHere > 0 || reassignedHere) {
+        tareas.push({ documentId: doc.documentId, status, limpias: finales });
+      }
+    });
+
+    const tieneTareas = tareas.some(t => t.documentId === doc.documentId);
+    if (tieneTareas) {
+      afectados.push({
+        documentId: doc.documentId,
+        id_original: doc.id_original,
+        nombre: doc.nombre,
+        proveedor: doc.proveedor,
+        antes: antesDoc,
+        despues: despuesDoc,
+        clonesEliminados: clonesDoc,
+        idsReasignados: detalleReasignados.length,
+        ...(detalleReasignados.length > 0 ? { detalleReasignados } : {}),
+      });
     }
   }
 
