@@ -1,7 +1,8 @@
-import React, { useRef, useCallback, useEffect, useState } from 'react';
+import React, { useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { SECCION_ALINEACIONES, SECCION_COLORES, SECCION_ESPACIADOS, SECCION_FONDOS, SECCION_FUENTES, SECCION_PESOS, SECCION_TAMANOS, disenoSeccion } from '../../../utils/disenoSeccion';
+import { useSeccionPrincipalData } from '../../../context/SeccionPrincipalContext';
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 export const OFERTAS_TITULO = 'Disfrutá de las mejores ofertas';
@@ -132,22 +133,13 @@ const BadgeButton = styled.button`
 export default function OfertasSection({ seccion, previewData }) {
   const navigate = useNavigate();
   const isPreview = Boolean(previewData);
-  const [disenoApi, setDisenoApi] = useState(null);
-  const [loading, setLoading] = useState(!isPreview);
+  const { attrs: mainAttrs, loading } = useSeccionPrincipalData(
+    `${STRAPI_URL}/api/seccion-principal?fields[0]=diseno_secciones`,
+    { skip: isPreview }
+  );
   const area = seccion === 'hogar' ? 'hogar' : 'perfumeria';
+  const disenoApi = isPreview ? null : mainAttrs?.diseno_secciones?.ofertas || null;
   const diseno = disenoSeccion(isPreview ? previewData : disenoApi?.[area], OFERTAS_TITULO);
-
-  // Título y tipografía configurados en el Editor de Inicio; sin configuración se usa el diseño original.
-  useEffect(() => {
-    if (isPreview) return undefined;
-    let active = true;
-    fetch(`${STRAPI_URL}/api/seccion-principal?fields[0]=diseno_secciones`)
-      .then(res => res.json())
-      .then(json => { if (active) setDisenoApi(json?.data?.diseno_secciones?.ofertas || null); })
-      .catch(() => {})
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [isPreview]);
   const discountValores = [60, 50, 40, 35, 30, 25, 20, 15, 10];
   const scrollRef = useRef(null);
 

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import VisualBanners from '../../banners/VisualBanners';
 import BannerCarousel from '../../banners/BannerCarousel';
 import { isVideoMedia } from '../../../utils/bannerDesign';
+import { INICIO_CACHE_TTL_MS, fetchWithSWR, readCachedEntry } from '../../../utils/apiCache';
+import { isRequestCanceled } from '../../../utils/requestDedup';
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
@@ -251,71 +253,102 @@ const ResponsiveBanner = ({ banner, isCarousel, cols, peek }) => {
 
 const CarouselTrack = ({ children, settings }) => <BannerCarousel Track={ScrollRow} settings={settings}>{children}</BannerCarousel>;
 
-export default function PromoCarousel({ seccion = 'perfumeria' }) {
-  const [filas, setFilas] = useState([]);
-  const [loading, setLoading] = useState(true);
+const extractPromoFilas = (json) =>
+  json && Array.isArray(json.data) && json.data.length > 0
+    ? json.data.flatMap((entry) => entry.Filas || entry.attributes?.Filas || [])
+    : [];
 
-  useEffect(() => {
-    setLoading(true);
-    async function fetchPromociones() {
-      try {
-        const seccionNameRaw = seccion === 'hogar' ? 'Hogar' : 'Perfumer\u00eda';
-
-        // Construir la query con qs si estuviera disponible, o de forma robusta a mano:
-        // Strapi permite populeo profundo genérico con populate[Filas][populate]=*
-        // o si eso falla, usamos el objeto exacto de populate on fragments.
-        const queryParams = new URLSearchParams();
-        queryParams.append('filters[seccion][$eq]', seccionNameRaw);
-        queryParams.append('status', 'published');
-        queryParams.append('sort[0]', 'createdAt:asc');
-        queryParams.append('pagination[pageSize]', '100');
-
-        // Populemos las imágenes de los banners internos usando sintaxis de fragmentos (on)
-        queryParams.append('populate[Filas][on][layout.fila-1-columna][populate][banners][populate]', '*');
-        queryParams.append('populate[Filas][on][layout.fila-2-columnas][populate][banners][populate]', '*');
-        queryParams.append('populate[Filas][on][layout.fila-4-columnas][populate][banners][populate]', '*');
-        queryParams.append('populate[Filas][on][layout.fila-mixta][populate][banners][populate]', '*');
-
-        const res = await fetch(`${STRAPI_URL}/api/promociones-inicios?${queryParams.toString()}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-
-        // Si es collectionType, json.data es un array. Tomamos el primero que coincida.
-        if (json && json.data && json.data.length > 0) {
-          const fetchedFilas = json.data.flatMap(entry => entry.Filas || entry.attributes?.Filas || []);
-          setFilas(fetchedFilas);
-
-          // Optimización de LCP: Inyectar dinámicamente un preload en el <head> para el primer banner
-          if (fetchedFilas.length > 0) {
-            const primeraFila = fetchedFilas[0];
-            const banners = primeraFila.banners || (primeraFila.banner ? [primeraFila.banner] : []);
-            if (banners.length > 0 && banners[0]) {
-              const b = banners[0];
-              const desktopUrl = b.imagen_desktop?.url || b.imagen_desktop?.data?.attributes?.url;
-              if (desktopUrl && !isVideoMedia(b.imagen_desktop)) {
-                const fullUrl = desktopUrl.startsWith('http') ? desktopUrl : `${STRAPI_URL}${desktopUrl}`;
-                if (!document.querySelector(`link[href="${fullUrl}"]`)) {
-                  const link = document.createElement('link');
-                  link.rel = 'preload';
-                  link.as = 'image';
-                  link.href = fullUrl;
-                  link.setAttribute('fetchpriority', 'high');
-                  document.head.appendChild(link);
-                }
-              }
-            }
-          }
-        } else {
-          setFilas([]);
-        }
-      } catch (err) {
-        console.error('[PromoModules] Error al cargar promociones:', err.message);
-      } finally {
-        setLoading(false);
+const preloadFirstPromoImage = (fetchedFilas) => {
+  if (typeof document === 'undefined' || fetchedFilas.length === 0) return;
+  const primeraFila = fetchedFilas[0];
+  const banners = primeraFila.banners || (primeraFila.banner ? [primeraFila.banner] : []);
+  if (banners.length > 0 && banners[0]) {
+    const b = banners[0];
+    const desktopUrl = b.imagen_desktop?.url || b.imagen_desktop?.data?.attributes?.url;
+    if (desktopUrl && !isVideoMedia(b.imagen_desktop)) {
+      const fullUrl = desktopUrl.startsWith('http') ? desktopUrl : `${STRAPI_URL}${desktopUrl}`;
+      if (!document.querySelector(`link[href="${fullUrl}"]`)) {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = fullUrl;
+        link.setAttribute('fetchpriority', 'high');
+        document.head.appendChild(link);
       }
     }
-    fetchPromociones();
-  }, [seccion]);
+  }
+};
+
+export default function PromoCarousel({ seccion = 'perfumeria' }) {
+  const seccionNameRaw = seccion === 'hogar' ? 'Hogar' : 'Perfumer\u00eda';
+  const cacheKey = `inicio:promociones:${seccionNameRaw}`;
+
+  const [filas, setFilas] = useState(() => {
+    const cached = readCachedEntry(cacheKey, { ttlMs: INICIO_CACHE_TTL_MS });
+    return cached ? extractPromoFilas(cached.data) : [];
+  });
+  const [loading, setLoading] = useState(
+    () => !readCachedEntry(cacheKey, { ttlMs: INICIO_CACHE_TTL_MS })
+  );
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    const cached = readCachedEntry(cacheKey, { ttlMs: INICIO_CACHE_TTL_MS });
+
+    if (cached) {
+      const cachedFilas = extractPromoFilas(cached.data);
+      setFilas(cachedFilas);
+      preloadFirstPromoImage(cachedFilas);
+      setLoading(false);
+    } else {
+      setFilas([]);
+      setLoading(true);
+    }
+
+    const queryParams = new URLSearchParams();
+    queryParams.append('filters[seccion][$eq]', seccionNameRaw);
+    queryParams.append('status', 'published');
+    queryParams.append('sort[0]', 'createdAt:asc');
+    queryParams.append('pagination[pageSize]', '100');
+
+    // Populemos las imágenes de los banners internos usando sintaxis de fragmentos (on)
+    queryParams.append('populate[Filas][on][layout.fila-1-columna][populate][banners][populate]', '*');
+    queryParams.append('populate[Filas][on][layout.fila-2-columnas][populate][banners][populate]', '*');
+    queryParams.append('populate[Filas][on][layout.fila-4-columnas][populate][banners][populate]', '*');
+    queryParams.append('populate[Filas][on][layout.fila-mixta][populate][banners][populate]', '*');
+
+    const url = `${STRAPI_URL}/api/promociones-inicios?${queryParams.toString()}`;
+
+    fetchWithSWR(cacheKey, url, {
+      ttlMs: INICIO_CACHE_TTL_MS,
+      signal: controller.signal,
+      passSignal: true,
+      fallbackToStaleOnError: true,
+      onData: (json) => {
+        if (!active) return;
+        const fetchedFilas = extractPromoFilas(json);
+        setFilas(fetchedFilas);
+        preloadFirstPromoImage(fetchedFilas);
+        setLoading(false);
+      },
+    })
+      .catch((err) => {
+        if (active && !isRequestCanceled(err)) {
+          console.error('[PromoModules] Error al cargar promociones:', err.message);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [cacheKey, seccionNameRaw]);
 
   if (loading) {
     return (

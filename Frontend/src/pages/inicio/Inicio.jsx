@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { normalizarComposicion } from './composicionInicio';
 import styled from 'styled-components';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { FadeIn, FadeInLeft, FadeInUp } from '../../components/animations/Scroll
 import ToggleSelection from '../../components/inicio/perfumeria/ToggleSelection';
 import { lazyWithRetry } from '../../utils/lazyWithRetry';
 import LazyViewport from '../../components/LazyViewport';
+import { SeccionPrincipalProvider, useSeccionPrincipal } from '../../context/SeccionPrincipalContext';
 
 // ─── Above the fold: carga inmediata ──────────────────────────────────────────
 import PromoCarousel from '../../components/inicio/perfumeria/PromoCarousel';
@@ -62,50 +63,18 @@ const SectionSkeleton = styled.div`
   }
 `;
 
-export default function Inicio({ compositionPreview, previewArea } = {}) {
+function InicioContent({ compositionPreview, previewArea }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
   const seccionActiva = previewArea || searchParams.get('seccion') || 'perfumeria';
-  const [textoPerf, setTextoPerf] = useState('Perfumería');
-  const [textoHogar, setTextoHogar] = useState('Hogar');
-  const [composicion, setComposicion] = useState({});
-  const [compositionReady, setCompositionReady] = useState(false);
+  const { attrs, ready } = useSeccionPrincipal();
+  const textoPerf = attrs?.texto_toggle_perfumeria || 'Perfumería';
+  const textoHogar = attrs?.texto_toggle_hogar || 'Hogar';
+  const composicion = attrs?.composicion_inicio || {};
+  const compositionReady = Boolean(compositionPreview) || ready;
   const layout = normalizarComposicion(compositionPreview || composicion[seccionActiva], seccionActiva);
   const hiddenBlocks = layout.ocultos.join(',');
-
-  useEffect(() => {
-    if (compositionPreview) return undefined;
-    let active = true;
-    let controller;
-    const refresh = () => {
-      controller?.abort();
-      controller = new AbortController();
-      fetch(`${process.env.REACT_APP_STRAPI_URL || process.env.REACT_APP_API_URL || 'http://localhost:1337'}/api/seccion-principal`, { signal: controller.signal, cache: 'no-store' })
-        .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
-        .then(data => {
-          if (!active || !data?.data) return;
-          const attrs = data.data.attributes || data.data;
-          if (attrs.texto_toggle_perfumeria) setTextoPerf(attrs.texto_toggle_perfumeria);
-          if (attrs.texto_toggle_hogar) setTextoHogar(attrs.texto_toggle_hogar);
-          setComposicion(attrs.composicion_inicio || {});
-        })
-        .catch(err => { if (active && err.name !== 'AbortError') console.error('Error fetching toggle texts:', err); })
-        .finally(() => { if (active) setCompositionReady(true); });
-    };
-    const refreshWhenVisible = () => { if (document.visibilityState === 'visible') refresh(); };
-    refresh();
-    const timer = window.setInterval(refreshWhenVisible, 60000);
-    document.addEventListener('visibilitychange', refreshWhenVisible);
-    window.addEventListener('focus', refresh);
-    return () => {
-      active = false;
-      controller?.abort();
-      window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', refreshWhenVisible);
-      window.removeEventListener('focus', refresh);
-    };
-  }, [compositionPreview]);
 
   useEffect(() => {
     if (!compositionReady || compositionPreview || !location.hash) return;
@@ -120,7 +89,7 @@ export default function Inicio({ compositionPreview, previewArea } = {}) {
   };
 
   return (
-    <BannerOverridesProvider><PageWrapper data-inicio-area={seccionActiva} data-inicio-ready={compositionReady && !compositionPreview} data-inicio-hidden={layout.ocultos.join(',')}>
+    <PageWrapper data-inicio-area={seccionActiva} data-inicio-ready={ready && !compositionPreview} data-inicio-hidden={layout.ocultos.join(',')}>
       <ToggleSelection
         seccionActiva={seccionActiva}
         onSeccionChange={handleSeccionChange}
@@ -128,8 +97,8 @@ export default function Inicio({ compositionPreview, previewArea } = {}) {
         textoHogar={textoHogar}
       />
 
-      {!compositionReady && !compositionPreview && <SectionSkeleton $height="400px" />}
-      {(compositionReady || compositionPreview) && ['perfumeria', 'hogar'].includes(seccionActiva) && (() => {
+      {!compositionReady && <SectionSkeleton $height="400px" />}
+      {compositionReady && ['perfumeria', 'hogar'].includes(seccionActiva) && (() => {
         const area = seccionActiva;
         const { orden, ocultos } = normalizarComposicion(compositionPreview || composicion[area], area);
         const visible = orden.filter(id => !ocultos.includes(id));
@@ -159,6 +128,17 @@ export default function Inicio({ compositionPreview, previewArea } = {}) {
       })()}
 
       <ScrollToTopButton />
-    </PageWrapper></BannerOverridesProvider>
+    </PageWrapper>
+  );
+}
+
+export default function Inicio({ compositionPreview, previewArea } = {}) {
+  const disableStorage = Boolean(compositionPreview);
+  return (
+    <SeccionPrincipalProvider disableStorage={disableStorage}>
+      <BannerOverridesProvider disableStorage={disableStorage}>
+        <InicioContent compositionPreview={compositionPreview} previewArea={previewArea} />
+      </BannerOverridesProvider>
+    </SeccionPrincipalProvider>
   );
 }

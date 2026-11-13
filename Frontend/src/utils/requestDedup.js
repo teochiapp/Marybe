@@ -1,5 +1,15 @@
 const inFlight = new Map();
 
+export const getCurrentFetch = () => (typeof fetch === 'function' ? fetch : undefined);
+
+/** Descarta referencias en vuelo acumuladas (útil entre tests que reemplazan global.fetch). */
+export function clearInFlightRequests() {
+  for (const entry of inFlight.values()) {
+    entry.controller.abort();
+  }
+  inFlight.clear();
+}
+
 /**
  * Deduplica peticiones GET concurrentes (incluido el doble montaje de React.StrictMode)
  * y pospone el AbortController un microtask para cancelar solo si no se remonta de inmediato.
@@ -19,11 +29,18 @@ export function acquireDedupedRequest(key, executor, { bypass = false } = {}) {
     };
   }
 
+  const currentFetch = getCurrentFetch();
   let entry = inFlight.get(key);
+  if (entry && entry.fetchRef && entry.fetchRef !== currentFetch) {
+    entry.controller.abort();
+    inFlight.delete(key);
+    entry = null;
+  }
   if (!entry) {
     const controller = new AbortController();
     const currentEntry = {
       controller,
+      fetchRef: currentFetch,
       subscribers: 0,
       settled: false,
       pendingAbort: false,

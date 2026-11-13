@@ -7,6 +7,7 @@ import NavBar from './NavBar';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
 import { fetchCategoryTree, menuCategoryUrl, discountUrl } from '../../data/megamenu';
+import { MEGA_MENU_CACHE_TTL_MS, clearApiCache } from '../../utils/apiCache';
 
 const mockNavigate = jest.fn();
 let mockPath = '/tienda';
@@ -19,6 +20,7 @@ jest.mock('react-router-dom', () => ({
 }), { virtual: true });
 
 beforeEach(() => {
+  clearApiCache();
   mockNavigate.mockClear();
   mockPath = '/tienda';
   mockSearch = 'seccion=Hogar';
@@ -60,7 +62,10 @@ test('respeta las opciones ocultas en el menú público incluso sin categorías'
   expect(screen.queryByRole('button', { name: 'Lanzamientos' })).not.toBeInTheDocument();
 });
 
-test('una tienda abierta actualiza el orden publicado al volver a la pestaña', async () => {
+test('una tienda abierta actualiza el orden publicado al volver a la pestaña tras expirar el TTL o al publicar cambios', async () => {
+  const nowSpy = jest.spyOn(Date, 'now');
+  let now = 1_700_000_000_000;
+  nowSpy.mockImplementation(() => now);
   let order = ['ofertas', 'lanzamientos', 'categoria:home'];
   global.fetch = jest.fn(async url => {
     if (url.includes('/api/categorias?')) return { ok: true, json: async () => ({ data: [], meta: { pagination: { pageCount: 1 } } }) };
@@ -70,13 +75,28 @@ test('una tienda abierta actualiza el orden publicado al volver a la pestaña', 
     } }) };
     return { ok: true, json: async () => ({ data: {} }) };
   });
-  render(<MegaMenuProvider><CategoryNav /></MegaMenuProvider>);
-  await screen.findByRole('button', { name: 'Limpieza' });
-  expect(screen.getAllByRole('button').filter(button => ['Ofertas', 'Lanzamientos', 'Limpieza'].includes(button.textContent)).map(button => button.textContent)).toEqual(['Ofertas', 'Lanzamientos', 'Limpieza']);
-  order = ['categoria:home', 'ofertas', 'lanzamientos'];
-  fireEvent.focus(window);
-  await waitFor(() => expect(screen.getAllByRole('button').filter(button => ['Ofertas', 'Lanzamientos', 'Limpieza'].includes(button.textContent)).map(button => button.textContent)).toEqual(['Limpieza', 'Ofertas', 'Lanzamientos']));
-  expect(global.fetch.mock.calls.find(([url]) => url.includes('/api/ordenamiento-menu-header'))[1].cache).toBe('no-store');
+  try {
+    render(<MegaMenuProvider><CategoryNav /></MegaMenuProvider>);
+    await screen.findByRole('button', { name: 'Limpieza' });
+    expect(screen.getAllByRole('button').filter(button => ['Ofertas', 'Lanzamientos', 'Limpieza'].includes(button.textContent)).map(button => button.textContent)).toEqual(['Ofertas', 'Lanzamientos', 'Limpieza']);
+
+    order = ['categoria:home', 'ofertas', 'lanzamientos'];
+    const menuFetchesBeforeFocus = global.fetch.mock.calls.filter(([url]) => url.includes('/api/ordenamiento-menu-header')).length;
+    fireEvent.focus(window);
+    expect(global.fetch.mock.calls.filter(([url]) => url.includes('/api/ordenamiento-menu-header')).length).toBe(menuFetchesBeforeFocus);
+
+    now += MEGA_MENU_CACHE_TTL_MS + 1000;
+    fireEvent.focus(window);
+    await waitFor(() => expect(screen.getAllByRole('button').filter(button => ['Ofertas', 'Lanzamientos', 'Limpieza'].includes(button.textContent)).map(button => button.textContent)).toEqual(['Limpieza', 'Ofertas', 'Lanzamientos']));
+
+    order = ['ofertas', 'categoria:home', 'lanzamientos'];
+    fireEvent(window, new Event('marybe-menu-updated'));
+    await waitFor(() => expect(screen.getAllByRole('button').filter(button => ['Ofertas', 'Lanzamientos', 'Limpieza'].includes(button.textContent)).map(button => button.textContent)).toEqual(['Ofertas', 'Limpieza', 'Lanzamientos']));
+    const menuCalls = global.fetch.mock.calls.filter(([url]) => url.includes('/api/ordenamiento-menu-header'));
+    expect(menuCalls[menuCalls.length - 1][1].cache).toBe('no-store');
+  } finally {
+    nowSpy.mockRestore();
+  }
 });
 
 test('la vista previa usa contenido local sin alterar el menú público', async () => {

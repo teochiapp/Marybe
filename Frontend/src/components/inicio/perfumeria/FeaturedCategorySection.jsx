@@ -16,6 +16,8 @@ import {
   SECCION_FONDOS,
   disenoCategoriaDestacada,
 } from '../../../utils/disenoSeccion';
+import { useSeccionPrincipalData } from '../../../context/SeccionPrincipalContext';
+import { INICIO_CACHE_TTL_MS, fetchWithSWR, readCachedEntry } from '../../../utils/apiCache';
 
 const SectionWrapper = styled.section`
   padding: ${({ $espaciado }) => (CATEGORIA_DESTACADA_ESPACIADOS[$espaciado] || CATEGORIA_DESTACADA_ESPACIADOS.original)[0]} 60px;
@@ -398,15 +400,36 @@ const ImagePlaceholder = () => (
 
 export default function FeaturedCategorySection({ seccion = 'perfumeria', previewData }) {
   const { config: globalConfig } = useConfiguracionGeneral();
-  const [configApi, setConfig] = useState(null);
-  const [productosApi, setProductos] = useState([]);
-  const [loadingApi, setLoading] = useState(true);
-  // previewData (Editor de Inicio) reemplaza título, ícono y productos publicados sin consultar la API.
   const isPreview = Boolean(previewData);
+  const fieldName = seccion === 'hogar' ? 'destacada_hogar' : 'destacada_perfumeria';
+  const endpoint = `${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[${fieldName}][populate]=*`;
+  const { attrs: mainAttrs, loading: configLoading } = useSeccionPrincipalData(endpoint, { skip: isPreview });
+  const configApi = isPreview ? null : mainAttrs?.[fieldName] || null;
+
+  const cat = configApi?.categoria?.data || configApi?.categoria;
+  const catDocId = cat?.documentId || cat?.id;
+  const elegidos = Array.isArray(configApi?.productos_orden) ? configApi.productos_orden : [];
+  const seleccion = elegidos.map((id, index) => `&filters[documentId][$in][${index}]=${encodeURIComponent(id)}`).join('');
+  const productsUrl = !isPreview && catDocId
+    ? `${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[categoria][documentId][$eq]=${catDocId}${seleccion}&populate=*${elegidos.length ? '&pagination[pageSize]=100' : ''}`
+    : '';
+  const productsCacheKey = productsUrl ? `inicio:${fieldName}:${productsUrl}` : '';
+
+  const [productosApi, setProductos] = useState(() => {
+    if (!productsCacheKey) return [];
+    const cached = readCachedEntry(productsCacheKey, { ttlMs: INICIO_CACHE_TTL_MS });
+    if (!cached?.data?.data) return [];
+    return elegidos.length
+      ? elegidos.map(id => cached.data.data.find(item => item.documentId === id)).filter(Boolean)
+      : cached.data.data;
+  });
+  const [productsLoading, setProductsLoading] = useState(false);
+
+  // previewData (Editor de Inicio) reemplaza título, ícono y productos publicados sin consultar la API.
   const config = isPreview ? { titulo: previewData.titulo, icono_titulo: previewData.icono } : configApi;
   const diseno = disenoCategoriaDestacada(isPreview ? previewData : configApi);
   const productos = isPreview ? previewData.productos || [] : productosApi;
-  const loading = isPreview ? false : loadingApi;
+  const loading = isPreview ? false : (configLoading || productsLoading);
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
@@ -419,69 +442,43 @@ export default function FeaturedCategorySection({ seccion = 'perfumeria', previe
     setIsModalOpen(true);
   };
 
-  const fieldName = seccion === 'hogar' ? 'destacada_hogar' : 'destacada_perfumeria';
-  const endpoint = `${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[${fieldName}][populate]=*`;
-
-  // 1. Obtener configuración de Sección Destacada
+  // Obtener productos de la categoría seleccionada (cacheados en memoria por categoría y orden)
   useEffect(() => {
-    if (isPreview) return;
-    setConfig(null);
-    setProductos([]);
-    setLoading(true);
-    fetch(endpoint)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
-          const attributes = data.data.attributes || data.data;
-          if (attributes[fieldName]) {
-            setConfig(attributes[fieldName]);
-          } else {
-            setLoading(false);
-          }
-        } else {
-          setLoading(false);
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching seccion-destacada config:', err);
-        setLoading(false);
-      });
-  }, [endpoint, fieldName, isPreview]);
-
-  // 2. Obtener productos de la categoría seleccionada
-  useEffect(() => {
-    const config = configApi;
-    if (!config || !config.categoria) {
-      if (config) setLoading(false);
-      return;
+    if (!productsUrl) {
+      setProductos([]);
+      setProductsLoading(false);
+      return undefined;
     }
 
-    const cat = config.categoria.data || config.categoria;
-    const catDocId = cat.documentId || cat.id;
+    let active = true;
+    const orderKey = elegidos.join(',');
+    const orderIds = orderKey ? orderKey.split(',') : [];
+    const applyData = (data) => {
+      if (!active || !data?.data) return;
+      setProductos(orderIds.length
+        ? orderIds.map(id => data.data.find(item => item.documentId === id)).filter(Boolean)
+        : data.data);
+    };
 
-    if (!catDocId) {
-      setLoading(false);
-      return;
+    const cached = readCachedEntry(productsCacheKey, { ttlMs: INICIO_CACHE_TTL_MS });
+    if (cached?.data) {
+      applyData(cached.data);
+      setProductsLoading(false);
+    } else {
+      setProductsLoading(true);
     }
 
-    // Productos elegidos en el Editor de Inicio (en su orden); sin selección, todos los de la categoría.
-    const elegidos = Array.isArray(config.productos_orden) ? config.productos_orden : [];
-    const seleccion = elegidos.map((id, index) => `&filters[documentId][$in][${index}]=${encodeURIComponent(id)}`).join('');
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[categoria][documentId][$eq]=${catDocId}${seleccion}&populate=*${elegidos.length ? '&pagination[pageSize]=100' : ''}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
-          setProductos(elegidos.length
-            ? elegidos.map(id => data.data.find(item => item.documentId === id)).filter(Boolean)
-            : data.data);
-        }
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Error fetching featured category products:', err);
-        setLoading(false);
+    fetchWithSWR(productsCacheKey, productsUrl, {
+      ttlMs: INICIO_CACHE_TTL_MS,
+      onData: applyData,
+    })
+      .catch(err => console.error('Error fetching featured category products:', err))
+      .finally(() => {
+        if (active) setProductsLoading(false);
       });
-  }, [configApi]);
+
+    return () => { active = false; };
+  }, [productsUrl, productsCacheKey, elegidos.join(',')]);
 
   const isDown = useRef(false);
   const startX = useRef(0);

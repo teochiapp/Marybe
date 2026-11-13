@@ -1,8 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { STRAPI_URL, SECTION_MAP, fetchCategoryTree } from '../data/megamenu';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { STRAPI_URL, SECTION_MAP, fetchCategoryTree, MEGA_MENU_CATEGORIAS_CACHE_KEY } from '../data/megamenu';
 import { acquireDedupedRequest, isRequestCanceled } from '../utils/requestDedup';
+import { MEGA_MENU_CACHE_TTL_MS, fetchWithSWR, invalidateApiCache, isCacheStale } from '../utils/apiCache';
 
 const STATIC_CATEGORIES = new Set(['Ofertas', 'Lanzamientos']);
+const MEGA_MENU_CACHE_KEYS = {
+  categorias: MEGA_MENU_CATEGORIAS_CACHE_KEY,
+  orden: 'megamenu:orden',
+  lanzOfertas: 'megamenu:lanz-ofertas',
+};
 
 const MegaMenuCtx = createContext(null);
 
@@ -60,28 +66,42 @@ export function MegaMenuProvider({ children, enabled = true }) {
   const [menuStyles, setMenuStyles] = useState({});
   const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
+  const forceNextRef = useRef(false);
 
   useEffect(() => {
     if (!enabled) return undefined;
-    const refresh = () => setRevision(value => value + 1);
-    const refreshVisible = () => { if (document.visibilityState === 'visible') refresh(); };
-    window.addEventListener('marybe-menu-updated', refresh);
-    window.addEventListener('focus', refreshVisible);
-    document.addEventListener('visibilitychange', refreshVisible);
-    const interval = window.setInterval(refreshVisible, 60000);
+    const forceRefresh = () => {
+      invalidateApiCache('megamenu:');
+      forceNextRef.current = true;
+      setRevision(value => value + 1);
+    };
+    const refreshIfStale = () => {
+      if (
+        document.visibilityState === 'visible' &&
+        (isCacheStale(MEGA_MENU_CACHE_KEYS.categorias, MEGA_MENU_CACHE_TTL_MS) ||
+          isCacheStale(MEGA_MENU_CACHE_KEYS.orden, MEGA_MENU_CACHE_TTL_MS) ||
+          isCacheStale(MEGA_MENU_CACHE_KEYS.lanzOfertas, MEGA_MENU_CACHE_TTL_MS))
+      ) {
+        setRevision(value => value + 1);
+      }
+    };
+    window.addEventListener('marybe-menu-updated', forceRefresh);
+    window.addEventListener('focus', refreshIfStale);
+    document.addEventListener('visibilitychange', refreshIfStale);
     return () => {
-      window.removeEventListener('marybe-menu-updated', refresh);
-      window.removeEventListener('focus', refreshVisible);
-      document.removeEventListener('visibilitychange', refreshVisible);
-      window.clearInterval(interval);
+      window.removeEventListener('marybe-menu-updated', forceRefresh);
+      window.removeEventListener('focus', refreshIfStale);
+      document.removeEventListener('visibilitychange', refreshIfStale);
     };
   }, [enabled]);
 
   useEffect(() => {
     if (!enabled) return undefined;
     let active = true;
-    const { promise, release } = acquireDedupedRequest(`megamenu:${revision}`, async (signal) => {
-      const categorias = await fetchCategoryTree(signal);
+    const force = forceNextRef.current;
+    forceNextRef.current = false;
+    const { promise, release } = acquireDedupedRequest(`megamenu:${revision}:${force ? 'force' : 'swr'}`, async (signal) => {
+      const categorias = await fetchCategoryTree(signal, { force });
       const colMap = new Map();
       const secMap = new Map();
       const ambiguousNames = new Set();
@@ -140,9 +160,12 @@ export function MegaMenuProvider({ children, enabled = true }) {
         `&populate[categoriasGeneral][fields][0]=nombre` +
         `&populate[categoriasGeneral][fields][1]=seccion` +
         `&populate[categoriasGeneral][fields][2]=documentId`;
-      const resMenu = await fetch(urlMenu, { signal, cache: 'no-store' });
-      if (!resMenu.ok) throw new Error(`HTTP ${resMenu.status}`);
-      const jsonMenu = await resMenu.json();
+      const jsonMenu = await fetchWithSWR(MEGA_MENU_CACHE_KEYS.orden, urlMenu, {
+        ttlMs: MEGA_MENU_CACHE_TTL_MS,
+        signal,
+        force,
+        passSignal: true,
+      });
       const menuData = jsonMenu?.data || {};
       const styles = menuData.ordenVisual?.estilos || {};
 
@@ -262,15 +285,17 @@ export function MegaMenuProvider({ children, enabled = true }) {
       let lanzOfertas = null;
       try {
         const urlLanzOfertas = `${STRAPI_URL}/api/menu-lanzamientos-ofertas?populate[ofertas][populate][columnas_categorias][populate][0]=categorias&populate[ofertas][populate][productos_destacados]=true&populate[lanzamientos][populate][0]=categorias&populate[lanzamientos][populate][1]=productos_destacados`;
-        const resLanzOfertas = await fetch(urlLanzOfertas, { signal, cache: 'no-store' });
-        if (resLanzOfertas.ok) {
-          const jsonLanzOfertas = await resLanzOfertas.json();
-          const attrs = jsonLanzOfertas?.data?.attributes || jsonLanzOfertas?.data || {};
-          lanzOfertas = {
-            ofertas: attrs.ofertas || null,
-            lanzamientos: attrs.lanzamientos || null,
-          };
-        }
+        const jsonLanzOfertas = await fetchWithSWR(MEGA_MENU_CACHE_KEYS.lanzOfertas, urlLanzOfertas, {
+          ttlMs: MEGA_MENU_CACHE_TTL_MS,
+          signal,
+          force,
+          passSignal: true,
+        });
+        const attrs = jsonLanzOfertas?.data?.attributes || jsonLanzOfertas?.data || {};
+        lanzOfertas = {
+          ofertas: attrs.ofertas || null,
+          lanzamientos: attrs.lanzamientos || null,
+        };
       } catch (err) {
         if (!isRequestCanceled(err)) console.warn('[MegaMenu] Error al cargar Lanzamientos/Ofertas:', err.message);
       }

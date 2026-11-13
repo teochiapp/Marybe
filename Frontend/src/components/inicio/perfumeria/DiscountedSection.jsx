@@ -14,6 +14,8 @@ import { imageUrl } from '../../../utils/bannerDesign';
 import { imageScaleCss, imageScaleProps } from '../../../utils/imageScale';
 import { DESCUENTOS_DEFAULTS, botonDestino, descuentosDefaultUrl, entidadProductosUrl, imagenEstilo, isExternalUrl } from '../../../utils/descuentosBloque';
 import useDescuentosBloque from '../../../hooks/useDescuentosBloque';
+import { useSeccionPrincipalData } from '../../../context/SeccionPrincipalContext';
+import { INICIO_CACHE_TTL_MS, fetchWithSWR, readCachedEntry } from '../../../utils/apiCache';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
@@ -531,12 +533,6 @@ const ChevronRight = () => (
 export default function DiscountedSection({ seccion = 'perfumeria', previewData }) {
   const { config } = useConfiguracionGeneral();
   const { config: bloque, entidadActual, loading: bloqueLoading } = useDescuentosBloque(seccion, previewData);
-  const [productos, setProductos] = useState([]);
-  const [tituloCursiva, setTituloCursiva] = useState('Descuentos');
-  const [tituloNormal, setTituloNormal] = useState('de Miércoles');
-  const [imagenUrl, setImagenUrl] = useState(null);
-  const [coloresTitulo, setColoresTitulo] = useState(null);
-  const [seccionLoading, setSeccionLoading] = useState(!previewData);
   const scrollRef = useRef(null);
   const navigate = useNavigate();
 
@@ -551,96 +547,105 @@ export default function DiscountedSection({ seccion = 'perfumeria', previewData 
 
   const fieldName = seccion === 'hogar' ? 'descuento_hogar' : 'descuento_perfumeria';
   const singleTypeEndpoint = `${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[${fieldName}][populate]=*`;
+  const { attrs: mainAttrs, loading: seccionLoading } = useSeccionPrincipalData(singleTypeEndpoint, {
+    skip: bloqueLoading,
+  });
+
+  const attrs = mainAttrs?.[fieldName] || null;
+  const coloresTitulo = attrs || null;
+  const tituloCursiva = attrs?.titulo_cursiva || 'Descuentos';
+  const tituloNormal = attrs?.titulo_normal || (seccion === 'hogar' ? 'de Hogar' : 'de Miércoles');
+
+  const rawMediaUrl = attrs?.imagen_destacada?.data?.attributes?.url || attrs?.imagen_destacada?.url || null;
+  const imagenUrl = rawMediaUrl
+    ? rawMediaUrl.startsWith('http')
+      ? rawMediaUrl
+      : `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${rawMediaUrl}`
+    : null;
 
   const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
   const entidadEndpoint = entidadProductosUrl(bloque);
+  const fallbackEndpoint = `${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[descuento][$gt]=0&filters[seccion][$eq]=${seccionName}&populate=*`;
+  const fallbackCacheKey = `inicio:descuentos-fallback:${seccionName}`;
+  const entidadCacheKey = entidadEndpoint ? `inicio:descuentos-entidad:${entidadEndpoint}` : '';
 
-  const fetchFallbackProducts = useCallback((isActive = () => true) => {
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[descuento][$gt]=0&filters[seccion][$eq]=${seccionName}&populate=*`)
-      .then(res => res.json())
-      .then(data => {
-        if (isActive() && Array.isArray(data?.data)) {
-          setProductos(data.data);
-        }
-      })
-      .catch(err => console.error('Error fetching fallback discounted productos:', err));
-  }, [seccionName]);
+  const [productos, setProductos] = useState(() => {
+    if (entidadCacheKey) {
+      const cachedEnt = readCachedEntry(entidadCacheKey, { ttlMs: INICIO_CACHE_TTL_MS });
+      if (Array.isArray(cachedEnt?.data?.data) && cachedEnt.data.data.length > 0) {
+        return cachedEnt.data.data;
+      }
+    } else {
+      const attrsProds = attrs?.productos?.data || attrs?.productos;
+      if (Array.isArray(attrsProds) && attrsProds.length > 0) {
+        return attrsProds;
+      }
+    }
+    const cachedFallback = readCachedEntry(fallbackCacheKey, { ttlMs: INICIO_CACHE_TTL_MS });
+    return Array.isArray(cachedFallback?.data?.data) ? cachedFallback.data.data : [];
+  });
 
-  // Obtener configuración de la sección de descuentos
+  const fetchFallbackProducts = useCallback(
+    (isActive = () => true) => {
+      const cachedFallback = readCachedEntry(fallbackCacheKey, { ttlMs: INICIO_CACHE_TTL_MS });
+      if (isActive() && Array.isArray(cachedFallback?.data?.data)) {
+        setProductos(cachedFallback.data.data);
+      }
+      fetchWithSWR(fallbackCacheKey, fallbackEndpoint, {
+        ttlMs: INICIO_CACHE_TTL_MS,
+        passSignal: false,
+        fallbackToStaleOnError: true,
+        onData: (data) => {
+          if (isActive() && Array.isArray(data?.data)) {
+            setProductos(data.data);
+          }
+        },
+      }).catch((err) => console.error('Error fetching fallback discounted productos:', err));
+    },
+    [fallbackCacheKey, fallbackEndpoint]
+  );
+
+  // Resolver productos del bloque cuando no apunta a una entidad específica
   useEffect(() => {
-    if (bloqueLoading) return undefined;
+    if (bloqueLoading || entidadEndpoint) return undefined;
     let active = true;
     const isActive = () => active;
-    if (!entidadEndpoint) setProductos([]);
-    setColoresTitulo(null);
-    setTituloCursiva('Descuentos');
-    setTituloNormal(seccion === 'hogar' ? 'de Hogar' : 'de Miércoles');
-    setSeccionLoading(true);
-    fetch(singleTypeEndpoint)
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('Endpoint not configured or failed');
-        }
-        return res.json();
-      })
-      .then(data => {
-        if (!active) return;
-        if (data && data.data) {
-          const mainAttrs = data.data.attributes || data.data;
-          const attrs = mainAttrs[fieldName];
-          
-          if (attrs) {
-            setColoresTitulo(attrs);
-            if (attrs.titulo_cursiva) setTituloCursiva(attrs.titulo_cursiva);
-            if (attrs.titulo_normal) setTituloNormal(attrs.titulo_normal);
-            if (attrs.imagen_destacada?.data?.attributes?.url) {
-              let mediaUrl = attrs.imagen_destacada.data.attributes.url;
-              if (!mediaUrl.startsWith('http')) {
-                mediaUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${mediaUrl}`;
-              }
-              setImagenUrl(mediaUrl);
-            } else if (attrs.imagen_destacada?.url) {
-              let mediaUrl = attrs.imagen_destacada.url;
-              if (!mediaUrl.startsWith('http')) {
-                mediaUrl = `${process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337'}${mediaUrl}`;
-              }
-              setImagenUrl(mediaUrl);
-            }
 
-            if (!entidadEndpoint) {
-              let prods = attrs.productos?.data || attrs.productos || [];
-              if (Array.isArray(prods) && prods.length > 0) {
-                setProductos(prods);
-              } else {
-                fetchFallbackProducts(isActive);
-              }
-            }
-          } else if (!entidadEndpoint) {
-            fetchFallbackProducts(isActive);
-          }
-        } else if (!entidadEndpoint) {
-          fetchFallbackProducts(isActive);
-        }
-      })
-      .catch(err => {
-        if (!active || entidadEndpoint) return;
-        console.warn('Using fallback for discounted products:', err);
-        fetchFallbackProducts(isActive);
-      })
-      .finally(() => {
-        if (active) setSeccionLoading(false);
-      });
-    return () => { active = false; };
-  }, [singleTypeEndpoint, fieldName, fetchFallbackProducts, seccion, entidadEndpoint, bloqueLoading]);
+    if (seccionLoading) {
+      setProductos([]);
+      return () => {
+        active = false;
+      };
+    }
+
+    const attrsProds = attrs?.productos?.data || attrs?.productos || [];
+    if (Array.isArray(attrsProds) && attrsProds.length > 0) {
+      setProductos(attrsProds);
+    } else {
+      fetchFallbackProducts(isActive);
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [bloqueLoading, seccionLoading, entidadEndpoint, attrs, fetchFallbackProducts]);
 
   // Si el bloque promociona una categoría, marca o proveedor específico, mostrar sus productos publicados.
   useEffect(() => {
     if (!entidadEndpoint) return undefined;
     let active = true;
     const isActive = () => active;
-    fetch(entidadEndpoint)
-      .then(res => (res.ok ? res.json() : null))
-      .then(data => {
+
+    const cached = readCachedEntry(entidadCacheKey, { ttlMs: INICIO_CACHE_TTL_MS });
+    if (Array.isArray(cached?.data?.data) && cached.data.data.length > 0) {
+      setProductos(cached.data.data);
+    }
+
+    fetchWithSWR(entidadCacheKey, entidadEndpoint, {
+      ttlMs: INICIO_CACHE_TTL_MS,
+      passSignal: false,
+      fallbackToStaleOnError: true,
+      onData: (data) => {
         if (!active) return;
         const prods = data?.data || [];
         if (Array.isArray(prods) && prods.length > 0) {
@@ -648,12 +653,15 @@ export default function DiscountedSection({ seccion = 'perfumeria', previewData 
         } else {
           fetchFallbackProducts(isActive);
         }
-      })
-      .catch(() => {
-        if (active) fetchFallbackProducts(isActive);
-      });
-    return () => { active = false; };
-  }, [entidadEndpoint, fetchFallbackProducts]);
+      },
+    }).catch(() => {
+      if (active) fetchFallbackProducts(isActive);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [entidadEndpoint, entidadCacheKey, fetchFallbackProducts]);
 
   const [visibleCount, setVisibleCount] = useState(5);
   const isDown = useRef(false);

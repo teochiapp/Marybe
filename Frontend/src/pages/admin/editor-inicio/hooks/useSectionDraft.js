@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { acquireDedupedRequest, isRequestCanceled } from '../../../../utils/requestDedup';
+import { invalidateInicioCache } from '../../../../utils/apiCache';
 
 const API = process.env.REACT_APP_STRAPI_URL || process.env.REACT_APP_API_URL || 'http://localhost:1337';
 const HISTORY_LIMIT = 60;
@@ -108,6 +109,7 @@ export default function useSectionDraft({ token, endpoint, areaKeys, initialArea
     try {
       const response = await axios.put(`${API}${endpoint}/${areaKey}`, { version: overview.version, data, publish }, auth);
       applyOverview(response.data.data, areaKey);
+      if (publish) invalidateInicioCache();
       setMessage(successMessage);
       return true;
     } catch (requestError) {

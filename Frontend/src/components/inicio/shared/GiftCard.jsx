@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import BannerSlot from '../../banners/BannerOverrides';
 import { motion } from 'framer-motion';
@@ -9,6 +9,7 @@ import {
   resolveGiftCardImageProps,
   resolveThemeColors,
 } from '../../../utils/giftCardSection';
+import { useSeccionPrincipalData } from '../../../context/SeccionPrincipalContext';
 
 const STRAPI_URL =
   process.env.REACT_APP_API_URL || process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
@@ -275,26 +276,11 @@ function FeatureIcon({ value, defaultType, stroke }) {
 
 export default function GiftCard({ seccion = 'perfumeria', previewData = null }) {
   const isPreview = Boolean(previewData);
-  const [publishedConfig, setPublishedConfig] = useState(null);
-
-  useEffect(() => {
-    if (isPreview) return undefined;
-    const controller = new AbortController();
-
-    fetch(`${STRAPI_URL}/api/seccion-principal?fields[0]=diseno_secciones`, {
-      signal: controller.signal,
-    })
-      .then(res => (res.ok ? res.json() : null))
-      .then(json => {
-        const cfg = json?.data?.diseno_secciones?.['gift-card']?.[seccion] || null;
-        setPublishedConfig(cfg);
-      })
-      .catch(() => {
-        setPublishedConfig(null);
-      });
-
-    return () => controller.abort();
-  }, [isPreview, seccion]);
+  const { attrs: seccionAttrs } = useSeccionPrincipalData(
+    `${STRAPI_URL}/api/seccion-principal?fields[0]=diseno_secciones`,
+    { skip: isPreview, passSignal: true }
+  );
+  const publishedConfig = seccionAttrs?.diseno_secciones?.['gift-card']?.[seccion] || null;
 
   const config = useMemo(
     () => normalizeGiftCardConfig(isPreview ? previewData : publishedConfig, seccion),

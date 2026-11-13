@@ -10,6 +10,8 @@ import FavoriteButton from '../../shared/FavoriteButton';
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
 import { cmsColorStyle } from '../../../utils/cmsColor';
 import { imageScaleCss, imageScaleProps } from '../../../utils/imageScale';
+import { useSeccionPrincipalData } from '../../../context/SeccionPrincipalContext';
+import { INICIO_CACHE_TTL_MS, fetchWithSWR, readCachedEntry } from '../../../utils/apiCache';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-hogar);
@@ -501,15 +503,27 @@ const formatPrice = (price) => {
 
 export default function FeaturedSectionHogar({ previewData }) {
   const { config } = useConfiguracionGeneral();
-  const [productosApi, setProductos] = useState([]);
+  const isPreview = Boolean(previewData);
+  const productosCacheKey = 'inicio:destacados:Hogar';
+  const [productosApi, setProductos] = useState(() => {
+    if (isPreview) return [];
+    return readCachedEntry(productosCacheKey, { ttlMs: INICIO_CACHE_TTL_MS })?.data?.data || [];
+  });
   const scrollRef = useRef(null);
   const navigate = useNavigate();
   const isDragging = useRef(false);
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [seccionInfoApi, setSeccionInfo] = useState(null);
-  const isPreview = Boolean(previewData);
+
+  const { attrs: mainAttrs } = useSeccionPrincipalData(
+    `${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[secciones][populate]=*`,
+    { skip: isPreview }
+  );
+  const seccionInfoApi = isPreview
+    ? null
+    : (mainAttrs?.secciones || []).find(s => s.seccion?.toLowerCase() === 'hogar') || null;
+
   // previewData (Editor de Inicio) reemplaza los datos publicados sin consultar la API.
   const productos = isPreview ? previewData.productos || [] : productosApi;
   const seccionInfo = isPreview ? previewData.seccionInfo : seccionInfoApi;
@@ -521,30 +535,18 @@ export default function FeaturedSectionHogar({ previewData }) {
   };
 
   useEffect(() => {
-    if (isPreview) return;
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[destacado][$eq]=true&filters[seccion][$eq]=Hogar&populate=*`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
+    if (isPreview) return undefined;
+    let active = true;
+    const url = `${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[destacado][$eq]=true&filters[seccion][$eq]=Hogar&populate=*`;
+    fetchWithSWR(productosCacheKey, url, {
+      ttlMs: INICIO_CACHE_TTL_MS,
+      onData: (data) => {
+        if (active && data && data.data) {
           setProductos(data.data);
         }
-      })
-      .catch(err => console.error('Error fetching productos destacados de hogar:', err));
-
-    // Obtener la información de la Sección Principal
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[secciones][populate]=*`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
-          const attrs = data.data.attributes || data.data;
-          const secciones = attrs.secciones || [];
-          const info = secciones.find(s => s.seccion?.toLowerCase() === 'hogar');
-          if (info) {
-            setSeccionInfo(info);
-          }
-        }
-      })
-      .catch(err => console.error('Error fetching seccion-principal:', err));
+      },
+    }).catch(err => console.error('Error fetching productos destacados de hogar:', err));
+    return () => { active = false; };
   }, [isPreview]);
 
   const isDown = useRef(false);

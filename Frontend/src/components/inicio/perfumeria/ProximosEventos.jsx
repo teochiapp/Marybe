@@ -7,8 +7,13 @@ import {
   resolveHeaderCustomIcon,
   resolveHeaderStyleProps,
 } from '../../../utils/proximosEventosSection';
+import { useSeccionPrincipalData } from '../../../context/SeccionPrincipalContext';
+import { INICIO_CACHE_TTL_MS, fetchWithSWR, readCachedEntry } from '../../../utils/apiCache';
+import { isRequestCanceled } from '../../../utils/requestDedup';
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+const EVENTOS_CACHE_KEY = 'inicio:eventos';
+const EVENTOS_URL = `${STRAPI_URL}/api/eventos?populate=*`;
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -333,49 +338,52 @@ function SectionHeaderIcon({ value }) {
 
 export default function ProximosEventos({ previewData = null }) {
   const isPreview = Boolean(previewData);
-  const [rawEventos, setRawEventos] = useState([]);
-  const [publishedConfig, setPublishedConfig] = useState(null);
-  const [loading, setLoading] = useState(!isPreview);
+  const [rawEventos, setRawEventos] = useState(() => {
+    if (isPreview) return [];
+    const cached = readCachedEntry(EVENTOS_CACHE_KEY, { ttlMs: INICIO_CACHE_TTL_MS });
+    return Array.isArray(cached?.data?.data) ? cached.data.data : [];
+  });
+  const [eventosLoading, setEventosLoading] = useState(
+    () => !isPreview && !readCachedEntry(EVENTOS_CACHE_KEY, { ttlMs: INICIO_CACHE_TTL_MS })
+  );
+
+  const { attrs: seccionAttrs, loading: seccionLoading } = useSeccionPrincipalData(
+    `${STRAPI_URL}/api/seccion-principal?fields[0]=diseno_secciones`,
+    { skip: isPreview || rawEventos.length === 0, passSignal: true }
+  );
+  const publishedConfig = seccionAttrs?.diseno_secciones?.['proximos-eventos']?.general || null;
+  const loading = !isPreview && (eventosLoading || (rawEventos.length > 0 && seccionLoading));
 
   useEffect(() => {
     if (isPreview) {
-      setLoading(false);
+      setEventosLoading(false);
       return undefined;
     }
 
+    let active = true;
     const controller = new AbortController();
 
-    fetch(`${STRAPI_URL}/api/eventos?populate=*`, { signal: controller.signal })
-      .then(res => res.json())
-      .then(async data => {
-        const items = data && Array.isArray(data.data) ? data.data : [];
-        let cfg = null;
-        if (items.length > 0) {
-          try {
-            const secRes = await fetch(
-              `${STRAPI_URL}/api/seccion-principal?fields[0]=diseno_secciones`,
-              { signal: controller.signal }
-            );
-            if (secRes && secRes.ok) {
-              const secJson = await secRes.json();
-              cfg = secJson?.data?.diseno_secciones?.['proximos-eventos']?.general || null;
-            }
-          } catch (_) {
-            cfg = null;
-          }
-        }
-        setRawEventos(items);
-        setPublishedConfig(cfg);
-        setLoading(false);
-      })
-      .catch(err => {
-        if (err.name !== 'AbortError') {
-          console.error('Error fetching eventos:', err);
-          setLoading(false);
-        }
-      });
+    fetchWithSWR(EVENTOS_CACHE_KEY, EVENTOS_URL, {
+      ttlMs: INICIO_CACHE_TTL_MS,
+      signal: controller.signal,
+      passSignal: true,
+      fallbackToStaleOnError: true,
+      onData: (data) => {
+        if (!active) return;
+        setRawEventos(Array.isArray(data?.data) ? data.data : []);
+        setEventosLoading(false);
+      },
+    }).catch((err) => {
+      if (active && !isRequestCanceled(err)) {
+        console.error('Error fetching eventos:', err);
+        setEventosLoading(false);
+      }
+    });
 
-    return () => controller.abort();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [isPreview]);
 
   const sectionState = useMemo(() => {

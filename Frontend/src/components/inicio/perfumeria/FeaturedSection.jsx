@@ -11,6 +11,8 @@ import { staggerContainerVariants, staggerItemLeftVariants } from '../../animati
 import { useConfiguracionGeneral } from '../../../hooks/useConfiguracionGeneral';
 import { cmsColorStyle } from '../../../utils/cmsColor';
 import { imageScaleCss, imageScaleProps } from '../../../utils/imageScale';
+import { useSeccionPrincipalData } from '../../../context/SeccionPrincipalContext';
+import { INICIO_CACHE_TTL_MS, fetchWithSWR, readCachedEntry } from '../../../utils/apiCache';
 
 const SectionWrapper = styled.section`
   background-color: var(--color-marron-tercero);
@@ -566,16 +568,30 @@ const ChevronRight = () => (
 
 export default function FeaturedSection({ seccion = 'perfumeria', previewData }) {
   const { config } = useConfiguracionGeneral();
-  const [productosApi, setProductos] = useState([]);
-  const [bannersApi, setBannersDestacados] = useState([]);
+  const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
+  const productosCacheKey = `inicio:destacados:${seccionName}`;
+  const isPreview = Boolean(previewData);
+
+  const [productosApi, setProductos] = useState(() => {
+    if (isPreview) return [];
+    return readCachedEntry(productosCacheKey, { ttlMs: INICIO_CACHE_TTL_MS })?.data?.data || [];
+  });
   const scrollRef = useRef(null);
   const navigate = useNavigate();
   const isDragging = useRef(false);
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [seccionInfoApi, setSeccionInfo] = useState(null);
-  const isPreview = Boolean(previewData);
+
+  const { attrs: mainAttrs } = useSeccionPrincipalData(
+    `${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[secciones][populate]=*&populate[categorias_destacadas][populate]=*`,
+    { skip: isPreview }
+  );
+  const seccionInfoApi = isPreview
+    ? null
+    : (mainAttrs?.secciones || []).find(s => s.seccion?.toLowerCase() === 'perfumeria' || s.seccion?.toLowerCase() === 'perfumería') || null;
+  const bannersApi = isPreview || seccion === 'hogar' ? [] : mainAttrs?.categorias_destacadas || [];
+
   // previewData (Editor de Inicio) reemplaza los datos publicados sin consultar la API.
   const productos = isPreview ? previewData.productos || [] : productosApi;
   const bannersDestacados = isPreview ? previewData.banners || [] : bannersApi;
@@ -587,38 +603,20 @@ export default function FeaturedSection({ seccion = 'perfumeria', previewData })
     setIsModalOpen(true);
   };
 
-  const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
-
   useEffect(() => {
-    if (isPreview) return;
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[destacado][$eq]=true&filters[seccion][$eq]=${seccionName}&populate=*`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
+    if (isPreview) return undefined;
+    let active = true;
+    const url = `${process.env.REACT_APP_STRAPI_URL}/api/productos?filters[publicado][$eq]=true&filters[destacado][$eq]=true&filters[seccion][$eq]=${seccionName}&populate=*`;
+    fetchWithSWR(productosCacheKey, url, {
+      ttlMs: INICIO_CACHE_TTL_MS,
+      onData: (data) => {
+        if (active && data && data.data) {
           setProductos(data.data);
         }
-      })
-      .catch(err => console.error('Error fetching productos:', err));
-
-    // Obtener la información de la Sección Principal y los banners de Categorías Destacadas
-    fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?populate[secciones][populate]=*&populate[categorias_destacadas][populate]=*`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
-          const attrs = data.data.attributes || data.data;
-          const secciones = attrs.secciones || [];
-          const info = secciones.find(s => s.seccion?.toLowerCase() === 'perfumeria' || s.seccion?.toLowerCase() === 'perfumería');
-          if (info) {
-            setSeccionInfo(info);
-          }
-          if (seccion !== 'hogar' && attrs.categorias_destacadas) {
-            setBannersDestacados(attrs.categorias_destacadas);
-          }
-        }
-      })
-      .catch(err => console.error('Error fetching seccion-principal:', err));
-
-  }, [seccionName, seccion, isPreview]);
+      },
+    }).catch(err => console.error('Error fetching productos:', err));
+    return () => { active = false; };
+  }, [productosCacheKey, seccionName, isPreview]);
 
   const isDown = useRef(false);
   const startX = useRef(0);

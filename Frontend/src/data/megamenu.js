@@ -1,3 +1,5 @@
+import { MEGA_MENU_CACHE_TTL_MS, runWithSWR } from '../utils/apiCache';
+
 // ─── megamenu.js ──────────────────────────────────────────────────────────────
 // Datos estáticos (fallback) del header / mega menú.
 // Cuando Strapi esté disponible, estas constantes actúan como placeholder
@@ -171,19 +173,33 @@ export function discountUrl(percent, context) {
   return menuCategoryUrl('Ofertas', context).replace('descuento=todas', `descuento=${encodeURIComponent(percent)}`);
 }
 
-export async function fetchCategoryTree(signal) {
-  const all = [];
-  let page = 1;
-  let pages = 1;
-  do {
-    const res = await fetch(`${STRAPI_URL}/api/categorias?populate[subcategorias][populate][tipos]=*&pagination[pageSize]=100&pagination[page]=${page}&publicationState=live`, { signal, cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    all.push(...(json.data || []));
-    pages = json.meta?.pagination?.pageCount || 1;
-    page++;
-  } while (page <= pages);
-  return all;
+export const MEGA_MENU_CATEGORIAS_CACHE_KEY = 'megamenu:categorias';
+
+export function fetchCategoryTree(signal, { force = false, ttlMs = MEGA_MENU_CACHE_TTL_MS } = {}) {
+  return runWithSWR(
+    MEGA_MENU_CATEGORIAS_CACHE_KEY,
+    async (reqSignal) => {
+      const all = [];
+      let page = 1;
+      let pages = 1;
+      do {
+        const fetchOpts = {};
+        if (reqSignal) fetchOpts.signal = reqSignal;
+        if (force) fetchOpts.cache = 'no-store';
+        const res = await fetch(
+          `${STRAPI_URL}/api/categorias?populate[subcategorias][populate][tipos]=*&pagination[pageSize]=100&pagination[page]=${page}&publicationState=live`,
+          Object.keys(fetchOpts).length > 0 ? fetchOpts : undefined
+        );
+        if (res?.ok === false) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        all.push(...(json.data || []));
+        pages = json.meta?.pagination?.pageCount || 1;
+        page++;
+      } while (page <= pages);
+      return all;
+    },
+    { ttlMs, signal, force, passSignal: true }
+  );
 }
 
 /**

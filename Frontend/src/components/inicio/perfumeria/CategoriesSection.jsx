@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { staggerContainerVariants, staggerItemFadeVariants } from '../../animations/ScrollAnimations';
 import { useNavigate } from 'react-router-dom';
 import { categoriesAreaKey, orderCategories } from '../../../utils/categoriasInicio';
+import { useSeccionPrincipalData } from '../../../context/SeccionPrincipalContext';
+import { INICIO_CACHE_TTL_MS, fetchWithSWR, readCachedEntry } from '../../../utils/apiCache';
 
 const SectionWrapper = styled.section`
   padding: 40px 60px;
@@ -347,8 +349,18 @@ const ChevronIcon = () => (
 );
 
 export default function CategoriesSection({ seccion = 'perfumeria', compact = false, previewData }) {
-  const [categoriasApi, setCategorias] = useState([]);
-  const [disenoApi, setDiseno] = useState(null);
+  const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
+  const categoriasCacheKey = `inicio:categorias:${seccionName}`;
+  const [categoriasApi, setCategorias] = useState(() => {
+    if (previewData) return [];
+    const cached = readCachedEntry(categoriasCacheKey, { ttlMs: INICIO_CACHE_TTL_MS });
+    return cached?.data?.data || [];
+  });
+  const { attrs: mainAttrs } = useSeccionPrincipalData(
+    `${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?fields[0]=diseno_categorias`,
+    { skip: compact || Boolean(previewData) }
+  );
+  const disenoApi = compact || previewData ? null : mainAttrs?.diseno_categorias?.[categoriesAreaKey(seccion)] || null;
   // previewData (Editor de Inicio) reemplaza categorías y diseño publicados sin consultar la API.
   const diseno = previewData ? previewData.diseno || {} : disenoApi || {};
   const categorias = useMemo(() => (previewData ? previewData.categorias || [] : orderCategories(categoriasApi, disenoApi?.orden)), [previewData, categoriasApi, disenoApi]);
@@ -358,8 +370,6 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
   const navigate = useNavigate();
   const isDragging = useRef(false);
 
-  const seccionName = seccion === 'hogar' ? 'Hogar' : 'Perfumería';
-
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
@@ -367,26 +377,19 @@ export default function CategoriesSection({ seccion = 'perfumeria', compact = fa
   }, []);
 
   useEffect(() => {
-    if (previewData) return;
+    if (previewData) return undefined;
     let active = true;
-    const categoriasRequest = fetch(`${process.env.REACT_APP_STRAPI_URL}/api/categorias?filters[seccion][$eq]=${seccionName}&populate=*&pagination[pageSize]=100`)
-      .then(res => res.json());
-    // El diseño de la sección (orden, forma y botones) solo aplica en Inicio, no en la versión compacta.
-    const disenoRequest = compact ? Promise.resolve(null) : fetch(`${process.env.REACT_APP_STRAPI_URL}/api/seccion-principal?fields[0]=diseno_categorias`)
-      .then(res => res.json())
-      .then(data => (data?.data?.attributes || data?.data)?.diseno_categorias?.[categoriesAreaKey(seccion)] || null)
-      .catch(() => null);
-    Promise.all([categoriasRequest, disenoRequest])
-      .then(([data, config]) => {
-        if (!active) return;
-        setDiseno(config);
-        if (data && data.data) {
+    const url = `${process.env.REACT_APP_STRAPI_URL}/api/categorias?filters[seccion][$eq]=${seccionName}&populate=*&pagination[pageSize]=100`;
+    fetchWithSWR(categoriasCacheKey, url, {
+      ttlMs: INICIO_CACHE_TTL_MS,
+      onData: (data) => {
+        if (active && data && data.data) {
           setCategorias(data.data);
         }
-      })
-      .catch(err => console.error('Error fetching categorias:', err));
+      },
+    }).catch(err => console.error('Error fetching categorias:', err));
     return () => { active = false; };
-  }, [seccionName, seccion, compact, previewData]);
+  }, [seccionName, categoriasCacheKey, previewData]);
 
   const isDown = useRef(false);
   const startX = useRef(0);

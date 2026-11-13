@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, useId } from 
 import axios from 'axios';
 import { MAIN_BANNER_DEFAULTS, DEVICES, DEVICE_WIDTHS, designOrigin, deviceDesign, duplicateRow, imageUrl, isVideoMedia, newBanner, structuredCopy } from '../../utils/bannerDesign';
 import { acquireDedupedRequest, isRequestCanceled } from '../../utils/requestDedup';
+import { invalidateInicioCache } from '../../utils/apiCache';
 import './BannersAdmin.css';
 import './ImportacionAdmin.css';
 import BannerPreviewDialog from '../../components/banners/BannerPreviewDialog';
@@ -300,6 +301,7 @@ export default function BannersAdmin({ onBack, onLogout } = {}) {
       const rowIndex = Math.max(0, Math.min(selected.row, saved.Filas.length - 1));
       setSelected({ row: rowIndex, banner: Math.max(0, Math.min(selected.banner, saved.Filas[rowIndex].banners.length - 1)) });
       sessionStorage.removeItem(`marybe-banner-draft:${source}`);
+      if (publish) invalidateInicioCache();
       setMessage(publish ? 'Publicado. Los cambios ya están disponibles en Inicio al recargar.' : 'Borrador guardado. La web sigue mostrando la última publicación.');
     } catch (error) { handleError(error); } finally { setBusy(false); }
   }

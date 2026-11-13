@@ -7,8 +7,13 @@ import {
   logoImgStyle,
   resolveLogoUrl,
 } from '../../../utils/beneficiosSection';
+import { useSeccionPrincipalData } from '../../../context/SeccionPrincipalContext';
+import { INICIO_CACHE_TTL_MS, fetchWithSWR, readCachedEntry } from '../../../utils/apiCache';
+import { isRequestCanceled } from '../../../utils/requestDedup';
 
 const STRAPI_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
+const PROMOS_CACHE_KEY = 'inicio:promociones-bancarias';
+const PROMOS_URL = `${STRAPI_URL}/api/promociones-bancarias?sort=orden:asc&populate=logo&filters[activo][$eq]=true`;
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -266,58 +271,55 @@ function buildCuotasTexto(promo) {
 
 export default function TarjetasPromociones({ previewData = null }) {
   const isPreview = Boolean(previewData);
-  const [rawPromociones, setRawPromociones] = useState([]);
-  const [publishedConfig, setPublishedConfig] = useState(null);
-  const [loading, setLoading] = useState(!isPreview);
+  const [rawPromociones, setRawPromociones] = useState(() => {
+    if (isPreview) return [];
+    const cached = readCachedEntry(PROMOS_CACHE_KEY, { ttlMs: INICIO_CACHE_TTL_MS });
+    return Array.isArray(cached?.data?.data) ? cached.data.data : [];
+  });
+  const [promosLoading, setPromosLoading] = useState(
+    () => !isPreview && !readCachedEntry(PROMOS_CACHE_KEY, { ttlMs: INICIO_CACHE_TTL_MS })
+  );
   const [error, setError] = useState(false);
+
+  const { attrs: seccionAttrs, loading: seccionLoading } = useSeccionPrincipalData(
+    `${STRAPI_URL}/api/seccion-principal?fields[0]=diseno_secciones`,
+    { skip: isPreview || rawPromociones.length === 0, passSignal: true }
+  );
+  const publishedConfig = seccionAttrs?.diseno_secciones?.beneficios?.general || null;
+  const loading = !isPreview && (promosLoading || (rawPromociones.length > 0 && seccionLoading));
 
   useEffect(() => {
     if (isPreview) {
-      setLoading(false);
+      setPromosLoading(false);
       setError(false);
       return undefined;
     }
 
+    let active = true;
     const controller = new AbortController();
 
-    fetch(
-      `${STRAPI_URL}/api/promociones-bancarias?sort=orden:asc&populate=logo&filters[activo][$eq]=true`,
-      { signal: controller.signal }
-    )
-      .then((res) => {
-        if (!res.ok) throw new Error('Error al cargar promociones');
-        return res.json();
-      })
-      .then(async (json) => {
-        const items = json.data || [];
-        let cfg = null;
-        if (items.length > 0) {
-          try {
-            const secRes = await fetch(
-              `${STRAPI_URL}/api/seccion-principal?fields[0]=diseno_secciones`,
-              { signal: controller.signal }
-            );
-            if (secRes && secRes.ok) {
-              const secJson = await secRes.json();
-              cfg = secJson?.data?.diseno_secciones?.beneficios?.general || null;
-            }
-          } catch (_) {
-            cfg = null;
-          }
-        }
-        setRawPromociones(items);
-        setPublishedConfig(cfg);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (err.name !== 'AbortError') {
-          console.error('TarjetasPromociones:', err);
-          setError(true);
-          setLoading(false);
-        }
-      });
+    fetchWithSWR(PROMOS_CACHE_KEY, PROMOS_URL, {
+      ttlMs: INICIO_CACHE_TTL_MS,
+      signal: controller.signal,
+      passSignal: true,
+      fallbackToStaleOnError: true,
+      onData: (json) => {
+        if (!active) return;
+        setRawPromociones(json?.data || []);
+        setError(false);
+        setPromosLoading(false);
+      },
+    }).catch((err) => {
+      if (!active || isRequestCanceled(err)) return;
+      console.error('TarjetasPromociones:', err);
+      setError(true);
+      setPromosLoading(false);
+    });
 
-    return () => controller.abort();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [isPreview]);
 
   const sectionState = useMemo(() => {

@@ -6,6 +6,7 @@ import useSectionDraft from '../../hooks/useSectionDraft';
 import { imageUrl } from '../../../../../utils/bannerDesign';
 import { SECTION_MAP } from '../../../../../data/megamenu';
 import { acquireDedupedRequest, isRequestCanceled } from '../../../../../utils/requestDedup';
+import { invalidateInicioCache } from '../../../../../utils/apiCache';
 import './MenuHeaderEditor.css';
 
 const AREAS = [
@@ -138,7 +139,7 @@ export default function MenuHeaderEditor({ token, onBack, onLogout }) {
   const selectArea = key => { if (['perfumeria', 'hogar', 'general'].includes(key)) setContext(key); draft.selectArea(key); };
   const publish = async () => {
     const saved = await draft.save(true, 'Cambios publicados en el menú.');
-    if (saved) window.dispatchEvent(new Event('marybe-menu-updated'));
+    if (saved) invalidateInicioCache();
   };
   const moreProducts = async () => {
     try {
