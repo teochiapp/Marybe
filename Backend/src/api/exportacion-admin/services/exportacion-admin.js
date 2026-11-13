@@ -630,7 +630,7 @@ async function generarExcelVacio(strapi) {
   ];
   construirHojaVariantes(wb, [{ id_original: 'EJEMPLO-002', _variantesEjemplo: variantesEjemplo }], refs, {
     title: '🔗 MARYBE — Variantes de Nuevos Productos',
-    instruction: '⚠ Una fila por variante. "ID Producto Padre" debe coincidir con el "ID Original" de la hoja Productos. Borrá las filas de EJEMPLO antes de importar. Si el producto no tiene variantes, dejá esta hoja vacía.',
+    instruction: '⚠ Una fila por variante. "ID Producto Padre" debe coincidir con el "ID Original" de la hoja Productos. El ID de variante es automático. Borrá las filas de EJEMPLO antes de importar.',
     extraRows: EXTRA_ROWS,
   });
 

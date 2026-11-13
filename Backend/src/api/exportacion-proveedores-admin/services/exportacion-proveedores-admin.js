@@ -193,7 +193,7 @@ async function generarExcelProveedor(strapi, proveedores) {
 
   // ── Columnas (A–S) ────────────────────────────────────────────────────────
   const colDefs = [
-    { header: 'ID / ID Variante',             width: 24,  group: 'id'     }, // A  (1)
+    { header: 'ID Producto',                  width: 18,  group: 'id'     }, // A  (1)
     { header: 'SKU / EAN',                    width: 22,  group: 'base'   }, // B  (2)
     { header: 'Proveedor',                    width: 26,  group: 'prov'   }, // C  (3)
     { header: 'Nombre',                       width: 52,  group: 'base'   }, // D  (4)
@@ -231,11 +231,13 @@ async function generarExcelProveedor(strapi, proveedores) {
   cMarcadorProv.font  = { color: { argb: C.blanco }, size: 8 };
   cMarcadorProv.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.blanco } };
   ws.getColumn(27).hidden = true;
+  // Columna AB (28) oculta: resguarda el ID interno de variantes sin exponerlo en la columna visible
+  ws.getColumn(28).hidden = true;
 
   // ── Fila 2: Instrucción ───────────────────────────────────────────────────
   ws.mergeCells('A2:S2');
   const instr = ws.getCell('A2');
-  instr.value = `⚠ Generado el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Variantes indentadas (↳). Para crear nuevas variantes o editar Volumen/Color, usá la hoja "🔗 Variantes". Precio Oferta vacío quita la oferta; % Desc. es informativo.`;
+  instr.value = `⚠ Generado el ${new Date().toLocaleString('es-AR')} — ${productos.length} productos. Variantes indentadas (↳) para editar Precio/Stock/SKU. Para crear nuevas variantes o editar Volumen/Color, usá la hoja "🔗 Variantes". Precio Oferta vacío quita la oferta; % Desc. es informativo.`;
   instr.value += `\n${mensajeIds}`;
   applyStyle(instr, noteStyle());
   ws.getRow(2).height = 44;
@@ -440,12 +442,17 @@ async function generarExcelProveedor(strapi, proveedores) {
       const pctDescV      = calcPct(precioV, precioOfertaV);
       const tamanio       = [v.volumen, v.color_nombre].filter(Boolean).join(' / ');
 
-      // A: ID Variante (indentado con ↳)
+      // A: Indicador visual de variante (el ID interno viaja oculto en AB)
       const vA = rVar.getCell(1);
-      vA.value  = v.id_original ? `  ↳ ${v.id_original}` : '';
+      vA.value  = '  ↳';
       vA.numFmt = '@';
       applyStyle(vA, dataStyle(bgVar));
       vA.font   = { color: { argb: '1E40AF' }, size: 9, name: 'Calibri', italic: true };
+      if (v.id_original) {
+        const vHidden = rVar.getCell(28);
+        vHidden.value  = String(v.id_original);
+        vHidden.numFmt = '@';
+      }
 
       // B: SKU/EAN variante
       const vB = rVar.getCell(2);
@@ -547,7 +554,7 @@ async function generarExcelProveedor(strapi, proveedores) {
   // ── Hoja 2: Variantes (A–L, misma estructura que exportación general, agrupadas por producto) ──
   construirHojaVariantes(wb, productos, refs, {
     title: `🔗 MARYBE — Variantes por Proveedor: ${provNombres} (${new Date().toLocaleDateString('es-AR')})`,
-    instruction: '⚠ Una fila por variante, agrupadas por producto. "ID Producto Padre" debe coincidir con el "ID / ID Variante" del producto en Precios por Proveedor. Podés agregar nuevas filas para crear variantes adicionales.',
+    instruction: '⚠ Una fila por variante, agrupadas por producto. "ID Producto Padre" debe coincidir con el "ID Producto" en Precios por Proveedor. Podés agregar nuevas filas sin completar ID (se genera automáticamente).',
     parentSheetName: '💲 Precios por Proveedor',
     parentNameCol: 'D',
     parentNameColIdx: 4,

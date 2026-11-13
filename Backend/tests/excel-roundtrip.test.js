@@ -230,7 +230,7 @@ test('omitir una fila de variante en la hoja de proveedor no borra la variante',
   const { state, strapi } = fixture();
   const wb = await supplierWorkbook(strapi);
   const ws = wb.getWorksheet('💲 Precios por Proveedor');
-  const row = ws._rows.findIndex(r => r && String(r.getCell(1).value).includes('P2-50')) + 1;
+  const row = ws._rows.findIndex(r => r && (r.getCell(28).value === 'P2-50' || String(r.getCell(1).value).includes('P2-50'))) + 1;
   assert.ok(row > 3);
   ws.spliceRows(row, 1);
   const result = await importWorkbook(strapi, wb);
@@ -608,7 +608,7 @@ test('planilla general y de proveedor actualizan el nombre de un ID existente', 
   assert.equal(state.product.nombre, 'Nombre general');
 });
 
-test('planilla de proveedor actualiza sku, publicado y destacado y bloquea sku/ean repetidos', async () => {
+test('planilla de proveedor actualiza sku, publicado y destacado y permite SKUs repetidos entre padre/variante o productos distintos con IDs únicos', async () => {
   const { state, strapi } = fixture();
   const otroProducto = { id: 99, documentId: 'doc-p99', id_original: 'P99', sku: 'SKU-OTRO', proveedor: 'Otro', variantes: [{ id: 991, id_original: 'P99-1', sku_ean: 'EAN-OTRO' }] };
   const originalDocs = strapi.documents;
@@ -624,53 +624,41 @@ test('planilla de proveedor actualiza sku, publicado y destacado y bloquea sku/e
     };
   };
 
-  // 1. SKU único + Publicado/Destacado en padre y variante inline sí actualizan
+  // 1. SKU, Publicado/Destacado y SKU compartido entre padre y su propia variante (caso 8181) actualizan sin bloquear
   const wbOk = await supplierWorkbook(strapi);
   const wsOk = wbOk.getWorksheet('\ud83d\udcb2 Precios por Proveedor');
-  wsOk.getCell(4, 2).value = 'SKU-P2-NUEVO';
+  wsOk.getCell(4, 2).value = 'EAN-100-IGUAL-PADRE';
   wsOk.getCell(4, 9).value = 'NO';
   wsOk.getCell(4, 10).value = 'SI';
-  wsOk.getCell(5, 2).value = 'EAN-100-NUEVO';
+  wsOk.getCell(5, 2).value = 'EAN-100-IGUAL-PADRE';
   const resOk = await importWorkbook(strapi, wbOk);
-  assert.equal(resOk.actualizados, 1, resOk.erroresList.join('; '));
-  assert.equal(state.product.sku, 'SKU-P2-NUEVO');
+  assert.equal(resOk.errores, 0, resOk.erroresList.join('; '));
+  assert.equal(state.product.sku, 'EAN-100-IGUAL-PADRE');
   assert.equal(state.product.publicado, false);
   assert.equal(state.product.destacado, true);
-  assert.equal(state.product.variantes.find(v => v.id_original === 'P2-100').sku_ean, 'EAN-100-NUEVO');
+  assert.equal(state.product.variantes.find(v => v.id_original === 'P2-100').sku_ean, 'EAN-100-IGUAL-PADRE');
 
-  // 2. SKU repetido con otro producto existente bloquea la actualización
-  const updatesBefore = state.updates.length;
-  const wbDupProd = await supplierWorkbook(strapi);
-  wbDupProd.getWorksheet('\ud83d\udcb2 Precios por Proveedor').getCell(4, 2).value = 'sku-otro';
-  const resDupProd = await importWorkbook(strapi, wbDupProd);
-  assert.equal(resDupProd.errores, 1);
-  assert.match(resDupProd.erroresList[0], /repetido.*P99/);
-  assert.equal(state.updates.length, updatesBefore);
+  // 2. Dos variantes del mismo producto con distinto id_original pueden compartir sku_ean (casos 9125/4818)
+  const wbSameEanVars = await supplierWorkbook(strapi);
+  wbSameEanVars.getWorksheet('\ud83d\udcb2 Precios por Proveedor').getCell(5, 2).value = 'EAN-50';
+  const resSameEanVars = await importWorkbook(strapi, wbSameEanVars);
+  assert.equal(resSameEanVars.errores, 0, resSameEanVars.erroresList.join('; '));
+  assert.equal(state.product.variantes.find(v => v.id_original === 'P2-100').sku_ean, 'EAN-50');
 
-  // 3. SKU/EAN repetido en variante inline contra otra variante del mismo producto bloquea
-  const wbDupVar = await supplierWorkbook(strapi);
-  wbDupVar.getWorksheet('\ud83d\udcb2 Precios por Proveedor').getCell(5, 2).value = 'EAN-50';
-  const resDupVar = await importWorkbook(strapi, wbDupVar);
-  assert.equal(resDupVar.errores, 1);
-  assert.match(resDupVar.erroresList[0], /repetido/);
-  assert.equal(state.updates.length, updatesBefore);
-
-  // 4. Dos productos nuevos con mismo SKU o mismo EAN existente en otro producto: solo crea el primero válido
+  // 3. Productos distintos con mismo sku padre o variante con EAN repetido se distinguen por ID y se crean
   const wbCreate = await supplierWorkbook(strapi);
   const wsCreate = wbCreate.getWorksheet('\ud83d\udcb2 Precios por Proveedor');
   [
-    ['NUEVO-1', 'SKU-UNICO-1', 'Proveedor, S.A.', 'Uno', '', '', '', '', 'SI', 'NO', '', 5, 1000, ''],
-    ['NUEVO-2', 'SKU-UNICO-1', 'Proveedor, S.A.', 'Dos', '', '', '', '', 'SI', 'NO', '', 5, 1000, ''],
-    ['NUEVO-3', 'EAN-OTRO', 'Proveedor, S.A.', 'Tres', '', '', '', '', 'SI', 'NO', '', 5, 1000, ''],
+    ['NUEVO-1', 'SKU-OTRO', 'Proveedor, S.A.', 'Uno', '', '', '', '', 'SI', 'NO', '', 5, 1000, ''],
+    ['NUEVO-2', 'EAN-OTRO', 'Proveedor, S.A.', 'Dos', '', '', '', '', 'SI', 'NO', '', 5, 1000, ''],
   ].forEach((vals, idx) => {
     const r = wsCreate.getRow(wsCreate.rowCount + 2 + idx);
     vals.forEach((v, colIdx) => { r.getCell(colIdx + 1).value = v; });
   });
   const resCreate = await importWorkbook(strapi, wbCreate);
-  assert.equal(resCreate.creados, 1, resCreate.erroresList.join('; '));
-  assert.equal(resCreate.errores, 2);
-  assert.equal(state.creates.length, 1);
-  assert.equal(state.creates[0].id_original, 'NUEVO-1');
+  assert.equal(resCreate.errores, 0, resCreate.erroresList.join('; '));
+  assert.equal(resCreate.creados, 2);
+  assert.deepEqual(state.creates.map(c => c.id_original), ['NUEVO-1', 'NUEVO-2']);
 });
 
 test('exportacion deduplica solo clones exactos, reasigna duplicados intra-producto sin tocar otros productos y valida unicidad intra-producto', async () => {
@@ -791,4 +779,286 @@ test('exportacion deduplica solo clones exactos, reasigna duplicados intra-produ
   const resOk = await importWorkbook(strapi, wb);
   assert.equal(resOk.errores, 0);
   assert.equal(resOk.creados, 1);
+});
+
+test('oculta ID Variante en Excel y autogenera IDs secuenciales al crear variantes sin completar columna oculta', async () => {
+  const { state, strapi } = fixture({
+    variantes: [
+      { id: 21, id_original: '19500', sku_ean: 'EAN-100', volumen: '100 ml', color_nombre: 'Rojo', stock: 8, precio: 1250.75, precio_oferta: 1000, publicado: true, envio: '1', portada: { id: 777 } },
+      { id: 22, id_original: '19501', sku_ean: 'EAN-50', volumen: '50 ml', color_nombre: 'Azul', stock: 6, precio: 900, precio_oferta: null, publicado: true, envio: '1' },
+    ],
+  });
+
+  // 1. Verificar columnas ocultas en exportacion proveedor y general
+  const wbGen = await generalWorkbook(strapi);
+  const wsVGen = wbGen.getWorksheet('🔗 Variantes');
+  assert.equal(wsVGen.getColumn(1).hidden, true);
+  assert.ok(String(wsVGen.getCell('B1').value).includes('Variantes'));
+
+  const wb = await supplierWorkbook(strapi);
+  const ws = wb.getWorksheet('💲 Precios por Proveedor');
+  const wsV = wb.getWorksheet('🔗 Variantes');
+
+  assert.equal(ws.getCell(3, 1).value, 'ID Producto');
+  assert.equal(ws.getColumn(28).hidden, true);
+  assert.equal(ws.getCell(5, 1).value, '  ↳');
+  assert.equal(ws.getCell(5, 28).value, '19500');
+  assert.equal(wsV.getColumn(1).hidden, true);
+  assert.equal(wsV.getCell('A4').value, '19500');
+
+  // 2. Editar SKU/EAN y precio de variante existente (con Col A oculta preservada) + agregar 2 variantes nuevas con Col A vacia
+  wsV.getCell(4, 4).value = 'EAN-100-EDITADO';
+  wsV.getCell(4, 7).value = 1400;
+
+  const nuevaExistente = wsV.getRow(6);
+  [ '', 'P2', '', 'EAN-NEW-1', '150 ml', 9, 2100, '', '', 'SI', '1', 'Verde' ].forEach((val, idx) => {
+    nuevaExistente.getCell(idx + 1).value = val;
+  });
+  nuevaExistente.commit();
+
+  // Agregar producto nuevo con 2 variantes sin ID Variante (Col A en blanco)
+  const rProd = ws.getRow(ws.rowCount + 2);
+  ['NUEVO-AUTO', 'SKU-NA', 'Proveedor, S.A.', 'Producto Auto', 'Perfumería', 'Fragancias', 'Mujer', 'Eau de Parfum', 'SI', 'NO', '', 5, 1500, ''].forEach((v, idx) => {
+    rProd.getCell(idx + 1).value = v;
+  });
+  [
+    [ '', 'NUEVO-AUTO', '', 'EAN-AUTO-A', 'Tono 01', 4, 1500, '', '', 'SI', '1', 'Rosa' ],
+    [ '', 'NUEVO-AUTO', '', 'EAN-AUTO-B', 'Tono 02', 6, 1600, '', '', 'SI', '1', 'Coral' ],
+  ].forEach((vals, idx) => {
+    const r = wsV.getRow(7 + idx);
+    vals.forEach((v, colIdx) => { r.getCell(colIdx + 1).value = v; });
+    r.commit();
+  });
+
+  const res = await importWorkbook(strapi, wb);
+  assert.equal(res.errores, 0, res.erroresList.join('; '));
+  assert.equal(res.actualizados, 1);
+  assert.equal(res.creados, 1);
+  assert.equal(res.variantesOmitidasSinId, 0);
+  assert.ok(res.log.some(l => l.includes('3 variante(s) nueva(s) recibirán ID automático')));
+
+  // La variante editada conservo id interno/portada y no se duplico
+  assert.equal(state.product.variantes.length, 3);
+  const vEditada = state.product.variantes.find(v => v.id_original === '19500');
+  assert.equal(vEditada.sku_ean, 'EAN-100-EDITADO');
+  assert.equal(vEditada.precio, 1400);
+  assert.deepEqual(vEditada.portada, { id: 777 });
+
+  const vCreadaEnExistente = state.product.variantes.find(v => v.sku_ean === 'EAN-NEW-1');
+  assert.equal(vCreadaEnExistente.id_original, '19502');
+  assert.equal(vCreadaEnExistente.color_nombre, 'Verde');
+
+  const varsNuevo = state.creates[0].variantes;
+  assert.equal(varsNuevo.length, 2);
+  assert.deepEqual(varsNuevo.map(v => v.id_original), ['19503', '19504']);
+  assert.deepEqual(varsNuevo.map(v => v.sku_ean), ['EAN-AUTO-A', 'EAN-AUTO-B']);
+});
+
+test('retrocompatibilidad: hoja proveedor antigua con "↳ ID" en columna A sigue resolviendo variantes', async () => {
+  const { state, strapi } = fixture();
+  const wb = await supplierWorkbook(strapi);
+  const ws = wb.getWorksheet('💲 Precios por Proveedor');
+  ws.getCell(5, 1).value = '  ↳ P2-100';
+  ws.getCell(5, 28).value = null;
+  ws.getCell(5, 13).value = 1880;
+  const wsV = wb.getWorksheet('🔗 Variantes');
+  wb.removeWorksheet(wsV.id);
+
+  const res = await importWorkbook(strapi, wb);
+  assert.equal(res.errores, 0, res.erroresList.join('; '));
+  assert.equal(res.actualizados, 1);
+  assert.equal(state.product.variantes.find(v => v.id_original === 'P2-100').precio, 1880);
+});
+
+test('auditar-ids-variantes lista repetidos intra-producto, entre productos y variantes sin ID sin modificar la BD', async () => {
+  const { auditarIdsVariantes, parseArgs } = require('../scripts/auditar-ids-variantes');
+  assert.deepEqual(parseArgs([]), { estados: ['published'], soloExportables: false, soloResumen: false, salida: null });
+  assert.deepEqual(parseArgs(['--estado=ambos', '--solo-exportables', '--resumen', '--salida=rep.json']), {
+    estados: ['published', 'draft'], soloExportables: true, soloResumen: true, salida: 'rep.json',
+  });
+
+  const data = {
+    published: [
+      {
+        documentId: 'doc-1', id_original: '100', nombre: 'Prod A', proveedor: 'Prov 1',
+        variantes: [
+          { id: 1, id_original: '16273', sku_ean: 'EAN-1', volumen: '50 ml', color_nombre: '', precio: 100, stock: 2, publicado: true },
+          { id: 2, id_original: '16273', sku_ean: 'EAN-2', volumen: '100 ml', color_nombre: '', precio: 200, stock: 3, publicado: true },
+          { id: 3, id_original: '', sku_ean: 'EAN-VACIO', volumen: '30 ml', color_nombre: '', precio: 50, stock: 1, publicado: true },
+        ],
+      },
+      {
+        documentId: 'doc-2', id_original: '200', nombre: 'Prod B', proveedor: 'Prov 2',
+        variantes: [
+          { id: 4, id_original: ' 16273 ', sku_ean: 'EAN-3', volumen: '75 ml', color_nombre: '', precio: 150, stock: 4, publicado: true },
+          { id: 5, id_original: '200-v1', sku_ean: '', volumen: '', color_nombre: '', precio: 90, stock: 1, publicado: true },
+          { id: 6, id_original: '99999', sku_ean: 'EAN-UNICO', volumen: '200 ml', color_nombre: '', precio: 300, stock: 5, publicado: true },
+        ],
+      },
+    ],
+    draft: [],
+  };
+  const fakeApp = {
+    documents: () => ({
+      async findMany({ status = 'published', start = 0, limit = 100 }) {
+        return (data[status] || []).slice(start, start + limit);
+      },
+    }),
+  };
+
+  const full = await auditarIdsVariantes(fakeApp);
+  assert.equal(full.estado, 'published');
+  assert.deepEqual(full.resumen, {
+    productosAnalizados: 2,
+    totalVariantes: 6,
+    variantesExportables: 5,
+    idsUnicos: 3,
+    idsRepetidosTotal: 1,
+    ocurrenciasEnRepetidos: 3,
+    idsRepetidosIntraProducto: 1,
+    idsRepetidosEntreProductos: 1,
+    variantesSinId: 1,
+  });
+  assert.equal(full.repetidos[0].id_variante, '16273');
+  assert.equal(full.repetidos[0].alcance, 'intra_y_entre_productos');
+  assert.equal(full.repetidos[0].productosAfectados, 2);
+  assert.equal(full.repetidos[0].variantes.length, 3);
+  assert.equal(full.sinId.length, 1);
+  assert.equal(full.sinId[0].sku_ean, 'EAN-VACIO');
+
+  const onlyExp = await auditarIdsVariantes(fakeApp, { soloExportables: true });
+  assert.equal(onlyExp.resumen.totalVariantes, 5);
+  assert.equal(onlyExp.resumen.idsUnicos, 2);
+});
+
+test('permite actualizar en el mismo Excel dos productos distintos que comparten ID Variante histórico', async () => {
+  const store = [
+    {
+      id: 1, documentId: 'doc-9179', id_original: '9179', sku: 'SKU-9179', nombre: 'UMA BLANC EDT',
+      proveedor: 'Proveedor, S.A.', seccion: 'Perfumería', subcategoria: 'Mujer', tipo: 'EDT',
+      publicado: true, destacado: false, stock: 5, precio: 1000, precio_oferta: null, descuento: 0,
+      clasificaciones: [{ id: 1, seccion: 'Perfumería', categoria: 'Fragancias', subcategoria: 'Mujer', tipo: 'EDT' }],
+      variantes: [{ id: 11, id_original: '13902', sku_ean: 'EAN-9179', volumen: '100 ml', stock: 5, precio: 1000, precio_oferta: null, publicado: true, envio: '1' }],
+      categoria: { id: 31, documentId: 'cat-fragancias', nombre: 'Fragancias', seccion: 'Perfumería' },
+    },
+    {
+      id: 2, documentId: 'doc-4970', id_original: '4970', sku: 'SKU-4970', nombre: 'KENZO AMOUR EDP',
+      proveedor: 'Proveedor, S.A.', seccion: 'Perfumería', subcategoria: 'Mujer', tipo: 'EDP',
+      publicado: true, destacado: false, stock: 4, precio: 2000, precio_oferta: null, descuento: 0,
+      clasificaciones: [{ id: 2, seccion: 'Perfumería', categoria: 'Fragancias', subcategoria: 'Mujer', tipo: 'EDP' }],
+      variantes: [{ id: 21, id_original: '13902', sku_ean: 'EAN-4970', volumen: '50 ml', stock: 4, precio: 2000, precio_oferta: null, publicado: true, envio: '1' }],
+      categoria: { id: 31, documentId: 'cat-fragancias', nombre: 'Fragancias', seccion: 'Perfumería' },
+    },
+  ];
+  const updates = [];
+  const strapi = {
+    log: { info() {}, error() {} },
+    db: { query: () => ({ async findOne({ where }) {
+      const found = store.find(p => p.id_original === where.id_original);
+      return found ? structuredClone(found) : null;
+    } }) },
+    documents(uid) {
+      if (uid === CATEGORIA) return {
+        async findMany() { return [{ documentId: 'cat-fragancias', nombre: 'Fragancias', seccion: 'Perfumería' }]; },
+        async create() { return { documentId: 'cat-fragancias' }; },
+        async update() {},
+        async publish() {},
+      };
+      return {
+        async findMany({ start = 0, limit = 100 } = {}) { return structuredClone(store).slice(start, start + limit); },
+        async update({ documentId, data }) {
+          updates.push({ documentId, data });
+          const idx = store.findIndex(p => p.documentId === documentId);
+          if (idx >= 0) store[idx] = { ...store[idx], ...structuredClone(data) };
+          return store[idx];
+        },
+        async create() { throw new Error('unexpected create'); },
+      };
+    },
+  };
+
+  const wb = await supplierWorkbook(strapi);
+  const wsV = wb.getWorksheet('🔗 Variantes');
+  for (const row of [4, 5]) {
+    const padre = wsV.getCell(row, 2).value;
+    wsV.getCell(row, 7).value = padre === '9179' ? 1150 : 2250;
+  }
+
+  const res = await importWorkbook(strapi, wb);
+  assert.equal(res.errores, 0, res.erroresList.join('; '));
+  assert.equal(res.actualizados, 2);
+  assert.equal(store[0].variantes[0].precio, 1150);
+  assert.equal(store[1].variantes[0].precio, 2250);
+});
+
+test('limpiar-variantes-duplicadas --global reasigna IDs aleatorios únicos conservando primera ocurrencia, portada y sincronización published/draft', async () => {
+  const { limpiarVariantesDuplicadas } = require('../scripts/limpiar-variantes-duplicadas');
+  const { auditarIdsVariantes } = require('../scripts/auditar-ids-variantes');
+
+  const store = {
+    published: [
+      {
+        documentId: 'doc-p1', id_original: '101', nombre: 'Prod 1', proveedor: 'Prov A',
+        variantes: [{ id: 1, id_original: '16273', sku_ean: 'EAN-P1', volumen: '100 ml', precio: 500, stock: 5, portada: { id: 88 } }],
+      },
+      {
+        documentId: 'doc-p2', id_original: '102', nombre: 'Prod 2', proveedor: 'Prov B',
+        variantes: [{ id: 2, id_original: '16273', sku_ean: 'EAN-P2', volumen: '50 ml', precio: 700, stock: 3, portada: { id: 99 } }],
+      },
+      {
+        documentId: 'doc-p3', id_original: '103', nombre: 'Prod 3', proveedor: 'Prov C',
+        variantes: [{ id: 3, id_original: '16273', sku_ean: 'EAN-P3', volumen: '30 ml', precio: 300, stock: 1 }],
+      },
+    ],
+    draft: [
+      {
+        documentId: 'doc-p1', id_original: '101', nombre: 'Prod 1', proveedor: 'Prov A',
+        variantes: [{ id: 1, id_original: '16273', sku_ean: 'EAN-P1', volumen: '100 ml', precio: 500, stock: 5, portada: { id: 88 } }],
+      },
+      {
+        documentId: 'doc-p2', id_original: '102', nombre: 'Prod 2', proveedor: 'Prov B',
+        variantes: [{ id: 2, id_original: '16273', sku_ean: 'EAN-P2', volumen: '50 ml', precio: 700, stock: 3, portada: { id: 99 } }],
+      },
+      {
+        documentId: 'doc-p3', id_original: '103', nombre: 'Prod 3', proveedor: 'Prov C',
+        variantes: [{ id: 3, id_original: '16273', sku_ean: 'EAN-P3', volumen: '30 ml', precio: 300, stock: 1 }],
+      },
+    ],
+  };
+
+  const fakeApp = {
+    documents: () => ({
+      async findMany({ status = 'published', start = 0, limit = 100 }) {
+        return (store[status] || []).slice(start, start + limit);
+      },
+      async update({ documentId, data, status = 'published' }) {
+        const doc = (store[status] || []).find(d => d.documentId === documentId);
+        if (doc) doc.variantes = data.variantes;
+        return doc;
+      },
+    }),
+  };
+
+  const dry = await limpiarVariantesDuplicadas(fakeApp, { apply: false, global: true });
+  assert.equal(dry.length, 2);
+  assert.equal(store.published[1].variantes[0].id_original, '16273');
+
+  const res = await limpiarVariantesDuplicadas(fakeApp, { apply: true, global: true });
+  assert.equal(res.length, 2);
+  assert.equal(store.published[0].variantes[0].id_original, '16273');
+  const nuevoP2 = store.published[1].variantes[0].id_original;
+  const nuevoP3 = store.published[2].variantes[0].id_original;
+  assert.match(nuevoP2, /^\d{6,}$/);
+  assert.match(nuevoP3, /^\d{6,}$/);
+  assert.notEqual(nuevoP2, '16273');
+  assert.notEqual(nuevoP3, '16273');
+  assert.notEqual(nuevoP2, nuevoP3);
+  assert.equal(store.published[1].variantes[0].portada, 99);
+  assert.equal(store.published[1].variantes[0].sku_ean, 'EAN-P2');
+  assert.equal(store.draft[1].variantes[0].id_original, nuevoP2);
+  assert.equal(store.draft[2].variantes[0].id_original, nuevoP3);
+
+  const auditPost = await auditarIdsVariantes(fakeApp, { estados: ['published', 'draft'] });
+  assert.equal(auditPost.estados.published.resumen.idsRepetidosTotal, 0);
+  assert.equal(auditPost.estados.draft.resumen.idsRepetidosTotal, 0);
 });

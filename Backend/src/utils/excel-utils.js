@@ -134,7 +134,7 @@ function buildParentLookupFormula(rowIdx, parentSheetName = '📦 Productos', pa
 function construirHojaVariantes(wb, productos, refs, options = {}) {
   const {
     title = '🔗 MARYBE — Variantes exportadas',
-    instruction = '⚠ Una fila por variante. "producto_padre_id" debe coincidir con el "ID Original" de la hoja Productos. Columnas C e I son calculadas automáticamente.',
+    instruction = '⚠ Una fila por variante. "ID Producto Padre" debe coincidir con el "ID Original" de la hoja Productos. Para variantes nuevas completá desde ID Producto Padre (el ID interno es automático). Columnas C e I son calculadas.',
     parentSheetName = '📦 Productos',
     parentNameCol = 'C',
     parentNameColIdx = 3,
@@ -149,22 +149,22 @@ function construirHojaVariantes(wb, productos, refs, options = {}) {
     views:      [{ state: 'frozen', xSplit: 0, ySplit: 3 }],
   });
 
-  wsV.mergeCells('A1:L1');
-  const titleV     = wsV.getCell('A1');
+  wsV.mergeCells('B1:L1');
+  const titleV     = wsV.getCell('B1');
   titleV.value     = title;
   titleV.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7C3AED' } };
   titleV.font      = { bold: true, color: { argb: C.blanco }, size: 14, name: 'Calibri' };
   titleV.alignment = { horizontal: 'center', vertical: 'middle' };
   wsV.getRow(1).height = 36;
 
-  wsV.mergeCells('A2:L2');
-  const instrV = wsV.getCell('A2');
+  wsV.mergeCells('B2:L2');
+  const instrV = wsV.getCell('B2');
   instrV.value = instruction;
   applyStyle(instrV, noteStyle());
   wsV.getRow(2).height = 28;
 
   const colDefsV = [
-    { header: 'ID Variante *',            width: 16, color: C.coral,      note: 'ID único de esta variante' },
+    { header: 'ID Variante (auto)',       width: 16, color: C.coral,      note: 'Columna oculta: ID interno autogenerado si queda vacía' },
     { header: 'ID Producto Padre *',      width: 18, color: C.coral,      note: 'Debe coincidir con ID Original de Productos' },
     { header: 'Nombre Producto Padre 🔒', width: 32, color: C.verde,      note: 'Calculado automáticamente con BUSCARV' },
     { header: 'SKU / EAN',               width: 18, color: C.grisOscuro, note: 'Código de barras único de esta variante' },
@@ -179,6 +179,7 @@ function construirHojaVariantes(wb, productos, refs, options = {}) {
   ];
 
   wsV.columns = colDefsV.map(h => ({ width: h.width }));
+  wsV.getColumn(1).hidden = true;
 
   const rowHeaderV = wsV.getRow(3);
   colDefsV.forEach((h, i) => {
@@ -345,7 +346,7 @@ async function mensajeIdsProductos(strapi) {
   }
   const rango = max === null ? 'Sin IDs numéricos registrados.' : `IDs numéricos de productos registrados: ${min} a ${max} (puede haber números libres dentro del rango).`;
   const siguiente = max === null ? '1' : String(max + 1n);
-  return `${rango} Para productos nuevos, sugerencia desde ${siguiente}; verificá disponibilidad al importar, ya que puede cambiar. Conservá los IDs de productos existentes. Los IDs de variantes son independientes.`;
+  return `${rango} Para productos nuevos, sugerencia desde ${siguiente}; verificá disponibilidad al importar, ya que puede cambiar. Conservá los IDs de productos existentes. Los IDs de variantes son independientes y se generan automáticamente.`;
 }
 
 module.exports = {

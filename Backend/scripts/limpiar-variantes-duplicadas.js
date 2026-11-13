@@ -2,6 +2,7 @@
 'use strict';
 
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { createStrapi } = require('@strapi/strapi');
 
 const UID_PRODUCTO = 'api::producto.producto';
@@ -97,7 +98,7 @@ async function cargarProductos(docs) {
   return porDoc;
 }
 
-async function limpiarVariantesDuplicadas(app, { apply = false } = {}) {
+async function limpiarVariantesDuplicadas(app, { apply = false, global = false } = {}) {
   const docs = app.documents(UID_PRODUCTO);
   const porDoc = await cargarProductos(docs);
 
@@ -121,7 +122,18 @@ async function limpiarVariantesDuplicadas(app, { apply = false } = {}) {
   }
 
   let nextId = maxSeqId;
-  const reservarNuevoId = () => {
+  const reservarNuevoId = (aleatorio = false) => {
+    if (aleatorio) {
+      for (const [min, max] of [[100000, 1000000], [1000000, 10000000]]) {
+        for (let intento = 0; intento < 200; intento++) {
+          const cand = String(crypto.randomInt(min, max));
+          if (!usedIds.has(cand)) {
+            usedIds.add(cand);
+            return cand;
+          }
+        }
+      }
+    }
     do {
       nextId += 1;
     } while (usedIds.has(String(nextId)));
@@ -130,6 +142,7 @@ async function limpiarVariantesDuplicadas(app, { apply = false } = {}) {
     return s;
   };
 
+  const ownerDocByGlobalId = new Map();
   const tareas = [];
   const afectados = [];
 
@@ -161,15 +174,18 @@ async function limpiarVariantesDuplicadas(app, { apply = false } = {}) {
           return { ...v, id_original: nuevoId };
         }
 
-        // Solo reasigna si el id_original se repite dentro del MISMO producto;
-        // en el catálogo histórico distintos productos pueden compartir rango numérico.
-        if (vistosEnStatus.has(idNorm)) {
-          const nuevoId = reservarNuevoId();
+        const duplicadoIntra = vistosEnStatus.has(idNorm);
+        const duplicadoGlobal = global && ownerDocByGlobalId.has(idNorm) && ownerDocByGlobalId.get(idNorm) !== doc.documentId;
+
+        if (duplicadoIntra || duplicadoGlobal) {
+          const nuevoId = reservarNuevoId(global);
           vistosEnStatus.add(nuevoId);
+          if (global) ownerDocByGlobalId.set(nuevoId, doc.documentId);
           if (fullKey) docReassignments.set(fullKey, nuevoId);
           reassignedHere = true;
-          if (statusIdx === 0) {
+          if (statusIdx === 0 || !doc.estados.published) {
             detalleReasignados.push({
+              motivo: duplicadoIntra ? 'duplicado_intra_producto' : 'duplicado_entre_productos',
               sku_ean: v.sku_ean ?? null,
               volumen: v.volumen ?? null,
               color_nombre: v.color_nombre ?? null,
@@ -181,6 +197,9 @@ async function limpiarVariantesDuplicadas(app, { apply = false } = {}) {
         }
 
         vistosEnStatus.add(idNorm);
+        if (global && !ownerDocByGlobalId.has(idNorm)) {
+          ownerDocByGlobalId.set(idNorm, doc.documentId);
+        }
         return v;
       });
 
@@ -226,18 +245,20 @@ async function limpiarVariantesDuplicadas(app, { apply = false } = {}) {
 
 async function main() {
   const apply = process.argv.includes('--apply');
+  const global = process.argv.includes('--global');
   const appDir = path.resolve(__dirname, '..');
   process.chdir(appDir);
   const app = await createStrapi({ appDir, distDir: appDir }).load();
   try {
-    const afectados = await limpiarVariantesDuplicadas(app, { apply });
+    const afectados = await limpiarVariantesDuplicadas(app, { apply, global });
     console.log(JSON.stringify({
       modo: apply ? 'apply' : 'dry-run',
+      alcance: global ? 'global' : 'intra-producto',
       productosAfectados: afectados.length,
       detalle: afectados,
     }, null, 2));
     if (!apply && afectados.length > 0) {
-      console.log('\nPara aplicar los cambios ejecutá: node scripts/limpiar-variantes-duplicadas.js --apply');
+      console.log(`\nPara aplicar los cambios ejecutá: node scripts/limpiar-variantes-duplicadas.js${global ? ' --global' : ''} --apply`);
     }
   } finally {
     await app.destroy();
@@ -251,4 +272,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { deduplicarVariantes, limpiarVariantesDuplicadas };
+module.exports = { cargarProductos, deduplicarVariantes, limpiarVariantesDuplicadas };
