@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import axios from 'axios';
 import SectionEditorShell from '../SectionEditorShell';
 import OrderStrip from '../OrderStrip';
 import useSectionDraft from '../../hooks/useSectionDraft';
 import { imageUrl } from '../../../../../utils/bannerDesign';
 import { SECTION_MAP } from '../../../../../data/megamenu';
+import { acquireDedupedRequest, isRequestCanceled } from '../../../../../utils/requestDedup';
 import './MenuHeaderEditor.css';
 
 const AREAS = [
@@ -26,6 +27,7 @@ function move(values, id, to) {
 }
 
 function OrderedSelection({ title, selected, options, onChange, searchable = true }) {
+  const baseId = useId();
   const [query, setQuery] = useState('');
   const entries = selected.map(id => options.find(option => option.documentId === id) || { documentId: id, nombre: `No disponible (${id})` });
   const filtered = options.filter(option => `${option.nombre} ${option.seccion || ''} ${option.sku || ''}`.toLowerCase().includes(query.toLowerCase()));
@@ -33,10 +35,10 @@ function OrderedSelection({ title, selected, options, onChange, searchable = tru
     <h3>{title}</h3>
     {entries.length > 0 && <OrderStrip items={entries} title={`Orden de ${title.toLowerCase()}`} hint="Arrastrá o usá las flechas." listLabel={`Orden de ${title.toLowerCase()}`} onSelect={() => {}} onReorder={(id, to) => onChange(move(selected, id, to))} />}
     {entries.length > 0 && <div className="mh-selected">{entries.map(item => <button key={item.documentId} type="button" onClick={() => onChange(selected.filter(id => id !== item.documentId))}>Quitar {item.nombre}</button>)}</div>}
-    {searchable && <label>Buscar {title.toLowerCase()}<input type="search" value={query} onChange={event => setQuery(event.target.value)} /></label>}
+    {searchable && <label htmlFor={`${baseId}-search`}>Buscar {title.toLowerCase()}<input id={`${baseId}-search`} name={`${baseId}-search`} type="search" value={query} onChange={event => setQuery(event.target.value)} /></label>}
     <div className="mh-options">
-      {filtered.map(item => <label key={item.documentId} className="mh-option">
-        <input type="checkbox" checked={selected.includes(item.documentId)} onChange={() => onChange(selected.includes(item.documentId) ? selected.filter(id => id !== item.documentId) : [...selected, item.documentId])} />{' '}
+      {filtered.map(item => <label key={item.documentId} htmlFor={`${baseId}-${item.documentId}`} className="mh-option">
+        <input id={`${baseId}-${item.documentId}`} name="mh-ordered-selection" type="checkbox" checked={selected.includes(item.documentId)} onChange={() => onChange(selected.includes(item.documentId) ? selected.filter(id => id !== item.documentId) : [...selected, item.documentId])} />{' '}
         {item.portada && <img src={imageUrl(item.portada)} alt="" style={{ width: 36, height: 36, objectFit: 'contain', verticalAlign: 'middle', marginRight: 6 }} />}
         {item.nombre}{item.seccion ? ` · ${item.seccion}` : ''}{item.sku ? ` · ${item.sku}` : ''}
       </label>)}
@@ -45,6 +47,7 @@ function OrderedSelection({ title, selected, options, onChange, searchable = tru
 }
 
 function CategoryChooser({ categories, selected, onChange }) {
+  const baseId = useId();
   const [query, setQuery] = useState('');
   const filtered = categories.filter(category => category.nombre?.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
   const groups = [
@@ -55,14 +58,14 @@ function CategoryChooser({ categories, selected, onChange }) {
   return <section className="mh-selection">
     <h3>Agregar categorías existentes</h3>
     <p className="ba-inspector-help">Marcá o desmarcá las categorías que querés mostrar en este menú.</p>
-    <label>Buscar categoría<input type="search" value={query} onChange={event => setQuery(event.target.value)} /></label>
+    <label htmlFor={`${baseId}-cat-search`}>Buscar categoría<input id={`${baseId}-cat-search`} name={`${baseId}-cat-search`} type="search" value={query} onChange={event => setQuery(event.target.value)} /></label>
     {groups.filter(group => group.items.length).map(group => <details key={group.label} open>
       <summary>{group.label} · {group.items.length}</summary>
       <div className="mh-options">{group.items.map(category => {
         const key = `categoria:${category.documentId}`;
         const checked = selected.includes(key);
-        return <label key={key} className="mh-option">
-          <input type="checkbox" checked={checked} onChange={() => onChange(checked ? selected.filter(id => id !== key) : [...selected, key])} />
+        return <label key={key} htmlFor={`${baseId}-${category.documentId}`} className="mh-option">
+          <input id={`${baseId}-${category.documentId}`} name="mh-categories" type="checkbox" checked={checked} onChange={() => onChange(checked ? selected.filter(id => id !== key) : [...selected, key])} />
           <span>{category.nombre}</span>
         </label>;
       })}</div>
@@ -85,13 +88,17 @@ export default function MenuHeaderEditor({ token, onBack, onLogout }) {
 
   useEffect(() => {
     let active = true;
+    let request = null;
     const timer = setTimeout(() => {
-      axios.get(`${api}/api/menu-header-admin/productos`, { ...auth, params: { q: productQuery, page: 1 } })
+      request = acquireDedupedRequest(`menu-header-productos:${token || ''}:${productQuery}`, signal =>
+        axios.get(`${api}/api/menu-header-admin/productos`, { ...auth, signal, params: { q: productQuery, page: 1 } })
+      );
+      request.promise
         .then(response => { if (active) { const items = response.data.data.items; setProducts(items); setProductCache(previous => ({ ...previous, ...Object.fromEntries(items.map(item => [item.documentId, item])) })); setProductPage(1); setProductTotal(response.data.data.total); setProductError(''); } })
-        .catch(() => { if (active) setProductError('No se pudieron cargar los productos.'); });
+        .catch(err => { if (active && !isRequestCanceled(err)) setProductError('No se pudieron cargar los productos.'); });
     }, 250);
-    return () => { active = false; clearTimeout(timer); };
-  }, [api, auth, productQuery]);
+    return () => { active = false; clearTimeout(timer); request?.release(); };
+  }, [api, auth, token, productQuery]);
 
   const productOptions = useMemo(() => {
     const byId = new Map([...(overview?.products || []), ...Object.values(productCache)].map(product => [product.documentId, product]));
@@ -154,15 +161,15 @@ export default function MenuHeaderEditor({ token, onBack, onLogout }) {
       title="Orden del header" hint="Arrastrá las opciones o usá las flechas." listLabel="Orden del menú" onSelect={() => {}}
       onReorder={(id, to) => change(next => { next.orden = move(next.orden, id, to); })} />
       <section className="mh-selection mh-typography-section"><h3>Tipografía y color del menú</h3>
-        <label>Tipografía<select value={data.estilo?.fuente || ''} onChange={event => { const fuente = event.target.value; change(next => { next.estilo = { ...(next.estilo || {}), fuente, color: next.estilo?.color || '' }; }); }}><option value="">Original</option>{['Inter', 'Brygada 1918', 'Montserrat', 'Raleway', 'Playfair Display', 'Cormorant Garamond', 'Arial', 'Georgia', 'Verdana'].map(font => <option key={font}>{font}</option>)}</select></label>
-        <label className="mh-font-size">Tamaño de fuente <output>{data.estilo?.tamanoPx ?? 14} px</output><input type="range" min="12" max="24" step="1" value={data.estilo?.tamanoPx ?? 14} aria-label="Tamaño de fuente en píxeles" onChange={event => { const tamanoPx = Number(event.target.value); change(next => { next.estilo = { fuente: next.estilo?.fuente || '', color: next.estilo?.color || '', tamanoPx }; }); }} /><small>De 12 a 24 px · se aplica desde 1200 px; en notebook angosta y celular se conserva el tamaño responsive.</small></label>
+        <label htmlFor="mh-estilo-fuente">Tipografía<select id="mh-estilo-fuente" name="fuente" value={data.estilo?.fuente || ''} onChange={event => { const fuente = event.target.value; change(next => { next.estilo = { ...(next.estilo || {}), fuente, color: next.estilo?.color || '' }; }); }}><option value="">Original</option>{['Inter', 'Brygada 1918', 'Montserrat', 'Raleway', 'Playfair Display', 'Cormorant Garamond', 'Arial', 'Georgia', 'Verdana'].map(font => <option key={font}>{font}</option>)}</select></label>
+        <label htmlFor="mh-estilo-tamano" className="mh-font-size">Tamaño de fuente <output>{data.estilo?.tamanoPx ?? 14} px</output><input id="mh-estilo-tamano" name="tamanoPx" type="range" min="12" max="24" step="1" value={data.estilo?.tamanoPx ?? 14} aria-label="Tamaño de fuente en píxeles" onChange={event => { const tamanoPx = Number(event.target.value); change(next => { next.estilo = { fuente: next.estilo?.fuente || '', color: next.estilo?.color || '', tamanoPx }; }); }} /><small>De 12 a 24 px · se aplica desde 1200 px; en notebook angosta y celular se conserva el tamaño responsive.</small></label>
         <div className="mh-color-row">
-          <label className="mh-color-field">Color de fuente<input type="color" value={data.estilo?.color || '#5c0a0a'} onChange={event => { const color = event.target.value; change(next => { next.estilo = { ...(next.estilo || {}), fuente: next.estilo?.fuente || '', color }; }); }} /></label>
+          <label htmlFor="mh-estilo-color" className="mh-color-field">Color de fuente<input id="mh-estilo-color" name="color" type="color" value={data.estilo?.color || '#5c0a0a'} onChange={event => { const color = event.target.value; change(next => { next.estilo = { ...(next.estilo || {}), fuente: next.estilo?.fuente || '', color }; }); }} /></label>
           <button type="button" className="mh-color-reset" onClick={() => change(next => { next.estilo = { ...(next.estilo || {}), fuente: next.estilo?.fuente || '', color: '' }; })}>Usar color original</button>
         </div>
       </section>
       {areaKey !== 'general' && <section className="mh-selection"><h3>Opciones del menú</h3>
-        {['ofertas', 'lanzamientos'].map(id => <label key={id} className="mh-option"><input type="checkbox" checked={!(data.ocultos || []).includes(id)} onChange={event => { const checked = event.target.checked; change(next => { next.ocultos = checked ? (next.ocultos || []).filter(item => item !== id) : [...(next.ocultos || []), id]; }); }} /> Mostrar {names[id]}</label>)}
+        {['ofertas', 'lanzamientos'].map(id => <label key={id} htmlFor={`mh-mostrar-${id}`} className="mh-option"><input id={`mh-mostrar-${id}`} name={`mostrar_${id}`} type="checkbox" checked={!(data.ocultos || []).includes(id)} onChange={event => { const checked = event.target.checked; change(next => { next.ocultos = checked ? (next.ocultos || []).filter(item => item !== id) : [...(next.ocultos || []), id]; }); }} /> Mostrar {names[id]}</label>)}
       </section>}
       <CategoryChooser categories={categories} selected={data.orden} onChange={value => setList('orden', value)} />
     </>}
@@ -170,14 +177,14 @@ export default function MenuHeaderEditor({ token, onBack, onLogout }) {
       {(areaKey === 'ofertas' ? [{ id: 'descuentos', label: 'Descuentos' }, { id: 'categorias', label: 'Categorías' }, { id: 'productos', label: 'Productos' }] : [{ id: 'categorias', label: 'Categorías' }, { id: 'productos', label: 'Productos' }]).map(part => <button key={part.id} type="button" role="tab" aria-selected={parts[areaKey] === part.id} className={parts[areaKey] === part.id ? 'is-active' : ''} onClick={() => setParts(previous => ({ ...previous, [areaKey]: part.id }))}>{part.label}</button>)}
     </div>}
     {data && areaKey === 'ofertas' && parts.ofertas === 'descuentos' && <>
-      <label><input type="checkbox" checked={data.mostrar_columna_descuentos} onChange={event => change(next => { next.mostrar_columna_descuentos = event.target.checked; })} /> Mostrar descuentos</label>
-      <label>Título de descuentos<input value={data.titulo_descuentos} maxLength={160} onChange={event => change(next => { next.titulo_descuentos = event.target.value; })} /></label>
+      <label htmlFor="mh-mostrar-col-descuentos"><input id="mh-mostrar-col-descuentos" name="mostrar_columna_descuentos" type="checkbox" checked={data.mostrar_columna_descuentos} onChange={event => change(next => { next.mostrar_columna_descuentos = event.target.checked; })} /> Mostrar descuentos</label>
+      <label htmlFor="mh-titulo-descuentos">Título de descuentos<input id="mh-titulo-descuentos" name="titulo_descuentos" value={data.titulo_descuentos} maxLength={160} onChange={event => change(next => { next.titulo_descuentos = event.target.value; })} /></label>
     </>}
     {data && areaKey === 'ofertas' && parts.ofertas === 'categorias' && <>
       <h3>Columnas de categorías</h3>
       {data.columnas_categorias.map((column, index) => <details className="mh-column" key={column.id || column.key}>
         <summary>{column.titulo_columna || `Columna ${index + 1}`} · {column.categorias.length} categorías</summary>
-        <label>Título de columna<input value={column.titulo_columna} maxLength={160} onChange={event => updateColumn(index, { titulo_columna: event.target.value })} /></label>
+        <label htmlFor={`mh-col-${index}-titulo`}>Título de columna<input id={`mh-col-${index}-titulo`} name={`col_${index}_titulo`} value={column.titulo_columna} maxLength={160} onChange={event => updateColumn(index, { titulo_columna: event.target.value })} /></label>
         <button type="button" disabled={index === 0} onClick={() => change(next => { const item = next.columnas_categorias.splice(index, 1)[0]; next.columnas_categorias.splice(index - 1, 0, item); })}>Mover columna a la izquierda</button>
         <button type="button" disabled={index === data.columnas_categorias.length - 1} onClick={() => change(next => { const item = next.columnas_categorias.splice(index, 1)[0]; next.columnas_categorias.splice(index + 1, 0, item); })}>Mover columna a la derecha</button>
         <button type="button" onClick={() => change(next => { next.columnas_categorias.splice(index, 1); })}>Quitar columna</button>
@@ -186,12 +193,12 @@ export default function MenuHeaderEditor({ token, onBack, onLogout }) {
       <button type="button" onClick={() => change(next => { next.columnas_categorias.push({ key: `${Date.now()}-${Math.random()}`, titulo_columna: '', categorias: [] }); })}>Agregar columna</button>
     </>}
     {data && areaKey === 'lanzamientos' && parts.lanzamientos === 'categorias' && <>
-      <label>Título de categorías<input value={data.titulo_categorias} maxLength={160} onChange={event => change(next => { next.titulo_categorias = event.target.value; })} /></label>
+      <label htmlFor="mh-titulo-categorias">Título de categorías<input id="mh-titulo-categorias" name="titulo_categorias" value={data.titulo_categorias} maxLength={160} onChange={event => change(next => { next.titulo_categorias = event.target.value; })} /></label>
       <OrderedSelection title="Categorías" selected={data.categorias} options={categories} onChange={value => setList('categorias', value)} />
     </>}
     {data && ['ofertas', 'lanzamientos'].includes(areaKey) && parts[areaKey] === 'productos' && <>
-      <label>Título de destacados<input value={data.titulo_destacados} maxLength={160} onChange={event => change(next => { next.titulo_destacados = event.target.value; })} /></label>
-      <label>Buscar productos por nombre o SKU<input type="search" value={productQuery} onChange={event => setProductQuery(event.target.value)} /></label>
+      <label htmlFor="mh-titulo-destacados">Título de destacados<input id="mh-titulo-destacados" name="titulo_destacados" value={data.titulo_destacados} maxLength={160} onChange={event => change(next => { next.titulo_destacados = event.target.value; })} /></label>
+      <label htmlFor="mh-buscar-productos">Buscar productos por nombre o SKU<input id="mh-buscar-productos" name="buscar_productos" type="search" value={productQuery} onChange={event => setProductQuery(event.target.value)} /></label>
       {productError && <p role="alert">{productError}</p>}
       <OrderedSelection title="Productos destacados" selected={data.productos_destacados} options={productOptions.filter(product => data.productos_destacados.includes(product.documentId) || products.some(result => result.documentId === product.documentId))} searchable={false} onChange={value => setList('productos_destacados', value)} />
       {products.length < productTotal && <button type="button" onClick={moreProducts}>Cargar más productos</button>}

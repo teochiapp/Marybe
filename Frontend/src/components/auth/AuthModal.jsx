@@ -315,6 +315,8 @@ export default function AuthModal() {
             </Subtitle>
             <Form onSubmit={handleSubmit}>
               <Input
+                id="auth-forgot-email"
+                name="email"
                 type="email"
                 placeholder="Tu email"
                 value={email}
@@ -346,6 +348,8 @@ export default function AuthModal() {
             <Form onSubmit={handleSubmit}>
               {!isLoginMode && (
                 <Input
+                  id="auth-register-username"
+                  name="username"
                   type="text"
                   placeholder="Nombre completo"
                   value={username}
@@ -354,6 +358,8 @@ export default function AuthModal() {
                 />
               )}
               <Input
+                id="auth-email"
+                name="email"
                 type="email"
                 placeholder="Email"
                 value={email}
@@ -361,6 +367,8 @@ export default function AuthModal() {
                 required
               />
               <Input
+                id="auth-password"
+                name="password"
                 type="password"
                 placeholder="Contraseña"
                 value={password}

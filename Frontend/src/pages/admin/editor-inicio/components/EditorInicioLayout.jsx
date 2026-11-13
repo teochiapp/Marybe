@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
-import { FiChevronRight, FiExternalLink, FiLogOut } from 'react-icons/fi';
+import { FiChevronRight, FiExternalLink } from 'react-icons/fi';
 import { EDITOR_INICIO_PATH } from '../editorInicioSections';
 
 const LayoutWrapper = styled.div`
@@ -137,35 +137,6 @@ const ViewWebLink = styled.a`
   }
 `;
 
-const LogoutButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  min-height: 40px;
-  padding: 8px 14px;
-  border: 1px solid rgba(194, 161, 92, 0.35);
-  border-radius: var(--radius-md);
-  background: rgba(124, 4, 5, 0.35);
-  color: #f7efe8;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition-fast);
-
-  &:hover {
-    border-color: rgba(242, 220, 143, 0.7);
-    background: rgba(124, 4, 5, 0.6);
-  }
-  &:focus-visible { outline: 2px solid #f2dc8f; outline-offset: 2px; }
-
-  @media (max-width: 480px) {
-    span { display: none; }
-    padding: 8px 11px;
-  }
-`;
-
 const Content = styled.main`
   flex: 1;
   display: flex;
@@ -177,7 +148,7 @@ const Content = styled.main`
   }
 `;
 
-export default function EditorInicioLayout({ currentSection, onLogout, children }) {
+export default function EditorInicioLayout({ currentSection, children }) {
   return (
     <LayoutWrapper>
       <TopBar>
@@ -194,9 +165,6 @@ export default function EditorInicioLayout({ currentSection, onLogout, children 
           <ViewWebLink href="/" target="_blank" rel="noopener noreferrer" aria-label="Ver web">
             <FiExternalLink aria-hidden="true" /><span>Ver web</span>
           </ViewWebLink>
-          <LogoutButton type="button" onClick={onLogout} aria-label="Cerrar sesión">
-            <FiLogOut aria-hidden="true" /><span>Cerrar sesión</span>
-          </LogoutButton>
         </TopActions>
       </TopBar>
       <Content>{children}</Content>

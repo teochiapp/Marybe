@@ -3,6 +3,7 @@ import axios from 'axios';
 import SectionEditorShell from '../SectionEditorShell';
 import OrderStrip from '../OrderStrip';
 import useSectionDraft from '../../hooks/useSectionDraft';
+import { acquireDedupedRequest, isRequestCanceled } from '../../../../../utils/requestDedup';
 import CategoriaDestacadaPartsPanel from './CategoriaDestacadaPartsPanel';
 import ContenidoPanel from './ContenidoPanel';
 import ProductosCategoriaPanel from './ProductosCategoriaPanel';
@@ -29,8 +30,12 @@ export default function CategoriaDestacadaEditor({ token, onBack, onLogout, modu
   const categoryName = categories.find(category => category.documentId === categoria)?.nombre || '';
   const activePart = CATEGORIA_DESTACADA_PARTS.find(item => item.id === part);
 
-  const loadProducts = useCallback(async (query, page) => {
-    const response = await axios.get(`${api}${PRODUCTS_ENDPOINT}`, { ...auth, params: { categoria, q: query, page } });
+  const loadProducts = useCallback(async (query, page, signal) => {
+    const response = await axios.get(`${api}${PRODUCTS_ENDPOINT}`, {
+      ...auth,
+      ...(signal ? { signal } : {}),
+      params: { categoria, q: query, page },
+    });
     remember(response.data.data.items);
     return response.data.data;
   }, [api, auth, categoria, remember]);
@@ -39,11 +44,15 @@ export default function CategoriaDestacadaEditor({ token, onBack, onLogout, modu
   useEffect(() => {
     if (!categoria) { setAutomatic({ categoria: null, items: [] }); return undefined; }
     let active = true;
-    loadProducts('', 1)
+    const request = acquireDedupedRequest(
+      `categoria-destacada-auto:${token || ''}:${categoria}`,
+      signal => loadProducts('', 1, signal)
+    );
+    request.promise
       .then(response => { if (active) setAutomatic({ categoria, items: response.items }); })
-      .catch(() => { if (active) setAutomatic({ categoria, items: [] }); });
-    return () => { active = false; };
-  }, [categoria, loadProducts]);
+      .catch(err => { if (active && !isRequestCanceled(err)) setAutomatic({ categoria, items: [] }); });
+    return () => { active = false; request.release(); };
+  }, [categoria, token, loadProducts]);
 
   const automaticItems = useMemo(() => (automatic.categoria === categoria ? automatic.items : []), [automatic, categoria]);
   const shown = useMemo(() => (data ? shownProducts(data, productIndex, automaticItems) : []), [data, productIndex, automaticItems]);

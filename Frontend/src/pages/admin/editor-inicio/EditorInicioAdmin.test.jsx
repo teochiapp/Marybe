@@ -101,16 +101,14 @@ describe('autenticación del editor de inicio', () => {
     expect(localStorage.getItem('admin_jwt')).toBeNull();
   });
 
-  test('reutiliza una sesión existente y el cierre de sesión la elimina', () => {
+  test('reutiliza una sesión existente sin botón de cierre duplicado', () => {
     localStorage.setItem('admin_jwt', 'fixture-token');
     render(<EditorInicioAdmin />);
     expect(screen.getByText('Organizar Inicio')).toBeInTheDocument();
     const viewWebLink = screen.getByRole('link', { name: 'Ver web' });
     expect(viewWebLink).toHaveAttribute('href', '/');
     expect(viewWebLink).toHaveAttribute('target', '_blank');
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
-    expect(localStorage.getItem('admin_jwt')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cerrar sesión' })).not.toBeInTheDocument();
   });
 
   test('descarta tokens vencidos y reacciona a la expiración de la sesión', async () => {

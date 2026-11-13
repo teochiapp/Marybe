@@ -30,8 +30,8 @@ export default function ContenidoPanel({ data, categories, defaultTitle, areaCol
       <p className="ba-inspector-help">Elegí qué categoría de la tienda se muestra en esta sección, el título que la acompaña y, si querés, un ícono al final del título.</p>
       <details open>
         <summary>Categoría</summary>
-        <label>Categoría de la tienda
-          <select value={data.categoria || ''} onChange={event => onCategoryChange(event.target.value || null)}>
+        <label htmlFor="cd-categoria-select">Categoría de la tienda
+          <select id="cd-categoria-select" name="categoria" value={data.categoria || ''} onChange={event => onCategoryChange(event.target.value || null)}>
             <option value="">Elegí una categoría…</option>
             {groups.map(group => (
               <optgroup key={group.seccion || 'otras'} label={group.seccion || 'Sin área'}>
@@ -51,8 +51,10 @@ export default function ContenidoPanel({ data, categories, defaultTitle, areaCol
       </details>
       <details open>
         <summary>Ícono al final del título</summary>
-        <label>
+        <label htmlFor="cd-mostrar-icono">
           <input
+            id="cd-mostrar-icono"
+            name="mostrar_icono"
             type="checkbox"
             checked={Boolean(activeIcon)}
             onChange={event => onChange(next => { next.icono = event.target.checked ? (activeIcon || 'estrella') : ''; })}

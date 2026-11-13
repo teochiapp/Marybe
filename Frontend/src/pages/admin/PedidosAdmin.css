@@ -67,6 +67,66 @@
   font-size: 0.95rem;
 }
 
+.pa-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(140px, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 20px;
+}
+
+.pa-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pa-filter-field label {
+  font-family: var(--font-family-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-marron-principal);
+}
+
+.pa-filter-field input,
+.pa-filter-field select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 38px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(62, 1, 2, 0.22);
+  background: #fff;
+  color: #111;
+  font-family: var(--font-family-secondary);
+  font-size: 0.88rem;
+}
+
+.pa-filter-clear {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(62, 1, 2, 0.24);
+  background: transparent;
+  color: var(--color-marron-principal);
+  font-family: var(--font-family-secondary);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pa-filter-clear:hover:not(:disabled) {
+  background: rgba(62, 1, 2, 0.06);
+}
+
+.pa-filter-clear:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .pa-table-container {
   max-width: 100%;
   min-width: 0;
@@ -554,7 +614,13 @@
 .pa-raw-data pre { background: #231b18; border-radius: 8px; color: #f5eee8; font-size: .72rem; line-height: 1.45; max-height: 260px; overflow: auto; padding: 14px; white-space: pre-wrap; word-break: break-word; }
 .pa-print-footer { align-items: center; border-top: 1px solid #d8b7ad; color: #8b7b70; display: flex; gap: 16px; font-size: .62rem; justify-content: space-between; letter-spacing: .06em; margin-top: 32px; padding-top: 13px; text-transform: uppercase; }
 
+@media screen and (max-width: 900px) {
+  .pa-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pa-filter-field--search { grid-column: 1 / -1; }
+}
+
 @media screen and (max-width: 640px) {
+  .pa-filters { grid-template-columns: 1fr; }
   .pa-receipt-methods { grid-template-columns: 1fr; }
   .pa-print-header { grid-template-columns: 1fr; gap: 12px; }
   .pa-print-toolbar { padding-right: 30px; }

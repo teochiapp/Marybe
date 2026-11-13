@@ -18,15 +18,15 @@ export default function BannerRowInspector({ draft, row, rows, selected, device,
   const updateCarousel = values => change(copy => { const target = copy.Filas[selected.row]; target.config_carrusel = { ...CAROUSEL_DEFAULTS, ...target.config_carrusel, ...values }; });
 
   return <>
-    <label>Tipo de presentación<select value={row.es_carrusel ? 'carousel' : 'grid'} onChange={event => change(copy => { copy.Filas[selected.row].es_carrusel = event.target.value === 'carousel'; })}><option value="grid">Grilla</option><option value="carousel">Carrusel</option></select></label>
+    <label htmlFor="ba-row-presentation">Tipo de presentación<select id="ba-row-presentation" name="es_carrusel" value={row.es_carrusel ? 'carousel' : 'grid'} onChange={event => change(copy => { copy.Filas[selected.row].es_carrusel = event.target.value === 'carousel'; })}><option value="grid">Grilla</option><option value="carousel">Carrusel</option></select></label>
     {row.es_carrusel && <details open><summary>Opciones del carrusel</summary>
-      <label className="ba-check"><input type="checkbox" checked={carousel.autoplay} onChange={event => updateCarousel({ autoplay: event.target.checked })} />Avance automático</label>
-      <label>Intervalo en segundos<input type="number" min="1" max="60" value={carousel.intervalo} onChange={event => { if (event.target.value !== '') updateCarousel({ intervalo: Math.max(1, Math.min(60, Math.round(Number(event.target.value)))) }); }} /></label>
-      <label>Indicador<select value={carousel.indicador} onChange={event => updateCarousel({ indicador: event.target.value })}><option value="ninguno">Sin indicador</option><option value="puntos">Puntos</option><option value="contador">Contador</option></select></label>
-      <label className="ba-check"><input type="checkbox" checked={carousel.vistaParcial} onChange={event => updateCarousel({ vistaParcial: event.target.checked })} />Mostrar parte del próximo banner</label>
+      <label htmlFor="ba-carousel-autoplay" className="ba-check"><input id="ba-carousel-autoplay" name="carousel_autoplay" type="checkbox" checked={carousel.autoplay} onChange={event => updateCarousel({ autoplay: event.target.checked })} />Avance automático</label>
+      <label htmlFor="ba-carousel-interval">Intervalo en segundos<input id="ba-carousel-interval" name="carousel_intervalo" type="number" min="1" max="60" value={carousel.intervalo} onChange={event => { if (event.target.value !== '') updateCarousel({ intervalo: Math.max(1, Math.min(60, Math.round(Number(event.target.value)))) }); }} /></label>
+      <label htmlFor="ba-carousel-indicator">Indicador<select id="ba-carousel-indicator" name="carousel_indicador" value={carousel.indicador} onChange={event => updateCarousel({ indicador: event.target.value })}><option value="ninguno">Sin indicador</option><option value="puntos">Puntos</option><option value="contador">Contador</option></select></label>
+      <label htmlFor="ba-carousel-partial" className="ba-check"><input id="ba-carousel-partial" name="carousel_vista_parcial" type="checkbox" checked={carousel.vistaParcial} onChange={event => updateCarousel({ vistaParcial: event.target.checked })} />Mostrar parte del próximo banner</label>
       <small className="ba-hint">Estas opciones se comparten entre dispositivos.</small>
     </details>}
-    <label>Plantilla de distribución<select value={row.__component} onChange={event => {
+    <label htmlFor="ba-row-component">Plantilla de distribución<select id="ba-row-component" name="row_component" value={row.__component} onChange={event => {
       const type = event.target.value;
       change(copy => {
         const target = copy.Filas[selected.row];
@@ -34,8 +34,8 @@ export default function BannerRowInspector({ draft, row, rows, selected, device,
         if (type !== 'layout.fila-mixta') target.diseno = { ...target.diseno, [device]: { ...target.diseno?.[device], columns: TYPE_COLUMNS[type] } };
       });
     }}>{Object.entries(ROW_TYPES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-    <label>Nombre de la sección<input id="ba-section-name" value={draft.titulo} maxLength={200} onChange={event => change(copy => { copy.titulo = event.target.value; })} /></label>
-    {rows.length > 1 && <label>Distribución activa<select value={selected.row} onChange={event => selectElement(Number(event.target.value), 0, 'row')}>{rows.map((item, index) => <option key={index} value={index}>Distribución {index + 1}</option>)}</select></label>}
+    <label htmlFor="ba-section-name">Nombre de la sección<input id="ba-section-name" name="titulo" value={draft.titulo} maxLength={200} onChange={event => change(copy => { copy.titulo = event.target.value; })} /></label>
+    {rows.length > 1 && <label htmlFor="ba-active-row">Distribución activa<select id="ba-active-row" name="fila_activa" value={selected.row} onChange={event => selectElement(Number(event.target.value), 0, 'row')}>{rows.map((item, index) => <option key={index} value={index}>Distribución {index + 1}</option>)}</select></label>}
     <details open><summary>Ajustes principales · {deviceName}</summary>
       {number('columns', 'Columnas', 1, 4, '')}
       <NumberControl label="Alto de los banners" value={deviceDesign(row.banners[0]?.diseno, device).height} min={0} max={1600} origin={{ ...designOrigin(row.banners[0]?.diseno, device, 'height'), own: row.banners.some(item => designOrigin(item.diseno, device, 'height').own) }} onReset={() => change(copy => { copy.Filas[selected.row].banners.forEach(item => { if (item.diseno?.[device]) delete item.diseno[device].height; }); })} onChange={height => change(copy => { copy.Filas[selected.row].banners.forEach(item => { item.diseno = { ...item.diseno, [device]: { ...item.diseno?.[device], height } }; }); })} />
@@ -44,7 +44,7 @@ export default function BannerRowInspector({ draft, row, rows, selected, device,
     </details>
     <details><summary>Ajustes avanzados · {deviceName}</summary>
       {number('width', 'Ancho de distribución', 10, 100, '%')}{number('maxWidth', 'Ancho máximo', 320, 2560)}{color('background', 'Fondo de distribución')}{number('margin', 'Margen vertical', 0, 200)}{number('padding', 'Espacio interior', 0, 160)}
-      <label className="ba-check ba-device-hidden"><input type="checkbox" checked={values.hidden || false} onChange={event => updateDesign({ hidden: event.target.checked })} />Ocultar en {deviceName.toLowerCase()}</label>
+      <label htmlFor="ba-row-hidden" className="ba-check ba-device-hidden"><input id="ba-row-hidden" name="row_hidden" type="checkbox" checked={values.hidden || false} onChange={event => updateDesign({ hidden: event.target.checked })} />Ocultar en {deviceName.toLowerCase()}</label>
       {origin('hidden', `Ocultar en ${deviceName.toLowerCase()}`)}
     </details>
     <details open><summary>Banners de esta distribución</summary>

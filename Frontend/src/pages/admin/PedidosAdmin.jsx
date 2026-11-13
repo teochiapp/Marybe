@@ -7,8 +7,10 @@ import './ImportacionAdmin.css';
 import './PedidosAdmin.css';
 import { getAddressLines, getOrderAttributes, getOrderDebugData, getPaymentStatusLabel } from '../../utils/orderDetails';
 import { getReceiptDetails, RECEIPT_BUSINESS } from '../../utils/orderReceipt';
+import { acquireDedupedRequest, isRequestCanceled } from '../../utils/requestDedup';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
+const ESTADOS_PEDIDO = ['Pendiente de pago', 'Abortado', 'Procesando', 'Enviado', 'Completado', 'Cancelado'];
 
 function printOrder(order) {
   const previousTitle = document.title;
@@ -107,6 +109,38 @@ export default function PedidosAdmin() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
 
+  // Buscador y filtros
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('');
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+  const hasFilters = Boolean(search || estadoFiltro || fechaDesde || fechaHasta);
+
+  useEffect(() => {
+    const next = searchInput.trim();
+    if (next === search) return undefined;
+    const timer = window.setTimeout(() => {
+      setSearch(next);
+      setCurrentPage(1);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput, search]);
+
+  const updateFilter = setter => event => {
+    setter(event.target.value);
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setEstadoFiltro('');
+    setFechaDesde('');
+    setFechaHasta('');
+    setCurrentPage(1);
+  };
+
   // Detalles Modal
   const [selectedPedido, setSelectedPedido] = useState(null);
   const [printRequested, setPrintRequested] = useState(false);
@@ -153,36 +187,59 @@ export default function PedidosAdmin() {
   };
 
   // ─── Fetch Pedidos ───────────────────────────────────────────────────────────
-  const fetchPedidos = async () => {
-    if (!token) return;
+  useEffect(() => {
+    if (!token) return undefined;
+    let active = true;
     setLoadingPedidos(true);
     setErrorPedidos('');
-    try {
-      // Pedimos pedidos ordenados, limitados a 10 por página
-      const res = await axios.get(`${API_URL}/api/admin-pedidos?populate=usuario&sort=createdAt:desc&pagination[page]=${currentPage}&pagination[pageSize]=10`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setPedidos(res.data.data || []);
-      setPageCount(res.data.meta?.pagination?.pageCount || 1);
-    } catch (err) {
-      console.error(err);
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        setAuthError('No tienes permisos para ver los pedidos. Verifica que tu rol tenga permisos en Strapi.');
-        handleLogout();
-      } else {
-        setErrorPedidos('Hubo un error al cargar los pedidos.');
-      }
-    } finally {
-      setLoadingPedidos(false);
-    }
-  };
 
-  useEffect(() => {
-    if (token) {
-      fetchPedidos();
+    const params = new URLSearchParams({
+      populate: 'usuario',
+      sort: 'createdAt:desc',
+      'pagination[page]': String(currentPage),
+      'pagination[pageSize]': '10',
+    });
+    if (search) {
+      params.append('filters[$or][0][numero_pedido][$containsi]', search);
+      params.append('filters[$or][1][cliente_email][$containsi]', search);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, currentPage]);
+    if (estadoFiltro) params.append('filters[estado][$eq]', estadoFiltro);
+    if (fechaDesde) params.append('filters[createdAt][$gte]', new Date(`${fechaDesde}T00:00:00`).toISOString());
+    if (fechaHasta) params.append('filters[createdAt][$lte]', new Date(`${fechaHasta}T23:59:59.999`).toISOString());
+
+    const query = params.toString();
+    const request = acquireDedupedRequest(`admin-pedidos:${token}:${query}`, signal =>
+      axios.get(`${API_URL}/api/admin-pedidos?${query}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal,
+      })
+    );
+
+    request.promise
+      .then(res => {
+        if (!active) return;
+        setPedidos(res.data.data || []);
+        setPageCount(res.data.meta?.pagination?.pageCount || 1);
+      })
+      .catch(err => {
+        if (!active || isRequestCanceled(err)) return;
+        console.error(err);
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          setAuthError('No tienes permisos para ver los pedidos. Verifica que tu rol tenga permisos en Strapi.');
+          handleLogout();
+        } else {
+          setErrorPedidos('Hubo un error al cargar los pedidos.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingPedidos(false);
+      });
+
+    return () => {
+      active = false;
+      request.release();
+    };
+  }, [token, currentPage, search, estadoFiltro, fechaDesde, fechaHasta]);
 
   // ─── Cambiar Estado de Pedido ────────────────────────────────────────────────
   const onStatusChangeRequest = (id, nuevoEstado) => {
@@ -407,10 +464,30 @@ export default function PedidosAdmin() {
               <p className="pa-subtitle">Administra los estados de las compras</p>
             </div>
           </div>
-          <button className="ia-btn ia-btn--primary" onClick={handleLogout}>
-            Cerrar sesión
-          </button>
         </header>
+
+        <div className="pa-filters" role="search" aria-label="Buscar y filtrar pedidos">
+          <div className="pa-filter-field pa-filter-field--search">
+            <label htmlFor="pa-filter-search">Buscar</label>
+            <input id="pa-filter-search" name="buscar" type="search" placeholder="Nº de pedido o email del cliente" value={searchInput} onChange={e => setSearchInput(e.target.value)} />
+          </div>
+          <div className="pa-filter-field">
+            <label htmlFor="pa-filter-estado">Estado</label>
+            <select id="pa-filter-estado" name="estado" value={estadoFiltro} onChange={updateFilter(setEstadoFiltro)}>
+              <option value="">Todos</option>
+              {ESTADOS_PEDIDO.map(estado => <option key={estado} value={estado}>{estado}</option>)}
+            </select>
+          </div>
+          <div className="pa-filter-field">
+            <label htmlFor="pa-filter-desde">Desde</label>
+            <input id="pa-filter-desde" name="fecha_desde" type="date" value={fechaDesde} max={fechaHasta || undefined} onChange={updateFilter(setFechaDesde)} />
+          </div>
+          <div className="pa-filter-field">
+            <label htmlFor="pa-filter-hasta">Hasta</label>
+            <input id="pa-filter-hasta" name="fecha_hasta" type="date" value={fechaHasta} min={fechaDesde || undefined} onChange={updateFilter(setFechaHasta)} />
+          </div>
+          <button type="button" className="pa-filter-clear" onClick={clearFilters} disabled={!hasFilters && !searchInput}>Limpiar</button>
+        </div>
 
         {errorPedidos && (
           <div className="ia-alert ia-alert--error">{errorPedidos}</div>
@@ -460,16 +537,14 @@ export default function PedidosAdmin() {
                       <td data-label="Pago" style={{ textTransform: 'capitalize' }}>{p.metodo_pago}{p.estado_pago && <small style={{ display: 'block', marginTop: 6 }}>{getPaymentStatusLabel(p.estado_pago)}</small>}</td>
                       <td data-label="Estado">
                         <select 
+                          id={`pa-estado-${pedido.documentId || pedido.id}`}
+                          name={`estado-${pedido.documentId || pedido.id}`}
+                          aria-label={`Estado del pedido ${p.numero_pedido || ''}`.trim()}
                           className={`pa-select pa-select--${estado.toLowerCase()}`}
                           value={estado} 
                           onChange={(e) => onStatusChangeRequest(pedido.documentId, e.target.value)}
                         >
-                          <option value="Pendiente de pago">Pendiente de pago</option>
-                          <option value="Abortado">Abortado</option>
-                          <option value="Procesando">Procesando</option>
-                          <option value="Enviado">Enviado</option>
-                          <option value="Completado">Completado</option>
-                          <option value="Cancelado">Cancelado</option>
+                          {ESTADOS_PEDIDO.map(option => <option key={option} value={option}>{option}</option>)}
                         </select>
                       </td>
                       <td data-label="Acciones">
@@ -490,7 +565,7 @@ export default function PedidosAdmin() {
                 })}
                 {pedidos.length === 0 && (
                   <tr>
-                    <td colSpan="8" style={{ textAlign: 'center', padding: '40px' }}>No hay pedidos registrados todavía.</td>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '40px' }}>{hasFilters ? 'No hay pedidos que coincidan con los filtros.' : 'No hay pedidos registrados todavía.'}</td>
                   </tr>
                 )}
               </tbody>
@@ -532,8 +607,8 @@ export default function PedidosAdmin() {
               exit={{ opacity: 0, y: 30 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <button className="pa-modal-close" onClick={() => setSelectedPedido(null)}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+              <button type="button" className="pa-modal-close" onClick={() => setSelectedPedido(null)} aria-label={`Cerrar detalle del pedido ${(selectedPedido.attributes || selectedPedido).numero_pedido || ''}`.trim()}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg>
               </button>
               
               <OrderDetailContent order={selectedPedido} formatDate={formatDate} formatPrice={formatPrice} onPrint={printOrder} />
@@ -607,10 +682,12 @@ export default function PedidosAdmin() {
 
               {pendingStatusUpdate.nuevoEstado === 'Enviado' && (
                 <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-marron-principal, #3E0102)' }}>
+                  <label htmlFor="pa-tracking-code" style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-marron-principal, #3E0102)' }}>
                     Código de Seguimiento (Opcional)
                   </label>
                   <input
+                    id="pa-tracking-code"
+                    name="codigo_seguimiento"
                     type="text"
                     className="ia-input"
                     style={{ backgroundColor: 'transparent', color: '#111', border: '1px solid #ccc' }}

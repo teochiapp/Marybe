@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './ImportacionAdmin.css';
+import { acquireDedupedRequest, isRequestCanceled } from '../../utils/requestDedup';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
 
@@ -17,6 +18,7 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
 
   // Proveedores
   const [proveedores, setProveedores]                 = useState([]);
+  const [busquedaProveedor, setBusquedaProveedor]     = useState('');
   const [seleccionados, setSeleccionados]             = useState(new Set());
   const [cargandoProveedores, setCargandoProveedores] = useState(false);
   const [errorProveedores, setErrorProveedores]       = useState('');
@@ -38,29 +40,50 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
   const [resultadoModal, setResultadoModal] = useState(null);
 
   // ─── Cargar proveedores al autenticarse ─────────────────────────────────────
-  const cargarProveedores = useCallback(async (jwt) => {
+  const runCargaProveedores = useCallback((jwt, { bypass = false, isActive = () => true } = {}) => {
     setCargandoProveedores(true);
     setErrorProveedores('');
-    try {
-      const res = await axios.get(`${API_URL}/api/exportacion-proveedores-admin/proveedores`, {
+    const request = acquireDedupedRequest(
+      `exportacion-proveedores:${jwt}`,
+      signal => axios.get(`${API_URL}/api/exportacion-proveedores-admin/proveedores`, {
         headers: { Authorization: `Bearer ${jwt}` },
+        signal,
+      }),
+      { bypass }
+    );
+    const promise = request.promise
+      .then(res => {
+        if (isActive()) setProveedores(res.data?.proveedores || []);
+      })
+      .catch(err => {
+        if (!isActive() || isRequestCanceled(err)) return;
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          handleLogout();
+          setAuthError('Sesión expirada. Iniciá sesión nuevamente.');
+        } else {
+          setErrorProveedores('No se pudo cargar la lista de proveedores. Recargá la página.');
+        }
+      })
+      .finally(() => {
+        if (isActive()) setCargandoProveedores(false);
       });
-      setProveedores(res.data?.proveedores || []);
-    } catch (err) {
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        handleLogout();
-        setAuthError('Sesión expirada. Iniciá sesión nuevamente.');
-      } else {
-        setErrorProveedores('No se pudo cargar la lista de proveedores. Recargá la página.');
-      }
-    } finally {
-      setCargandoProveedores(false);
-    }
+    return { promise, release: request.release };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const cargarProveedores = useCallback(
+    jwt => runCargaProveedores(jwt, { bypass: true }).promise,
+    [runCargaProveedores]
+  );
+
   useEffect(() => {
-    if (token) cargarProveedores(token);
-  }, [token, cargarProveedores]);
+    if (!token) return undefined;
+    let active = true;
+    const task = runCargaProveedores(token, { isActive: () => active });
+    return () => {
+      active = false;
+      task.release();
+    };
+  }, [token, runCargaProveedores]);
 
   // ─── Auth ────────────────────────────────────────────────────────────────────
   const handleLogin = async (e) => {
@@ -88,6 +111,7 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
     localStorage.removeItem('admin_jwt');
     setToken('');
     setProveedores([]);
+    setBusquedaProveedor('');
     setSeleccionados(new Set());
     setExportError('');
     setExportOk(null);
@@ -115,7 +139,14 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
     setErrorBorrado('');
   };
 
-  const seleccionarTodos = () => { setSeleccionados(new Set(proveedores)); setExportOk(null); setVistaBorrado(null); setResultadoBorrado(null); setErrorBorrado(''); };
+  const normalizarBusqueda = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f'’]/g, '').toLocaleLowerCase().trim();
+  const terminoProveedor = normalizarBusqueda(busquedaProveedor);
+  const proveedoresFiltrados = terminoProveedor
+    ? proveedores.filter(nombre => normalizarBusqueda(nombre).includes(terminoProveedor))
+    : proveedores;
+  const todosVisiblesSeleccionados = proveedoresFiltrados.length > 0 && proveedoresFiltrados.every(nombre => seleccionados.has(nombre));
+
+  const seleccionarTodos = () => { setSeleccionados(prev => new Set([...prev, ...proveedoresFiltrados])); setExportOk(null); setVistaBorrado(null); setResultadoBorrado(null); setErrorBorrado(''); };
   const limpiarSeleccion = () => { setSeleccionados(new Set()); setExportOk(null); setVistaBorrado(null); setResultadoBorrado(null); setErrorBorrado(''); };
 
   const prepararBorrado = async () => {
@@ -170,7 +201,6 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
     }
   };
 
-  const normalizarBusqueda = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
   const productosFiltrados = (vistaBorrado?.productos || []).filter(p => {
     const term = normalizarBusqueda(busquedaBorrado);
     return !term || [p.nombre, p.sku, p.id_original, ...(p.skuVariantes || [])].some(value => normalizarBusqueda(value).includes(term));
@@ -381,10 +411,6 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
               <p className="ia-panel-sub">{modoEliminar ? 'Marybe · Seleccioná proveedores y revisá los productos antes de borrarlos' : 'Marybe · Exportar precios y stock filtrados por proveedor'}</p>
             </div>
           </div>
-          <button id="btn-logout-exportacion-proveedores" className="ia-btn ia-btn--ghost" onClick={handleLogout}>
-            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd"/></svg>
-            Cerrar sesión
-          </button>
         </header>
 
         {/* Info */}
@@ -417,7 +443,7 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button id="btn-seleccionar-todos" type="button" className="ia-btn ia-btn--ghost"
                   style={{ padding: '4px 12px', fontSize: '12px' }}
-                  onClick={seleccionarTodos} disabled={cargandoBorrado || seleccionados.size === proveedores.length}>
+                  onClick={seleccionarTodos} disabled={cargandoBorrado || proveedoresFiltrados.length === 0 || todosVisiblesSeleccionados}>
                   Todos
                 </button>
                 <button id="btn-limpiar-seleccion" type="button" className="ia-btn ia-btn--ghost"
@@ -444,49 +470,76 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
           )}
 
           {!cargandoProveedores && proveedores.length > 0 && (
-            <div role="group" aria-label="Lista de proveedores" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-              gap: '8px',
-              maxHeight: '320px',
-              overflowY: 'auto',
-              padding: '12px',
-              background: '#f9fafb',
-              borderRadius: '10px',
-              border: '1px solid #e5e7eb',
-            }}>
-              {proveedores.map(nombre => {
-                const checked = seleccionados.has(nombre);
-                return (
-                  <label key={nombre} htmlFor={`prov-${nombre}`} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 10px',
+            <>
+              <div style={{ marginBottom: '10px' }}>
+                <input
+                  id="eprov-buscar-proveedor"
+                  name="buscar_proveedor"
+                  type="search"
+                  aria-label="Buscar proveedor"
+                  placeholder="Buscar proveedor..."
+                  value={busquedaProveedor}
+                  onChange={e => setBusquedaProveedor(e.target.value)}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '8px 12px',
                     borderRadius: '8px',
-                    cursor: 'pointer',
-                    background:  checked ? '#ede9fe' : 'transparent',
-                    border:      `1.5px solid ${checked ? '#7c6af7' : 'transparent'}`,
-                    transition:  'background 0.15s, border-color 0.15s',
-                    userSelect:  'none',
-                  }}>
-                    <input id={`prov-${nombre}`} type="checkbox" checked={checked} disabled={cargandoBorrado}
-                      onChange={() => toggleProveedor(nombre)}
-                      style={{ accentColor: '#7c6af7', width: '16px', height: '16px', cursor: 'pointer' }} />
-                    <span style={{
-                      fontSize:     '13px',
-                      fontWeight:   checked ? 600 : 400,
-                      color:        checked ? '#4c1d95' : '#1e1b4b',
-                      overflow:     'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace:   'nowrap',
+                    border: '1px solid #d1d5db',
+                    background: '#ffffff',
+                    color: '#1e1b4b',
+                    fontSize: '13px',
+                  }}
+                />
+              </div>
+              <div role="group" aria-label="Lista de proveedores" style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '8px',
+                maxHeight: '320px',
+                overflowY: 'auto',
+                padding: '12px',
+                background: '#f9fafb',
+                borderRadius: '10px',
+                border: '1px solid #e5e7eb',
+              }}>
+                {proveedoresFiltrados.length === 0 ? (
+                  <p style={{ color: '#6b7280', fontSize: '13px', margin: 0, gridColumn: '1 / -1' }}>
+                    Ningún proveedor coincide con la búsqueda.
+                  </p>
+                ) : proveedoresFiltrados.map(nombre => {
+                  const checked = seleccionados.has(nombre);
+                  return (
+                    <label key={nombre} htmlFor={`prov-${nombre}`} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      background:  checked ? '#ede9fe' : 'transparent',
+                      border:      `1.5px solid ${checked ? '#7c6af7' : 'transparent'}`,
+                      transition:  'background 0.15s, border-color 0.15s',
+                      userSelect:  'none',
                     }}>
-                      {nombre}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
+                      <input id={`prov-${nombre}`} name="proveedores" type="checkbox" checked={checked} disabled={cargandoBorrado}
+                        onChange={() => toggleProveedor(nombre)}
+                        style={{ accentColor: '#7c6af7', width: '16px', height: '16px', cursor: 'pointer' }} />
+                      <span style={{
+                        fontSize:     '13px',
+                        fontWeight:   checked ? 600 : 400,
+                        color:        checked ? '#4c1d95' : '#1e1b4b',
+                        overflow:     'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace:   'nowrap',
+                      }}>
+                        {nombre}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           {!cargandoProveedores && proveedores.length === 0 && !errorProveedores && (
@@ -605,13 +658,13 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
               <div className="ia-delete-list" role="group" aria-label="Productos para borrar">
                 {productosFiltrados.length === 0 && <p>No se encontraron productos.</p>}
                 {productosFiltrados.map(p => <div className="ia-delete-card" key={p.documentId}><label className="ia-delete-product">
-                  <input type="checkbox" checked={productosSeleccionados.has(p.documentId)} disabled={p.bloqueado}
+                  <input id={`del-prod-${p.documentId}`} name="productos_borrar" type="checkbox" checked={productosSeleccionados.has(p.documentId)} disabled={p.bloqueado}
                     onChange={() => toggleProductoBorrado(p.documentId)} />
                   <span><strong>{p.nombre}</strong><small>SKU: {p.sku || '—'} · ID: {p.id_original || p.documentId} · {p.proveedor}</small>
                     {p.skuVariantes?.length > 0 && <small>SKU de variantes: {p.skuVariantes.join(', ')}</small>}
                     {p.bloqueado && <small>El borrador tiene otro proveedor; revisalo en Strapi.</small>}
                   </span>
-                </label>{p.variantes?.length > 0 && <details className="ia-delete-variants"><summary>Variantes <span>{p.variantes.length}</span></summary>{productosSeleccionados.has(p.documentId) && <p>Estas variantes se eliminarán junto con el producto.</p>}<div className="ia-delete-variants-list">{p.variantes.map(v => <label key={v.id} className="ia-delete-variant"><input type="checkbox" disabled={cargandoBorrado || p.bloqueado || productosSeleccionados.has(p.documentId)} checked={productosSeleccionados.has(p.documentId) || variantesSeleccionadas.some(item => item.variante.id === v.id)} onChange={e => setVariantesSeleccionadas(prev => e.target.checked ? [...prev, { producto: p, variante: v }] : prev.filter(item => item.variante.id !== v.id))} /><div className="ia-delete-variant-info"><strong>{[v.volumen, v.color_nombre].filter(Boolean).join(' · ') || 'Variante sin descripción'}</strong><small>SKU: {v.sku_ean || 'Sin SKU'}{v.id_original && ` · ID: ${v.id_original}`}{!v.publicado && ' · Oculta'}</small></div></label>)}</div></details>}</div>)}
+                </label>{p.variantes?.length > 0 && <details className="ia-delete-variants"><summary>Variantes <span>{p.variantes.length}</span></summary>{productosSeleccionados.has(p.documentId) && <p>Estas variantes se eliminarán junto con el producto.</p>}<div className="ia-delete-variants-list">{p.variantes.map(v => <label key={v.id} className="ia-delete-variant"><input id={`del-var-${p.documentId}-${v.id}`} name="variantes_borrar" type="checkbox" disabled={cargandoBorrado || p.bloqueado || productosSeleccionados.has(p.documentId)} checked={productosSeleccionados.has(p.documentId) || variantesSeleccionadas.some(item => item.variante.id === v.id)} onChange={e => setVariantesSeleccionadas(prev => e.target.checked ? [...prev, { producto: p, variante: v }] : prev.filter(item => item.variante.id !== v.id))} /><div className="ia-delete-variant-info"><strong>{[v.volumen, v.color_nombre].filter(Boolean).join(' · ') || 'Variante sin descripción'}</strong><small>SKU: {v.sku_ean || 'Sin SKU'}{v.id_original && ` · ID: ${v.id_original}`}{!v.publicado && ' · Oculta'}</small></div></label>)}</div></details>}</div>)}
               </div>
               <div className="ia-delete-actions">
                 <button type="button" className="ia-btn" onClick={() => setVistaBorrado(null)}>Cancelar</button>

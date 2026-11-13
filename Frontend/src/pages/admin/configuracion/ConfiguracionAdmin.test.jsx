@@ -116,3 +116,28 @@ test('filtra las tarjetas según el tab seleccionado', async () => {
   expect(screen.getByRole('heading', { name: 'Envíos y Logística' })).toBeInTheDocument();
   expect(screen.queryByRole('heading', { name: 'Cuotas y Financiación' })).toBeNull();
 });
+
+test('normaliza valores null/undefined a cadena vacía y sincroniza cuotas_cantidad 8', async () => {
+  const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  axios.get.mockResolvedValueOnce({
+    data: {
+      data: {
+        ...mockConfig,
+        cuotas_cantidad: 8,
+        cuotas_texto_previo: null,
+        mp_etiqueta: null,
+        transf_alias: undefined,
+      },
+    },
+  });
+
+  render(<ConfiguracionAdmin />);
+
+  const cuotasSelect = await screen.findByLabelText('Cantidad de cuotas');
+  expect(cuotasSelect).toHaveValue('8');
+  expect(screen.getByRole('option', { name: /^8 cuotas/i })).toBeInTheDocument();
+  expect(screen.getByLabelText(/Texto previo a las cuotas/i)).toHaveValue('');
+  expect(screen.getByLabelText(/^Alias bancario$/i)).toHaveValue('');
+  expect(errorSpy).not.toHaveBeenCalledWith(expect.stringContaining('should not be null'), expect.anything());
+  errorSpy.mockRestore();
+});

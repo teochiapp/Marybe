@@ -22,8 +22,8 @@ export default function BannerInferiorPanel({ index, banner, onChooseImage, onCh
       </details>
       <details open>
         <summary>Botón</summary>
-        <label>Texto del botón<input value={banner.texto_boton} maxLength={60} onChange={event => update('texto_boton', event.target.value)} /></label>
-        <label>Enlace<input value={banner.link_boton} maxLength={2048} placeholder="/tienda?categoria=… o https://…" onChange={event => update('link_boton', event.target.value)} /></label>
+        <label htmlFor={`dd-banner-${index}-texto-boton`}>Texto del botón<input id={`dd-banner-${index}-texto-boton`} name="texto_boton" value={banner.texto_boton} maxLength={60} onChange={event => update('texto_boton', event.target.value)} /></label>
+        <label htmlFor={`dd-banner-${index}-link-boton`}>Enlace<input id={`dd-banner-${index}-link-boton`} name="link_boton" value={banner.link_boton} maxLength={2048} placeholder="/tienda?categoria=… o https://…" onChange={event => update('link_boton', event.target.value)} /></label>
         <small className="ba-hint">Usá una ruta de la tienda que empiece con / o una dirección https. Vacío lleva a /tienda.</small>
       </details>
       <button className="ba-reset-device" onClick={onRemove}>Eliminar banner inferior {index + 1}</button>

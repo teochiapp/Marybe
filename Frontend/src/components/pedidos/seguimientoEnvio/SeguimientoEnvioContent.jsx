@@ -205,8 +205,10 @@ export default function SeguimientoEnvioContent() {
         <div style={{ fontSize: '1rem', fontWeight: 600 }}>Completá los datos del pedido</div>
         <Form onSubmit={handleTrack}>
           <FormGroup>
-            <Label>Número de pedido</Label>
+            <Label htmlFor="seguimiento-numero-pedido">Número de pedido</Label>
             <Input
+              id="seguimiento-numero-pedido"
+              name="numero_pedido"
               type="text"
               placeholder="Ej: #12345"
               value={orderNumber}
@@ -216,8 +218,10 @@ export default function SeguimientoEnvioContent() {
           </FormGroup>
 
           <FormGroup>
-            <Label>Email de compra</Label>
+            <Label htmlFor="seguimiento-email">Email de compra</Label>
             <Input
+              id="seguimiento-email"
+              name="email_compra"
               type="email"
               placeholder="ejemplo@correo.com"
               value={email}

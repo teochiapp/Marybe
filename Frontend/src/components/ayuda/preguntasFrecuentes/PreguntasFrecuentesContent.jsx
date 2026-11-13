@@ -246,6 +246,8 @@ export default function PreguntasFrecuentesContent() {
       <SearchContainer>
         <FiSearch size={20} color="var(--color-bordo-secundario)" />
         <SearchInput
+          id="faq-search"
+          name="buscar_faq"
           type="text"
           placeholder="Buscá preguntas frecuentes... (ej. envíos, tarjetas, cambios)"
           value={searchQuery}

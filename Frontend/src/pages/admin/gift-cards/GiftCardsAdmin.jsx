@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useOutletContext } from 'react-router-dom';
+import { acquireDedupedRequest, isRequestCanceled } from '../../../utils/requestDedup';
 import {
   FiCheck,
   FiCopy,
@@ -90,31 +91,75 @@ export default function GiftCardsAdmin() {
     activa: true,
   });
 
-  const fetchGiftCards = useCallback(async () => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      const res = await axios.get(`${API_BASE}/api/gift-cards-admin`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setItems(Array.isArray(res.data?.data) ? res.data.data : []);
-      if (res.data?.meta?.stats) {
-        setStats(res.data.meta.stats);
+  const loadGiftCardsRequest = useCallback(
+    (bypass = false) =>
+      acquireDedupedRequest(
+        `gift-cards-admin:${token}`,
+        (signal) =>
+          axios.get(`${API_BASE}/api/gift-cards-admin`, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal,
+          }),
+        { bypass }
+      ),
+    [token]
+  );
+
+  const fetchGiftCards = useCallback(
+    async (bypass = true) => {
+      if (!token) {
+        setLoading(false);
+        return;
       }
-    } catch (err) {
-      setError(err.response?.data?.error?.message || 'No se pudieron cargar las Gift Cards.');
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
+      setLoading(true);
+      setError('');
+      try {
+        const res = await loadGiftCardsRequest(bypass).promise;
+        setItems(Array.isArray(res.data?.data) ? res.data.data : []);
+        if (res.data?.meta?.stats) {
+          setStats(res.data.meta.stats);
+        }
+      } catch (err) {
+        if (!isRequestCanceled(err)) {
+          setError(err.response?.data?.error?.message || 'No se pudieron cargar las Gift Cards.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    [token, loadGiftCardsRequest]
+  );
 
   useEffect(() => {
-    fetchGiftCards();
-  }, [fetchGiftCards]);
+    if (!token) {
+      setLoading(false);
+      return undefined;
+    }
+    let active = true;
+    setLoading(true);
+    setError('');
+    const request = loadGiftCardsRequest(false);
+    request.promise
+      .then((res) => {
+        if (!active) return;
+        setItems(Array.isArray(res.data?.data) ? res.data.data : []);
+        if (res.data?.meta?.stats) {
+          setStats(res.data.meta.stats);
+        }
+      })
+      .catch((err) => {
+        if (active && !isRequestCanceled(err)) {
+          setError(err.response?.data?.error?.message || 'No se pudieron cargar las Gift Cards.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+      request.release();
+    };
+  }, [token, loadGiftCardsRequest]);
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -211,6 +256,7 @@ export default function GiftCardsAdmin() {
   };
 
   const handleToggleActive = async (card) => {
+    if (card.estado_actual === 'expirada') return;
     setSaving(true);
     setError('');
     setSuccess('');
@@ -246,7 +292,7 @@ export default function GiftCardsAdmin() {
           <button
             type="button"
             className="gca-btn gca-btn--secondary"
-            onClick={fetchGiftCards}
+            onClick={() => fetchGiftCards(true)}
             disabled={loading || saving}
           >
             <FiRefreshCw /> Actualizar
@@ -294,6 +340,8 @@ export default function GiftCardsAdmin() {
         <div className="gca-search-wrap">
           <FiSearch className="gca-search-icon" aria-hidden="true" />
           <input
+            id="gca-search"
+            name="buscar"
             type="search"
             className="gca-search-input"
             placeholder="Buscar por código, pedido o email..."
@@ -398,7 +446,8 @@ export default function GiftCardsAdmin() {
                           type="button"
                           className="gca-btn gca-btn--secondary gca-btn--sm"
                           onClick={() => handleToggleActive(card)}
-                          disabled={saving}
+                          disabled={saving || card.estado_actual === 'expirada'}
+                          title={card.estado_actual === 'expirada' ? 'Tarjeta expirada. Editá el vencimiento desde Gestionar.' : undefined}
                         >
                           {card.activa ? 'Desactivar' : 'Activar'}
                         </button>
@@ -525,8 +574,10 @@ export default function GiftCardsAdmin() {
                   onChange={(e) => setEditForm((prev) => ({ ...prev, fecha_expiracion: e.target.value }))}
                 />
               </div>
-              <label className="gca-checkbox-row">
+              <label htmlFor="gca-edit-activa" className="gca-checkbox-row">
                 <input
+                  id="gca-edit-activa"
+                  name="activa"
                   type="checkbox"
                   checked={editForm.activa}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, activa: e.target.checked }))}

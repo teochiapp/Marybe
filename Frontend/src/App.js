@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { LazyMotion, domAnimation } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
+import { MegaMenuProvider } from './context/MegaMenuContext';
 import AuthRedirect from './components/auth/AuthRedirect';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 
@@ -92,8 +93,10 @@ function RootRoute() {
 
 function App() {
   const location = useLocation();
-  const bannerStudio = ['/banners-preview', '/editor-inicio-preview'].includes(location.pathname) || /^\/(admin|pedidos-admin|gift-cards-admin|editor-admin|importacion-admin|exportacion-admin|comparacion-admin|exportacion-proveedores-admin|eliminar-productos-admin|banners-admin|editor-inicio-admin|configuracion-admin|sucursales-admin|historia-admin)(\/|$)/.test(location.pathname);
+  const adminRoute = /^\/(admin|pedidos-admin|gift-cards-admin|editor-admin|importacion-admin|exportacion-admin|comparacion-admin|exportacion-proveedores-admin|eliminar-productos-admin|banners-admin|editor-inicio-admin|configuracion-admin|sucursales-admin|historia-admin)(\/|$)/.test(location.pathname);
+  const bannerStudio = ['/banners-preview', '/editor-inicio-preview'].includes(location.pathname) || adminRoute;
   return (
+    <MegaMenuProvider enabled={!adminRoute && location.pathname !== '/banners-preview'}>
     <AuthProvider>
       <LazyMotion features={domAnimation}>
         {!bannerStudio && <Header />}
@@ -171,6 +174,7 @@ function App() {
         {!bannerStudio && <Footer />}
       </LazyMotion>
     </AuthProvider>
+    </MegaMenuProvider>
   );
 }
 

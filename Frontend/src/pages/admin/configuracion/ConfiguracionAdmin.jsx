@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useTransition } from 'react';
 import axios from 'axios';
 import { useOutletContext } from 'react-router-dom';
+import { acquireDedupedRequest, isRequestCanceled } from '../../../utils/requestDedup';
 import {
   FiCheck,
   FiCreditCard,
@@ -65,6 +66,23 @@ const INITIAL_FORM = {
   ac_respuesta: '',
 };
 
+const BASE_CUOTAS_OPTIONS = [1, 2, 3, 4, 6, 8, 9, 10, 12, 18, 24];
+
+const normalizeConfig = (data = {}) => {
+  const normalized = { ...INITIAL_FORM };
+  Object.keys(INITIAL_FORM).forEach(key => {
+    const value = data[key];
+    if (value === null || value === undefined) return;
+    normalized[key] = typeof INITIAL_FORM[key] === 'boolean' ? Boolean(value) : value;
+  });
+  ['costo_envio', 'envio_gratis_desde', 'costo_uber_moto'].forEach(key => {
+    normalized[key] = data[key] != null ? String(data[key]) : '';
+  });
+  const cuotas = Number(data.cuotas_cantidad);
+  normalized.cuotas_cantidad = Number.isFinite(cuotas) && cuotas > 0 ? cuotas : INITIAL_FORM.cuotas_cantidad;
+  return normalized;
+};
+
 export default function ConfiguracionAdmin() {
   const context = useOutletContext() || {};
   const token = context.token || localStorage.getItem('admin_jwt');
@@ -83,38 +101,37 @@ export default function ConfiguracionAdmin() {
   // Carga inicial de datos
   useEffect(() => {
     let unmounted = false;
-    const fetchConfig = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const response = await axios.get(`${API_BASE}/api/configuracion-general-admin`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+    setLoading(true);
+    setError('');
+    const request = acquireDedupedRequest(`configuracion-general:${token || ''}`, signal =>
+      axios.get(`${API_BASE}/api/configuracion-general-admin`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        signal,
+      })
+    );
+
+    request.promise
+      .then(response => {
         const data = response.data?.data || {};
-        const merged = {
-          ...INITIAL_FORM,
-          ...data,
-          // Normalizar números a string para los inputs controlados
-          costo_envio: data.costo_envio != null ? String(data.costo_envio) : '',
-          envio_gratis_desde: data.envio_gratis_desde != null ? String(data.envio_gratis_desde) : '',
-          costo_uber_moto: data.costo_uber_moto != null ? String(data.costo_uber_moto) : '',
-          cuotas_cantidad: data.cuotas_cantidad != null ? Number(data.cuotas_cantidad) : 3,
-        };
+        const merged = normalizeConfig(data);
         if (!unmounted) {
           setForm(merged);
           setInitialSnapshot(JSON.stringify(merged));
         }
-      } catch (err) {
-        if (!unmounted) {
+      })
+      .catch(err => {
+        if (!unmounted && !isRequestCanceled(err)) {
           setError(err.response?.data?.error?.message || 'No se pudo cargar la configuración general.');
         }
-      } finally {
+      })
+      .finally(() => {
         if (!unmounted) setLoading(false);
-      }
-    };
+      });
 
-    fetchConfig();
-    return () => { unmounted = true; };
+    return () => {
+      unmounted = true;
+      request.release();
+    };
   }, [token]);
 
   // Alerta de cambios sin guardar al salir
@@ -161,13 +178,7 @@ export default function ConfiguracionAdmin() {
       );
 
       const savedData = response.data?.data || payload;
-      const normalizedSaved = {
-        ...INITIAL_FORM,
-        ...savedData,
-        costo_envio: savedData.costo_envio != null ? String(savedData.costo_envio) : '',
-        envio_gratis_desde: savedData.envio_gratis_desde != null ? String(savedData.envio_gratis_desde) : '',
-        costo_uber_moto: savedData.costo_uber_moto != null ? String(savedData.costo_uber_moto) : '',
-      };
+      const normalizedSaved = normalizeConfig(savedData);
 
       setForm(normalizedSaved);
       setInitialSnapshot(JSON.stringify(normalizedSaved));
@@ -327,8 +338,10 @@ export default function ConfiguracionAdmin() {
                   <p>Muestra los planes de cuotas en fichas de producto y catálogo</p>
                 </div>
               </div>
-              <label className="cfg-switch">
+              <label htmlFor="cfg-cuotas-activas" className="cfg-switch">
                 <input
+                  id="cfg-cuotas-activas"
+                  name="cuotas_activas"
                   type="checkbox"
                   checked={form.cuotas_activas}
                   onChange={e => handleChange('cuotas_activas', e.target.checked)}
@@ -346,13 +359,10 @@ export default function ConfiguracionAdmin() {
                   value={form.cuotas_cantidad}
                   onChange={e => handleChange('cuotas_cantidad', Number(e.target.value))}
                 >
-                  <option value={1}>1 cuota</option>
-                  <option value={2}>2 cuotas</option>
-                  <option value={3}>3 cuotas</option>
-                  <option value={6}>6 cuotas</option>
-                  <option value={9}>9 cuotas</option>
-                  <option value={12}>12 cuotas</option>
-                  <option value={18}>18 cuotas</option>
+                  {[...new Set([...BASE_CUOTAS_OPTIONS, Number(form.cuotas_cantidad)])]
+                    .filter(n => Number.isFinite(n) && n > 0)
+                    .sort((a, b) => a - b)
+                    .map(n => <option key={n} value={n}>{n} {n === 1 ? 'cuota' : 'cuotas'}</option>)}
                 </select>
                 <small className="cfg-field-hint">Número de cuotas que calcula el sistema.</small>
               </div>
@@ -410,8 +420,10 @@ export default function ConfiguracionAdmin() {
                   <p>Pagos con tarjetas de crédito, débito y dinero en cuenta</p>
                 </div>
               </div>
-              <label className="cfg-switch">
+              <label htmlFor="cfg-mp-habilitado" className="cfg-switch">
                 <input
+                  id="cfg-mp-habilitado"
+                  name="mp_habilitado"
                   type="checkbox"
                   checked={form.mp_habilitado}
                   onChange={e => handleChange('mp_habilitado', e.target.checked)}
@@ -478,8 +490,10 @@ export default function ConfiguracionAdmin() {
                   <p>Datos bancarios para recibir pagos por transferencia o depósito</p>
                 </div>
               </div>
-              <label className="cfg-switch">
+              <label htmlFor="cfg-transf-habilitado" className="cfg-switch">
                 <input
+                  id="cfg-transf-habilitado"
+                  name="transf_habilitado"
                   type="checkbox"
                   checked={form.transf_habilitado}
                   onChange={e => handleChange('transf_habilitado', e.target.checked)}
@@ -602,8 +616,10 @@ export default function ConfiguracionAdmin() {
                   <p>Pago presencial en el local al retirar el pedido</p>
                 </div>
               </div>
-              <label className="cfg-switch">
+              <label htmlFor="cfg-ef-habilitado" className="cfg-switch">
                 <input
+                  id="cfg-ef-habilitado"
+                  name="ef_habilitado"
                   type="checkbox"
                   checked={form.ef_habilitado}
                   onChange={e => handleChange('ef_habilitado', e.target.checked)}
@@ -671,8 +687,10 @@ export default function ConfiguracionAdmin() {
                   <p>Coordinación personalizada de pago y entrega</p>
                 </div>
               </div>
-              <label className="cfg-switch">
+              <label htmlFor="cfg-ac-habilitado" className="cfg-switch">
                 <input
+                  id="cfg-ac-habilitado"
+                  name="ac_habilitado"
                   type="checkbox"
                   checked={form.ac_habilitado}
                   onChange={e => handleChange('ac_habilitado', e.target.checked)}

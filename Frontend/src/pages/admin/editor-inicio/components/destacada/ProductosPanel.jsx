@@ -55,7 +55,7 @@ export default function ProductosPanel({ areaLabel, data, productIndex, searchPr
       </details>
       <details open>
         <summary>Agregar productos</summary>
-        <label>Buscar en {areaLabel}<input type="search" value={query} placeholder="Nombre, marca o SKU" maxLength={80} onChange={event => setQuery(event.target.value)} /></label>
+        <label htmlFor="dd-buscar-productos">Buscar en {areaLabel}<input id="dd-buscar-productos" name="buscar_destacada" type="search" value={query} placeholder="Nombre, marca o SKU" maxLength={80} onChange={event => setQuery(event.target.value)} /></label>
         {full && <small className="ba-hint">Llegaste al máximo de {MAX_PRODUCTS} productos.</small>}
         {searching && <p className="ba-hint" role="status">Buscando…</p>}
         {searchError && <p className="ba-hint" role="alert">{searchError}</p>}

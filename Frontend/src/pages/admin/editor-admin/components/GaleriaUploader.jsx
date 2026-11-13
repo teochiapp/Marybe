@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useId } from 'react';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
@@ -18,6 +18,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
  *   lightboxSetter     : (urlONull) => void  (comparte el lightbox global del padre)
  */
 export default function GaleriaUploader({ productoDocumentId, galeriaActual, token, onGaleriaChange, lightboxSetter }) {
+  const inputId = useId();
   const inputRef        = useRef(null);
   const [uploading, setUploading]   = useState(false);
   const [error, setError]           = useState('');
@@ -187,6 +188,8 @@ export default function GaleriaUploader({ productoDocumentId, galeriaActual, tok
       )}
 
       <input
+        id={inputId}
+        name="galeria"
         ref={inputRef}
         type="file"
         accept="image/*"

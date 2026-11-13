@@ -470,40 +470,40 @@ export default function Login() {
               <form onSubmit={handleSubmit}>
                 <FormGrid>
                   <FormGroup>
-                    <label>Nombre</label>
-                    <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} required />
+                    <label htmlFor="checkout-nombre">Nombre</label>
+                    <input id="checkout-nombre" type="text" name="nombre" value={formData.nombre} onChange={handleChange} required />
                   </FormGroup>
                   <FormGroup>
-                    <label>Apellido</label>
-                    <input type="text" name="apellido" value={formData.apellido} onChange={handleChange} required />
+                    <label htmlFor="checkout-apellido">Apellido</label>
+                    <input id="checkout-apellido" type="text" name="apellido" value={formData.apellido} onChange={handleChange} required />
                   </FormGroup>
                   <FormGroup>
-                    <label>Teléfono</label>
-                    <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange} required />
+                    <label htmlFor="checkout-telefono">Teléfono</label>
+                    <input id="checkout-telefono" type="tel" name="telefono" value={formData.telefono} onChange={handleChange} required />
                   </FormGroup>
                   <FormGroup>
-                    <label>Email</label>
-                    <input type="email" name="email" value={formData.email} onChange={handleChange} required readOnly style={{ backgroundColor: '#f9f9f9', cursor: 'not-allowed' }} />
+                    <label htmlFor="checkout-email">Email</label>
+                    <input id="checkout-email" type="email" name="email" value={formData.email} onChange={handleChange} required readOnly style={{ backgroundColor: '#f9f9f9', cursor: 'not-allowed' }} />
                   </FormGroup>
                   <FormGroup>
-                    <label>Calle</label>
-                    <input type="text" name="calle" value={formData.calle} onChange={handleChange} required />
+                    <label htmlFor="checkout-calle">Calle</label>
+                    <input id="checkout-calle" type="text" name="calle" value={formData.calle} onChange={handleChange} required />
                   </FormGroup>
                   <FormGroup>
-                    <label>Número / Depto</label>
-                    <input type="text" name="numero" value={formData.numero} onChange={handleChange} required />
+                    <label htmlFor="checkout-numero">Número / Depto</label>
+                    <input id="checkout-numero" type="text" name="numero" value={formData.numero} onChange={handleChange} required />
                   </FormGroup>
                   <FormGroup>
-                    <label>Código Postal</label>
-                    <input type="text" name="cp" value={formData.cp} onChange={handleChange} required />
+                    <label htmlFor="checkout-cp">Código Postal</label>
+                    <input id="checkout-cp" type="text" name="cp" value={formData.cp} onChange={handleChange} required />
                   </FormGroup>
                   <FormGroup>
-                    <label>Ciudad</label>
-                    <input type="text" name="ciudad" value={formData.ciudad} onChange={handleChange} required />
+                    <label htmlFor="checkout-ciudad">Ciudad</label>
+                    <input id="checkout-ciudad" type="text" name="ciudad" value={formData.ciudad} onChange={handleChange} required />
                   </FormGroup>
                   <FormGroup className="full-width">
-                    <label>Provincia</label>
-                    <input type="text" name="provincia" value={formData.provincia} onChange={handleChange} required />
+                    <label htmlFor="checkout-provincia">Provincia</label>
+                    <input id="checkout-provincia" type="text" name="provincia" value={formData.provincia} onChange={handleChange} required />
                   </FormGroup>
                 </FormGrid>
                 

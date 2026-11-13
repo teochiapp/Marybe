@@ -3,6 +3,7 @@ import axios from 'axios';
 import SectionEditorShell from '../SectionEditorShell';
 import MediaLibraryDialog from '../MediaLibraryDialog';
 import useSectionDraft from '../../hooks/useSectionDraft';
+import { acquireDedupedRequest, isRequestCanceled } from '../../../../../utils/requestDedup';
 import { DESCUENTOS_DEFAULTS } from '../../../../../utils/descuentosBloque';
 import DescuentosPartsPanel from './DescuentosPartsPanel';
 import ContenidoPanel from './ContenidoPanel';
@@ -27,11 +28,22 @@ export default function DescuentosEditor({ token, onBack, onLogout }) {
   // Categorías, marcas y proveedores existentes en Strapi (solo lectura).
   useEffect(() => {
     let active = true;
-    axios.get(`${api}${ENDPOINT}/entidades`, auth)
+    const request = acquireDedupedRequest(
+      `descuentos-entidades:${token || ''}`,
+      () => axios.get(`${api}${ENDPOINT}/entidades`, auth)
+    );
+    request.promise
       .then(response => { if (active) setEntities(response.data.data); })
-      .catch(requestError => { if (active) setEntitiesError(requestError.response?.data?.error?.message || 'No se pudieron cargar las categorías, marcas y proveedores.'); });
-    return () => { active = false; };
-  }, [api, auth]);
+      .catch(requestError => {
+        if (active && !isRequestCanceled(requestError)) {
+          setEntitiesError(requestError.response?.data?.error?.message || 'No se pudieron cargar las categorías, marcas y proveedores.');
+        }
+      });
+    return () => {
+      active = false;
+      request.release();
+    };
+  }, [api, auth, token]);
 
   const area = DESCUENTOS_AREAS.find(item => item.key === areaKey);
   const activePart = DESCUENTOS_PARTS.find(item => item.id === part);

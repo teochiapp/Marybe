@@ -39,8 +39,8 @@ export default function ContenidoPanel({ data, entities, entitiesError, onChange
       <p className="ba-inspector-help">Elegí qué promociona este bloque. Los textos, la imagen y el botón son independientes: elegir una entidad no cambia el título ni modifica la entidad en la tienda.</p>
       <details open>
         <summary>Tipo de contenido</summary>
-        <label>¿Qué querés promocionar?
-          <select value={tipo} onChange={event => changeTipo(event.target.value)}>
+        <label htmlFor="desc-entidad-tipo">¿Qué querés promocionar?
+          <select id="desc-entidad-tipo" name="entidad_tipo" value={tipo} onChange={event => changeTipo(event.target.value)}>
             <option value="">Nada en particular (descuentos generales)</option>
             {TIPOS_ENTIDAD.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
@@ -54,11 +54,11 @@ export default function ContenidoPanel({ data, entities, entitiesError, onChange
           {!entities && !entitiesError && <small className="ba-hint">Cargando {tipoInfo(tipo).plural}…</small>}
           {entities && (
             <>
-              <label>Buscar {tipoInfo(tipo).label.toLowerCase()}
-                <input type="search" value={query} placeholder={`Escribí para filtrar ${tipoInfo(tipo).plural}…`} onChange={event => setQuery(event.target.value)} />
+              <label htmlFor="desc-buscar-entidad">Buscar {tipoInfo(tipo).label.toLowerCase()}
+                <input id="desc-buscar-entidad" name="buscar_entidad" type="search" value={query} placeholder={`Escribí para filtrar ${tipoInfo(tipo).plural}…`} onChange={event => setQuery(event.target.value)} />
               </label>
-              <label>{PLURAL_LABEL[tipo]} disponibles ({options.length})
-                <select size={7} value={data.entidad_id} aria-label={`${PLURAL_LABEL[tipo]} disponibles`} onChange={event => choose(event.target.value)}>
+              <label htmlFor="desc-entidad-id">{PLURAL_LABEL[tipo]} disponibles ({options.length})
+                <select id="desc-entidad-id" name="entidad_id" size={7} value={data.entidad_id} aria-label={`${PLURAL_LABEL[tipo]} disponibles`} onChange={event => choose(event.target.value)}>
                   {data.entidad_id && !shown.some(item => entityKey(tipo, item) === data.entidad_id) && <option value={data.entidad_id}>{data.entidad_nombre || data.entidad_id}{found ? '' : ' (no disponible)'}</option>}
                   {shown.map(item => (
                     <option key={entityKey(tipo, item)} value={entityKey(tipo, item)}>

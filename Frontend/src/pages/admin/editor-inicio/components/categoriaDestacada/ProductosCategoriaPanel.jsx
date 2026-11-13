@@ -117,7 +117,7 @@ export default function ProductosCategoriaPanel({ data, categoryName, productInd
       )}
       <details open>
         <summary>Productos de la categoría</summary>
-        <label>Buscar en {categoryName}<input type="search" value={query} placeholder="Nombre, marca o SKU" maxLength={80} onChange={event => setQuery(event.target.value)} /></label>
+        <label htmlFor="cd-buscar-productos">Buscar en {categoryName}<input id="cd-buscar-productos" name="buscar_productos_categoria" type="search" value={query} placeholder="Nombre, marca o SKU" maxLength={80} onChange={event => setQuery(event.target.value)} /></label>
         {full && <small className="ba-hint">Llegaste al máximo de {MAX_PRODUCTS} productos.</small>}
         {searchError && <p className="ba-hint" role="alert">{searchError}</p>}
         {!searching && !searchError && !results.length && <p className="ba-hint">No hay productos publicados que coincidan.</p>}

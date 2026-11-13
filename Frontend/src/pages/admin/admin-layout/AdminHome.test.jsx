@@ -15,6 +15,6 @@ test('muestra métricas reales del endpoint administrativo', async () => {
   render(<AdminHome />);
   expect(await screen.findByText(/12\.500/)).toBeInTheDocument();
   expect(screen.getByText('Pedidos del mes').parentElement).toHaveTextContent('4');
-  expect(screen.getByText('Productos nuevos').parentElement).toHaveTextContent('3');
+  expect(screen.queryByText('Productos nuevos')).not.toBeInTheDocument();
   expect(axios.get).toHaveBeenCalledWith(expect.stringMatching(/\/api\/admin-dashboard$/), expect.objectContaining({ headers: { Authorization: 'Bearer test-token' } }));
 });

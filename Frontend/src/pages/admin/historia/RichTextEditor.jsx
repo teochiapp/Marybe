@@ -51,7 +51,17 @@ export default function RichTextEditor({ id, label, value, onChange, placeholder
 
   return (
     <div className="ha-field">
-      <label htmlFor={id}>{label}</label>
+      {sourceMode ? (
+        <label htmlFor={id}>{label}</label>
+      ) : (
+        <span
+          id={`${id}-label`}
+          className="ha-rte-label"
+          onClick={() => editorRef.current?.focus()}
+        >
+          {label}
+        </span>
+      )}
       <div className="ha-rte">
         <div className="ha-rte-toolbar" role="toolbar" aria-label={`Formato de ${label}`}>
           <button
@@ -146,6 +156,7 @@ export default function RichTextEditor({ id, label, value, onChange, placeholder
         {sourceMode ? (
           <textarea
             id={id}
+            name={id}
             className="ha-rte-source"
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
@@ -160,7 +171,7 @@ export default function RichTextEditor({ id, label, value, onChange, placeholder
             suppressContentEditableWarning
             role="textbox"
             aria-multiline="true"
-            aria-label={label}
+            aria-labelledby={`${id}-label`}
             data-placeholder={placeholder || 'Escribí el contenido aquí...'}
             onInput={emitChange}
             onBlur={emitChange}

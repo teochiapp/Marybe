@@ -451,7 +451,7 @@ export default function Envio() {
 
             <OptionCard $selected={shippingMethod === 'domicilio'} onClick={() => setShippingMethod('domicilio')}>
               <OptionInfo>
-                <input type="radio" checked={shippingMethod === 'domicilio'} readOnly />
+                <input id="envio-metodo-domicilio" name="metodo_envio" type="radio" checked={shippingMethod === 'domicilio'} aria-label="Envío a domicilio" readOnly />
                 <div className="details">
                   <span className="title">Envío a domicilio</span>
                   <span className="subtitle">3 a 4 días hábiles - Envío por correo Argentino.</span>
@@ -468,7 +468,7 @@ export default function Envio() {
 
             <OptionCard $selected={shippingMethod === 'sucursal'} onClick={() => setShippingMethod('sucursal')}>
               <OptionInfo>
-                <input type="radio" checked={shippingMethod === 'sucursal'} readOnly />
+                <input id="envio-metodo-sucursal" name="metodo_envio" type="radio" checked={shippingMethod === 'sucursal'} aria-label="Retiro por sucursal" readOnly />
                 <div className="details">
                   <span className="title">Retiro por sucursal</span>
                 </div>
@@ -485,7 +485,7 @@ export default function Envio() {
 
             <OptionCard $selected={address === 'guardada'} onClick={() => setAddress('guardada')}>
               <OptionInfo>
-                <input type="radio" checked={address === 'guardada'} readOnly />
+                <input id="envio-direccion-guardada" name="direccion_envio" type="radio" checked={address === 'guardada'} aria-label="Dirección Guardada" readOnly />
                 <div className="details">
                   <span className="title">Dirección Guardada</span>
                   <span className="subtitle">

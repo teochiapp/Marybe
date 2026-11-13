@@ -191,8 +191,10 @@ export default function CanjearGiftCardContent() {
         {!redeemed ? (
           <Form onSubmit={handleCheckBalance}>
             <FormGroup>
-              <Label>Código de la Gift Card (16 dígitos)</Label>
+              <Label htmlFor="giftcard-code">Código de la Gift Card (16 dígitos)</Label>
               <Input
+                id="giftcard-code"
+                name="codigo_giftcard"
                 $isCode
                 type="text"
                 placeholder="0000 0000 0000 0000"
@@ -204,8 +206,10 @@ export default function CanjearGiftCardContent() {
             </FormGroup>
 
             <FormGroup>
-              <Label>PIN de seguridad (4 dígitos)</Label>
+              <Label htmlFor="giftcard-pin">PIN de seguridad (4 dígitos)</Label>
               <Input
+                id="giftcard-pin"
+                name="pin_giftcard"
                 $isCode
                 type="password"
                 placeholder="••••"

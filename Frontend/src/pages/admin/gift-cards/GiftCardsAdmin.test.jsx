@@ -138,4 +138,43 @@ describe('GiftCardsAdmin', () => {
       );
     });
   });
+
+  test('mantiene deshabilitado Desactivar en tarjetas expiradas', async () => {
+    axios.get.mockResolvedValueOnce({
+      data: {
+        data: [
+          {
+            id: 9,
+            documentId: 'gc-9',
+            codigo: '2941768',
+            monto: 15000,
+            activa: true,
+            fecha_expiracion: '2025-01-01T00:00:00.000Z',
+            createdAt: '2024-01-01T10:00:00.000Z',
+            estado_actual: 'expirada',
+            pedido_origen: null,
+            usos: [],
+          },
+        ],
+        meta: {
+          stats: {
+            total: 1,
+            activas: 0,
+            usadas: 0,
+            expiradas: 1,
+            inactivas: 0,
+            saldo_activo_total: 0,
+          },
+        },
+      },
+    });
+
+    render(<GiftCardsAdmin />);
+
+    await screen.findByText('2941768');
+    const desactivarBtn = screen.getByRole('button', { name: 'Desactivar' });
+    expect(desactivarBtn.disabled).toBe(true);
+    fireEvent.click(desactivarBtn);
+    expect(axios.patch).not.toHaveBeenCalled();
+  });
 });

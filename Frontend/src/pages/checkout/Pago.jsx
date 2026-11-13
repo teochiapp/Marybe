@@ -949,7 +949,7 @@ export default function Pago() {
             {metodosPago.map((opt) => (
               <OptionCard key={opt.id} $selected={paymentMethod === opt.id} onClick={() => setPaymentMethod(opt.id)}>
                 <OptionInfo>
-                  <input type="radio" checked={paymentMethod === opt.id} readOnly />
+                  <input id={`pago-method-${opt.id}`} name="metodo_pago" type="radio" checked={paymentMethod === opt.id} aria-label={opt.title} readOnly />
                   <div className="details">
                     <span className="title">{opt.title}</span>
                     <span className="subtitle">{opt.id === 'efectivo' ? (esSucursal ? 'Pagás al retirar en la sucursal elegida' : 'Pagás al recibir en tu domicilio') : opt.subtitle}</span>
@@ -965,23 +965,23 @@ export default function Pago() {
 
                 <form onSubmit={(e) => { e.preventDefault(); alert('Funcionalidad de pago no implementada'); }}>
                   <FormGroup>
-                    <label>Número de tarjeta</label>
-                    <input type="text" placeholder="0000 0000 0000 0000" />
+                    <label htmlFor="pago-card-number">Número de tarjeta</label>
+                    <input id="pago-card-number" name="card_number" type="text" placeholder="0000 0000 0000 0000" />
                   </FormGroup>
 
                   <FormGroup>
-                    <label>Nombre del titular (como aparece en la tarjeta)</label>
-                    <input type="text" placeholder="APELLIDO NOMBRE" />
+                    <label htmlFor="pago-card-holder">Nombre del titular (como aparece en la tarjeta)</label>
+                    <input id="pago-card-holder" name="card_holder" type="text" placeholder="APELLIDO NOMBRE" />
                   </FormGroup>
 
                   <Row>
                     <FormGroup className="half">
-                      <label>Vencimiento</label>
-                      <input type="text" placeholder="mm/aa" />
+                      <label htmlFor="pago-card-expiry">Vencimiento</label>
+                      <input id="pago-card-expiry" name="card_expiry" type="text" placeholder="mm/aa" />
                     </FormGroup>
                     <FormGroup className="half">
-                      <label>CVV</label>
-                      <input type="text" placeholder="000" />
+                      <label htmlFor="pago-card-cvv">CVV</label>
+                      <input id="pago-card-cvv" name="card_cvv" type="text" placeholder="000" />
                     </FormGroup>
                   </Row>
 

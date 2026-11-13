@@ -283,8 +283,10 @@ export default function ShippingModal({ isOpen, onClose }) {
 
         <div>
           <InputRow>
-            <InputLabel>CP</InputLabel>
+            <InputLabel htmlFor="shipping-modal-cp">CP</InputLabel>
             <CPInput
+              id="shipping-modal-cp"
+              name="codigo_postal"
               type="text"
               placeholder="Ej: 5000"
               value={cp}

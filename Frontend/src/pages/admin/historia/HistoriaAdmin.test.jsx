@@ -96,4 +96,19 @@ describe('HistoriaAdmin', () => {
       );
     });
   });
+
+  test('usa span con aria-labelledby para el editor visual y label htmlFor solo en modo Código', async () => {
+    const { container } = render(<HistoriaAdmin />);
+
+    const editor = await screen.findByRole('textbox', { name: 'Texto banner 1' });
+    expect(editor.getAttribute('contenteditable')).toBe('true');
+    expect(container.querySelector('label[for="ha-texto-1"]')).toBeNull();
+
+    const codigoButtons = screen.getAllByRole('button', { name: 'Ver código HTML' });
+    fireEvent.click(codigoButtons[0]);
+
+    const sourceTextarea = screen.getByLabelText('Texto banner 1');
+    expect(sourceTextarea.tagName).toBe('TEXTAREA');
+    expect(container.querySelector('label[for="ha-texto-1"]')).not.toBeNull();
+  });
 });

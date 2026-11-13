@@ -748,7 +748,7 @@ export default function NavBar({ preview }) {
         </MobileLeft>
 
         {/* Logo */}
-        <Logo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} width="629" height="168" />
+        <Logo src="/logo-marybe.png" alt="Marybe" onClick={handleLogoClick} width="629" height="168" fetchPriority="high" />
 
         {/* Desktop: centro */}
         <CenterGroup>
@@ -759,6 +759,8 @@ export default function NavBar({ preview }) {
           <SearchBar ref={searchContainerRef}>
             <SearchIconSvg />
             <SearchInput
+              id="navbar-search-desktop"
+              name="buscar_tienda"
               placeholder="Buscar productos..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -809,6 +811,8 @@ export default function NavBar({ preview }) {
           <SearchBar ref={mobileSearchContainerRef} style={{ flex: 1, margin: 0 }}>
             <SearchIconSvg />
             <SearchInput
+              id="navbar-search-mobile"
+              name="buscar_tienda_mobile"
               placeholder="Buscar productos..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

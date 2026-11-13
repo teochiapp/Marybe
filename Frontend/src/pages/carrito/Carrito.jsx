@@ -747,7 +747,7 @@ export default function Carrito() {
                 <SummaryTitle>Resumen de pedido</SummaryTitle>
 
                 <CouponField>
-                  <label>
+                  <label htmlFor="carrito-coupon-code">
                     Cupón de descuento o Giftcard
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <polyline points="20 12 20 22 4 22 4 12" />
@@ -759,6 +759,8 @@ export default function Carrito() {
                   </label>
                   <div className="input-group">
                     <input
+                      id="carrito-coupon-code"
+                      name="cupon"
                       type="text"
                       placeholder="Ej: 12345ABC"
                       value={couponCode}

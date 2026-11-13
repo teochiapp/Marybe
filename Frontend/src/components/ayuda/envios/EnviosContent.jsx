@@ -276,6 +276,8 @@ export default function EnviosContent() {
         <CardText>Ingresá tu código postal para conocer las tarifas estimadas y tiempos de entrega.</CardText>
         <CalcForm onSubmit={handleCalculate}>
           <Input
+            id="envios-calc-cp"
+            name="codigo_postal"
             type="number"
             placeholder="Ej: 4000"
             value={zipCode}

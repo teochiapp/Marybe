@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
+import { acquireDedupedRequest, isRequestCanceled } from '../../../utils/requestDedup';
 import {
   FiMapPin,
   FiPlus,
@@ -57,31 +58,41 @@ export default function SucursalesAdmin() {
   });
 
   // ── Cargar datos desde Strapi ──────────────────────────────────────────────
-  const fetchSucursales = useCallback(async () => {
+  useEffect(() => {
+    if (!token) return undefined;
+    let active = true;
     setLoading(true);
     setAlert(null);
-    try {
-      const res = await axios.get(`${API_URL}/api/sucursales-admin`, {
+    const request = acquireDedupedRequest(`sucursales-admin:${token}`, (signal) =>
+      axios.get(`${API_URL}/api/sucursales-admin`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal,
+      })
+    );
+    request.promise
+      .then((res) => {
+        if (!active) return;
+        const data = res.data?.data || {};
+        const nextTitulo = data.titulo || 'Nuestras Sucursales';
+        const nextList = Array.isArray(data.sucursales) ? data.sucursales : [];
+
+        setTitulo(nextTitulo);
+        setSucursales(nextList);
+        setInitialState({ titulo: nextTitulo, sucursales: JSON.parse(JSON.stringify(nextList)) });
+      })
+      .catch((err) => {
+        if (!active || isRequestCanceled(err)) return;
+        const msg = err.response?.data?.error?.message || err.message || 'Error al cargar las sucursales.';
+        setAlert({ type: 'error', message: msg });
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
-      const data = res.data?.data || {};
-      const nextTitulo = data.titulo || 'Nuestras Sucursales';
-      const nextList = Array.isArray(data.sucursales) ? data.sucursales : [];
-
-      setTitulo(nextTitulo);
-      setSucursales(nextList);
-      setInitialState({ titulo: nextTitulo, sucursales: JSON.parse(JSON.stringify(nextList)) });
-    } catch (err) {
-      const msg = err.response?.data?.error?.message || err.message || 'Error al cargar las sucursales.';
-      setAlert({ type: 'error', message: msg });
-    } finally {
-      setLoading(false);
-    }
+    return () => {
+      active = false;
+      request.release();
+    };
   }, [token]);
-
-  useEffect(() => {
-    if (token) fetchSucursales();
-  }, [token, fetchSucursales]);
 
   // ── Detección de cambios pendientes (Dirty) ────────────────────────────────
   const isDirty = useMemo(() => {
@@ -340,6 +351,8 @@ export default function SucursalesAdmin() {
           <div className="suc-search-wrap">
             <FiSearch className="suc-search-icon" />
             <input
+              id="suc-search-input"
+              name="buscar_sucursal"
               type="text"
               className="suc-search-input"
               placeholder="Buscar por calle, ciudad o provincia…"

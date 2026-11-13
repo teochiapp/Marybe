@@ -152,6 +152,8 @@ export default function RecuperarContrasena() {
 
         <form onSubmit={handleSubmit}>
           <Input
+            id="recover-password"
+            name="password"
             type="password"
             placeholder="Nueva contraseña"
             value={password}
@@ -160,6 +162,8 @@ export default function RecuperarContrasena() {
             disabled={!code}
           />
           <Input
+            id="recover-password-confirm"
+            name="confirm_password"
             type="password"
             placeholder="Confirmar nueva contraseña"
             value={confirm}

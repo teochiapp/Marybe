@@ -439,9 +439,11 @@ export default function CatalogoSidebar({
           })
         : categoryTree;
 
-      return filteredTree.map(cat => (
+      return filteredTree.map((cat, idx) => (
         <CheckboxLabel key={`${cat.seccion}::${cat.nombre}`}>
           <input
+            id={`cs-cat-${idx}`}
+            name="categoria"
             type="checkbox"
             checked={false}
             onChange={() => onSelectCategory(cat.nombre, cat.seccion)}
@@ -457,6 +459,8 @@ export default function CatalogoSidebar({
         <>
           <CheckboxLabel style={{ fontWeight: 600, color: '#160000' }}>
             <input
+              id="cs-active-cat"
+              name="categoria_activa"
               type="checkbox"
               checked={true}
               onChange={() => onClearCategory()}
@@ -465,9 +469,11 @@ export default function CatalogoSidebar({
           </CheckboxLabel>
           {activeCatNode && activeCatNode.subcategorias.length > 0 && (
             <CategoryIndent>
-              {activeCatNode.subcategorias.map(sub => (
+              {activeCatNode.subcategorias.map((sub, idx) => (
                 <CheckboxLabel key={sub.nombre}>
                   <input
+                    id={`cs-sub-${idx}`}
+                    name="subcategoria"
                     type="checkbox"
                     checked={false}
                     onChange={() => onSelectSubcategory(sub.nombre)}
@@ -489,6 +495,8 @@ export default function CatalogoSidebar({
         </BreadcrumbBack>
         <CheckboxLabel style={{ fontWeight: 600, color: '#160000', marginTop: '8px' }}>
           <input
+            id="cs-active-cat"
+            name="categoria_activa"
             type="checkbox"
             checked={true}
             onChange={() => onClearCategory()}
@@ -498,6 +506,8 @@ export default function CatalogoSidebar({
         <CategoryIndent>
           <CheckboxLabel style={{ fontWeight: 600, color: '#160000' }}>
             <input
+              id="cs-active-sub"
+              name="subcategoria_activa"
               type="checkbox"
               checked={true}
               onChange={() => onRemoveTag('subcategoria', activeSub)}
@@ -506,9 +516,11 @@ export default function CatalogoSidebar({
           </CheckboxLabel>
           {activeSubNode && activeSubNode.tipos.length > 0 && (
             <CategoryIndent>
-              {activeSubNode.tipos.map(tipo => (
+              {activeSubNode.tipos.map((tipo, idx) => (
                 <CheckboxLabel key={tipo}>
                   <input
+                    id={`cs-tipo-${idx}`}
+                    name="tipo"
                     type="checkbox"
                     checked={activeTipo === tipo}
                     onChange={() => {
@@ -609,9 +621,11 @@ export default function CatalogoSidebar({
                 <AccordionChevron $open={accordions.marca}><ChevronIcon /></AccordionChevron>
               </AccordionHeader>
               <AccordionContent $open={accordions.marca}>
-                {availableBrands.map((brand) => (
+                {availableBrands.map((brand, idx) => (
                   <CheckboxLabel key={brand}>
                     <input
+                      id={`cs-marca-${idx}`}
+                      name="marca"
                       type="checkbox"
                       checked={activeBrands.includes(brand)}
                       onChange={() => onCheckboxToggle(activeBrands, brand, 'marca')}
@@ -631,9 +645,11 @@ export default function CatalogoSidebar({
                 <AccordionChevron $open={accordions.tamano}><ChevronIcon /></AccordionChevron>
               </AccordionHeader>
               <AccordionContent $open={accordions.tamano}>
-                {sortedSizes.map((sz) => (
+                {sortedSizes.map((sz, idx) => (
                   <CheckboxLabel key={sz}>
                     <input
+                      id={`cs-tamano-${idx}`}
+                      name="tamano"
                       type="checkbox"
                       checked={activeSizes.includes(sz)}
                       onChange={() => onCheckboxToggle(activeSizes, sz, 'tamano')}
@@ -694,6 +710,8 @@ export default function CatalogoSidebar({
               {['todas', '60', '50', '40', '35', '30', '25', '20', '15', '10'].map((descValue) => (
                 <CheckboxLabel key={descValue}>
                   <input
+                    id={`cs-desc-${descValue}`}
+                    name="descuento"
                     type="checkbox"
                     checked={activeDescuento.includes(descValue)}
                     onChange={() => onCheckboxToggle(activeDescuento, descValue, 'descuento')}

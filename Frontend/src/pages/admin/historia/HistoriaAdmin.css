@@ -173,7 +173,8 @@
   gap: 6px;
 }
 
-.ha-field label {
+.ha-field label,
+.ha-rte-label {
   font-size: 0.85rem;
   font-weight: 600;
   color: #374151;

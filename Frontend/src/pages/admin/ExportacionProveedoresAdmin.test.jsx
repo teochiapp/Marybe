@@ -87,3 +87,27 @@ test('revisa producto y variante de otro producto y ejecuta ambas etapas', async
   expect(axios.post.mock.calls[3][1]).toMatchObject({ producto: 'doc2', variante: 12, comprobante: 'nuevo' });
   expect(await screen.findByText('Borrado completado')).toBeInTheDocument();
 });
+
+test('filtra proveedores por búsqueda en exportación y borrado sin perder selecciones previas', async () => {
+  axios.get.mockResolvedValue({ data: { proveedores: ['A, SA', "L'Oréal", 'Otro'] } });
+  const { rerender } = render(<ExportacionProveedoresAdmin />);
+
+  const buscar = await screen.findByRole('searchbox', { name: 'Buscar proveedor' });
+  fireEvent.click(screen.getByRole('checkbox', { name: 'A, SA' }));
+  fireEvent.change(buscar, { target: { value: 'loreal' } });
+
+  expect(screen.queryByRole('checkbox', { name: 'A, SA' })).not.toBeInTheDocument();
+  expect(screen.getByRole('checkbox', { name: "L'Oréal" })).toBeInTheDocument();
+  expect(screen.queryByRole('checkbox', { name: 'Otro' })).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Todos' }));
+  fireEvent.change(buscar, { target: { value: '' } });
+
+  expect(screen.getByRole('checkbox', { name: 'A, SA' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: "L'Oréal" })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Otro' })).not.toBeChecked();
+
+  rerender(<ExportacionProveedoresAdmin modoEliminar />);
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar proveedor' }), { target: { value: 'xyz' } });
+  expect(screen.getByText('Ningún proveedor coincide con la búsqueda.')).toBeInTheDocument();
+});

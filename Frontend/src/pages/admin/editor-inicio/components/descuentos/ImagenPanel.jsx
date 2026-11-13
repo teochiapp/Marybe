@@ -90,8 +90,10 @@ export default function ImagenPanel({ areaKey, data, device, onChooseImage, onCh
           renderSample={renderPosicionSample}
           columns={3}
         />
-        <label>
+        <label htmlFor="desc-imagen-sombra">
           <input
+            id="desc-imagen-sombra"
+            name="imagen_sombra"
             type="checkbox"
             checked={sombra}
             onChange={event => onChange(draft => { draft.imagen_sombra = event.target.checked; })}

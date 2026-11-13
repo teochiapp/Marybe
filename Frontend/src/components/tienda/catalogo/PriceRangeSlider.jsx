@@ -113,6 +113,9 @@ export default function PriceRangeSlider({ min, max, value, onChange, onFinalCha
           }}
         />
         <Thumb
+          id="price-range-min"
+          name="precio_min"
+          aria-label="Precio mínimo"
           type="range"
           min={min}
           max={max}
@@ -123,6 +126,9 @@ export default function PriceRangeSlider({ min, max, value, onChange, onFinalCha
           style={{ zIndex: minVal > max - 100 ? 5 : 3 }}
         />
         <Thumb
+          id="price-range-max"
+          name="precio_max"
+          aria-label="Precio máximo"
           type="range"
           min={min}
           max={max}

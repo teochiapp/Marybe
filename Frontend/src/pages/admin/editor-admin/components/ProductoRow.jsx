@@ -131,6 +131,8 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
         {/* Precio */}
         <td style={{ textAlign: 'center' }}>
           <input
+            id={`ea-${documentId}-precio`}
+            name="precio"
             type="number"
             className={`ea-input-num${pendingChanges?.precio !== undefined ? ' ea-input-num--dirty' : ''}`}
             value={precio}
@@ -144,6 +146,8 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
         {/* Precio Oferta */}
         <td style={{ textAlign: 'center' }}>
           <input
+            id={`ea-${documentId}-precio-oferta`}
+            name="precio_oferta"
             type="number"
             className={`ea-input-num${pendingChanges?.precio_oferta !== undefined ? ' ea-input-num--dirty' : ''}`}
             value={precioOferta}
@@ -157,6 +161,8 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
         {/* Stock */}
         <td style={{ textAlign: 'center' }}>
           <input
+            id={`ea-${documentId}-stock`}
+            name="stock"
             type="number"
             className={`ea-input-num ea-input-stock${pendingChanges?.stock !== undefined ? ' ea-input-num--dirty' : ''}`}
             value={stock}
@@ -244,6 +250,8 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
                 {/* Precio variante */}
                 <td className="ea-variant-td ea-variant-field--num" style={{ textAlign: 'center' }}>
                   <input
+                    id={`ea-${documentId}-var-${variante.id ?? idx}-precio`}
+                    name="variante_precio"
                     type="number"
                     className={`ea-input-num ea-input-num--sm${isDirtyVariante ? ' ea-input-num--dirty' : ''}`}
                     value={variante.precio ?? ''}
@@ -257,6 +265,8 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
                 {/* Precio Oferta variante */}
                 <td className="ea-variant-td ea-variant-field--num" style={{ textAlign: 'center' }}>
                   <input
+                    id={`ea-${documentId}-var-${variante.id ?? idx}-precio-oferta`}
+                    name="variante_precio_oferta"
                     type="number"
                     className={`ea-input-num ea-input-num--sm${isDirtyVariante ? ' ea-input-num--dirty' : ''}`}
                     value={variante.precio_oferta ?? ''}
@@ -270,6 +280,8 @@ export default function ProductoRow({ producto, token, onMarkDirty, pendingChang
                 {/* Stock variante */}
                 <td className="ea-variant-td ea-variant-field--num" style={{ textAlign: 'center' }}>
                   <input
+                    id={`ea-${documentId}-var-${variante.id ?? idx}-stock`}
+                    name="variante_stock"
                     type="number"
                     className={`ea-input-num ea-input-num--sm ea-input-stock${isDirtyVariante ? ' ea-input-num--dirty' : ''}`}
                     value={variante.stock ?? ''}

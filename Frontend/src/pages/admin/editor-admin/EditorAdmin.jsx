@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
+import { acquireDedupedRequest, isRequestCanceled } from '../../../utils/requestDedup';
 import './EditorAdmin.css';
 import '../ImportacionAdmin.css';
 import ProveedorSelector from './components/ProveedorSelector';
@@ -162,55 +163,73 @@ export default function EditorAdmin() {
   const saveResultTimer = useRef(null);
 
   // ── Cargar proveedores al autenticar ─────────────────────────────────────
-  const cargarProveedores = useCallback(async (jwt) => {
+  useEffect(() => {
+    if (!token) return undefined;
+    let active = true;
     setLoadingProv(true);
     setErrorProv('');
-    try {
-      const res = await axios.get(`${API_URL}/api/editor-admin/proveedores`, {
-        headers: { Authorization: `Bearer ${jwt}` },
+    const request = acquireDedupedRequest(`editor-admin-proveedores:${token}`, signal =>
+      axios.get(`${API_URL}/api/editor-admin/proveedores`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal,
+      })
+    );
+    request.promise
+      .then(res => {
+        if (active) setProveedores(res.data?.proveedores || []);
+      })
+      .catch(err => {
+        if (!active || isRequestCanceled(err)) return;
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          handleLogout();
+        } else {
+          setErrorProv('No se pudo cargar la lista de proveedores.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingProv(false);
       });
-      setProveedores(res.data?.proveedores || []);
-    } catch (err) {
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        handleLogout();
-      } else {
-        setErrorProv('No se pudo cargar la lista de proveedores.');
-      }
-    } finally {
-      setLoadingProv(false);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (token) cargarProveedores(token);
-  }, [token, cargarProveedores]);
+    return () => {
+      active = false;
+      request.release();
+    };
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Cargar productos al seleccionar proveedor ────────────────────────────
   useEffect(() => {
-    if (!proveedor || !token) return;
-    const cargar = async () => {
-      setLoadingProd(true);
-      setErrorProd('');
-      setProductos([]);
-      setPendingChanges({});
-      setSaveResult(null);
-      try {
-        const res = await axios.get(`${API_URL}/api/editor-admin/productos`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params:  { proveedor },
-        });
-        setProductos(res.data?.productos || []);
-      } catch (err) {
+    if (!proveedor || !token) return undefined;
+    let active = true;
+    setLoadingProd(true);
+    setErrorProd('');
+    setProductos([]);
+    setPendingChanges({});
+    setSaveResult(null);
+    const request = acquireDedupedRequest(`editor-admin-productos:${token}:${proveedor}`, signal =>
+      axios.get(`${API_URL}/api/editor-admin/productos`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params:  { proveedor },
+        signal,
+      })
+    );
+    request.promise
+      .then(res => {
+        if (active) setProductos(res.data?.productos || []);
+      })
+      .catch(err => {
+        if (!active || isRequestCanceled(err)) return;
         if (err.response?.status === 401 || err.response?.status === 403) {
           handleLogout();
         } else {
           setErrorProd('Error al cargar los productos. Intentá de nuevo.');
         }
-      } finally {
-        setLoadingProd(false);
-      }
+      })
+      .finally(() => {
+        if (active) setLoadingProd(false);
+      });
+    return () => {
+      active = false;
+      request.release();
     };
-    cargar();
   }, [proveedor, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Acumular cambios pendientes ───────────────────────────────────────────
@@ -365,11 +384,6 @@ export default function EditorAdmin() {
               }
             </button>
 
-            {/* Logout */}
-            <button className="ea-btn ea-btn--ghost ea-btn--logout" onClick={handleLogout}>
-              <svg viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" /></svg>
-              <span>Cerrar sesión</span>
-            </button>
           </div>
         </header>
 

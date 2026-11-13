@@ -266,8 +266,10 @@ export default function UbicacionPopup({ onClose }) {
 
         <div>
           <InputRow>
-            <InputLabel>CP</InputLabel>
+            <InputLabel htmlFor="ubicacion-cp">CP</InputLabel>
             <CPInput
+              id="ubicacion-cp"
+              name="codigo_postal"
               type="text"
               placeholder="Ej: 5000"
               value={cp}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { acquireDedupedRequest, isRequestCanceled } from '../../../../utils/requestDedup';
 
 const API = process.env.REACT_APP_STRAPI_URL || process.env.REACT_APP_API_URL || 'http://localhost:1337';
 const HISTORY_LIMIT = 60;
@@ -52,12 +53,19 @@ export default function useSectionDraft({ token, endpoint, areaKeys, initialArea
   useEffect(() => {
     let active = true;
     setLoading(true);
-    axios.get(`${API}${endpoint}`, auth)
+    const request = acquireDedupedRequest(
+      `section-draft:${endpoint}:${token || ''}`,
+      () => axios.get(`${API}${endpoint}`, auth)
+    );
+    request.promise
       .then(response => { if (active) applyOverview(response.data.data, 'all'); })
-      .catch(requestError => { if (active) handleError(requestError); })
+      .catch(requestError => { if (active && !isRequestCanceled(requestError)) handleError(requestError); })
       .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [auth, endpoint, applyOverview, handleError]);
+    return () => {
+      active = false;
+      request.release();
+    };
+  }, [auth, token, endpoint, applyOverview, handleError]);
 
   useEffect(() => {
     const warn = event => { if (hasUnsaved) { event.preventDefault(); event.returnValue = ''; } };

@@ -5,7 +5,6 @@ import './index.css';
 import App from './App';
 import { CartProvider } from './context/CartContext';
 import { FavoritesProvider } from './context/FavoritesContext';
-import { MegaMenuProvider } from './context/MegaMenuContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -13,9 +12,7 @@ root.render(
     <FavoritesProvider>
       <CartProvider>
         <BrowserRouter>
-          <MegaMenuProvider>
-            <App />
-          </MegaMenuProvider>
+          <App />
         </BrowserRouter>
       </CartProvider>
     </FavoritesProvider>

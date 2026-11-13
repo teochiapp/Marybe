@@ -153,6 +153,8 @@ export default function AparienciaGiftCardPanel({
         <label htmlFor="giftcard-color-hex">Código de color HEX</label>
         <ColorPickerRow>
           <input
+            id="giftcard-color-picker"
+            name="color_fondo_picker"
             type="color"
             aria-label="Selector visual de color de fondo"
             value={activeColor}
@@ -160,6 +162,7 @@ export default function AparienciaGiftCardPanel({
           />
           <input
             id="giftcard-color-hex"
+            name="color_fondo"
             type="text"
             maxLength={7}
             value={hexInput}

@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useOutletContext } from 'react-router-dom';
+import { acquireDedupedRequest, isRequestCanceled } from '../../../utils/requestDedup';
 import {
   FiBookOpen,
   FiExternalLink,
@@ -144,30 +145,40 @@ export default function HistoriaAdmin() {
 
   const isDirty = useMemo(() => JSON.stringify(form) !== snapshot, [form, snapshot]);
 
-  const fetchHistoria = useCallback(async () => {
+  useEffect(() => {
     if (!token) {
       setLoading(false);
-      return;
+      return undefined;
     }
+    let active = true;
     setLoading(true);
     setError('');
-    try {
-      const res = await axios.get(`${API_BASE}/api/historia-admin`, {
+    const request = acquireDedupedRequest(`historia-admin:${token}`, (signal) =>
+      axios.get(`${API_BASE}/api/historia-admin`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal,
+      })
+    );
+    request.promise
+      .then((res) => {
+        if (!active) return;
+        const data = { ...INITIAL_FORM, ...(res.data?.data || {}) };
+        setForm(data);
+        setSnapshot(JSON.stringify(data));
+      })
+      .catch((err) => {
+        if (active && !isRequestCanceled(err)) {
+          setError(err.response?.data?.error?.message || 'No se pudo cargar Nuestra Historia.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
-      const data = { ...INITIAL_FORM, ...(res.data?.data || {}) };
-      setForm(data);
-      setSnapshot(JSON.stringify(data));
-    } catch (err) {
-      setError(err.response?.data?.error?.message || 'No se pudo cargar Nuestra Historia.');
-    } finally {
-      setLoading(false);
-    }
+    return () => {
+      active = false;
+      request.release();
+    };
   }, [token]);
-
-  useEffect(() => {
-    fetchHistoria();
-  }, [fetchHistoria]);
 
   useEffect(() => {
     if (!isDirty) return undefined;

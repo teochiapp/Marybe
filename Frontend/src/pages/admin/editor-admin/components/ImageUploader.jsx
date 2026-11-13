@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useId } from 'react';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
@@ -10,6 +10,7 @@ const MAX_KB  = 200;
  * Llama a onUploaded(mediaObj) cuando el upload es exitoso.
  */
 export default function ImageUploader({ productoDocumentId, varianteId, portadaActual, token, onUploaded, onDeleted }) {
+  const inputId = useId();
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError]         = useState('');
@@ -145,6 +146,8 @@ export default function ImageUploader({ productoDocumentId, varianteId, portadaA
       )}
 
       <input
+        id={inputId}
+        name="portada"
         ref={inputRef}
         type="file"
         accept="image/*"
