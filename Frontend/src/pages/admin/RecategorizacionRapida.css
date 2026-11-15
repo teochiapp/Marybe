@@ -49,7 +49,7 @@
 .recat-editor { background: #fffcfa; }
 .recat-editor-heading { display: flex; gap: 12px; align-items: center; }
 .recat-editor-icon { width: 44px; height: 44px; font-size: 1.2rem; }
-.recat-editor-help { margin: 18px 0 !important; color: #77676d; font-size: .86rem; line-height: 1.5; }
+.recat-editor-help { margin: 18px 0 !important; padding: 10px 12px; border: 1px solid #efdfca; border-radius: 8px; background: #fff8ed; color: #705638; font-size: .82rem; line-height: 1.5; }
 .recat-classifications { display: grid; gap: 14px; }
 .recat-classification { min-width: 0; border: 1px solid #eadde0; border-radius: 12px; padding: 15px; background: #fff; }
 .recat-classification legend { padding: 0 7px; color: #7a3341; font-size: .8rem; font-weight: 750; }

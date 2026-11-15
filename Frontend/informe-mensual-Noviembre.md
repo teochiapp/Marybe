@@ -41,3 +41,6 @@ Te voy pasando los prompts aqui y cuando termines dejas escrito los cambios abaj
 
 ### Cierre del editor de clasificaciones
 - Al guardar se cierra solo el editor y aparece una confirmación breve; se conservan resultados y filtros. Validación: 2 pruebas de frontend aprobadas.
+
+### Aclaración de clasificaciones
+- Cartel breve que explica que las clasificaciones adicionales permiten mostrar el producto en otras categorías del catálogo.

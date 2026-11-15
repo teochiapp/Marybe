@@ -69,7 +69,7 @@ export default function RecategorizacionRapida({ token, proveedores }) {
     </section>}
     {seleccion && <section className="recat-editor" aria-label="Editar clasificaciones">
       <div className="recat-editor-heading"><span className="recat-editor-icon"><FiLayers aria-hidden="true" /></span><div><span className="recat-step">CLASIFICACIONES</span><h2>{seleccion.nombre}</h2><p>{seleccion.proveedor || 'Sin proveedor'}</p></div></div>
-      <p className="recat-editor-help">La primera clasificación es la principal. Agregá otras para mostrar el producto en varios catálogos.</p>
+      <p className="recat-editor-help">La primera clasificación es la principal. Agregá otras para mostrar el producto en otras categorías del catálogo.</p>
       <div className="recat-classifications">{filas.map((f, i) => <fieldset className="recat-classification" key={i} disabled={cargando}>
         <legend>{i ? `Clasificación ${i + 1}` : 'Clasificación principal'}</legend>
         <div className="recat-fields">
