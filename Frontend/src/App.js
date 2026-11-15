@@ -148,6 +148,7 @@ function App() {
               <Route path="/exportacion-admin" element={<ExportacionAdmin />} />
               <Route path="/comparacion-admin" element={<ComparacionAdmin />} />
               <Route path="/exportacion-proveedores-admin" element={<ExportarProveedorAdmin />} />
+              <Route path="/recategorizacion-admin" element={<ExportarProveedorAdmin modoRecategorizacion />} />
               <Route path="/eliminar-productos-admin" element={<ExportarProveedorAdmin modoEliminar />} />
               <Route path="/pedidos-admin" element={<PedidosAdmin />} />
               <Route path="/editor-admin" element={<EditorAdmin />} />

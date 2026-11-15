@@ -6,6 +6,10 @@
  */
 module.exports = {
   routes: [
+    { method: 'POST', path: '/exportacion-proveedores-admin/recategorizacion/publicar', handler: 'exportacion-proveedores-admin.publicarRecategorizacion', config: { auth: false } },
+    { method: "GET", path: "/exportacion-proveedores-admin/recategorizacion/taxonomia", handler: "exportacion-proveedores-admin.taxonomia", config: { auth: false } },
+    { method: "POST", path: "/exportacion-proveedores-admin/recategorizacion/productos", handler: "exportacion-proveedores-admin.productosRecategorizacion", config: { auth: false } },
+    { method: "POST", path: "/exportacion-proveedores-admin/recategorizacion/guardar", handler: "exportacion-proveedores-admin.guardarRecategorizacion", config: { auth: false } },
     {
       method: 'POST',
       path: '/exportacion-proveedores-admin/login',

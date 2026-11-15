@@ -12,3 +12,32 @@ Te voy pasando los prompts aqui y cuando termines dejas escrito los cambios abaj
 - **Script de migración** ([migrar-proveedor.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/scripts/migrar-proveedor.js)): soporta `--dry-run` (por defecto), `--apply`, `--from="..."` (por defecto `DCC SA`), `--to="..."` (por defecto `DCC S.A`) y `--exact`; actualiza filas `published` y `draft` en `api::producto.producto` preservando su estado y sincroniza referencias con `entidad_tipo === 'proveedor'` en `diseno_secciones.descuentos` y `borradores_editor_inicio.descuentos` de `api::seccion-principal.seccion-principal`.
 - **Validación** ([migrar-proveedor.test.js](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Backend/tests/migrar-proveedor.test.js)): ejecutado `node --test tests/migrar-proveedor.test.js` en `Backend/` con `2/2` pruebas aprobadas.
 
+
+### Recategorización rápida
+- Panel de proveedores para editar clasificaciones múltiples con la taxonomía de Excel; guarda el producto como borrador. El panel permite publicar el producto tras guardar el borrador y bloquea la publicación si hay otros cambios pendientes. El guardado reutiliza la creación y actualización de categorías de importación.
+- Validación: 5 pruebas de frontend y 2 pruebas de backend aprobadas; QA aislado con Strapi y SQLite: guardado, publicación, filtrado en otro catálogo y bloqueo de cambios ajenos. Sin publicación en producción.
+
+### Diseño de Recategorización rápida
+- Rediseño del panel con pasos, búsqueda y selección de productos, tarjetas de clasificación y controles adaptables a pantallas chicas; icono de etiqueta en el menú.
+- Validación: 3 suites y 6 pruebas de frontend aprobadas. No se realizó revisión visual en navegador.
+
+### Publicación directa de recategorización
+- Guardar cambios actualiza y publica el producto en una sola operación; se bloquea si existen cambios ajenos pendientes.
+- Validación: 5 pruebas frontend, 2 backend y QA aislado con Strapi/SQLite aprobados; sin publicación en producción.
+
+### Fondo de Recategorización rápida
+- Contenedor principal en tono oscuro y textos ajustados para conservar el contraste. Cambio CSS; sin prueba visual en navegador.
+
+### Paleta bordó en Recategorización
+- Fondo exterior y contenedor en bordó Marybe, con títulos y botones dorados y textos claros. Cambio de estilos; sin validación visual en navegador.
+
+### Búsqueda directa en Recategorización
+- Búsqueda de productos publicados por nombre, SKU, EAN o ID sin seleccionar proveedor; incluye productos sin proveedor y limita la respuesta a 50 resultados.
+- Validación: 6 pruebas frontend, 2 backend y QA aislado con Strapi/SQLite aprobados.
+
+### Contexto de Recategorización
+- Se conservan los proveedores, la búsqueda, los filtros y la lista después de guardar; el producto conserva la versión y las clasificaciones actualizadas para nuevas ediciones.
+- Validación: 6 pruebas frontend, 2 backend y QA aislado con Strapi/SQLite, incluidos guardados consecutivos.
+
+### Cierre del editor de clasificaciones
+- Al guardar se cierra solo el editor y aparece una confirmación breve; se conservan resultados y filtros. Validación: 2 pruebas de frontend aprobadas.

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import RecategorizacionRapida from './RecategorizacionRapida';
+import './RecategorizacionRapida.css';
 import './ImportacionAdmin.css';
 import { acquireDedupedRequest, isRequestCanceled } from '../../utils/requestDedup';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
 
-export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
+export default function ExportacionProveedoresAdmin({ modoEliminar = false, modoRecategorizacion = false }) {
   // Auth
   const [token, setToken]               = useState(() => localStorage.getItem('admin_jwt') || '');
   const [authError, setAuthError]       = useState('');
@@ -390,12 +392,12 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
 
   // ─── Render: Panel ────────────────────────────────────────────────────────────
   return (
-    <div className="ia-wrapper">
+    <div className={`ia-wrapper${modoRecategorizacion ? ' recat-wrapper' : ''}`}>
       <div className="ia-bg-particles">
         {[...Array(12)].map((_, i) => <div key={i} className={`ia-particle ia-particle--${i + 1}`} />)}
       </div>
 
-      <div className="ia-panel" style={{ maxWidth: '760px' }}>
+      <div className="ia-panel" style={{ maxWidth: modoRecategorizacion ? '980px' : '760px' }}>
         {/* Header */}
         <header className="ia-panel-header">
           <div className="ia-panel-brand">
@@ -407,8 +409,8 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
               </svg>
             </div>
             <div>
-              <h1 className="ia-panel-title">{modoEliminar ? 'Eliminar Productos' : 'Precios por Proveedor'}</h1>
-              <p className="ia-panel-sub">{modoEliminar ? 'Marybe · Seleccioná proveedores y revisá los productos antes de borrarlos' : 'Marybe · Exportar precios y stock filtrados por proveedor'}</p>
+              <h1 className="ia-panel-title">{modoRecategorizacion ? 'Recategorización rápida' : modoEliminar ? 'Eliminar Productos' : 'Precios por Proveedor'}</h1>
+              <p className="ia-panel-sub">{modoRecategorizacion ? "Editá las clasificaciones de los productos" : modoEliminar ? 'Marybe · Seleccioná proveedores y revisá los productos antes de borrarlos' : 'Marybe · Exportar precios y stock filtrados por proveedor'}</p>
             </div>
           </div>
         </header>
@@ -420,7 +422,7 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
           </div>
           <div className="ia-info-text">
             <strong>¿Cómo funciona?</strong>
-            <span>{modoEliminar ? 'Seleccioná proveedores, elegí los productos y revisá la confirmación antes de borrarlos. El borrado individual de variantes todavía no está disponible.' : <>
+            <span>{modoRecategorizacion ? "Buscá un producto directamente o seleccioná proveedores. Al guardar, los cambios se publican en la tienda." : modoEliminar ? 'Seleccioná proveedores, elegí los productos y revisá la confirmación antes de borrarlos. El borrado individual de variantes todavía no está disponible.' : <>
               Seleccioná uno o más proveedores y hacé clic en <strong>"Exportar"</strong>.
               El Excel incluye la hoja de precios con variantes indentadas (↳) y la hoja <strong>🔗 Variantes</strong>{' '}
               agrupada por producto para editar atributos (Volumen, Color, Envío, Stock, Precios) o agregar nuevas variantes. Para dar de alta un producto, agregá una fila con ID único, nombre y proveedor seleccionado; cargá sus variantes en la hoja Variantes.</>}
@@ -456,7 +458,7 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
           </div>
 
           {cargandoProveedores && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 0', color: '#6b7280' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 0', color: modoRecategorizacion ? '#f9e5db' : '#6b7280' }}>
               <span className="ia-spinner" aria-hidden="true" style={{ display: 'inline-block' }} />
               <span>Cargando proveedores...</span>
             </div>
@@ -517,18 +519,18 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
                       padding: '8px 10px',
                       borderRadius: '8px',
                       cursor: 'pointer',
-                      background:  checked ? '#ede9fe' : 'transparent',
-                      border:      `1.5px solid ${checked ? '#7c6af7' : 'transparent'}`,
+                      background:  checked ? (modoRecategorizacion ? '#fbedef' : '#ede9fe') : 'transparent',
+                      border:      `1.5px solid ${checked ? (modoRecategorizacion ? '#c6818c' : '#7c6af7') : 'transparent'}`,
                       transition:  'background 0.15s, border-color 0.15s',
                       userSelect:  'none',
                     }}>
                       <input id={`prov-${nombre}`} name="proveedores" type="checkbox" checked={checked} disabled={cargandoBorrado}
                         onChange={() => toggleProveedor(nombre)}
-                        style={{ accentColor: '#7c6af7', width: '16px', height: '16px', cursor: 'pointer' }} />
+                        style={{ accentColor: modoRecategorizacion ? '#8a3040' : '#7c6af7', width: '16px', height: '16px', cursor: 'pointer' }} />
                       <span style={{
                         fontSize:     '13px',
                         fontWeight:   checked ? 600 : 400,
-                        color:        checked ? '#4c1d95' : '#1e1b4b',
+                        color:        checked ? (modoRecategorizacion ? '#7d2b3a' : '#4c1d95') : '#1e1b4b',
                         overflow:     'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace:   'nowrap',
@@ -543,14 +545,16 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
           )}
 
           {!cargandoProveedores && proveedores.length === 0 && !errorProveedores && (
-            <p style={{ color: '#6b7280', fontSize: '14px', padding: '12px 0' }}>
+            <p style={{ color: modoRecategorizacion ? '#f9e5db' : '#6b7280', fontSize: '14px', padding: '12px 0' }}>
               No se encontraron proveedores en el catálogo.
             </p>
           )}
         </div>
 
+        {modoRecategorizacion && <RecategorizacionRapida token={token} proveedores={[...seleccionados]} />}
+
         {/* Progreso */}
-        {!modoEliminar && exporting && (
+        {!modoEliminar && !modoRecategorizacion && exporting && (
           <div className="ia-progress-wrap" role="status" aria-label="Generando exportación">
             <div className="ia-progress-label">
               <span>Generando Excel para {seleccionados.size} proveedor{seleccionados.size !== 1 ? 'es' : ''}...</span>
@@ -562,14 +566,14 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
           </div>
         )}
 
-        {!modoEliminar && exportError && (
+        {!modoEliminar && !modoRecategorizacion && exportError && (
           <div className="ia-alert ia-alert--error" role="alert">
             <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
             {exportError}
           </div>
         )}
 
-        {!modoEliminar && exportOk && (
+        {!modoEliminar && !modoRecategorizacion && exportOk && (
           <div className="ia-resultado" role="status">
             <div className="ia-resultado-header">
               <svg className="ia-resultado-icon ia-resultado-icon--ok" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
@@ -591,7 +595,7 @@ export default function ExportacionProveedoresAdmin({ modoEliminar = false }) {
         {modoEliminar && seleccionados.size === 0 && <p className="ia-delete-hint">Seleccioná uno o más proveedores para buscar productos.</p>}
 
         {/* Botón principal */}
-        {!modoEliminar && <button id="btn-exportar-proveedores" type="button"
+        {!modoEliminar && !modoRecategorizacion && <button id="btn-exportar-proveedores" type="button"
           className="ia-btn ia-btn--primary ia-btn--full"
           onClick={handleExportar}
           disabled={exporting || cargandoBorrado || seleccionados.size === 0}

@@ -93,6 +93,17 @@ async function fetchProductosPorProveedor(strapi, proveedores) {
 
 // The same published products as the Excel, with both versions recorded so a
 // draft edited while the confirmation is open cannot be silently discarded.
+async function buscarProductosRecategorizacion(strapi, termino) {
+  return strapi.documents(UID_PRODUCTO).findMany({
+    status: 'published', limit: 50, sort: ['nombre:asc'],
+    fields: ['nombre', 'proveedor'],
+    filters: { $or: [
+      { nombre: { $containsi: termino } }, { sku: { $containsi: termino } },
+      { id_original: { $containsi: termino } }, { variantes: { sku_ean: { $containsi: termino } } },
+    ] },
+  });
+}
+
 async function vistaBorrado(strapi, proveedores) {
   const productos = [];
   for (let start = 0; ; start += PAGE_SIZE) {
@@ -120,6 +131,60 @@ async function vistaBorrado(strapi, proveedores) {
   }
   snapshots.sort((a, b) => a.documentId.localeCompare(b.documentId));
   return snapshots;
+}
+
+const productoSchema = require('../../producto/content-types/producto/schema.json');
+const varianteSchema = require('../../../components/producto/variante.json');
+
+function datosComparables(producto) {
+  const omitidos = new Set(['seccion', 'categoria', 'subcategoria', 'tipo', 'clasificaciones']);
+  function extraer(data, attributes) {
+    const result = {};
+    for (const [name, definition] of Object.entries(attributes)) {
+      if (omitidos.has(name)) continue;
+      const value = data?.[name];
+      if (definition.type === 'component') {
+        if (definition.component !== 'producto.variante') throw new Error(`Componente no soportado: ${definition.component}`);
+        result[name] = definition.repeatable ? (value || []).map(item => extraer(item, varianteSchema.attributes)) : (value ? extraer(value, varianteSchema.attributes) : null);
+      } else if (definition.type === 'media') {
+        const id = item => item?.id ?? null;
+        result[name] = definition.multiple ? (value || []).map(id) : id(value);
+      } else if (definition.type === 'relation') result[name] = value?.documentId ?? null;
+      else result[name] = value ?? null;
+    }
+    return result;
+  }
+  return extraer(producto, productoSchema.attributes);
+}
+
+async function publicarRecategorizacion(strapi, { documentId, proveedor, updatedAt, clasificaciones }) {
+  return strapi.db.transaction(async ({ trx }) => {
+    const table = strapi.db.metadata.get(UID_PRODUCTO).tableName;
+    const schema = strapi.db.getSchemaName?.();
+    const query = () => schema ? trx(table).withSchema(schema) : trx(table);
+    const client = strapi.db.connection.client.config.client;
+    if (['sqlite', 'sqlite3', 'better-sqlite3'].includes(client)) await query().where({ document_id: documentId }).update({ document_id: documentId });
+    else await query().where({ document_id: documentId }).orderBy('id', 'asc').forUpdate().select('id');
+    const docs = strapi.documents(UID_PRODUCTO);
+    const populate = { variantes: { populate: ['portada'] }, portada: true, galeria: true, clasificaciones: true, categoria: true };
+    const draft = await docs.findOne({ documentId, status: 'draft', populate });
+    const publicado = await docs.findOne({ documentId, status: 'published', populate });
+    if (!draft || !publicado || (draft.proveedor ?? null) !== proveedor || (publicado.proveedor ?? null) !== proveedor || draft.updatedAt !== updatedAt || JSON.stringify(datosComparables(draft)) !== JSON.stringify(datosComparables(publicado))) return false;
+    if (clasificaciones) {
+      const primera = clasificaciones[0];
+      const mapa = new Map();
+      if (primera.subcategoria) mapa.set(primera.subcategoria, new Set(primera.tipo ? [primera.tipo] : []));
+      const categoria = await strapi.service('api::importacion-admin.importacion-admin').upsertCategoria(strapi, { nombre: primera.categoria, seccion: primera.seccion, subcategoriasMap: mapa });
+      await docs.update({ documentId, data: {
+        seccion: primera.seccion, subcategoria: primera.subcategoria, tipo: primera.tipo, categoria,
+        clasificaciones: clasificaciones.map((c, i) => ({ ...(draft.clasificaciones?.[i]?.id ? { id: draft.clasificaciones[i].id } : {}), seccion: c.seccion, categoria: c.categoria, subcategoria: c.subcategoria, tipo: c.tipo })),
+      } });
+    }
+    await docs.publish({ documentId });
+    const actual = await docs.findOne({ documentId, status: 'draft', fields: ['updatedAt'] });
+    if (!actual?.updatedAt) throw new Error('No se pudo obtener la versión actual del producto.');
+    return { updatedAt: actual.updatedAt };
+  });
 }
 
 function hashVistaBorrado(productos) {
@@ -610,6 +675,8 @@ async function generarExcelProveedor(strapi, proveedores) {
 
 // ─── Exports ──────────────────────────────────────────────────────────────────
 module.exports = () => ({
+  publicarRecategorizacion,
+  buscarProductosRecategorizacion,
   fetchProveedores,
   fetchProductosPorProveedor,
   vistaBorrado,

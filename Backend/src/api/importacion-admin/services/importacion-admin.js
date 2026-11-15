@@ -1529,6 +1529,7 @@ async function migrarClasificacionesExistentes(strapi, offset = 0, limit = 500) 
 
 module.exports = () => ({
   procesarImportacion,
+  upsertCategoria,
   guardarArchivo,
   obtenerUltimaImportacion,
   verificarPreciosIntegridad,

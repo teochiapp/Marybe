@@ -1,6 +1,7 @@
 'use strict';
 
 const jwt = require('jsonwebtoken');
+const taxonomia = require('../../../utils/excel-taxonomy.json');
 const { verificarAdmin, getJwtSecret, handleAdminLogin } = require('../../../utils/admin-auth');
 
 function conflicto(ctx, message) {
@@ -15,6 +16,53 @@ function listaValida(value) {
 }
 
 module.exports = {
+  async taxonomia(ctx) {
+    if (!verificarAdmin(ctx)) return ctx.unauthorized('No autenticado.');
+    return ctx.send({ taxonomia });
+  },
+  async productosRecategorizacion(ctx) {
+    if (!verificarAdmin(ctx)) return ctx.unauthorized('No autenticado.');
+    const { proveedores: entrada, busqueda } = ctx.request.body || {};
+    const termino = typeof busqueda === 'string' ? busqueda.trim() : '';
+    const proveedores = listaValida(entrada);
+    if (busqueda !== undefined && (typeof busqueda !== 'string' || termino.length < 2 || termino.length > 100)) return ctx.badRequest('Ingresá entre 2 y 100 caracteres para buscar.');
+    if (!termino && !proveedores) return ctx.badRequest('Seleccioná proveedores válidos.');
+    try {
+      const servicio = strapi.service('api::exportacion-proveedores-admin.exportacion-proveedores-admin');
+      const publicados = termino ? await servicio.buscarProductosRecategorizacion(strapi, termino) : await servicio.fetchProductosPorProveedor(strapi, proveedores);
+      const productos = await Promise.all(publicados.map(async p => {
+        const draft = await strapi.documents('api::producto.producto').findOne({ documentId: p.documentId, status: 'draft', populate: ['clasificaciones', 'categoria'] });
+        if (!draft || (draft.proveedor ?? null) !== (p.proveedor ?? null)) return null;
+        const clasificaciones = draft.clasificaciones?.length ? draft.clasificaciones : [{ seccion: draft.seccion || '', categoria: draft.categoria?.nombre || '', subcategoria: draft.subcategoria || '', tipo: draft.tipo || '' }];
+        return { documentId: p.documentId, nombre: p.nombre, proveedor: p.proveedor ?? null, updatedAt: draft.updatedAt, clasificaciones: clasificaciones.map(({ seccion, categoria, subcategoria, tipo }) => ({ seccion: seccion || '', categoria: categoria || '', subcategoria: subcategoria || '', tipo: tipo || '' })) };
+      }));
+      return ctx.send({ productos: productos.filter(Boolean), limiteAlcanzado: !!termino && publicados.length === 50 });
+    } catch (err) { strapi.log.error(err); return ctx.internalServerError('No se pudieron cargar los productos.'); }
+  },
+  async guardarRecategorizacion(ctx) {
+    if (!verificarAdmin(ctx)) return ctx.unauthorized('No autenticado.');
+    const { documentId, proveedor, updatedAt, clasificaciones } = ctx.request.body || {};
+    if (typeof documentId !== 'string' || (proveedor !== null && typeof proveedor !== 'string') || typeof updatedAt !== 'string' || !Array.isArray(clasificaciones) || !clasificaciones.length || clasificaciones.length > 30) return ctx.badRequest('Datos inválidos.');
+    const validas = clasificaciones.every(c => c && ['Hogar', 'Perfumería'].includes(c.seccion) && Object.hasOwn(taxonomia, c.categoria) && typeof c.subcategoria === 'string' && typeof c.tipo === 'string' && (!c.subcategoria ? !c.tipo : Object.hasOwn(taxonomia[c.categoria], c.subcategoria) && (!c.tipo || taxonomia[c.categoria][c.subcategoria].includes(c.tipo))));
+    if (!validas || new Set(clasificaciones.map(c => JSON.stringify([c.seccion,c.categoria,c.subcategoria,c.tipo]))).size !== clasificaciones.length) return ctx.badRequest('Revisá las clasificaciones y evitá duplicados.');
+    try {
+      const servicio = strapi.service('api::exportacion-proveedores-admin.exportacion-proveedores-admin');
+      const resultado = await servicio.publicarRecategorizacion(strapi, { documentId, proveedor, updatedAt, clasificaciones });
+      if (!resultado) return conflicto(ctx, 'El producto cambió o tiene otros cambios pendientes. Revisalo en el editor antes de guardar.');
+      return ctx.send({ ok: true, updatedAt: resultado.updatedAt });
+    } catch (err) { strapi.log.error(err); return ctx.internalServerError('No se pudieron guardar y publicar los cambios.'); }
+  },
+
+  async publicarRecategorizacion(ctx) {
+    if (!verificarAdmin(ctx)) return ctx.unauthorized('No autenticado.');
+    const { documentId, proveedor, updatedAt } = ctx.request.body || {};
+    if (typeof documentId !== 'string' || typeof proveedor !== 'string' || typeof updatedAt !== 'string') return ctx.badRequest('Datos inválidos.');
+    try {
+      const servicio = strapi.service('api::exportacion-proveedores-admin.exportacion-proveedores-admin');
+      if (!await servicio.publicarRecategorizacion(strapi, { documentId, proveedor, updatedAt })) return conflicto(ctx, 'El producto cambió o tiene otros cambios pendientes. Revisalo en el editor antes de publicar.');
+      return ctx.send({ ok: true });
+    } catch (err) { strapi.log.error(err); return ctx.internalServerError('No se pudo publicar el producto.'); }
+  },
   async borrarVariante(ctx) {
     if (!verificarAdmin(ctx)) return ctx.unauthorized('No autenticado o sesión expirada.');
     const { proveedores: entrada, comprobante, producto, variante, confirmacion } = ctx.request.body || {};
