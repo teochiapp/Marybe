@@ -31,7 +31,10 @@ const Dropdown = styled.div`
   z-index: 9999;
   overflow: hidden;
   max-height: 480px;
+  max-height: min(480px, 50vh);
+  max-height: min(480px, 50dvh);
   overflow-y: auto;
+  overscroll-behavior: contain;
 
   &::-webkit-scrollbar {
     width: 4px;
@@ -69,6 +72,11 @@ const ProductItem = styled.button`
   text-align: left;
   transition: background-color 0.15s;
 
+  @media (max-width: 480px) {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
   &:hover {
     background-color: var(--color-fondo-beneficio-tarjeta);
   }
@@ -105,6 +113,14 @@ const ProductName = styled.div`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  @media (max-width: 480px) {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow-wrap: anywhere;
+  }
 `;
 
 const ProductBrand = styled.div`
@@ -112,6 +128,7 @@ const ProductBrand = styled.div`
   font-size: 0.75rem;
   color: #9A8F87;
   font-weight: 400;
+  overflow-wrap: anywhere;
 `;
 
 const CategoryItem = styled.button`
@@ -125,6 +142,15 @@ const CategoryItem = styled.button`
   cursor: pointer;
   text-align: left;
   transition: background-color 0.15s;
+
+  > div:last-child {
+    min-width: 0;
+  }
+
+  @media (max-width: 480px) {
+    padding: 8px 12px;
+    gap: 8px;
+  }
 
   &:hover {
     background-color: var(--color-fondo-beneficio-tarjeta);
@@ -152,12 +178,14 @@ const CategoryName = styled.div`
   font-size: 0.875rem;
   color: var(--color-marron-tercero);
   font-weight: 500;
+  overflow-wrap: anywhere;
 `;
 
 const CategorySub = styled.div`
   font-family: var(--font-family-secondary);
   font-size: 0.75rem;
   color: #9A8F87;
+  overflow-wrap: anywhere;
 `;
 
 const Divider = styled.hr`
@@ -170,6 +198,7 @@ const ViewAllBtn = styled.button`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   width: 100%;
   padding: 12px 16px;
   background: none;
@@ -179,6 +208,8 @@ const ViewAllBtn = styled.button`
   font-size: 0.85rem;
   color: var(--color-bordo-secundario);
   font-weight: 600;
+  text-align: left;
+  overflow-wrap: anywhere;
   transition: background-color 0.15s;
 
   &:hover {
@@ -188,6 +219,7 @@ const ViewAllBtn = styled.button`
   svg {
     width: 14px;
     height: 14px;
+    flex-shrink: 0;
   }
 `;
 
@@ -197,6 +229,7 @@ const EmptyState = styled.div`
   font-family: var(--font-family-secondary);
   font-size: 0.875rem;
   color: #9A8F87;
+  overflow-wrap: anywhere;
 `;
 
 const LoadingState = styled.div`
@@ -249,7 +282,7 @@ const ArrowSvg = () => (
 export default function SearchDropdown({ query, onClose, dropdownRef }) {
   const navigate = useNavigate();
 
-  const [products, setProducts]   = useState([]);  // Matches por nombre (máx 5)
+  const [products, setProducts]   = useState([]);  // Matches por nombre o marca (máx 7)
   const [brands, setBrands]       = useState([]);  // Marcas únicas que coinciden
   const [subcats, setSubcats]     = useState([]);  // Subcategorías/Tipos únicos
   const [categories, setCategories] = useState([]); // Categorías de Strapi
@@ -278,10 +311,13 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
       const allProds = prodJson.data || [];
       const lq = q.toLowerCase();
 
-      // ── Productos que coinciden por nombre (máx 5) ───────────────────────
+      // ── Productos por nombre y marca (máx 7) ────────────────────────────
       const prodsByName = allProds
-        .filter(p => (p.attributes || p).nombre?.toLowerCase().includes(lq))
-        .slice(0, 5);
+        .filter(p => (p.attributes || p).nombre?.toLowerCase().includes(lq));
+      const prodsByBrand = allProds.filter(p => {
+        const a = p.attributes || p;
+        return a.marca?.toLowerCase().includes(lq) && !a.nombre?.toLowerCase().includes(lq);
+      });
 
       // ── Marcas únicas que coinciden ──────────────────────────────────────
       const brandMap = new Map();
@@ -325,7 +361,7 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
       });
       const uniqueSubcats = [...subcatMap.values()].slice(0, 3);
 
-      setProducts(prodsByName);
+      setProducts([...prodsByName, ...prodsByBrand].slice(0, 7));
       setBrands(uniqueBrands);
       setSubcats(uniqueSubcats);
       setCategories(catJson.data || []);

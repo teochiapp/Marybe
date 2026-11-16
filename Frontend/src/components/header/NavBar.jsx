@@ -40,6 +40,11 @@ const NavBarWrapper = styled.nav`
   width: 100%;
   border-bottom: 1px solid var(--color-fondo-beneficio-tarjeta);
 
+  @media (max-width: 1100px) {
+    padding: 14px 24px;
+    gap: 24px;
+  }
+
   @media (max-width: 768px) {
     padding: 12px 20px;
     gap: 0;
@@ -77,6 +82,11 @@ const CenterGroup = styled.div`
   align-items: center;
   gap: 25px;
   flex: 1;
+  min-width: 0;
+
+  @media (max-width: 1100px) {
+    gap: 12px;
+  }
 
   @media (max-width: 768px) {
     display: none;
@@ -122,6 +132,7 @@ const SearchBar = styled.label`
   display: flex;
   align-items: center;
   flex: 1;
+  min-width: 0;
   background-color: var(--color-fondo-beneficio-tarjeta);
   border-radius: 20px;
   padding: 12px 16px;
@@ -132,6 +143,7 @@ const SearchBar = styled.label`
   transition: box-shadow 0.25s ease, background-color 0.25s ease;
 
   svg {
+    flex-shrink: 0;
     transition: transform 0.25s ease;
     transform-origin: 50% 50%;
   }
@@ -154,6 +166,7 @@ const SearchInput = styled.input`
   border: none;
   outline: none;
   flex: 1;
+  min-width: 0;
   font-family: var(--font-family-secondary);
   font-size: 13px;
   color: var(--color-marron-tercero);

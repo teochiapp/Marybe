@@ -44,3 +44,9 @@ Te voy pasando los prompts aqui y cuando termines dejas escrito los cambios abaj
 
 ### Aclaración de clasificaciones
 - Cartel breve que explica que las clasificaciones adicionales permiten mostrar el producto en otras categorías del catálogo.
+
+### Sugerencias de búsqueda por marca
+- Productos coincidentes por nombre y marca, sin duplicados y con un máximo de cinco sugerencias. Validación: 3 pruebas de frontend aprobadas.
+
+- El máximo de productos sugeridos se amplió a siete. Validación: 2 pruebas del buscador aprobadas.
+- **Responsividad del buscador principal** ([NavBar.jsx](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Frontend/src/components/header/NavBar.jsx), [SearchDropdown.jsx](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Frontend/src/components/header/SearchDropdown.jsx), [SearchDropdown.test.jsx](file:///C:/Users/teoch/OneDrive/Desktop/React/Marybe/Frontend/src/components/header/SearchDropdown.test.jsx)): ajuste de quiebre intermedio (`max-width: 1100px`) y `min-width: 0` en el header, ícono de lupa no deformable (`flex-shrink: 0`), altura dinámica con scroll interno en el desplegable (`min(480px, 50dvh)`, `overscroll-behavior: contain`), ajuste compacto en móvil (`max-width: 480px`) y truncado/corte de textos largos. Validación: 2 suites (`SearchDropdown.test.jsx` y `MegaMenuNavigation.test.jsx`, `18/18` pruebas) aprobadas.
