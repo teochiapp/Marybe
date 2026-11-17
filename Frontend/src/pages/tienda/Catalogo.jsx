@@ -81,7 +81,7 @@ const BANNER_CONFIG = {
     title: 'Perfumería',
     subtitle: 'Explorá las mejores fragancias con descuentos exclusivos y cuotas sin interés.',
     pills: ['Novedades', 'Ofertas'],
-    image: '/inicio/featured.img',
+    image: null,
     imageAlt: 'Perfumería Marybe',
   },
 };
@@ -257,7 +257,7 @@ export default function Catalogo() {
         breadcrumbTitle: bannerLabel,
         subtitle: `Descubrí nuestra selección exclusiva de ${bannerLabel.toLowerCase()} con las mejores ofertas y lanzamientos.`,
         pills: ['Más relevantes', 'Novedades'],
-        image: dynamicBannerImg || currentBanner.image,
+        image: dynamicBannerImg || null,
         imageAlt: bannerLabel,
         isCategoryCover: Boolean(dynamicBannerImg),
       };

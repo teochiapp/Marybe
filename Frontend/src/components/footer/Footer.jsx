@@ -35,7 +35,7 @@ const FooterMain = styled.div`
   grid-template-columns: 260px 1fr;
   gap: 80px;
   column-gap: 100px;
-  padding-bottom: var(--spacing-xxl);
+  padding-bottom: var(--spacing-lg);
   align-items: stretch;
 
   @media (max-width: 900px) {
@@ -64,21 +64,17 @@ const NavColumns = styled.div`
   }
 `;
 
-const FooterBottom = styled.div`
-
-`;
-
-const BottomInner = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--spacing-md) var(--spacing-xl);
+const LegalLinks = styled.div`
   display: flex;
-  justify-content: center;
+  align-items: center;
   gap: var(--spacing-xl);
+  margin-left: auto;
 
   @media (max-width: 600px) {
-    padding: var(--spacing-md);
-    gap: var(--spacing-md);
+    margin-left: 0;
+    justify-content: center;
+    gap: var(--spacing-lg);
+    padding-top: var(--spacing-xs);
   }
 `;
 
@@ -101,6 +97,13 @@ export default function Footer() {
   const toggle = (title) =>
     setOpenSection((prev) => (prev === title ? null : title));
 
+  const legalLinks = (
+    <LegalLinks>
+      <BottomLink to="/terminos-condiciones">Privacidad</BottomLink>
+      <BottomLink to="/terminos-condiciones">Cookies</BottomLink>
+    </LegalLinks>
+  );
+
   return (
     <FooterWrapper>
       <FooterInner>
@@ -122,17 +125,10 @@ export default function Footer() {
               ))}
             </NavColumns>
 
-            <FooterContact />
+            <FooterContact legalLinks={legalLinks} />
           </RightColumn>
         </FooterMain>
       </FooterInner>
-
-      <FooterBottom>
-        <BottomInner>
-          <BottomLink to="/terminos-condiciones">Privacidad</BottomLink>
-          <BottomLink to="/terminos-condiciones">Cookies</BottomLink>
-        </BottomInner>
-      </FooterBottom>
     </FooterWrapper>
   );
 }

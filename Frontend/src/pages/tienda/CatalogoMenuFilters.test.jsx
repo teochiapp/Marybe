@@ -124,3 +124,23 @@ test('subcategorías y tipos heredan la imagen de portada de la categoría padre
 
   delete global.fetch;
 });
+
+test('no usa imagen de fallback en categorías o subcategorías sin portada asignada', async () => {
+  window.scrollTo = jest.fn();
+  mockSearchParams = new URLSearchParams('seccion=Hogar&categoria=Electro%20belleza&subcategoria=Secadores');
+  global.fetch = jest.fn(async raw => {
+    const url = new URL(raw);
+    if (url.pathname.includes('/api/categorias')) {
+      return { ok: true, json: async () => ({ data: [{ id: 1, nombre: 'Electro belleza', portada: null }] }) };
+    }
+    return { ok: true, json: async () => ({ data: [], meta: { pagination: { pageCount: 1, total: 0 } } }) };
+  });
+
+  render(<Catalogo />);
+  await waitFor(() => expect(global.fetch.mock.calls.some(([u]) => u.includes('/api/categorias'))).toBe(true));
+  expect(screen.getByTestId('banner')).toHaveAttribute('data-title', 'Secadores');
+  expect(screen.getByTestId('banner')).toHaveAttribute('data-image', '');
+  expect(screen.getByTestId('banner')).toHaveAttribute('data-cover', 'false');
+
+  delete global.fetch;
+});

@@ -239,9 +239,11 @@ export default function CatalogoBanner({ currentBanner, onPillClick }) {
       </BannerTextContainer>
 
       {/* Imagen: posición absoluta anclada al fondo */}
-      <BannerImageWrapper data-testid="banner-image-wrapper" $isCategoryCover={Boolean(currentBanner.isCategoryCover)}>
-        <img src={currentBanner.image} alt={currentBanner.imageAlt} />
-      </BannerImageWrapper>
+      {currentBanner.image && (
+        <BannerImageWrapper data-testid="banner-image-wrapper" $isCategoryCover={Boolean(currentBanner.isCategoryCover)}>
+          <img src={currentBanner.image} alt={currentBanner.imageAlt} />
+        </BannerImageWrapper>
+      )}
 
       {/* Pills: columna derecha, parte inferior */}
       <BannerRightColumn>

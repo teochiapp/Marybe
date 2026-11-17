@@ -59,3 +59,23 @@ test('no aplica mask-image de portada cuando isCategoryCover es false', () => {
 
   expect(wrapperCss).not.toMatch(/mask-image:/i);
 });
+
+test('no renderiza wrapper ni imagen cuando currentBanner.image es null', () => {
+  render(
+    <CatalogoBanner
+      currentBanner={{
+        title: 'Electro belleza',
+        image: null,
+        imageAlt: 'Electro belleza',
+        pills: ['Más relevantes', 'Novedades'],
+        bgColor: 'var(--color-hogar)',
+        isCategoryCover: false,
+      }}
+      onPillClick={jest.fn()}
+    />
+  );
+
+  expect(screen.getByRole('heading', { name: 'Electro belleza' })).toBeTruthy();
+  expect(screen.queryByRole('img')).toBeNull();
+  expect(screen.queryByTestId('banner-image-wrapper')).toBeNull();
+});

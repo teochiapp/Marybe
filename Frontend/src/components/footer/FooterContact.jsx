@@ -81,6 +81,20 @@ const EmailLink = styled.a`
   }
 `;
 
+const ContactBottomRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-md);
+  }
+`;
+
 const WhatsAppButton = styled.a`
   display: inline-flex;
   align-items: center;
@@ -95,7 +109,7 @@ const WhatsAppButton = styled.a`
   cursor: pointer;
   transition: var(--transition-fast);
   text-decoration: none;
-  width: 100%;
+  flex: 1 1 260px;
   max-width: 325px;
 
   &:hover {
@@ -106,11 +120,12 @@ const WhatsAppButton = styled.a`
   @media (max-width: 600px) {
     width: 100%;
     max-width: none;
+    flex: none;
     justify-content: center;
   }
 `;
 
-export default function FooterContact() {
+export default function FooterContact({ legalLinks = null }) {
   return (
     <ContactSection>
       <SectionTitle>Contacto</SectionTitle>
@@ -132,10 +147,13 @@ export default function FooterContact() {
         </EmailLink>
       </ContactBar>
 
-      <WhatsAppButton href="https://wa.me/5493855551234" target="_blank" rel="noopener noreferrer">
-        <FaWhatsapp size={20} />
-        Unirme al canal de Whatsapp
-      </WhatsAppButton>
+      <ContactBottomRow data-testid="footer-contact-bottom-row">
+        <WhatsAppButton href="https://wa.me/5493855551234" target="_blank" rel="noopener noreferrer">
+          <FaWhatsapp size={20} />
+          Unirme al canal de Whatsapp
+        </WhatsAppButton>
+        {legalLinks}
+      </ContactBottomRow>
     </ContactSection>
   );
 }
