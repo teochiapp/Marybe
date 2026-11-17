@@ -11,7 +11,14 @@ jest.mock('react-router-dom', () => ({
 }), { virtual: true });
 jest.mock('../../components/tienda/catalogo/CatalogoSidebar', () => props => <div data-testid="brands">{props.availableBrands.join(',')}</div>);
 jest.mock('../../components/tienda/catalogo/CatalogoBreadcrumb', () => () => null);
-jest.mock('../../components/tienda/catalogo/CatalogoBanner', () => () => null);
+jest.mock('../../components/tienda/catalogo/CatalogoBanner', () => ({ currentBanner }) => (
+  <div
+    data-testid="banner"
+    data-title={currentBanner?.title || ''}
+    data-image={currentBanner?.image || ''}
+    data-cover={String(Boolean(currentBanner?.isCategoryCover))}
+  />
+));
 jest.mock('../../components/tienda/catalogo/CatalogoControlsBar', () => () => null);
 jest.mock('../../components/tienda/catalogo/CatalogoProductGrid', () => props => (
   <div data-testid="grid">{props.productos.map(p => (p.attributes || p).nombre).join(',')}</div>
@@ -69,5 +76,51 @@ test('las marcas del filtro incluyen productos posteriores a la página 100 y re
     expect(url.searchParams.get('filters[descuento][$gt]')).toBe('0');
     expect(url.searchParams.get('filters[$and][0][$or][1][clasificaciones][seccion][$eq]')).toBe('Hogar');
   }
+  delete global.fetch;
+});
+
+test('subcategorías y tipos heredan la imagen de portada de la categoría padre', async () => {
+  window.scrollTo = jest.fn();
+  const mockCoverFetch = () => jest.fn(async raw => {
+    const url = new URL(raw);
+    if (url.pathname.includes('/api/categorias')) {
+      return {
+        ok: true,
+        json: async () => ({ data: [{ id: 1, nombre: 'Niños y Bebes', portada: { url: '/uploads/ninos.jpg' } }] }),
+      };
+    }
+    return { ok: true, json: async () => ({ data: [], meta: { pagination: { pageCount: 1, total: 0 } } }) };
+  });
+
+  // Caso 1: URL con categoría + subcategoría + tipo (ej. navegación desde MegaMenú)
+  mockSearchParams = new URLSearchParams('seccion=Hogar&categoria=Niños%20y%20Bebes&subcategoria=Higiene%20del%20Bebe&tipo=Toallas%20humedas');
+  global.fetch = mockCoverFetch();
+  const { unmount: unmountCase1 } = render(<Catalogo />);
+  await waitFor(() => expect(screen.getByTestId('banner')).toHaveAttribute('data-cover', 'true'));
+  expect(screen.getByTestId('banner')).toHaveAttribute('data-title', 'Toallas humedas');
+  expect(screen.getByTestId('banner')).toHaveAttribute('data-image', expect.stringMatching(/\/uploads\/ninos\.jpg$/));
+  const catCall1 = new URL(global.fetch.mock.calls.find(([u]) => u.includes('/api/categorias'))[0]);
+  expect(catCall1.searchParams.get('filters[nombre][$eq]')).toBe('Niños y Bebes');
+  unmountCase1();
+
+  // Caso 2: URL con subcategoría sola (sin parámetro categoria)
+  mockSearchParams = new URLSearchParams('seccion=Hogar&subcategoria=Higiene%20del%20Bebe');
+  global.fetch = mockCoverFetch();
+  const { unmount: unmountCase2 } = render(<Catalogo />);
+  await waitFor(() => expect(screen.getByTestId('banner')).toHaveAttribute('data-cover', 'true'));
+  expect(screen.getByTestId('banner')).toHaveAttribute('data-title', 'Higiene del Bebe');
+  const catCall2 = new URL(global.fetch.mock.calls.find(([u]) => u.includes('/api/categorias'))[0]);
+  expect(catCall2.searchParams.get('filters[subcategorias][nombre][$eq]')).toBe('Higiene del Bebe');
+  unmountCase2();
+
+  // Caso 3: URL con tipo solo (sin categoría ni subcategoría)
+  mockSearchParams = new URLSearchParams('seccion=Hogar&tipo=Toallas%20humedas');
+  global.fetch = mockCoverFetch();
+  render(<Catalogo />);
+  await waitFor(() => expect(screen.getByTestId('banner')).toHaveAttribute('data-cover', 'true'));
+  expect(screen.getByTestId('banner')).toHaveAttribute('data-title', 'Toallas humedas');
+  const catCall3 = new URL(global.fetch.mock.calls.find(([u]) => u.includes('/api/categorias'))[0]);
+  expect(catCall3.searchParams.get('filters[subcategorias][tipos][nombre][$eq]')).toBe('Toallas humedas');
+
   delete global.fetch;
 });

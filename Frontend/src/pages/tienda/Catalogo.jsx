@@ -17,6 +17,34 @@ import { addClassificationFilters, addSearchFilters } from '../../utils/catalogC
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 const PAGE_SIZE = 12;
 
+function extractBannerCoverUrl(entry) {
+  const attrs = entry?.attributes || entry;
+  const coverPath = attrs?.portada?.data?.attributes?.url || attrs?.portada?.url;
+  return coverPath ? `${STRAPI_URL}${coverPath}` : null;
+}
+
+function buildCategoryCoverUrl({ seccion, categories, subcategories, types }) {
+  const params = new URLSearchParams();
+  if (categories.length === 1) {
+    params.set('filters[nombre][$eq]', categories[0]);
+  } else if (categories.length === 0 && subcategories.length === 1) {
+    params.set('filters[subcategorias][nombre][$eq]', subcategories[0]);
+    if (types.length === 1) {
+      params.set('filters[subcategorias][tipos][nombre][$eq]', types[0]);
+    }
+  } else if (categories.length === 0 && subcategories.length === 0 && types.length === 1) {
+    params.set('filters[subcategorias][tipos][nombre][$eq]', types[0]);
+  } else {
+    return null;
+  }
+
+  if (seccion) {
+    params.set('filters[seccion][$eq]', seccion);
+  }
+  params.set('populate', 'portada');
+  return `${STRAPI_URL}/api/categorias?${params.toString()}`;
+}
+
 function addDiscountFilters(params, discounts) {
   if (!discounts.length) return;
   params.set('filters[descuento][$gt]', '0');
@@ -167,13 +195,24 @@ export default function Catalogo() {
   const activeSubcatParam   = searchParams.get('subcategoria') || '';
   const activeTipoParam     = searchParams.get('tipo')         || '';
 
+  const activeCatList = useMemo(
+    () => (activeCatParam ? activeCatParam.split(',').filter(Boolean) : []),
+    [activeCatParam]
+  );
+  const activeSubcatList = useMemo(
+    () => (activeSubcatParam ? activeSubcatParam.split(',').filter(Boolean) : []),
+    [activeSubcatParam]
+  );
+  const activeTipoList = useMemo(
+    () => (activeTipoParam ? activeTipoParam.split(',').filter(Boolean) : []),
+    [activeTipoParam]
+  );
+
   // activeCategories sigue siendo usado por Sidebar/Breadcrumb para UI (array combinado)
-  const activeCategories = useMemo(() => {
-    const cats   = activeCatParam    ? activeCatParam.split(',')    : [];
-    const subcats = activeSubcatParam ? activeSubcatParam.split(',') : [];
-    const tipos   = activeTipoParam   ? activeTipoParam.split(',')   : [];
-    return Array.from(new Set([...cats, ...subcats, ...tipos]));
-  }, [activeCatParam, activeSubcatParam, activeTipoParam]);
+  const activeCategories = useMemo(
+    () => Array.from(new Set([...activeCatList, ...activeSubcatList, ...activeTipoList])),
+    [activeCatList, activeSubcatList, activeTipoList]
+  );
   const activeSizes = useMemo(
     () => (searchParams.get('tamano') ? searchParams.get('tamano').split(',') : []),
     [searchParams]
@@ -225,36 +264,43 @@ export default function Catalogo() {
     }
   }
 
-  // Fetch imagen de categoría dinámica
+  const categoryCoverUrl = useMemo(
+    () =>
+      !activeBanner
+        ? buildCategoryCoverUrl({
+            seccion: activeSeccion,
+            categories: activeCatList,
+            subcategories: activeSubcatList,
+            types: activeTipoList,
+          })
+        : null,
+    [activeBanner, activeSeccion, activeCatList, activeSubcatList, activeTipoList]
+  );
+
+  // Fetch imagen de categoría dinámica (también heredada en subcategorías y tipos)
   useEffect(() => {
-    if (activeCategories.length === 1) {
-      const catName = activeCategories[0];
-      let fetchUrl = `${STRAPI_URL}/api/categorias?filters[nombre][$eq]=${encodeURIComponent(catName)}&populate=portada`;
-      if (activeSeccion) {
-        fetchUrl += `&filters[seccion][$eq]=${encodeURIComponent(activeSeccion)}`;
-      }
-      
-      fetch(fetchUrl)
-        .then(res => res.json())
-        .then(data => {
-          if (data?.data?.[0]) {
-            const attrs = data.data[0].attributes || data.data[0];
-            let imgUrl = null;
-            if (attrs.portada?.data?.attributes?.url) {
-              imgUrl = `${STRAPI_URL}${attrs.portada.data.attributes.url}`;
-            } else if (attrs.portada?.url) {
-              imgUrl = `${STRAPI_URL}${attrs.portada.url}`;
-            }
-            setDynamicBannerImg(imgUrl);
-          } else {
-            setDynamicBannerImg(null);
-          }
-        })
-        .catch(console.error);
-    } else {
+    if (!categoryCoverUrl) {
       setDynamicBannerImg(null);
+      return undefined;
     }
-  }, [activeCategories, activeSeccion]);
+
+    setDynamicBannerImg(null);
+    const controller = new AbortController();
+    fetch(categoryCoverUrl, { signal: controller.signal })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        const imgUrl = (data?.data || []).map(extractBannerCoverUrl).find(Boolean) || null;
+        setDynamicBannerImg(imgUrl);
+      })
+      .catch(err => {
+        if (err.name !== 'AbortError') {
+          setDynamicBannerImg(null);
+          console.error(err);
+        }
+      });
+
+    return () => controller.abort();
+  }, [categoryCoverUrl]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const toggleAccordion = (field) =>
