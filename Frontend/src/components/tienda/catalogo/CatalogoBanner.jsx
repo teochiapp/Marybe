@@ -109,35 +109,43 @@ const BannerImageWrapper = styled.div`
       right: 0;
       bottom: 0;
       height: 100%;
-      width: clamp(260px, 44%, 520px);
+      width: clamp(280px, 48%, 560px);
       overflow: hidden;
-      border-radius: 0 24px 24px 0;
+      border-radius: 24px;
       align-items: center;
+      -webkit-mask-image: linear-gradient(
+        to left,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 1) 30%,
+        rgba(0, 0, 0, 0.82) 50%,
+        rgba(0, 0, 0, 0.45) 70%,
+        rgba(0, 0, 0, 0.14) 86%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      mask-image: linear-gradient(
+        to left,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 1) 30%,
+        rgba(0, 0, 0, 0.82) 50%,
+        rgba(0, 0, 0, 0.45) 70%,
+        rgba(0, 0, 0, 0.14) 86%,
+        rgba(0, 0, 0, 0) 100%
+      );
 
       img {
         width: 100%;
         height: 100%;
         object-fit: cover;
         object-position: center;
+        border-radius: 24px;
         filter: none;
-        -webkit-mask-image: linear-gradient(
-          to left,
-          rgba(0, 0, 0, 1) 42%,
-          rgba(0, 0, 0, 0.65) 72%,
-          rgba(0, 0, 0, 0) 100%
-        );
-        mask-image: linear-gradient(
-          to left,
-          rgba(0, 0, 0, 1) 42%,
-          rgba(0, 0, 0, 0.65) 72%,
-          rgba(0, 0, 0, 0) 100%
-        );
       }
 
       &::after {
         content: '';
         position: absolute;
         inset: 0;
+        border-radius: inherit;
         background: linear-gradient(
           to top,
           rgba(0, 0, 0, 0.42) 0%,
@@ -231,7 +239,7 @@ export default function CatalogoBanner({ currentBanner, onPillClick }) {
       </BannerTextContainer>
 
       {/* Imagen: posición absoluta anclada al fondo */}
-      <BannerImageWrapper $isCategoryCover={Boolean(currentBanner.isCategoryCover)}>
+      <BannerImageWrapper data-testid="banner-image-wrapper" $isCategoryCover={Boolean(currentBanner.isCategoryCover)}>
         <img src={currentBanner.image} alt={currentBanner.imageAlt} />
       </BannerImageWrapper>
 
