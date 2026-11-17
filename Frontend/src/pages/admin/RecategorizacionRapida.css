@@ -23,12 +23,13 @@
 .recat-search-bar h2, .recat-editor h2 { color: #412a32; font-size: 1.2rem; margin: 5px 0; }
 .recat-search-bar p, .recat-results-heading p, .recat-editor-heading p { color: #817278; font-size: .85rem; line-height: 1.45; }
 .recat-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 10px; padding: 11px 16px; font: inherit; font-size: .86rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.recat-button--sm { padding: 8px 14px; font-size: .82rem; border-radius: 8px; }
 .recat-button--primary { background: #8a3040; color: #fff; }
 .recat-button--primary:hover:not(:disabled) { background: #702331; }
 .recat-button--secondary { background: #fff; color: #7d2b3a; border-color: #dfc4c9; }
 .recat-button--secondary:hover:not(:disabled) { background: #fdf2f2; }
 .recat-button:disabled { opacity: .5; cursor: not-allowed; }
-.recat-button:focus-visible, .recat-product:focus-visible, .recat-add:focus-visible, .recat-remove:focus-visible, .recat-fields select:focus-visible, .recat-search:focus-within { outline: 3px solid #dca9b1; outline-offset: 2px; }
+.recat-button:focus-visible, .recat-product:focus-visible, .recat-add:focus-visible, .recat-remove:focus-visible, .recat-quick-pill:focus-visible, .recat-fields select:focus-visible, .recat-quick-custom input:focus-visible, .recat-search:focus-within { outline: 3px solid #dca9b1; outline-offset: 2px; }
 .recat-results, .recat-editor { border: 1px solid #eadfe1; border-radius: 16px; padding: 20px; background: #fff; }
 .recat-results-heading h3 { color: #49353c; font-size: .98rem; margin-bottom: 4px; }
 .recat-count { background: #f8eff0; color: #8a4651; border-radius: 99px; padding: 5px 10px; font-size: .74rem; font-weight: 700; white-space: nowrap; }
@@ -49,7 +50,19 @@
 .recat-editor { background: #fffcfa; }
 .recat-editor-heading { display: flex; gap: 12px; align-items: center; }
 .recat-editor-icon { width: 44px; height: 44px; font-size: 1.2rem; }
-.recat-editor-help { margin: 18px 0 !important; padding: 10px 12px; border: 1px solid #efdfca; border-radius: 8px; background: #fff8ed; color: #705638; font-size: .82rem; line-height: 1.5; }
+.recat-editor-help { margin: 18px 0 14px !important; padding: 10px 12px; border: 1px solid #efdfca; border-radius: 8px; background: #fff8ed; color: #705638; font-size: .82rem; line-height: 1.5; }
+.recat-quick-bar { margin-bottom: 16px; padding: 14px; border: 1px solid #eedee0; border-radius: 12px; background: #fdf8f8; display: grid; gap: 10px; }
+.recat-quick-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.recat-quick-header span { color: #54202b; font-size: .8rem; font-weight: 750; }
+.recat-quick-header small { color: #8c757b; font-size: .74rem; }
+.recat-quick-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.recat-quick-pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px; border: 1px solid #dec6ca; background: #fff; color: #6f2a37; font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; transition: all .15s ease; }
+.recat-quick-pill:hover:not(:disabled) { border-color: #8a3040; background: #fdf1f2; transform: translateY(-1px); }
+.recat-quick-pill.is-active { background: #8a3040; border-color: #8a3040; color: #fff; box-shadow: 0 3px 10px rgba(138, 48, 64, .22); }
+.recat-quick-pill--add { border-style: dashed; color: #7a3341; background: #fff9f9; }
+.recat-quick-pill:disabled { opacity: .5; cursor: not-allowed; }
+.recat-quick-custom { display: flex; gap: 8px; align-items: center; margin-top: 2px; }
+.recat-quick-custom input { flex: 1; min-width: 0; border: 1px solid #dfd2d5; border-radius: 8px; padding: 8px 11px; color: #49383e; background: #fff; font: inherit; font-size: .84rem; }
 .recat-classifications { display: grid; gap: 14px; }
 .recat-classification { min-width: 0; border: 1px solid #eadde0; border-radius: 12px; padding: 15px; background: #fff; }
 .recat-classification legend { padding: 0 7px; color: #7a3341; font-size: .8rem; font-weight: 750; }

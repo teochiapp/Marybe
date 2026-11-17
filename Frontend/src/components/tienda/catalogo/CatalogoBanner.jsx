@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -85,11 +85,9 @@ const BannerImageWrapper = styled.div`
     filter: drop-shadow(0 15px 20px rgba(0, 0, 0, 0.45));
   }
 
-    @media (max-width: 1450px) and (min-width: 901px) {
+  @media (max-width: 1450px) and (min-width: 901px) {
     bottom: -2vh;
   }
-
-
 
   @media (max-width: 900px) {
     position: absolute;
@@ -100,10 +98,71 @@ const BannerImageWrapper = styled.div`
     pointer-events: none;
   }
 
-    @media (max-width: 410px) {
+  @media (max-width: 410px) {
     bottom: -7vh;
   }
 
+  ${({ $isCategoryCover }) =>
+    $isCategoryCover &&
+    css`
+      top: 0;
+      right: 0;
+      bottom: 0;
+      height: 100%;
+      width: clamp(260px, 44%, 520px);
+      overflow: hidden;
+      border-radius: 0 24px 24px 0;
+      align-items: center;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        filter: none;
+        -webkit-mask-image: linear-gradient(
+          to left,
+          rgba(0, 0, 0, 1) 42%,
+          rgba(0, 0, 0, 0.65) 72%,
+          rgba(0, 0, 0, 0) 100%
+        );
+        mask-image: linear-gradient(
+          to left,
+          rgba(0, 0, 0, 1) 42%,
+          rgba(0, 0, 0, 0.65) 72%,
+          rgba(0, 0, 0, 0) 100%
+        );
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to top,
+          rgba(0, 0, 0, 0.42) 0%,
+          rgba(0, 0, 0, 0.1) 45%,
+          transparent 100%
+        );
+        pointer-events: none;
+      }
+
+      @media (max-width: 1450px) and (min-width: 901px) {
+        bottom: 0;
+      }
+
+      @media (max-width: 900px) {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 62%;
+        height: 100%;
+      }
+
+      @media (max-width: 410px) {
+        bottom: 0;
+      }
+    `}
 `;
 
 /* Columna derecha solo para las pills */
@@ -140,10 +199,11 @@ const BannerActions = styled.div`
 `;
 
 const BannerPill = styled.button`
-  background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(40, 4, 5, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: #FAF9F7;
-  background: #7C040540;
   padding: 5px 8px;
   border-radius: 13px;
   font-weight: 400;
@@ -171,7 +231,7 @@ export default function CatalogoBanner({ currentBanner, onPillClick }) {
       </BannerTextContainer>
 
       {/* Imagen: posición absoluta anclada al fondo */}
-      <BannerImageWrapper>
+      <BannerImageWrapper $isCategoryCover={Boolean(currentBanner.isCategoryCover)}>
         <img src={currentBanner.image} alt={currentBanner.imageAlt} />
       </BannerImageWrapper>
 

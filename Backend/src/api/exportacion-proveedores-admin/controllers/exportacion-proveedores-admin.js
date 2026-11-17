@@ -15,10 +15,54 @@ function listaValida(value) {
   return [...value].sort();
 }
 
+function esCampoTextoValido(val, { requerido = false } = {}) {
+  if (typeof val !== 'string' || val !== val.trim() || val.length > 80) return false;
+  return requerido ? val.length >= 1 : true;
+}
+
+function construirTaxonomiaHibrida(categoriasStrapi = []) {
+  const combinada = {};
+  for (const [cat, subcats] of Object.entries(taxonomia)) {
+    combinada[cat] = {};
+    for (const [sub, tipos] of Object.entries(subcats || {})) {
+      combinada[cat][sub] = Array.isArray(tipos) ? [...tipos] : [];
+    }
+  }
+  for (const cat of categoriasStrapi) {
+    const catNombre = String(cat?.nombre || '').trim();
+    if (!catNombre) continue;
+    if (!combinada[catNombre]) combinada[catNombre] = {};
+    for (const sub of cat.subcategorias || []) {
+      const subNombre = String(sub?.nombre || '').trim();
+      if (!subNombre) continue;
+      if (!combinada[catNombre][subNombre]) combinada[catNombre][subNombre] = [];
+      const tiposSet = new Set(combinada[catNombre][subNombre]);
+      for (const t of sub.tipos || []) {
+        const tipoNombre = String(t?.nombre || '').trim();
+        if (tipoNombre && !tiposSet.has(tipoNombre)) {
+          tiposSet.add(tipoNombre);
+          combinada[catNombre][subNombre].push(tipoNombre);
+        }
+      }
+    }
+  }
+  return combinada;
+}
+
 module.exports = {
   async taxonomia(ctx) {
     if (!verificarAdmin(ctx)) return ctx.unauthorized('No autenticado.');
-    return ctx.send({ taxonomia });
+    try {
+      const categoriasStrapi = await strapi.documents('api::categoria.categoria').findMany({
+        status: 'published',
+        populate: { subcategorias: { populate: ['tipos'] } },
+        limit: 500,
+      });
+      return ctx.send({ taxonomia: construirTaxonomiaHibrida(categoriasStrapi) });
+    } catch (err) {
+      strapi.log.warn(`[ExportacionProveedoresAdmin] Fallback a excel-taxonomy.json: ${err.message}`);
+      return ctx.send({ taxonomia });
+    }
   },
   async productosRecategorizacion(ctx) {
     if (!verificarAdmin(ctx)) return ctx.unauthorized('No autenticado.');
@@ -43,7 +87,7 @@ module.exports = {
     if (!verificarAdmin(ctx)) return ctx.unauthorized('No autenticado.');
     const { documentId, proveedor, updatedAt, clasificaciones } = ctx.request.body || {};
     if (typeof documentId !== 'string' || (proveedor !== null && typeof proveedor !== 'string') || typeof updatedAt !== 'string' || !Array.isArray(clasificaciones) || !clasificaciones.length || clasificaciones.length > 30) return ctx.badRequest('Datos inválidos.');
-    const validas = clasificaciones.every(c => c && ['Hogar', 'Perfumería'].includes(c.seccion) && Object.hasOwn(taxonomia, c.categoria) && typeof c.subcategoria === 'string' && typeof c.tipo === 'string' && (!c.subcategoria ? !c.tipo : Object.hasOwn(taxonomia[c.categoria], c.subcategoria) && (!c.tipo || taxonomia[c.categoria][c.subcategoria].includes(c.tipo))));
+    const validas = clasificaciones.every(c => c && ['Hogar', 'Perfumería'].includes(c.seccion) && esCampoTextoValido(c.categoria, { requerido: true }) && esCampoTextoValido(c.subcategoria) && esCampoTextoValido(c.tipo) && (!c.subcategoria ? !c.tipo : true));
     if (!validas || new Set(clasificaciones.map(c => JSON.stringify([c.seccion,c.categoria,c.subcategoria,c.tipo]))).size !== clasificaciones.length) return ctx.badRequest('Revisá las clasificaciones y evitá duplicados.');
     try {
       const servicio = strapi.service('api::exportacion-proveedores-admin.exportacion-proveedores-admin');

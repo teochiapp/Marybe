@@ -579,42 +579,63 @@ function validarYDiagnosticar(productos, variantes, hasVariantesSheet, addLog) {
   return { productosFiltrados, variantesFiltradas, variantesSinPadre, variantesSinId, productosSinId };
 }
 
+function serializarSubcategorias(subcats = []) {
+  return subcats
+    .map((s) => ({
+      nombre: String(s?.nombre || '').trim(),
+      tipos: (s?.tipos || [])
+        .map((t) => ({ nombre: String(t?.nombre || '').trim() }))
+        .filter((t) => t.nombre),
+    }))
+    .filter((s) => s.nombre);
+}
+
 // ─── Upsert de categoría ───────────────────────────────────────────────────────
 async function upsertCategoria(strapi, { nombre, seccion, subcategoriasMap }) {
   const nombreTrim = (nombre || '').trim();
   if (!nombreTrim) return null;
 
-  const encontrados = await strapi.documents(UID_CAT).findMany({
-    filters: {
-      nombre: { $eq: nombreTrim },
-      seccion: { $eq: seccion || '' }
+  const docs = strapi.documents(UID_CAT);
+  const filters = {
+    nombre: { $eq: nombreTrim },
+    seccion: { $eq: seccion || '' },
+  };
+  const populate = {
+    subcategorias: {
+      populate: ['tipos'],
     },
-    populate: {
-      subcategorias: {
-        populate: ['tipos']
-      }
-    },
-    limit: 1,
-  });
+  };
+
+  let encontrados = await docs.findMany({ filters, populate, status: 'published', limit: 1 });
+  const estabaPublicada = encontrados.length > 0;
+  if (!estabaPublicada) {
+    encontrados = await docs.findMany({ filters, populate, status: 'draft', limit: 1 });
+  }
 
   if (encontrados.length > 0) {
     const catExistente = encontrados[0];
-    const subcatsExistentes = catExistente.subcategorias || [];
+    const subcatsExistentes = (catExistente.subcategorias || []).map((s) => ({
+      nombre: String(s.nombre || '').trim(),
+      tipos: (s.tipos || []).map((t) => ({ nombre: String(t.nombre || '').trim() })),
+    }));
     let modificado = false;
 
     const nuevasSubcatsParaMerge = [];
 
     for (const [subName, tiposSet] of subcategoriasMap.entries()) {
-      const subExistente = subcatsExistentes.find(s => s.nombre.trim() === subName);
+      const subNameTrim = String(subName || '').trim();
+      const subExistente = subcatsExistentes.find((s) => s.nombre === subNameTrim);
       if (subExistente) {
         // Merge de tipos en subcategoría existente
         const tiposExistentes = subExistente.tipos || [];
-        const nombresTiposExistentes = new Set(tiposExistentes.map(t => t.nombre.trim()));
+        const nombresTiposExistentes = new Set(tiposExistentes.map((t) => t.nombre));
         let tiposModificados = false;
 
         for (const tipoName of tiposSet) {
-          if (!nombresTiposExistentes.has(tipoName)) {
-            tiposExistentes.push({ nombre: tipoName });
+          const tipoTrim = String(tipoName || '').trim();
+          if (tipoTrim && !nombresTiposExistentes.has(tipoTrim)) {
+            tiposExistentes.push({ nombre: tipoTrim });
+            nombresTiposExistentes.add(tipoTrim);
             tiposModificados = true;
           }
         }
@@ -625,8 +646,10 @@ async function upsertCategoria(strapi, { nombre, seccion, subcategoriasMap }) {
       } else {
         // Nueva subcategoría con sus tipos
         nuevasSubcatsParaMerge.push({
-          nombre: subName,
-          tipos: Array.from(tiposSet).map(t => ({ nombre: t }))
+          nombre: subNameTrim,
+          tipos: Array.from(tiposSet)
+            .map((t) => ({ nombre: String(t || '').trim() }))
+            .filter((t) => t.nombre),
         });
       }
     }
@@ -637,37 +660,50 @@ async function upsertCategoria(strapi, { nombre, seccion, subcategoriasMap }) {
         dataUpdate.seccion = seccion;
       }
       if (nuevasSubcatsParaMerge.length > 0 || modificado) {
-        // Se preservan los IDs de subcatsExistentes para que Strapi actualice en lugar de recrear
-        dataUpdate.subcategorias = [...subcatsExistentes, ...nuevasSubcatsParaMerge];
+        // Reconstruir sin IDs de componente evita conflictos entre borrador y publicación al hacer publish()
+        dataUpdate.subcategorias = serializarSubcategorias([...subcatsExistentes, ...nuevasSubcatsParaMerge]);
       }
 
-      await strapi.documents(UID_CAT).update({
+      await docs.update({
         documentId: catExistente.documentId,
         data: dataUpdate,
-        status: 'published'
       });
+      await docs.publish({ documentId: catExistente.documentId });
+    } else if (!estabaPublicada) {
+      await docs.publish({ documentId: catExistente.documentId });
     }
 
     return catExistente.documentId;
   }
 
-  // Si la categoría no existe, creamos todo desde cero
+  // Si la categoría no existe, creamos todo desde cero y aseguramos publicación
   const subcatData = [];
   for (const [subName, tiposSet] of subcategoriasMap.entries()) {
     subcatData.push({
-      nombre: subName,
-      tipos: Array.from(tiposSet).map(t => ({ nombre: t }))
+      nombre: String(subName || '').trim(),
+      tipos: Array.from(tiposSet)
+        .map((t) => ({ nombre: String(t || '').trim() }))
+        .filter((t) => t.nombre),
     });
   }
 
-  const nueva = await strapi.documents(UID_CAT).create({
+  const nueva = await docs.create({
     data: {
       nombre: nombreTrim,
       seccion: seccion || '',
-      subcategorias: subcatData,
+      subcategorias: serializarSubcategorias(subcatData),
     },
     status: 'published',
   });
+
+  const publicada = await docs.findOne({
+    documentId: nueva.documentId,
+    status: 'published',
+    fields: ['documentId'],
+  });
+  if (!publicada) {
+    await docs.publish({ documentId: nueva.documentId });
+  }
 
   return nueva.documentId;
 }

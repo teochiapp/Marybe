@@ -219,6 +219,8 @@ export default function Catalogo() {
         subtitle: `Descubrí nuestra selección exclusiva de ${bannerLabel.toLowerCase()} con las mejores ofertas y lanzamientos.`,
         pills: ['Más relevantes', 'Novedades'],
         image: dynamicBannerImg || currentBanner.image,
+        imageAlt: bannerLabel,
+        isCategoryCover: Boolean(dynamicBannerImg),
       };
     }
   }

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { FiCheckCircle, FiChevronRight, FiLayers, FiPlus, FiSearch, FiTag, FiTrash2 } from 'react-icons/fi';
+import { FiCheck, FiCheckCircle, FiChevronRight, FiLayers, FiPlus, FiSearch, FiTag, FiTrash2, FiZap } from 'react-icons/fi';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:1337';
+const CAMPANAS_RAPIDAS = ['Black Friday', 'Cyber Monday', 'Hot Sale', 'Navidad', 'Ofertas'];
 const vacia = () => ({ seccion: '', categoria: '', subcategoria: '', tipo: '' });
 
 export default function RecategorizacionRapida({ token, proveedores }) {
@@ -15,6 +16,9 @@ export default function RecategorizacionRapida({ token, proveedores }) {
   const [busqueda, setBusqueda] = useState('');
   const [busquedaGeneral, setBusquedaGeneral] = useState('');
   const [limiteAlcanzado, setLimiteAlcanzado] = useState(false);
+  const [campanasExtra, setCampanasExtra] = useState([]);
+  const [mostrarNuevaCat, setMostrarNuevaCat] = useState(false);
+  const [nuevaCatInput, setNuevaCatInput] = useState('');
   const headers = { Authorization: `Bearer ${token}` };
   const clave = JSON.stringify([...proveedores].sort());
   useEffect(() => { setProductos([]); setSeleccion(null); setMensaje(''); }, [clave]);
@@ -35,8 +39,50 @@ export default function RecategorizacionRapida({ token, proveedores }) {
     } catch (e) { setProductos([]); setLimiteAlcanzado(false); setMensaje(e.response?.data?.error?.message || 'No se pudieron cargar los productos.'); }
     finally { setCargando(false); }
   };
-  const editar = p => { setSeleccion(p); setFilas(p.clasificaciones.map(c => ({ ...c }))); setMensaje(''); };
+  const editar = p => {
+    setSeleccion(p);
+    setFilas(p.clasificaciones.map(c => ({ ...c })));
+    setMensaje('');
+    setMostrarNuevaCat(false);
+    setNuevaCatInput('');
+  };
   const cambiar = (i, campo, valor) => { setFilas(prev => prev.map((f, j) => j !== i ? f : { ...f, [campo]: valor, ...(campo === 'categoria' ? { subcategoria: '', tipo: '' } : campo === 'subcategoria' ? { tipo: '' } : {}) })); };
+  const asegurarCategoriaEnTaxonomia = (nombre) => {
+    setTaxonomia(prev => (Object.hasOwn(prev, nombre) ? prev : { ...prev, [nombre]: {} }));
+  };
+  const asignarOToggleCategoria = (nombreCategoria, { soloAgregar = false } = {}) => {
+    const nombreClean = String(nombreCategoria || '').trim();
+    if (!nombreClean) return;
+    asegurarCategoriaEnTaxonomia(nombreClean);
+    const yaExiste = filas.some(f => f.categoria.trim().toLowerCase() === nombreClean.toLowerCase());
+    if (yaExiste) {
+      if (!soloAgregar && filas.length > 1) {
+        setFilas(prev => prev.filter(f => f.categoria.trim().toLowerCase() !== nombreClean.toLowerCase()));
+      }
+      return;
+    }
+    const seccionBase = filas[0]?.seccion || 'Perfumería';
+    if (filas.length === 1 && !filas[0].categoria) {
+      setFilas([{ seccion: seccionBase, categoria: nombreClean, subcategoria: '', tipo: '' }]);
+      return;
+    }
+    setFilas(prev => [...prev, { seccion: seccionBase, categoria: nombreClean, subcategoria: '', tipo: '' }]);
+  };
+  const handleAgregarNuevaCategoria = () => {
+    const nombreClean = nuevaCatInput.trim().slice(0, 80);
+    if (!nombreClean) return;
+    const todas = [...CAMPANAS_RAPIDAS, ...campanasExtra];
+    if (!todas.some(c => c.toLowerCase() === nombreClean.toLowerCase())) {
+      setCampanasExtra(prev => [...prev, nombreClean]);
+    }
+    asignarOToggleCategoria(nombreClean, { soloAgregar: true });
+    setNuevaCatInput('');
+    setMostrarNuevaCat(false);
+  };
+  const categoriasOpciones = (catActual) => {
+    const base = Object.keys(taxonomia);
+    return catActual && !base.includes(catActual) ? [catActual, ...base] : base;
+  };
   const guardar = async () => {
     setCargando(true); setMensaje('');
     try {
@@ -48,6 +94,7 @@ export default function RecategorizacionRapida({ token, proveedores }) {
     finally { setCargando(false); }
   };
   const filtrados = productos.filter(p => `${p.nombre} ${p.proveedor}`.toLocaleLowerCase().includes(busqueda.toLocaleLowerCase()));
+  const pildorasCampana = [...CAMPANAS_RAPIDAS, ...campanasExtra];
   return <div className="recat-workspace">
     <div className="recat-search-bar">
       <div><span className="recat-step">PRODUCTOS</span><h2>Elegí un producto</h2><p>Buscá por nombre o código, o consultá los proveedores seleccionados.</p></div>
@@ -70,12 +117,29 @@ export default function RecategorizacionRapida({ token, proveedores }) {
     {seleccion && <section className="recat-editor" aria-label="Editar clasificaciones">
       <div className="recat-editor-heading"><span className="recat-editor-icon"><FiLayers aria-hidden="true" /></span><div><span className="recat-step">CLASIFICACIONES</span><h2>{seleccion.nombre}</h2><p>{seleccion.proveedor || 'Sin proveedor'}</p></div></div>
       <p className="recat-editor-help">La primera clasificación es la principal. Agregá otras para mostrar el producto en otras categorías del catálogo.</p>
+      <div className="recat-quick-bar">
+        <div className="recat-quick-header">
+          <span>Campañas rápidas (1 clic para asignar o quitar)</span>
+          <small>Se asignan en la sección {filas[0]?.seccion || 'Perfumería'}</small>
+        </div>
+        <div className="recat-quick-pills">
+          {pildorasCampana.map(camp => {
+            const activa = filas.some(f => f.categoria.trim().toLowerCase() === camp.toLowerCase());
+            return <button key={camp} type="button" disabled={cargando} aria-pressed={activa} className={`recat-quick-pill${activa ? ' is-active' : ''}`} onClick={() => asignarOToggleCategoria(camp)}>{activa ? <FiCheck aria-hidden="true" /> : <FiZap aria-hidden="true" />} {camp}</button>;
+          })}
+          <button type="button" disabled={cargando} className="recat-quick-pill recat-quick-pill--add" onClick={() => setMostrarNuevaCat(v => !v)}><FiPlus aria-hidden="true" /> Nueva categoría</button>
+        </div>
+        {mostrarNuevaCat && <div className="recat-quick-custom">
+          <input type="text" aria-label="Nueva categoría o campaña" placeholder="Ej: Día de la Madre" value={nuevaCatInput} maxLength={80} disabled={cargando} onChange={e => setNuevaCatInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAgregarNuevaCategoria(); } }} />
+          <button type="button" className="recat-button recat-button--primary recat-button--sm" disabled={cargando || !nuevaCatInput.trim()} onClick={handleAgregarNuevaCategoria}>Agregar</button>
+        </div>}
+      </div>
       <div className="recat-classifications">{filas.map((f, i) => <fieldset className="recat-classification" key={i} disabled={cargando}>
         <legend>{i ? `Clasificación ${i + 1}` : 'Clasificación principal'}</legend>
         <div className="recat-fields">
           <label>Sección <select value={f.seccion} onChange={e => cambiar(i, 'seccion', e.target.value)}><option value="">Elegir sección</option><option>Perfumería</option><option>Hogar</option></select></label>
-          <label>Categoría <select value={f.categoria} onChange={e => cambiar(i, 'categoria', e.target.value)}><option value="">Elegir categoría</option>{Object.keys(taxonomia).map(c => <option key={c}>{c}</option>)}</select></label>
-          <label>Subcategoría <select value={f.subcategoria} onChange={e => cambiar(i, 'subcategoria', e.target.value)} disabled={!taxonomia[f.categoria]}><option value="">Sin subcategoría</option>{Object.keys(taxonomia[f.categoria] || {}).map(c => <option key={c}>{c}</option>)}</select></label>
+          <label>Categoría <select value={f.categoria} onChange={e => cambiar(i, 'categoria', e.target.value)}><option value="">Elegir categoría</option>{categoriasOpciones(f.categoria).map(c => <option key={c}>{c}</option>)}</select></label>
+          <label>Subcategoría <select value={f.subcategoria} onChange={e => cambiar(i, 'subcategoria', e.target.value)} disabled={!taxonomia[f.categoria] || Object.keys(taxonomia[f.categoria]).length === 0}><option value="">Sin subcategoría</option>{Object.keys(taxonomia[f.categoria] || {}).map(c => <option key={c}>{c}</option>)}</select></label>
           <label>Tipo <select value={f.tipo} onChange={e => cambiar(i, 'tipo', e.target.value)} disabled={!f.subcategoria}><option value="">Sin tipo</option>{(taxonomia[f.categoria]?.[f.subcategoria] || []).map(c => <option key={c}>{c}</option>)}</select></label>
         </div>
         {filas.length > 1 && <button className="recat-remove" type="button" onClick={() => setFilas(filas.filter((_, j) => i !== j))}><FiTrash2 aria-hidden="true" /> Quitar clasificación</button>}

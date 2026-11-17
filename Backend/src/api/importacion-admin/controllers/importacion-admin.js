@@ -4,6 +4,159 @@ const fs   = require('fs');
 const path = require('path');
 const { verificarAdmin: verificarAdminImportacion, handleAdminLogin } = require('../../../utils/admin-auth');
 
+const UID_CAT      = 'api::categoria.categoria';
+const UID_PRODUCTO = 'api::producto.producto';
+
+function normalizarTxt(val) {
+  return String(val || '').trim();
+}
+
+function serializarSubcategorias(subcats = []) {
+  return subcats
+    .map((s) => ({
+      nombre: normalizarTxt(s?.nombre),
+      tipos: (s?.tipos || [])
+        .map((t) => ({ nombre: normalizarTxt(t?.nombre) }))
+        .filter((t) => t.nombre),
+    }))
+    .filter((s) => s.nombre);
+}
+
+/**
+ * Resuelve una categoría en Strapi v5 por documentId (o id numérico legado)
+ * devolviendo tanto la versión publicada como el borrador.
+ */
+async function resolverCategoriaDoc(strapi, idOrDocId, populate) {
+  const raw = normalizarTxt(idOrDocId);
+  if (!raw) return { documentId: null, draft: null, published: null };
+
+  let documentId = raw;
+  if (/^\d+$/.test(raw)) {
+    const row = await strapi.db.query(UID_CAT).findOne({
+      where: { id: parseInt(raw, 10) },
+      select: ['documentId'],
+    });
+    if (!row?.documentId) return { documentId: null, draft: null, published: null };
+    documentId = row.documentId;
+  }
+
+  const docs = strapi.documents(UID_CAT);
+  const [published, draft] = await Promise.all([
+    docs.findOne({ documentId, status: 'published', ...(populate ? { populate } : {}) }),
+    docs.findOne({ documentId, status: 'draft', ...(populate ? { populate } : {}) }),
+  ]);
+
+  return { documentId, draft, published };
+}
+
+/**
+ * Carga todos los productos publicados con su categoría principal y clasificaciones[]
+ * paginando para contemplar todo el catálogo.
+ */
+async function fetchProductosPublicadosConClasificaciones(strapi) {
+  const todos = [];
+  const PAGE_SIZE = 500;
+  for (let start = 0; ; start += PAGE_SIZE) {
+    const batch = await strapi.documents(UID_PRODUCTO).findMany({
+      status: 'published',
+      fields: ['id', 'documentId', 'seccion', 'subcategoria', 'tipo'],
+      populate: {
+        categoria: { fields: ['documentId', 'nombre', 'seccion'] },
+        clasificaciones: true,
+      },
+      start,
+      limit: PAGE_SIZE,
+    });
+    if (!batch || batch.length === 0) break;
+    todos.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+  }
+  return todos;
+}
+
+function coincidenCategoria(catNombre, catSeccion, itemCategoria, itemSeccion) {
+  const cCat = normalizarTxt(catNombre);
+  const iCat = normalizarTxt(itemCategoria);
+  if (!cCat || cCat !== iCat) return false;
+  const cSec = normalizarTxt(catSeccion);
+  const iSec = normalizarTxt(itemSeccion);
+  return !cSec || !iSec || cSec === iSec;
+}
+
+/**
+ * Reúne las asignaciones únicas de productos a `cat` tanto por la relación
+ * directa `cat.productos` como por el componente repetible `clasificaciones[]`.
+ */
+function obtenerAsignacionesDeCategoria(cat, productosPublicados) {
+  const asignaciones = [];
+  const vistos = new Set();
+  const catDocId = cat.documentId;
+  const catNombre = normalizarTxt(cat.nombre);
+  const catSeccion = normalizarTxt(cat.seccion);
+
+  const registrar = (prodKey, subcategoria, tipo) => {
+    const sub = normalizarTxt(subcategoria);
+    const tip = normalizarTxt(tipo);
+    const key = `${prodKey}::${sub}::${tip}`;
+    if (vistos.has(key)) return;
+    vistos.add(key);
+    asignaciones.push({ productoKey: prodKey, subcategoria: sub, tipo: tip });
+  };
+
+  for (const p of cat.productos || []) {
+    const pKey = p.documentId || String(p.id);
+    registrar(pKey, p.subcategoria, p.tipo);
+  }
+
+  for (const p of productosPublicados || []) {
+    const pKey = p.documentId || String(p.id);
+    if (p.categoria?.documentId === catDocId) {
+      registrar(pKey, p.subcategoria, p.tipo);
+    }
+    for (const cl of p.clasificaciones || []) {
+      if (coincidenCategoria(catNombre, catSeccion, cl?.categoria, cl?.seccion)) {
+        registrar(pKey, cl?.subcategoria, cl?.tipo);
+      }
+    }
+  }
+
+  return asignaciones;
+}
+
+function localizarSubcategoria(published, draft, subcatId) {
+  const targetStr = String(subcatId ?? '').trim();
+  const targetNum = /^\d+$/.test(targetStr) ? parseInt(targetStr, 10) : null;
+  const buscar = (cat) =>
+    (cat?.subcategorias || []).find(
+      (s) => (targetNum !== null && s.id === targetNum) || normalizarTxt(s.nombre) === targetStr
+    );
+  return buscar(published) || buscar(draft) || null;
+}
+
+function localizarTipo(published, draft, subcatNombre, tipoId) {
+  const targetStr = String(tipoId ?? '').trim();
+  const targetNum = /^\d+$/.test(targetStr) ? parseInt(targetStr, 10) : null;
+  const subNorm = normalizarTxt(subcatNombre);
+  const buscar = (cat) => {
+    const sub = (cat?.subcategorias || []).find((s) => normalizarTxt(s.nombre) === subNorm);
+    return (sub?.tipos || []).find(
+      (t) => (targetNum !== null && t.id === targetNum) || normalizarTxt(t.nombre) === targetStr
+    );
+  };
+  return buscar(published) || buscar(draft) || null;
+}
+
+async function actualizarYPublicarSubcategorias(strapi, documentId, subcategorias, publicar) {
+  const docs = strapi.documents(UID_CAT);
+  await docs.update({
+    documentId,
+    data: { subcategorias: serializarSubcategorias(subcategorias) },
+  });
+  if (publicar) {
+    await docs.publish({ documentId });
+  }
+}
+
 /**
  * Controller de Importación Admin
  *
@@ -167,7 +320,7 @@ module.exports = {
 
   /**
    * GET /api/importacion-admin/taxonomia-vacia
-   * Detecta Categorías, Subcategorías y Tipos sin ningún producto asignado.
+   * Detecta Categorías, Subcategorías y Tipos publicados sin ningún producto asignado.
    */
   async taxonomiaVacia(ctx) {
     if (!verificarAdminImportacion(ctx)) {
@@ -175,29 +328,32 @@ module.exports = {
     }
 
     try {
-      // 1. Cargar todas las categorías con sus subcategorías/tipos y el conteo de productos
-      const categorias = await strapi.entityService.findMany('api::categoria.categoria', {
-        populate: {
-          subcategorias: {
-            populate: { tipos: true },
+      const [categorias, productosPublicados] = await Promise.all([
+        strapi.documents(UID_CAT).findMany({
+          status: 'published',
+          populate: {
+            subcategorias: {
+              populate: { tipos: true },
+            },
+            productos: { fields: ['id', 'documentId', 'subcategoria', 'tipo'] },
           },
-          productos: { fields: ['id', 'subcategoria', 'tipo'] },
-        },
-        pagination: { pageSize: 500 },
-      });
+          limit: 500,
+        }),
+        fetchProductosPublicadosConClasificaciones(strapi),
+      ]);
 
       const categoriasVacias = [];
       const subcategoriasVacias = [];
       const tiposVacios = [];
 
       for (const cat of categorias) {
-        const productos = cat.productos || [];
-        const totalProductos = productos.length;
+        const asignaciones = obtenerAsignacionesDeCategoria(cat, productosPublicados);
+        const productosUnicos = new Set(asignaciones.map((a) => a.productoKey));
 
         // ── Categoría vacía ──────────────────────────────────────────────────────
-        if (totalProductos === 0) {
+        if (productosUnicos.size === 0) {
           categoriasVacias.push({
-            id: cat.id,
+            id: cat.documentId,
             nombre: cat.nombre,
             seccion: cat.seccion || '—',
           });
@@ -206,18 +362,15 @@ module.exports = {
         }
 
         // ── Subcategorías y tipos vacíos ─────────────────────────────────────────
-        const subcats = cat.subcategorias || [];
-        for (const sub of subcats) {
-          // Productos que referencian este nombre de subcategoría dentro de esta categoría
-          const prodsEnSubcat = productos.filter(
-            (p) => p.subcategoria === sub.nombre
-          );
+        for (const sub of cat.subcategorias || []) {
+          const subNorm = normalizarTxt(sub.nombre);
+          const asigEnSubcat = asignaciones.filter((a) => a.subcategoria === subNorm);
 
-          if (prodsEnSubcat.length === 0) {
+          if (asigEnSubcat.length === 0) {
             subcategoriasVacias.push({
               id: sub.id,
               nombre: sub.nombre,
-              categoriaId: cat.id,
+              categoriaId: cat.documentId,
               categoriaNombre: cat.nombre,
             });
             // Si la subcategoría está vacía, sus tipos también lo están
@@ -225,18 +378,16 @@ module.exports = {
           }
 
           // ── Tipos vacíos dentro de esta subcategoría ──────────────────────────
-          const tipos = sub.tipos || [];
-          for (const tipo of tipos) {
-            const prodsEnTipo = prodsEnSubcat.filter(
-              (p) => p.tipo === tipo.nombre
-            );
-            if (prodsEnTipo.length === 0) {
+          for (const tipo of sub.tipos || []) {
+            const tipoNorm = normalizarTxt(tipo.nombre);
+            const asigEnTipo = asigEnSubcat.filter((a) => a.tipo === tipoNorm);
+            if (asigEnTipo.length === 0) {
               tiposVacios.push({
                 id: tipo.id,
                 nombre: tipo.nombre,
                 subcatId: sub.id,
                 subcatNombre: sub.nombre,
-                categoriaId: cat.id,
+                categoriaId: cat.documentId,
                 categoriaNombre: cat.nombre,
               });
             }
@@ -259,7 +410,7 @@ module.exports = {
 
   /**
    * DELETE /api/importacion-admin/categoria/:id
-   * Elimina una categoría que no tiene productos asignados.
+   * Elimina una categoría (borrador + publicado) si realmente no tiene productos asignados.
    */
   async eliminarCategoria(ctx) {
     if (!verificarAdminImportacion(ctx)) {
@@ -269,20 +420,25 @@ module.exports = {
     const { id } = ctx.params;
 
     try {
-      // Verificar que realmente no tiene productos antes de borrar
-      const cat = await strapi.entityService.findOne('api::categoria.categoria', id, {
-        populate: { productos: { fields: ['id'] } },
-      });
+      const [{ documentId, draft, published }, productosPublicados] = await Promise.all([
+        resolverCategoriaDoc(strapi, id, {
+          productos: { fields: ['id', 'documentId', 'subcategoria', 'tipo'] },
+        }),
+        fetchProductosPublicadosConClasificaciones(strapi),
+      ]);
 
-      if (!cat) return ctx.notFound('Categoría no encontrada.');
+      const cat = published || draft;
+      if (!documentId || !cat) return ctx.notFound('Categoría no encontrada.');
 
-      if (cat.productos && cat.productos.length > 0) {
-        return ctx.badRequest(`La categoría "${cat.nombre}" tiene ${cat.productos.length} productos asignados y no puede eliminarse.`);
+      const asignaciones = obtenerAsignacionesDeCategoria(cat, productosPublicados);
+      const productosUnicos = new Set(asignaciones.map((a) => a.productoKey));
+      if (productosUnicos.size > 0) {
+        return ctx.badRequest(`La categoría "${cat.nombre}" tiene ${productosUnicos.size} productos asignados y no puede eliminarse.`);
       }
 
-      await strapi.entityService.delete('api::categoria.categoria', id);
+      await strapi.documents(UID_CAT).delete({ documentId });
 
-      strapi.log.info(`[ImportAdmin] Categoría eliminada: ID=${id}, nombre="${cat.nombre}"`);
+      strapi.log.info(`[ImportAdmin] Categoría eliminada: documentId=${documentId}, nombre="${cat.nombre}"`);
       return ctx.send({ ok: true, mensaje: `Categoría "${cat.nombre}" eliminada correctamente.` });
     } catch (err) {
       strapi.log.error(`[ImportAdmin] Error eliminando categoría ${id}: ${err.message}`);
@@ -292,7 +448,7 @@ module.exports = {
 
   /**
    * DELETE /api/importacion-admin/subcategoria/:categoriaId/:subcatId
-   * Elimina una subcategoría (componente) de su categoría padre.
+   * Elimina una subcategoría vacía de su categoría padre y publica el cambio.
    */
   async eliminarSubcategoria(ctx) {
     if (!verificarAdminImportacion(ctx)) {
@@ -300,43 +456,38 @@ module.exports = {
     }
 
     const { categoriaId, subcatId } = ctx.params;
-    const subcatIdNum = parseInt(subcatId, 10);
 
     try {
-      const cat = await strapi.entityService.findOne('api::categoria.categoria', categoriaId, {
-        populate: {
+      const [{ documentId, draft, published }, productosPublicados] = await Promise.all([
+        resolverCategoriaDoc(strapi, categoriaId, {
           subcategorias: { populate: { tipos: true } },
-          productos: { fields: ['id', 'subcategoria'] },
-        },
-      });
+          productos: { fields: ['id', 'documentId', 'subcategoria', 'tipo'] },
+        }),
+        fetchProductosPublicadosConClasificaciones(strapi),
+      ]);
 
-      if (!cat) return ctx.notFound('Categoría no encontrada.');
+      const baseCat = published || draft;
+      if (!documentId || !baseCat) return ctx.notFound('Categoría no encontrada.');
 
-      const subcat = cat.subcategorias?.find((s) => s.id === subcatIdNum);
+      const subcat = localizarSubcategoria(published, draft, subcatId);
       if (!subcat) return ctx.notFound('Subcategoría no encontrada.');
 
-      // Verificar que no tiene productos
-      const prods = (cat.productos || []).filter((p) => p.subcategoria === subcat.nombre);
-      if (prods.length > 0) {
+      const subNorm = normalizarTxt(subcat.nombre);
+      const asignaciones = obtenerAsignacionesDeCategoria(baseCat, productosPublicados);
+      const prodsUnicos = new Set(asignaciones.filter((a) => a.subcategoria === subNorm).map((a) => a.productoKey));
+      if (prodsUnicos.size > 0) {
         return ctx.badRequest(
-          `La subcategoría "${subcat.nombre}" tiene ${prods.length} productos y no puede eliminarse.`
+          `La subcategoría "${subcat.nombre}" tiene ${prodsUnicos.size} productos y no puede eliminarse.`
         );
       }
 
-      // Reconstruir subcategorías sin la eliminada
-      const nuevasSubcats = cat.subcategorias
-        .filter((s) => s.id !== subcatIdNum)
-        .map((s) => ({
-          id: s.id,
-          nombre: s.nombre,
-          tipos: (s.tipos || []).map((t) => ({ id: t.id, nombre: t.nombre })),
-        }));
+      const nuevasSubcats = (baseCat.subcategorias || []).filter(
+        (s) => normalizarTxt(s.nombre) !== subNorm
+      );
 
-      await strapi.entityService.update('api::categoria.categoria', categoriaId, {
-        data: { subcategorias: nuevasSubcats },
-      });
+      await actualizarYPublicarSubcategorias(strapi, documentId, nuevasSubcats, Boolean(published));
 
-      strapi.log.info(`[ImportAdmin] Subcategoría eliminada: ID=${subcatId}, nombre="${subcat.nombre}" de categoría ID=${categoriaId}`);
+      strapi.log.info(`[ImportAdmin] Subcategoría eliminada: ID=${subcatId}, nombre="${subcat.nombre}" de categoría documentId=${documentId}`);
       return ctx.send({ ok: true, mensaje: `Subcategoría "${subcat.nombre}" eliminada correctamente.` });
     } catch (err) {
       strapi.log.error(`[ImportAdmin] Error eliminando subcategoría ${subcatId}: ${err.message}`);
@@ -346,7 +497,7 @@ module.exports = {
 
   /**
    * DELETE /api/importacion-admin/tipo/:categoriaId/:subcatId/:tipoId
-   * Elimina un tipo (componente) de su subcategoría padre.
+   * Elimina un tipo vacío de su subcategoría padre y publica el cambio.
    */
   async eliminarTipo(ctx) {
     if (!verificarAdminImportacion(ctx)) {
@@ -354,58 +505,50 @@ module.exports = {
     }
 
     const { categoriaId, subcatId, tipoId } = ctx.params;
-    const subcatIdNum = parseInt(subcatId, 10);
-    const tipoIdNum  = parseInt(tipoId, 10);
 
     try {
-      const cat = await strapi.entityService.findOne('api::categoria.categoria', categoriaId, {
-        populate: {
+      const [{ documentId, draft, published }, productosPublicados] = await Promise.all([
+        resolverCategoriaDoc(strapi, categoriaId, {
           subcategorias: { populate: { tipos: true } },
-          productos: { fields: ['id', 'subcategoria', 'tipo'] },
-        },
-      });
+          productos: { fields: ['id', 'documentId', 'subcategoria', 'tipo'] },
+        }),
+        fetchProductosPublicadosConClasificaciones(strapi),
+      ]);
 
-      if (!cat) return ctx.notFound('Categoría no encontrada.');
+      const baseCat = published || draft;
+      if (!documentId || !baseCat) return ctx.notFound('Categoría no encontrada.');
 
-      const subcat = cat.subcategorias?.find((s) => s.id === subcatIdNum);
+      const subcat = localizarSubcategoria(published, draft, subcatId);
       if (!subcat) return ctx.notFound('Subcategoría no encontrada.');
 
-      const tipo = subcat.tipos?.find((t) => t.id === tipoIdNum);
+      const tipo = localizarTipo(published, draft, subcat.nombre, tipoId);
       if (!tipo) return ctx.notFound('Tipo no encontrado.');
 
-      // Verificar que no tiene productos
-      const prods = (cat.productos || []).filter(
-        (p) => p.subcategoria === subcat.nombre && p.tipo === tipo.nombre
+      const subNorm = normalizarTxt(subcat.nombre);
+      const tipoNorm = normalizarTxt(tipo.nombre);
+      const asignaciones = obtenerAsignacionesDeCategoria(baseCat, productosPublicados);
+      const prodsUnicos = new Set(
+        asignaciones
+          .filter((a) => a.subcategoria === subNorm && a.tipo === tipoNorm)
+          .map((a) => a.productoKey)
       );
-      if (prods.length > 0) {
+      if (prodsUnicos.size > 0) {
         return ctx.badRequest(
-          `El tipo "${tipo.nombre}" tiene ${prods.length} productos y no puede eliminarse.`
+          `El tipo "${tipo.nombre}" tiene ${prodsUnicos.size} productos y no puede eliminarse.`
         );
       }
 
-      // Reconstruir subcategorías conservando todo menos el tipo eliminado
-      const nuevasSubcats = cat.subcategorias.map((s) => {
-        if (s.id !== subcatIdNum) {
-          return {
-            id: s.id,
-            nombre: s.nombre,
-            tipos: (s.tipos || []).map((t) => ({ id: t.id, nombre: t.nombre })),
-          };
-        }
+      const nuevasSubcats = (baseCat.subcategorias || []).map((s) => {
+        if (normalizarTxt(s.nombre) !== subNorm) return s;
         return {
-          id: s.id,
-          nombre: s.nombre,
-          tipos: (s.tipos || [])
-            .filter((t) => t.id !== tipoIdNum)
-            .map((t) => ({ id: t.id, nombre: t.nombre })),
+          ...s,
+          tipos: (s.tipos || []).filter((t) => normalizarTxt(t.nombre) !== tipoNorm),
         };
       });
 
-      await strapi.entityService.update('api::categoria.categoria', categoriaId, {
-        data: { subcategorias: nuevasSubcats },
-      });
+      await actualizarYPublicarSubcategorias(strapi, documentId, nuevasSubcats, Boolean(published));
 
-      strapi.log.info(`[ImportAdmin] Tipo eliminado: ID=${tipoId}, nombre="${tipo.nombre}" de subcategoría ID=${subcatId}`);
+      strapi.log.info(`[ImportAdmin] Tipo eliminado: ID=${tipoId}, nombre="${tipo.nombre}" de subcategoría="${subcat.nombre}", categoría documentId=${documentId}`);
       return ctx.send({ ok: true, mensaje: `Tipo "${tipo.nombre}" eliminado correctamente.` });
     } catch (err) {
       strapi.log.error(`[ImportAdmin] Error eliminando tipo ${tipoId}: ${err.message}`);

@@ -171,13 +171,33 @@ async function publicarRecategorizacion(strapi, { documentId, proveedor, updated
     const publicado = await docs.findOne({ documentId, status: 'published', populate });
     if (!draft || !publicado || (draft.proveedor ?? null) !== proveedor || (publicado.proveedor ?? null) !== proveedor || draft.updatedAt !== updatedAt || JSON.stringify(datosComparables(draft)) !== JSON.stringify(datosComparables(publicado))) return false;
     if (clasificaciones) {
+      const importSvc = strapi.service('api::importacion-admin.importacion-admin');
+      const categoriasAgrupadas = new Map();
+      for (const c of clasificaciones) {
+        const key = `${c.seccion}__${c.categoria}`;
+        if (!categoriasAgrupadas.has(key)) {
+          categoriasAgrupadas.set(key, { nombre: c.categoria, seccion: c.seccion, subcategoriasMap: new Map() });
+        }
+        if (c.subcategoria) {
+          const subMap = categoriasAgrupadas.get(key).subcategoriasMap;
+          if (!subMap.has(c.subcategoria)) subMap.set(c.subcategoria, new Set());
+          if (c.tipo) subMap.get(c.subcategoria).add(c.tipo);
+        }
+      }
+
+      const categoriaIds = new Map();
+      for (const [key, payload] of categoriasAgrupadas.entries()) {
+        const catDocId = await importSvc.upsertCategoria(strapi, payload);
+        categoriaIds.set(key, catDocId);
+      }
+
       const primera = clasificaciones[0];
-      const mapa = new Map();
-      if (primera.subcategoria) mapa.set(primera.subcategoria, new Set(primera.tipo ? [primera.tipo] : []));
-      const categoria = await strapi.service('api::importacion-admin.importacion-admin').upsertCategoria(strapi, { nombre: primera.categoria, seccion: primera.seccion, subcategoriasMap: mapa });
+      const categoria = categoriaIds.get(`${primera.seccion}__${primera.categoria}`) || null;
       await docs.update({ documentId, data: {
         seccion: primera.seccion, subcategoria: primera.subcategoria, tipo: primera.tipo, categoria,
-        clasificaciones: clasificaciones.map((c, i) => ({ ...(draft.clasificaciones?.[i]?.id ? { id: draft.clasificaciones[i].id } : {}), seccion: c.seccion, categoria: c.categoria, subcategoria: c.subcategoria, tipo: c.tipo })),
+        clasificaciones: clasificaciones.map((c) => ({
+          seccion: c.seccion, categoria: c.categoria, subcategoria: c.subcategoria, tipo: c.tipo,
+        })),
       } });
     }
     await docs.publish({ documentId });

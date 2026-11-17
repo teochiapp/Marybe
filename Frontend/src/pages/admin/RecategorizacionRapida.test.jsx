@@ -39,3 +39,67 @@ test('busca en el catálogo sin seleccionar proveedores y permite editar el resu
   fireEvent.click(await screen.findByRole('button', { name: 'Producto encontrado · Sin proveedor' }));
   expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeTruthy();
 });
+
+test('permite alternar campañas rápidas y agregar una categoría personalizada al vuelo', async () => {
+  axios.get.mockResolvedValue({ data: { taxonomia: { Fragancias: {} } } });
+  axios.post.mockImplementation(url =>
+    url.endsWith('/productos')
+      ? Promise.resolve({
+          data: {
+            productos: [{
+              documentId: 'p3',
+              nombre: 'Perfume Test',
+              proveedor: 'Prov',
+              updatedAt: 'v1',
+              clasificaciones: [{ seccion: 'Perfumería', categoria: 'Fragancias', subcategoria: '', tipo: '' }],
+            }],
+          },
+        })
+      : Promise.resolve({ data: { ok: true, updatedAt: 'v2' } })
+  );
+
+  render(<RecategorizacionRapida token="token" proveedores={['Prov']} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Buscar productos' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Perfume Test · Prov' }));
+
+  const bfBtn = await screen.findByRole('button', { name: 'Black Friday' });
+  expect(bfBtn.getAttribute('aria-pressed')).toBe('false');
+
+  // Primer clic: agrega Black Friday usando la sección principal (Perfumería)
+  fireEvent.click(bfBtn);
+  expect(bfBtn.getAttribute('aria-pressed')).toBe('true');
+  expect(screen.getAllByLabelText('Categoría')).toHaveLength(2);
+  expect(screen.getAllByLabelText('Categoría')[1].value).toBe('Black Friday');
+
+  // Segundo clic: toggle lo quita
+  fireEvent.click(bfBtn);
+  expect(bfBtn.getAttribute('aria-pressed')).toBe('false');
+  expect(screen.getAllByLabelText('Categoría')).toHaveLength(1);
+
+  // Tercer clic: vuelve a asignarlo
+  fireEvent.click(bfBtn);
+
+  // Agregar categoría personalizada al vuelo
+  fireEvent.click(screen.getByRole('button', { name: 'Nueva categoría' }));
+  fireEvent.change(screen.getByLabelText('Nueva categoría o campaña'), { target: { value: 'Día de la Madre' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Agregar' }));
+
+  const madreBtn = screen.getByRole('button', { name: 'Día de la Madre' });
+  expect(madreBtn.getAttribute('aria-pressed')).toBe('true');
+
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+  await waitFor(() =>
+    expect(axios.post).toHaveBeenLastCalledWith(
+      expect.stringContaining('/guardar'),
+      expect.objectContaining({
+        documentId: 'p3',
+        clasificaciones: [
+          { seccion: 'Perfumería', categoria: 'Fragancias', subcategoria: '', tipo: '' },
+          { seccion: 'Perfumería', categoria: 'Black Friday', subcategoria: '', tipo: '' },
+          { seccion: 'Perfumería', categoria: 'Día de la Madre', subcategoria: '', tipo: '' },
+        ],
+      }),
+      expect.anything()
+    )
+  );
+});
