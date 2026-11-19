@@ -1,16 +1,23 @@
 const SEARCH_FIELDS = ['nombre', 'marca', 'subcategoria', 'tipo'];
 
-// Group search fields under filters[$and][index][$or] so text queries match
-// brands, types, subcategories, and names without colliding with other $and/$or filters.
+export function getSearchTerms(query = '') {
+  return [...new Set(String(query || '').trim().split(/\s+/).filter(Boolean))];
+}
+
+export function matchesProductSearch(product, query = '') {
+  const fields = [product.nombre, product.marca].map(value => String(value || '').toLowerCase());
+  return getSearchTerms(query).every(term => fields.some(value => value.includes(term.toLowerCase())));
+}
+
+// Every word must match a searchable field, without colliding with classification filters.
 export function addSearchFilters(params, query = '', index = 0) {
-  const cleanQuery = String(query || '').trim();
-  if (!cleanQuery) return index;
-
-  SEARCH_FIELDS.forEach((field, fieldIndex) => {
-    params.set(`filters[$and][${index}][$or][${fieldIndex}][${field}][$containsi]`, cleanQuery);
+  const terms = getSearchTerms(query);
+  terms.forEach((term, termIndex) => {
+    SEARCH_FIELDS.forEach((field, fieldIndex) => {
+      params.set(`filters[$and][${index + termIndex}][$or][${fieldIndex}][${field}][$containsi]`, term);
+    });
   });
-
-  return index + 1;
+  return index + terms.length;
 }
 
 // Keep the section and every selected category level on the same classification.

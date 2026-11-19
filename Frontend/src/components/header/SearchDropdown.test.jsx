@@ -5,6 +5,27 @@ import SearchDropdown from './SearchDropdown';
 
 jest.mock('react-router-dom', () => ({ useNavigate: () => jest.fn() }), { virtual: true });
 
+test.each(['Versace Eros', 'Eros Versace'])('combina nombre y marca para %s', async query => {
+  global.fetch = jest.fn(async url => ({
+    json: async () => ({ data: url.includes('/api/productos') ? [
+      { id: 1, nombre: 'Eros', marca: 'Versace' },
+      { id: 2, attributes: { nombre: 'Eros Flame', marca: 'Versace' } },
+      { id: 3, nombre: 'Dylan Blue', marca: 'Versace' },
+      { id: 4, nombre: 'Eros de otra marca', marca: 'Otra' },
+    ] : [] }),
+  }));
+  try {
+    render(<SearchDropdown query={query} onClose={jest.fn()} />);
+    await screen.findByText('Eros');
+    const section = screen.getByText('Productos').parentElement;
+    expect(within(section).getAllByRole('option')).toHaveLength(2);
+    expect(within(section).queryByText('Dylan Blue')).not.toBeInTheDocument();
+    expect(within(section).queryByText('Eros de otra marca')).not.toBeInTheDocument();
+  } finally {
+    delete global.fetch;
+  }
+});
+
 test('muestra primero productos por nombre y agrega coincidencias de marca sin duplicados', async () => {
   global.fetch = jest.fn(async url => ({
     json: async () => ({ data: url.includes('/api/productos') ? [

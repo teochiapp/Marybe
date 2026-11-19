@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { addSearchFilters } from '../../utils/catalogClassificationFilters';
+import { addSearchFilters, matchesProductSearch } from '../../utils/catalogClassificationFilters';
 
 const STRAPI_URL = process.env.REACT_APP_STRAPI_URL || 'http://localhost:1337';
 
@@ -316,7 +316,7 @@ export default function SearchDropdown({ query, onClose, dropdownRef }) {
         .filter(p => (p.attributes || p).nombre?.toLowerCase().includes(lq));
       const prodsByBrand = allProds.filter(p => {
         const a = p.attributes || p;
-        return a.marca?.toLowerCase().includes(lq) && !a.nombre?.toLowerCase().includes(lq);
+        return matchesProductSearch(a, q) && !a.nombre?.toLowerCase().includes(lq);
       });
 
       // ── Marcas únicas que coinciden ──────────────────────────────────────

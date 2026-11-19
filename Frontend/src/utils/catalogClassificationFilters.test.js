@@ -1,5 +1,20 @@
-import { addClassificationFilters, addSearchFilters } from './catalogClassificationFilters';
+import { addClassificationFilters, addSearchFilters, matchesProductSearch } from './catalogClassificationFilters';
 import { categoryUrl } from '../data/megamenu';
+
+test('combined search requires every word and leaves classification filters after all search groups', () => {
+  const params = new URLSearchParams();
+  const next = addSearchFilters(params, '  Versace   Eros ', 0);
+  expect(next).toBe(2);
+  expect(params.get('filters[$and][0][$or][1][marca][$containsi]')).toBe('Versace');
+  expect(params.get('filters[$and][1][$or][0][nombre][$containsi]')).toBe('Eros');
+  addClassificationFilters(params, { seccion: 'Hogar' }, next);
+  expect(params.get('filters[$and][2][$or][0][seccion][$eq]')).toBe('Hogar');
+  expect(matchesProductSearch({ nombre: 'Eros', marca: 'VERSACE' }, 'Versace Eros')).toBe(true);
+  expect(matchesProductSearch({ nombre: 'Eros', marca: 'VERSACE' }, ' Eros   Versace ')).toBe(true);
+  expect(matchesProductSearch({ nombre: 'Dylan Blue', marca: 'Versace' }, 'Versace Eros')).toBe(false);
+  expect(matchesProductSearch({ nombre: 'Eros', marca: 'Otra' }, 'Versace Eros')).toBe(false);
+  expect(addSearchFilters(new URLSearchParams(), '   ', 3)).toBe(3);
+});
 
 test('category URLs retain their header section', () => {
   expect(categoryUrl('Cuidado Personal', 'HOGAR'))
