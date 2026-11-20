@@ -99,6 +99,15 @@ function sameFields(left, right, keys) {
   return keys.every(key => String(left?.[key] ?? '').trim() === String(right?.[key] ?? '').trim());
 }
 
+function normalizarPortadaId(portada) {
+  if (portada === null || portada === undefined || portada === '') return null;
+  if (typeof portada === 'object') {
+    const id = portada.id ?? portada.data?.id ?? null;
+    return id != null && Number.isFinite(Number(id)) ? Number(id) : null;
+  }
+  return Number.isFinite(Number(portada)) ? Number(portada) : null;
+}
+
 function dataHasChanges(newData, oldData) {
   const classificationFields = ['seccion', 'categoria', 'subcategoria', 'tipo'];
   const variantFields = ['id_original', 'sku_ean', 'volumen', 'stock', 'precio', 'precio_oferta', 'publicado', 'envio', 'color_nombre'];
@@ -116,7 +125,11 @@ function dataHasChanges(newData, oldData) {
   if (newData.variantes) {
     const current = oldData.variantes || [];
     if (newData.variantes.length !== current.length) return true;
-    if (newData.variantes.some(item => !sameFields(item, current.find(v => v.id_original === item.id_original), variantFields))) return true;
+    if (newData.variantes.some(item => {
+      const oldV = current.find(v => v.id_original === item.id_original);
+      if (!sameFields(item, oldV, variantFields)) return true;
+      return normalizarPortadaId(item.portada) !== normalizarPortadaId(oldV?.portada);
+    })) return true;
   }
   return false;
 }
@@ -788,10 +801,12 @@ function normalizarSku(val) {
 
 async function cargarIndiceSkusExistentes(strapi) {
   const usedVariantIds = new Set();
+  const origenPorIdOriginal = new Map();
+  const origenPorSku = new Map();
   let maxVariantIdNum = 0;
   const docsApi = strapi?.documents?.(UID_PRODUCTO);
   if (typeof docsApi?.findMany !== 'function') {
-    return { usedVariantIds, maxVariantIdNum };
+    return { usedVariantIds, maxVariantIdNum, origenPorIdOriginal, origenPorSku };
   }
 
   const seenDocs = new Set();
@@ -799,8 +814,11 @@ async function cargarIndiceSkusExistentes(strapi) {
     let start = 0;
     while (true) {
       const page = await docsApi.findMany({
-        fields: ['id_original'],
-        populate: { variantes: { fields: ['id_original'] } },
+        fields: ['id_original', 'sku', 'nombre', 'proveedor'],
+        populate: {
+          variantes: { fields: ['id_original'] },
+          portada: { fields: ['id'] },
+        },
         status,
         start,
         limit: 100,
@@ -812,6 +830,38 @@ async function cargarIndiceSkusExistentes(strapi) {
         const docKey = `${status}:${prod.documentId || prod.id || prodId}`;
         if (seenDocs.has(docKey)) continue;
         seenDocs.add(docKey);
+
+        const mediaId = normalizarPortadaId(prod.portada);
+        const prodSku = String(prod.sku || '').trim();
+        const entry = {
+          documentId: prod.documentId || null,
+          id_original: prodId,
+          sku: prodSku,
+          nombre: String(prod.nombre || '').trim(),
+          proveedor: String(prod.proveedor || '').trim(),
+          mediaId,
+        };
+
+        const normProdId = normalizarSku(prodId);
+        const prevById = origenPorIdOriginal.get(normProdId);
+        if (!prevById || (!prevById.mediaId && mediaId)) {
+          origenPorIdOriginal.set(normProdId, entry);
+        }
+
+        const normProdSku = normalizarSku(prodSku);
+        if (normProdSku) {
+          if (!origenPorSku.has(normProdSku)) {
+            origenPorSku.set(normProdSku, entry);
+          } else {
+            const prevBySku = origenPorSku.get(normProdSku);
+            if (prevBySku && prevBySku.documentId && entry.documentId && prevBySku.documentId === entry.documentId) {
+              if (!prevBySku.mediaId && mediaId) origenPorSku.set(normProdSku, entry);
+            } else if (prevBySku && normalizarSku(prevBySku.id_original) !== normProdId) {
+              origenPorSku.set(normProdSku, null);
+            }
+          }
+        }
+
         for (const v of (prod.variantes || [])) {
           const varIdRaw = String(v?.id_original ?? '').trim();
           if (!varIdRaw) continue;
@@ -828,7 +878,66 @@ async function cargarIndiceSkusExistentes(strapi) {
       start += page.length;
     }
   }
-  return { usedVariantIds, maxVariantIdNum };
+  return { usedVariantIds, maxVariantIdNum, origenPorIdOriginal, origenPorSku };
+}
+
+function heredarPortadasDePadres(variantes, {
+  idOriginalDestino,
+  documentIdDestino = null,
+  nombreDestino = '',
+  existingById = null,
+  skuIndex,
+  padresConvertidosMap,
+  addLog,
+}) {
+  if (!Array.isArray(variantes) || variantes.length === 0) return;
+  const normDestinoId = normalizarSku(idOriginalDestino);
+  const esMismoProducto = (cand) =>
+    !cand ||
+    normalizarSku(cand.id_original) === normDestinoId ||
+    (documentIdDestino && cand.documentId && cand.documentId === documentIdDestino);
+
+  for (const v of variantes) {
+    if (!v || typeof v !== 'object') continue;
+    const oldV = existingById?.get(v.id_original);
+    const portadaExistente = normalizarPortadaId(v.portada) ?? normalizarPortadaId(oldV?.portada);
+    if (portadaExistente !== null) {
+      v.portada = portadaExistente;
+      continue;
+    }
+    if ('portada' in v) delete v.portada;
+
+    const keyId = normalizarSku(v.id_original);
+    const keySku = normalizarSku(v.sku_ean);
+    let candidato = keyId ? skuIndex.origenPorIdOriginal?.get(keyId) : null;
+    if (!candidato && keySku) {
+      candidato = skuIndex.origenPorSku?.get(keySku) || null;
+    }
+    if (!candidato) continue;
+
+    const esPropioPadre = esMismoProducto(candidato);
+    if (candidato.mediaId) {
+      v.portada = candidato.mediaId;
+      addLog(
+        `🖼️ Variante "${v.id_original || v.sku_ean}" de producto ${idOriginalDestino} heredó portada (mediaId ${candidato.mediaId}) del producto padre ${candidato.id_original}${candidato.nombre ? ` ("${candidato.nombre}")` : ''}`
+      );
+    }
+
+    if (!esPropioPadre && candidato.documentId && (!oldV || candidato.mediaId) && !padresConvertidosMap.has(candidato.documentId)) {
+      padresConvertidosMap.set(candidato.documentId, {
+        documentId: candidato.documentId,
+        id_original: candidato.id_original,
+        nombre: candidato.nombre,
+        proveedor: candidato.proveedor,
+        sku: candidato.sku,
+        portadaHeredada: Boolean(candidato.mediaId),
+        destinoIdOriginal: idOriginalDestino,
+        destinoNombre: nombreDestino,
+        varianteId: v.id_original || '',
+        varianteSku: v.sku_ean || '',
+      });
+    }
+  }
 }
 
 function validarVariantesProducto(variantesFinales = []) {
@@ -1028,6 +1137,7 @@ async function ejecutarUpsert(
   let errores   = 0;
   const erroresList = [];
   const actualizadosDetalle = [];
+  const padresConvertidosMap = new Map();
 
   for (let i = 0; i < productos.length; i += BATCH_SIZE) {
     const batch = productos.slice(i, i + BATCH_SIZE);
@@ -1176,7 +1286,7 @@ async function ejecutarUpsert(
         }
         const existente = await strapi.db.query(UID_PRODUCTO).findOne({
           where: { id_original: idOriginal },
-          populate: ['variantes', 'clasificaciones', 'categoria']
+          populate: { variantes: { populate: ['portada'] }, clasificaciones: true, categoria: true },
         });
 
         if (existente) {
@@ -1294,6 +1404,17 @@ async function ejecutarUpsert(
               ...(existente.clasificaciones?.[index]?.id ? { id: existente.clasificaciones[index].id } : {}), ...c,
             }));
           }
+          if (Array.isArray(productoData.variantes)) {
+            heredarPortadasDePadres(productoData.variantes, {
+              idOriginalDestino: idOriginal,
+              documentIdDestino: existente.documentId,
+              nombreDestino: productoData.nombre || existente.nombre || p.nombre || '',
+              existingById: oldById,
+              skuIndex,
+              padresConvertidosMap,
+              addLog,
+            });
+          }
           const range = calcularRangoPrecios({
             precio: productoData.precio !== undefined ? productoData.precio : existente.precio,
             precio_oferta: productoData.precio_oferta !== undefined ? productoData.precio_oferta : existente.precio_oferta,
@@ -1338,6 +1459,15 @@ async function ejecutarUpsert(
           if (useFullVariants) {
             asignarIdsAutomaticos(productoData.variantes);
           }
+          if (Array.isArray(productoData.variantes)) {
+            heredarPortadasDePadres(productoData.variantes, {
+              idOriginalDestino: idOriginal,
+              nombreDestino: productoData.nombre || p.nombre || '',
+              skuIndex,
+              padresConvertidosMap,
+              addLog,
+            });
+          }
           validarVariantesProducto(productoData.variantes || []);
           Object.assign(productoData, calcularRangoPrecios(productoData));
           await strapi.documents(UID_PRODUCTO).create({
@@ -1380,6 +1510,7 @@ async function ejecutarUpsert(
     sinCambios,
     errores,
     erroresList,
+    padresConvertidos: [...padresConvertidosMap.values()],
     tiempoSegundos: parseFloat(elapsed),
     log,
   };

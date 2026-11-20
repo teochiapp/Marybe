@@ -40,3 +40,50 @@ test('una importación completa conserva el mensaje de éxito', async () => {
   } });
   expect(await screen.findByText('¡Importación exitosa!')).toBeInTheDocument();
 });
+
+test('muestra productos padre pasados a variantes y permite eliminarlos desde el resultado', async () => {
+  await upload({
+    ok: true,
+    parcial: false,
+    datos: {
+      totalProductos: 1,
+      creados: 0,
+      actualizados: 1,
+      sinCambios: 0,
+      errores: 0,
+      erroresList: [],
+      padresConvertidos: [
+        {
+          documentId: 'doc-viejo-1',
+          id_original: 'OLD-1',
+          nombre: 'Perfume Viejo',
+          sku: 'EAN-OLD-1',
+          portadaHeredada: true,
+          destinoIdOriginal: 'P-DEST',
+          destinoNombre: 'Perfume Destino',
+        },
+      ],
+      tiempoSegundos: 0.3,
+      log: [],
+    },
+  });
+
+  expect(await screen.findByText(/Productos padre pasados a variantes/i)).toBeInTheDocument();
+  expect(screen.getByText('Perfume Viejo')).toBeInTheDocument();
+  expect(screen.getByText(/Portada heredada/i)).toBeInTheDocument();
+
+  axios.post.mockResolvedValueOnce({
+    data: { ok: true, eliminados: [{ documentId: 'doc-viejo-1' }], errores: [] },
+  });
+
+  fireEvent.click(screen.getByRole('button', { name: 'Eliminar viejo' }));
+
+  await waitFor(() =>
+    expect(axios.post).toHaveBeenLastCalledWith(
+      expect.stringContaining('/api/importacion-admin/eliminar-padres-migrados'),
+      { documentIds: ['doc-viejo-1'] },
+      expect.objectContaining({ headers: { Authorization: 'Bearer test-token' } })
+    )
+  );
+  expect(await screen.findByText('✅ Eliminado')).toBeInTheDocument();
+});

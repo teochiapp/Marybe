@@ -32,6 +32,11 @@ export default function ImportacionAdmin() {
   const [cargandoTaxonomia, setCargandoTaxonomia] = useState(false);
   const [eliminandoItem, setEliminandoItem] = useState(null); // id del ítem siendo eliminado
 
+  // Productos padre viejos convertidos en variantes
+  const [padresEliminados, setPadresEliminados] = useState([]);
+  const [eliminandoPadres, setEliminandoPadres] = useState(false);
+  const [errorEliminarPadres, setErrorEliminarPadres] = useState('');
+
   // Verificación state
   const [verificando, setVerificando] = useState(false);
   const [verificacionRes, setVerificacionRes] = useState(null);
@@ -112,6 +117,8 @@ export default function ImportacionAdmin() {
     setUploading(true);
     setUploadError('');
     setResultado(null);
+    setPadresEliminados([]);
+    setErrorEliminarPadres('');
     setProgreso(0);
 
     const formData = new FormData();
@@ -154,6 +161,32 @@ export default function ImportacionAdmin() {
       }
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleEliminarPadresMigrados = async (documentIds) => {
+    if (!Array.isArray(documentIds) || documentIds.length === 0) return;
+    setEliminandoPadres(true);
+    setErrorEliminarPadres('');
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/importacion-admin/eliminar-padres-migrados`,
+        { documentIds },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const idsOk = (res.data?.eliminados || []).map(item => item.documentId);
+      if (idsOk.length > 0) {
+        setPadresEliminados(prev => Array.from(new Set([...prev, ...idsOk])));
+      }
+      if (res.data?.errores?.length > 0) {
+        setErrorEliminarPadres(
+          res.data.errores.map(e => `${e.documentId}: ${e.mensaje}`).join(' · ')
+        );
+      }
+    } catch (err) {
+      setErrorEliminarPadres(err.response?.data?.error?.message || err.message || 'No se pudieron eliminar los productos viejos.');
+    } finally {
+      setEliminandoPadres(false);
     }
   };
 
@@ -516,6 +549,77 @@ export default function ImportacionAdmin() {
             <p className="ia-resultado-time">
               Tiempo total: <strong>{resultado.datos?.tiempoSegundos}s</strong>
             </p>
+
+            {resultado.datos?.padresConvertidos?.length > 0 && (() => {
+              const pendientes = resultado.datos.padresConvertidos.filter(
+                item => !padresEliminados.includes(item.documentId)
+              );
+              return (
+                <div className="ia-migrados">
+                  <div className="ia-migrados-header">
+                    <h4 className="ia-migrados-title">
+                      🖼️ Productos padre pasados a variantes ({resultado.datos.padresConvertidos.length})
+                    </h4>
+                    {pendientes.length > 1 && (
+                      <button
+                        type="button"
+                        className="ia-migrados-btn ia-migrados-btn--bulk"
+                        disabled={eliminandoPadres}
+                        onClick={() => handleEliminarPadresMigrados(pendientes.map(i => i.documentId))}
+                      >
+                        {eliminandoPadres ? 'Eliminando...' : `Eliminar todos los viejos (${pendientes.length})`}
+                      </button>
+                    )}
+                  </div>
+                  <p className="ia-migrados-desc">
+                    Las variantes ya conservaron la portada del producto padre en la Media Library. Podés eliminar el producto padre viejo acá mismo:
+                  </p>
+                  {errorEliminarPadres && (
+                    <p role="alert" className="ia-migrados-error">
+                      {errorEliminarPadres}
+                    </p>
+                  )}
+                  <ul className="ia-migrados-list">
+                    {resultado.datos.padresConvertidos.map((item) => {
+                      const eliminado = padresEliminados.includes(item.documentId);
+                      return (
+                        <li
+                          key={item.documentId}
+                          className={`ia-migrados-item${eliminado ? ' ia-migrados-item--eliminado' : ''}`}
+                        >
+                          <div className="ia-migrados-info">
+                            <div className="ia-migrados-name-row">
+                              <strong className="ia-migrados-name">{item.nombre || item.id_original}</strong>
+                              {item.portadaHeredada && (
+                                <span className="ia-migrados-badge">Portada heredada</span>
+                              )}
+                            </div>
+                            <span className="ia-migrados-meta">
+                              ID {item.id_original}{item.sku ? ` · SKU ${item.sku}` : ''}
+                            </span>
+                            <span className="ia-migrados-dest">
+                              → Variante en {item.destinoNombre || item.destinoIdOriginal} (ID {item.destinoIdOriginal})
+                            </span>
+                          </div>
+                          {eliminado ? (
+                            <span className="ia-migrados-done">✅ Eliminado</span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="ia-migrados-btn"
+                              disabled={eliminandoPadres}
+                              onClick={() => handleEliminarPadresMigrados([item.documentId])}
+                            >
+                              Eliminar viejo
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })()}
 
             {resultado.datos?.log?.length > 0 && (
               <div className="ia-console-wrap">

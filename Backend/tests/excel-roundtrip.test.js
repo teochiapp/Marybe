@@ -1149,3 +1149,180 @@ test('cancela toda la importacion antes de guardar si hay ID padre repetido sin 
     assert.equal(state.creates.length, 0, `Proveedor (${caso.label}) no debe ejecutar creates`);
   }
 });
+
+test('variantes nuevas heredan portada.id de un producto padre existente por id_original o sku_ean y reportan padresConvertidos', async () => {
+  const destino = {
+    id: 1,
+    documentId: 'doc-destino',
+    id_original: 'P-DEST',
+    sku: 'SKU-DEST',
+    nombre: 'Perfume Destino',
+    marca: 'Marca',
+    proveedor: 'Proveedor, S.A.',
+    descripcion: '',
+    especificaciones: '',
+    seccion: 'Perfumería',
+    subcategoria: 'Mujer',
+    tipo: 'Eau de Parfum',
+    caracteristicas: '',
+    publicado: true,
+    destacado: false,
+    stock: 10,
+    precio: 1000,
+    precio_oferta: null,
+    descuento: 0,
+    portada: { id: 10 },
+    clasificaciones: [{ id: 11, seccion: 'Perfumería', categoria: 'Fragancias', subcategoria: 'Mujer', tipo: 'Eau de Parfum' }],
+    variantes: [
+      { id: 21, id_original: 'V-EXIST', sku_ean: 'EAN-EXIST', volumen: '50 ml', stock: 5, precio: 1000, precio_oferta: null, publicado: true, envio: '1', portada: { id: 99 } },
+    ],
+    categoria: { id: 31, documentId: 'cat-fragancias', nombre: 'Fragancias', seccion: 'Perfumería' },
+  };
+  const padrePorId = {
+    id: 2,
+    documentId: 'doc-viejo-id',
+    id_original: 'V-MIG-ID',
+    sku: 'SKU-VIEJO-1',
+    nombre: 'Perfume Viejo Por ID',
+    proveedor: 'Proveedor, S.A.',
+    portada: { id: 501 },
+    variantes: [],
+  };
+  const padrePorSku = {
+    id: 3,
+    documentId: 'doc-viejo-sku',
+    id_original: 'OLD-999',
+    sku: 'EAN-VIEJO-2',
+    nombre: 'Perfume Viejo Por SKU',
+    proveedor: 'Proveedor, S.A.',
+    portada: { id: 502 },
+    variantes: [],
+  };
+
+  const todos = [destino, padrePorId, padrePorSku];
+  const updates = [];
+  const strapi = {
+    log: { info() {}, error() {} },
+    db: {
+      query(uid) {
+        assert.equal(uid, PRODUCTO);
+        return {
+          async findOne({ where }) {
+            const found = todos.find(p => p.id_original === where.id_original);
+            return found ? structuredClone(found) : null;
+          },
+        };
+      },
+    },
+    documents(uid) {
+      if (uid === PRODUCTO) {
+        return {
+          async findMany({ filters, start = 0, limit = 100 }) {
+            const lista = filters?.proveedor?.$in
+              ? [destino]
+              : todos;
+            return structuredClone(lista).slice(start, start + limit);
+          },
+          async update({ documentId, data }) {
+            updates.push({ documentId, data: structuredClone(data) });
+            return data;
+          },
+          async create({ data }) { return data; },
+        };
+      }
+      if (uid === CATEGORIA) {
+        return {
+          async findMany() { return [{ documentId: 'cat-fragancias', nombre: 'Fragancias', seccion: 'Perfumería', subcategorias: [] }]; },
+          async update() {},
+          async create({ data }) { return { ...data, documentId: 'cat-new' }; },
+          async publish() {},
+        };
+      }
+      throw new Error(`Unexpected UID ${uid}`);
+    },
+  };
+
+  const wb = await supplierWorkbook(strapi);
+  const wsV = wb.getWorksheet('🔗 Variantes');
+  const nextRow1 = wsV.getRow(wsV.rowCount + 1);
+  // Columnas Variantes: A ID Var, B ID Padre, C Nombre, D SKU/EAN, E Volumen, F Stock, G Precio, H Oferta, I %Desc, J Publicado, K Envío, L Color
+  ['V-MIG-ID', 'P-DEST', 'Perfume Destino', 'EAN-NUEVO-1', '100 ml', 4, 1500, '', '', 'SI', '1', ''].forEach((v, i) => {
+    nextRow1.getCell(i + 1).value = v;
+  });
+  const nextRow2 = wsV.getRow(wsV.rowCount + 1);
+  ['', 'P-DEST', 'Perfume Destino', 'EAN-VIEJO-2', '200 ml', 3, 2000, '', '', 'SI', '1', ''].forEach((v, i) => {
+    nextRow2.getCell(i + 1).value = v;
+  });
+  const nextRow3 = wsV.getRow(wsV.rowCount + 1);
+  ['', 'P-DEST', 'Perfume Destino', 'SKU-DEST', '30 ml', 2, 900, '', '', 'SI', '1', ''].forEach((v, i) => {
+    nextRow3.getCell(i + 1).value = v;
+  });
+
+  const res = await importWorkbook(strapi, wb);
+  assert.equal(res.errores, 0);
+  assert.equal(updates.length, 1);
+
+  const variantesFinales = updates[0].data.variantes;
+  const vExist = variantesFinales.find(v => v.id_original === 'V-EXIST');
+  const vMigId = variantesFinales.find(v => v.id_original === 'V-MIG-ID');
+  const vMigSku = variantesFinales.find(v => v.sku_ean === 'EAN-VIEJO-2');
+  const vPropioPadre = variantesFinales.find(v => v.sku_ean === 'SKU-DEST');
+
+  assert.equal(vExist.portada, 99, 'debe conservar portada existente como ID numérico');
+  assert.equal(vMigId.portada, 501, 'debe heredar portada por coincidencia de id_original');
+  assert.equal(vMigSku.portada, 502, 'debe heredar portada por coincidencia de sku_ean');
+  assert.equal(vPropioPadre.portada, 10, 'debe heredar portada del propio padre sin marcarlo para eliminar');
+  assert.equal(res.padresConvertidos.length, 2);
+  assert.deepEqual(
+    res.padresConvertidos.map(p => ({ documentId: p.documentId, portadaHeredada: p.portadaHeredada })).sort((a, b) => a.documentId.localeCompare(b.documentId)),
+    [
+      { documentId: 'doc-viejo-id', portadaHeredada: true },
+      { documentId: 'doc-viejo-sku', portadaHeredada: true },
+    ]
+  );
+});
+
+test('controller eliminarPadresMigrados elimina productos padre viejos autenticados', async () => {
+  const controller = require('../src/api/importacion-admin/controllers/importacion-admin');
+  const deleted = [];
+  const prevStrapi = global.strapi;
+  const secret = 'test-secret-padres';
+  const token = jwt.sign({ isAdminImport: true }, secret);
+  global.strapi = {
+    config: { get: () => secret },
+    log: { info() {}, error() {} },
+    documents(uid) {
+      assert.equal(uid, PRODUCTO);
+      return {
+        async findOne({ documentId }) {
+          return documentId === 'doc-viejo-1' ? { documentId, id_original: 'OLD-1', nombre: 'Viejo 1' } : null;
+        },
+        async delete({ documentId }) {
+          deleted.push(documentId);
+        },
+      };
+    },
+  };
+
+  try {
+    let sent = null;
+    const ctx = {
+      request: {
+        header: { authorization: `Bearer ${token}` },
+        body: { documentIds: ['doc-viejo-1', 'doc-inexistente'] },
+      },
+      unauthorized: msg => ({ status: 401, msg }),
+      badRequest: msg => ({ status: 400, msg }),
+      send: body => { sent = body; return body; },
+    };
+
+    await controller.eliminarPadresMigrados(ctx);
+    assert.deepEqual(deleted, ['doc-viejo-1']);
+    assert.equal(sent.eliminados.length, 1);
+    assert.equal(sent.eliminados[0].documentId, 'doc-viejo-1');
+    assert.equal(sent.errores.length, 1);
+    assert.equal(sent.errores[0].documentId, 'doc-inexistente');
+  } finally {
+    global.strapi = prevStrapi;
+  }
+});

@@ -244,6 +244,7 @@ module.exports = {
           sinCambios:              resultado.sinCambios || 0,
           errores:                 resultado.errores,
           erroresList:             resultado.erroresList,
+          padresConvertidos:       resultado.padresConvertidos || [],
           tiempoSegundos:          resultado.tiempoSegundos,
           log:                     resultado.log,
         },
@@ -554,5 +555,54 @@ module.exports = {
       strapi.log.error(`[ImportAdmin] Error eliminando tipo ${tipoId}: ${err.message}`);
       return ctx.internalServerError(`Error al eliminar tipo: ${err.message}`);
     }
+  },
+
+  /**
+   * POST /api/importacion-admin/eliminar-padres-migrados
+   * Elimina productos padre viejos que ya fueron convertidos en variantes.
+   * No borra archivos de la Media Library (las variantes conservan la imagen).
+   */
+  async eliminarPadresMigrados(ctx) {
+    if (!verificarAdminImportacion(ctx)) {
+      return ctx.unauthorized('No autenticado.');
+    }
+
+    const rawIds = ctx.request.body?.documentIds;
+    if (!Array.isArray(rawIds) || rawIds.length === 0 || rawIds.length > 50) {
+      return ctx.badRequest('Enviá entre 1 y 50 documentIds válidos para eliminar.');
+    }
+
+    const documentIds = [...new Set(rawIds.map(id => (typeof id === 'string' ? id.trim() : '')).filter(Boolean))];
+    if (documentIds.length === 0) {
+      return ctx.badRequest('No se recibieron documentIds válidos.');
+    }
+
+    const docs = strapi.documents('api::producto.producto');
+    const eliminados = [];
+    const errores = [];
+
+    for (const documentId of documentIds) {
+      try {
+        const prod =
+          (await docs.findOne({ documentId, status: 'published', fields: ['id_original', 'nombre'] })) ||
+          (await docs.findOne({ documentId, status: 'draft', fields: ['id_original', 'nombre'] }));
+        if (!prod) {
+          errores.push({ documentId, mensaje: 'Producto no encontrado o ya eliminado.' });
+          continue;
+        }
+        await docs.delete({ documentId });
+        strapi.log.info(`[AUDIT] action=DELETE_PADRE_MIGRADO_A_VARIANTE documentId=${documentId} id_original=${prod.id_original || ''} nombre="${prod.nombre || ''}" timestamp=${new Date().toISOString()}`);
+        eliminados.push({ documentId, id_original: prod.id_original || '', nombre: prod.nombre || '' });
+      } catch (err) {
+        strapi.log.error(`[ImportAdmin] Error eliminando producto migrado ${documentId}: ${err.message}`);
+        errores.push({ documentId, mensaje: err.message });
+      }
+    }
+
+    return ctx.send({
+      ok: errores.length === 0,
+      eliminados,
+      errores,
+    });
   },
 };

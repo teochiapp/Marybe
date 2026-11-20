@@ -96,5 +96,15 @@ module.exports = {
         tags: ['Admin'],
       },
     },
+    {
+      method: 'POST',
+      path: '/importacion-admin/eliminar-padres-migrados',
+      handler: 'importacion-admin.eliminarPadresMigrados',
+      config: {
+        auth: false,
+        description: 'Elimina productos padre viejos que fueron pasados a variantes tras la importación',
+        tags: ['Admin'],
+      },
+    },
   ],
 };
